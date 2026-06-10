@@ -54,7 +54,8 @@ UFS = [
 def rest(table: str, params: dict) -> pd.DataFrame:
     """GET no PostgREST com paginação automática (Range)."""
     rows: list[dict] = []
-    offset, page = 0, 10_000
+    # Supabase limita cada resposta a 1000 linhas (db-max-rows)
+    offset, page = 0, 1_000
     while True:
         headers = {**HEADERS, "Range-Unit": "items", "Range": f"{offset}-{offset + page - 1}"}
         r = requests.get(f"{SUPABASE_URL}/rest/v1/{table}", params=params, headers=headers, timeout=60)
@@ -104,7 +105,8 @@ params = {
     "capitulo_cid": f"eq.{capitulo}",
     "sexo": "eq.TOTAL",
     "faixa_etaria": "eq.TOTAL",
-    "order": "mes_competencia",
+    # ordenação determinística é obrigatória para paginação por offset
+    "order": "mes_competencia,uf_sigla",
 }
 if uf != "Brasil":
     params["uf_sigla"] = f"eq.{uf}"
@@ -134,6 +136,7 @@ with col_a:
         "sexo": "eq.TOTAL",
         "faixa_etaria": "neq.TOTAL",
         "ano": f"eq.{ano}",
+        "order": "faixa_etaria,uf_sigla,mes_competencia",
     }
     if uf != "Brasil":
         p["uf_sigla"] = f"eq.{uf}"
@@ -152,6 +155,7 @@ with col_b:
         "sexo": "neq.TOTAL",
         "faixa_etaria": "eq.TOTAL",
         "ano": f"eq.{ano}",
+        "order": "sexo,uf_sigla,mes_competencia",
     }
     if uf != "Brasil":
         p["uf_sigla"] = f"eq.{uf}"
@@ -179,16 +183,17 @@ if uf != "Brasil":
 rank = rest("mart_mortalidade_municipio", p)
 if not rank.empty:
     rank.columns = ["Município", "UF", "Óbitos", "População", "Taxa /100k hab"]
-    st.dataframe(rank, use_container_width=True, height=380)
+    st.dataframe(rank, width="stretch", height=380)
 
 # ── Top causas ────────────────────────────────────────────────────────────────
 st.subheader(f"Principais causas básicas (CID-10) — {uf}, {ano}")
-p = {"select": "causabas_3,obitos", "ano": f"eq.{ano}", "order": "obitos.desc"}
+# agregação server-side (PostgREST agrupa pelas colunas não agregadas)
+p = {"select": "causabas_3,obitos:obitos.sum()", "ano": f"eq.{ano}", "order": "causabas_3"}
 if uf != "Brasil":
     p["uf_sigla"] = f"eq.{uf}"
 causas = rest("mart_mortalidade_causa", p)
 if not causas.empty:
-    top = causas.groupby("causabas_3", as_index=False)["obitos"].sum().nlargest(15, "obitos")
+    top = causas.nlargest(15, "obitos")
     st.bar_chart(top.set_index("causabas_3")["obitos"], height=320)
     st.caption("Códigos CID-10 de 3 caracteres (ex.: I21 = infarto agudo do miocárdio, C34 = neoplasia de brônquios/pulmões).")
 
