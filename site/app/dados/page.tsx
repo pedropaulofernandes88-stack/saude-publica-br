@@ -115,12 +115,49 @@ resp <- request("${SUPABASE_URL}/rest/v1/mart_mortalidade_causa") |>
 df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
       </pre>
 
-      <h2>Download em lote (Parquet)</h2>
+      <h2>Repositório de dados (download em lote)</h2>
       <p>
-        Os mesmos marts estão versionados como arquivos Parquet no repositório
-        (<code>data/marts/</code>), ideais para DuckDB, pandas ou Arrow — úteis
-        quando a análise exige a base completa.
+        A base completa está disponível em <strong>Parquet</strong> — ideal para
+        DuckDB, pandas, Arrow ou R. O repositório é <strong>somente leitura</strong>{" "}
+        e cada arquivo tem hash SHA-256 publicado para verificação de integridade.
       </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Arquivo</th>
+            <th>Tamanho</th>
+            <th>SHA-256</th>
+          </tr>
+        </thead>
+        <tbody>
+          {[
+            ["mart_mortalidade_municipio.parquet", "5,7 MB", "d9648fbd240033477a8854f2d3139d5fc1d434a601a997a386668fee88fb6b82"],
+            ["mart_mortalidade_uf_mes.parquet", "1,2 MB", "3658cea00a05ba45f4379be35cc20b2000ddd31ef41fbc5aca440b0918fc4826"],
+            ["mart_mortalidade_causa.parquet", "0,2 MB", "24179a19691f56447e8c903570a408271bece76fd9ee520c914c1ccf9f9ede2e"],
+            ["dim_municipio.parquet", "0,06 MB", "c446195fc9c5aa637948efde3c79bcd84dd70e059893008bd43924f189e446ee"],
+            ["dim_populacao.parquet", "0,05 MB", "0af1b438eb832284c220f91f0c3aab32a3d0b7ff7d9ee60454d81c8dffc2d9b6"],
+          ].map(([nome, tamanho, sha]) => (
+            <tr key={nome}>
+              <td>
+                <a href={`${SUPABASE_URL}/storage/v1/object/public/dados/${nome}`} download>
+                  {nome}
+                </a>
+              </td>
+              <td>{tamanho}</td>
+              <td>
+                <code style={{ fontSize: "0.7em", wordBreak: "break-all" }}>{sha}</code>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <pre>
+        <code>{`# Verificar integridade após o download
+sha256sum mart_mortalidade_municipio.parquet
+
+# Ler direto da URL com DuckDB (sem baixar)
+duckdb -c "SELECT uf_sigla, sum(obitos) FROM read_parquet('${SUPABASE_URL}/storage/v1/object/public/dados/mart_mortalidade_uf_mes.parquet') WHERE capitulo_cid='TOTAL' AND sexo='TOTAL' AND faixa_etaria='TOTAL' GROUP BY 1 ORDER BY 2 DESC"`}</code>
+      </pre>
 
       <h2>Licença e citação</h2>
       <p>

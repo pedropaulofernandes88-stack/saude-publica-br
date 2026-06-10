@@ -20,10 +20,10 @@ export const metadata: Metadata = {
 };
 
 const NAV = [
-  { href: "/", label: "Início" },
-  { href: "/painel/", label: "Painel" },
-  { href: "/dados/", label: "Dados & API" },
-  { href: "/metodologia/", label: "Metodologia" },
+  { href: "/", label: "Início", curto: "Início" },
+  { href: "/painel/", label: "Painel", curto: "Painel" },
+  { href: "/dados/", label: "Dados & API", curto: "Dados" },
+  { href: "/metodologia/", label: "Metodologia", curto: "Método" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -31,23 +31,24 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="pt-BR" className={`${inter.variable} ${serif.variable}`}>
       <body className="flex min-h-screen flex-col font-sans">
         <header className="sticky top-0 z-40 border-b border-ink-200 bg-white/90 backdrop-blur">
-          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-            <Link href="/" className="flex items-center gap-2.5">
-              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-accent-700 font-serif text-lg font-bold text-white">
+          <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:px-6">
+            <Link href="/" className="flex shrink-0 items-center gap-2 sm:gap-2.5">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-accent-700 font-serif text-base font-bold text-white sm:h-9 sm:w-9 sm:text-lg">
                 S
               </span>
-              <span className="font-serif text-lg font-semibold tracking-tight text-ink-900">
+              <span className="whitespace-nowrap font-serif text-base font-semibold tracking-tight text-ink-900 sm:text-lg">
                 Saúde Pública <span className="text-accent-700">BR</span>
               </span>
             </Link>
-            <nav className="flex items-center gap-1 sm:gap-2">
+            <nav className="flex items-center gap-0 overflow-x-auto sm:gap-2">
               {NAV.map((item) => (
                 <Link
                   key={item.href}
                   href={item.href}
-                  className="rounded-lg px-3 py-2 text-sm font-medium text-ink-600 transition hover:bg-ink-100 hover:text-ink-900"
+                  className={`whitespace-nowrap rounded-lg px-2 py-2 text-[13px] font-medium text-ink-600 transition hover:bg-ink-100 hover:text-ink-900 sm:px-3 sm:text-sm ${item.href === "/" ? "hidden sm:inline-flex" : ""}`}
                 >
-                  {item.label}
+                  <span className="sm:hidden">{item.curto}</span>
+                  <span className="hidden sm:inline">{item.label}</span>
                 </Link>
               ))}
             </nav>
