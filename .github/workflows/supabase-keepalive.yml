@@ -1,0 +1,20 @@
+# Mantém o projeto Supabase free tier ativo (pausa após 7 dias sem requisições).
+# Roda nos dias 1, 7, 13, 19, 25 e 31 de cada mês — intervalo máximo de 6 dias.
+# A anon key é pública por design (somente leitura via RLS).
+name: Supabase keep-alive
+
+on:
+  schedule:
+    - cron: "17 6 */6 * *"
+  workflow_dispatch:
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Consulta de leitura na API pública
+        run: |
+          curl -fsS \
+            "https://zekjhmxjamatlxpkykde.supabase.co/rest/v1/meta_dataset?select=chave,valor&chave=eq.gerado_em" \
+            -H "apikey: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpla2pobXhqYW1hdGx4cGt5a2RlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODEwNzY4MzIsImV4cCI6MjA5NjY1MjgzMn0.px8FcU0QK8w9v95kwGlGzASKpY3drsxAvFe0e6wUoCU"
+          echo "Supabase ativo — $(date -u +%Y-%m-%dT%H:%M:%SZ)"

@@ -44,8 +44,21 @@ curl "$URL/rest/v1/mart_mortalidade_municipio?uf_sigla=eq.MG&ano=eq.2023&capitul
 
 Guia completo, tabelas e exemplos: **[PUBLICACAO_CUSTO_ZERO.md](PUBLICACAO_CUSTO_ZERO.md)**
 
-**Dashboard interativo**: `streamlit run dashboard_publico/app.py`
+**Site oficial (Next.js)**: em [`site/`](site/) — home, painel navegável com
+filtros (UF, ano, causa CID-10, sexo), ranking de municípios com exportação
+CSV, página de dados/API e metodologia completa. Export 100% estático:
+
+```bash
+cd site && npm install && npm run build   # gera site/out/ — hospede grátis na Vercel/Cloudflare Pages
+```
+
+**Dashboard alternativo (Streamlit)**: `streamlit run dashboard_publico/app.py`
 (ou publique grátis no [Streamlit Community Cloud](https://share.streamlit.io)).
+
+**Keep-alive**: o free tier do Supabase pausa após 7 dias sem requisições.
+O workflow [.github/workflows/supabase-keepalive.yml](.github/workflows/supabase-keepalive.yml)
+faz uma consulta a cada ≤6 dias (e há um script equivalente para o Agendador
+de Tarefas do Windows em [scripts/supabase_keepalive.ps1](scripts/supabase_keepalive.ps1)).
 
 ## 📊 Dados publicados
 

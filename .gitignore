@@ -43,3 +43,10 @@ htmlcov/
 pytest-cache-files-*/
 .claude/
 *.pyc
+
+# Site Next.js
+site/node_modules/
+site/.next/
+site/out/
+scripts/supabase_keepalive.log
+.claude/launch.json
