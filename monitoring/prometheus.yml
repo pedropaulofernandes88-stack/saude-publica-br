@@ -1,0 +1,55 @@
+# ============================================================
+# monitoring/prometheus.yml
+# saude-publica-br — Configuração do Prometheus
+#
+# Scrape targets:
+#   • fastapi  → http://api:8000/metrics      (prometheus-fastapi-instrumentator)
+#   • nginx    → http://nginx:80/nginx-status  (stub_status via nginx_exporter)
+#   • prometheus → self-scrape
+#
+# Retention: 15 dias (padrão; ajustar via --storage.tsdb.retention.time)
+# ============================================================
+
+global:
+  scrape_interval:     15s   # coleta a cada 15s
+  evaluation_interval: 15s   # avalia alertas a cada 15s
+  scrape_timeout:      10s
+
+  external_labels:
+    project: "saude-publica-br"
+    env:     "production"
+
+# ---------------------------------------------------------------------------
+# Regras de alerta (future: criar arquivos em rules/)
+# ---------------------------------------------------------------------------
+# rule_files:
+#   - "rules/*.yml"
+
+# ---------------------------------------------------------------------------
+# Scrape configs
+# ---------------------------------------------------------------------------
+scrape_configs:
+
+  # ── FastAPI /metrics ─────────────────────────────────────────────────────
+  - job_name: "fastapi"
+    metrics_path: /metrics
+    static_configs:
+      - targets: ["api:8000"]
+        labels:
+          service: "api"
+          language: "python"
+
+  # ── nginx stub_status (via nginx-prometheus-exporter) ────────────────────
+  # O exporter lê http://nginx/nginx-status e traduz para formato Prometheus
+  - job_name: "nginx"
+    static_configs:
+      - targets: ["nginx-exporter:9113"]
+        labels:
+          service: "nginx"
+
+  # ── Prometheus self-scrape ────────────────────────────────────────────────
+  - job_name: "prometheus"
+    static_configs:
+      - targets: ["localhost:9090"]
+        labels:
+          service: "prometheus"

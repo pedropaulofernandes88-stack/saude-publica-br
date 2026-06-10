@@ -1,0 +1,45 @@
+# Ambiente
+.env
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Dados (nunca commitar dados brutos do DataSUS)
+data/raw/
+data/parquet/
+data/logs/
+*.dbc
+*.dbc.gz
+
+# dbt
+dbt/target/
+dbt/dbt_packages/
+dbt/logs/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Coverage
+.coverage
+htmlcov/
+.pytest_cache/
+
+# Local
+pytest-cache-files-*/
+.claude/
+*.pyc

@@ -1,0 +1,65 @@
+name: "saude_publica_br"
+version: "0.1.0"
+config-version: 2
+
+profile: "saude_publica_br"
+
+model-paths: ["models"]
+analysis-paths: ["analyses"]
+test-paths: ["tests"]
+seed-paths: ["seeds"]
+macro-paths: ["macros"]
+snapshot-paths: ["snapshots"]
+
+target-path: "target"
+clean-targets:
+  - "target"
+  - "dbt_packages"
+
+# Configurações de materialização por camada
+models:
+  saude_publica_br:
+    staging:
+      +materialized: view
+      +schema: staging
+      +tags: ["staging"]
+
+    intermediate:
+      +materialized: table
+      +schema: intermediate
+      +tags: ["intermediate"]
+
+    marts:
+      +materialized: table
+      +schema: marts
+      +tags: ["marts"]
+      +indexes:
+        - columns: [mes_competencia, uf_sigla]
+          unique: false
+        - columns: [mes_competencia, municipio_cod]
+          unique: false
+
+# Variáveis globais do projeto
+vars:
+  # Período de análise
+  ano_inicio: 2020
+  ano_fim: 2024
+  
+  # Filtros de qualidade
+  qtd_minima_registros: 1
+  min_anos_sazonalidade: 3
+  
+  # Thresholds de anomalia (desvios padrão)
+  threshold_anomalia_sigma: 2.5
+  threshold_baixa_cobertura: 0.5   # 50% da média estadual
+  
+  # Pesos de complexidade para índice
+  peso_ab: 1
+  peso_mc: 2
+  peso_ac: 3
+
+on-run-start:
+  - "{{ log('Iniciando dbt run — saude-publica-br', info=True) }}"
+
+on-run-end:
+  - "{{ log('dbt run finalizado!', info=True) }}"

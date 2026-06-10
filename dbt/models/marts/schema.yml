@@ -1,0 +1,329 @@
+version: 2
+
+sources:
+  - name: raw
+    description: "Dados brutos ingeridos do DataSUS via PySUS, particionados por UF"
+    schema: raw
+    tables:
+
+      - name: sia_pa
+        description: "SIA – Produção Ambulatorial (procedimentos realizados por UF/ano)"
+        columns:
+          - name: id
+            description: "Identificador único do registro (SERIAL)"
+            tests: [not_null]
+          - name: uf_sigla
+            description: "Sigla do estado (chave de partição)"
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                           "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                           "RO","RR","RS","SC","SE","SP","TO"]
+          - name: ano
+            description: "Ano de competência"
+            tests: [not_null]
+          - name: mes
+            description: "Mês de competência (1–12)"
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+          - name: loaded_at
+            description: "Timestamp de carga"
+            tests: [not_null]
+
+      - name: sim_do
+        description: "SIM – Declarações de Óbito"
+        columns:
+          - name: id
+            tests: [not_null]
+          - name: uf_sigla
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                           "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                           "RO","RR","RS","SC","SE","SP","TO"]
+          - name: ano
+            tests: [not_null]
+          - name: causa_basica_cid10
+            description: "CID-10 da causa básica de óbito"
+
+      - name: sih_aih
+        description: "SIH – Autorizações de Internação Hospitalar"
+        columns:
+          - name: id
+            tests: [not_null]
+          - name: uf_sigla
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                           "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                           "RO","RR","RS","SC","SE","SP","TO"]
+          - name: ano
+            tests: [not_null]
+          - name: val_tot
+            description: "Valor total da AIH em R$"
+
+      - name: sinan
+        description: "SINAN – Agravos de Notificação Compulsória"
+        columns:
+          - name: id
+            tests: [not_null]
+          - name: uf_sigla
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                           "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                           "RO","RR","RS","SC","SE","SP","TO"]
+          - name: ano
+            tests: [not_null]
+
+      - name: cnes
+        description: "CNES – Cadastro Nacional de Estabelecimentos de Saúde"
+        columns:
+          - name: id
+            tests: [not_null]
+          - name: uf_sigla
+            tests:
+              - not_null
+              - accepted_values:
+                  values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                           "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                           "RO","RR","RS","SC","SE","SP","TO"]
+          - name: ano
+            tests: [not_null]
+
+models:
+
+  # ============================================================
+  # Mart Nacional de Produção Ambulatorial
+  # ============================================================
+  - name: mart_nacional_producao
+    description: >
+      Mart agregado de produção ambulatorial SIA/PA para todos os 27 estados.
+      Granularidade: UF × Ano × Mês × Complexidade.
+      Inclui procedimentos realizados, valor em R$, pacientes únicos,
+      taxa por 1.000 hab e variação YoY.
+    config:
+      materialized: table
+      schema: marts
+    tests:
+      - dbt_utils.recency:
+          datepart: year
+          field: ano
+          interval: 1
+    columns:
+      - name: uf_sigla
+        description: "Sigla do estado (2 chars)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                       "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                       "RO","RR","RS","SC","SE","SP","TO"]
+      - name: nome_uf
+        description: "Nome completo do estado"
+        tests: [not_null]
+      - name: regiao
+        description: "Região geográfica (Norte, Nordeste, Centro-Oeste, Sudeste, Sul)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
+      - name: ano
+        description: "Ano de competência"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [2019, 2020, 2021, 2022, 2023, 2024]
+      - name: mes
+        description: "Mês de competência"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+      - name: complexidade
+        description: "Nível de complexidade do procedimento (AB, MC, AC, etc.)"
+        tests: [not_null]
+      - name: procedimentos
+        description: "Quantidade de procedimentos realizados"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: valor_brl
+        description: "Valor total dos procedimentos em R$"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: taxa_proc_por_1k_hab
+        description: "Procedimentos por 1.000 habitantes"
+      - name: variacao_yoy_pct
+        description: "Variação percentual de procedimentos em relação ao mesmo mês/UF do ano anterior"
+      - name: atualizado_em
+        description: "Timestamp de geração do mart"
+        tests: [not_null]
+
+  # ============================================================
+  # Mart Nacional de Mortalidade
+  # ============================================================
+  - name: mart_nacional_mortalidade
+    description: >
+      Mart agregado de mortalidade SIM/DO para todos os 27 estados.
+      Granularidade: UF × Ano × Mês × CID-10 capítulo × Sexo × Faixa etária.
+      Inclui taxa de mortalidade por 100k hab, % causas crônicas e variação YoY.
+    config:
+      materialized: table
+      schema: marts
+    columns:
+      - name: uf_sigla
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                       "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                       "RO","RR","RS","SC","SE","SP","TO"]
+      - name: regiao
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
+      - name: ano
+        tests:
+          - not_null
+          - accepted_values:
+              values: [2019, 2020, 2021, 2022, 2023, 2024]
+      - name: cid10_capitulo
+        description: "Capítulo do CID-10 (A–Z)"
+        tests: [not_null]
+      - name: sexo
+        description: "Sexo do falecido"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Masculino", "Feminino", "Ignorado"]
+      - name: faixa_etaria
+        description: "Faixa etária do falecido"
+        tests: [not_null]
+      - name: obitos
+        description: "Total de óbitos"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: taxa_mortalidade_100k
+        description: "Taxa bruta de mortalidade por 100.000 habitantes"
+      - name: pct_causas_cronicas
+        description: "Percentual de óbitos por causas crônicas (CID: I, J, C, K, E, F, G, N, O)"
+      - name: atualizado_em
+        tests: [not_null]
+
+  # ============================================================
+  # Mart Nacional de Capacidade Instalada
+  # ============================================================
+  - name: mart_nacional_capacidade
+    description: >
+      Mart agregado de capacidade instalada CNES para todos os 27 estados.
+      Granularidade: UF × Ano × Tipo de unidade.
+      Inclui leitos SUS, UTI, médicos, enfermeiros e taxas por habitante.
+    config:
+      materialized: table
+      schema: marts
+    columns:
+      - name: uf_sigla
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                       "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                       "RO","RR","RS","SC","SE","SP","TO"]
+      - name: regiao
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
+      - name: ano
+        tests:
+          - not_null
+          - accepted_values:
+              values: [2019, 2020, 2021, 2022, 2023, 2024]
+      - name: tipo_unidade_cod
+        description: "Código do tipo de estabelecimento de saúde"
+        tests: [not_null]
+      - name: tipo_unidade_descricao
+        description: "Descrição legível do tipo de estabelecimento"
+        tests: [not_null]
+      - name: estabelecimentos
+        description: "Total de estabelecimentos CNES (ativos e inativos)"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: leitos_sus
+        description: "Total de leitos SUS disponíveis"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: taxa_leitos_sus_1k
+        description: "Leitos SUS por 1.000 habitantes"
+      - name: taxa_medicos_1k
+        description: "Médicos por 1.000 habitantes"
+      - name: atualizado_em
+        tests: [not_null]
+
+  # ============================================================
+  # Mart Nacional de Doenças e Agravos
+  # ============================================================
+  - name: mart_nacional_doencas
+    description: >
+      Mart agregado de doenças e agravos (SINAN + SIH/AIH) para todos os 27 estados.
+      Granularidade: UF × Ano × Semana epidemiológica × Agravo × CID-10.
+      Inclui taxa de incidência, letalidade, alerta epidemiológico e variação YoY.
+    config:
+      materialized: table
+      schema: marts
+    columns:
+      - name: uf_sigla
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA",
+                       "MG","MS","MT","PA","PB","PE","PI","PR","RJ","RN",
+                       "RO","RR","RS","SC","SE","SP","TO"]
+      - name: regiao
+        tests:
+          - not_null
+          - accepted_values:
+              values: ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"]
+      - name: ano
+        tests:
+          - not_null
+          - accepted_values:
+              values: [2019, 2020, 2021, 2022, 2023, 2024]
+      - name: agravo
+        description: "Nome do agravo de notificação compulsória"
+        tests: [not_null]
+      - name: notificacoes
+        description: "Total de notificações no SINAN"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "> 0"
+      - name: casos_confirmados
+        description: "Casos confirmados pelo critério laboratorial ou clínico-epidemiológico"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: ">= 0"
+      - name: taxa_incidencia_100k
+        description: "Taxa de incidência por 100.000 habitantes"
+      - name: taxa_letalidade_pct
+        description: "Taxa de letalidade (óbitos/confirmados × 100)"
+      - name: alerta_epidemiologico
+        description: "TRUE se incidência cresceu > 20% em relação ao ano anterior"
+        tests: [not_null]
+      - name: atualizado_em
+        tests: [not_null]

@@ -1,0 +1,362 @@
+version: 2
+
+models:
+  - name: stg_sia_pa
+    description: >
+      Produção Ambulatorial do SIA normalizada e limpa. Uma linha por registro
+      de procedimento aprovado. Dados filtrados: qtd_aprovada > 0 e municipio_cod
+      com 6 dígitos válidos.
+    columns:
+      - name: pa_id_unico
+        description: Hash SHA256 do registro original para deduplicação
+        tests:
+          - not_null
+
+      - name: proc_id
+        description: "Código do procedimento SIGTAP (10 dígitos, com zeros à esquerda)"
+        tests:
+          - not_null
+
+      - name: municipio_cod
+        description: Código IBGE do município de atendimento (6 dígitos)
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "length(municipio_cod) = 6"
+
+      - name: uf_sigla
+        description: Sigla da UF (2 letras)
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT',
+                       'PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO']
+
+      - name: mes_competencia
+        description: "Competência no formato YYYYMM (ex: 202301)"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "mes_competencia ~ '^[0-9]{6}$'"
+
+      - name: ano_competencia
+        description: Ano da competência (4 dígitos)
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "ano_competencia between 2000 and 2030"
+
+      - name: mes_num
+        description: Número do mês (1–12)
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: qtd_aprovada
+        description: Quantidade de procedimentos aprovados
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "qtd_aprovada > 0"
+
+      - name: valor_aprovado
+        description: Valor financeiro aprovado (R$)
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "valor_aprovado >= 0"
+
+      - name: cid_primario
+        description: "Código CID-10 primário (pode ser NULL para proc. sem CID obrigatório)"
+
+      - name: carater_atendimento
+        description: "Caráter de atendimento: 01=eletivo, 02=urgência"
+        tests:
+          - accepted_values:
+              values: ['01', '02']
+              where: "carater_atendimento is not null"
+
+  - name: stg_ref_sigtap
+    description: >
+      Tabela de procedimentos SIGTAP normalizada. Referência mestre de proc_id com
+      nome, complexidade e grupo.
+    columns:
+      - name: proc_id
+        description: "Código do procedimento (10 dígitos)"
+        tests:
+          - not_null
+          - unique
+
+      - name: nome_procedimento
+        description: Nome do procedimento
+        tests:
+          - not_null
+
+      - name: complexidade
+        description: "Nível de complexidade: AB=Atenção Básica, MC=Média, AC=Alta"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['AB', 'MC', 'AC']
+
+      - name: complexidade_label
+        description: "Label legível da complexidade"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Atenção Básica', 'Média Complexidade', 'Alta Complexidade']
+
+  - name: stg_ref_cid10
+    description: >
+      Tabela de referência CID-10 normalizada. Codigos e capítulos.
+    columns:
+      - name: codigo_cid
+        description: Código CID-10 (letras maiúsculas, normalizado)
+        tests:
+          - not_null
+          - unique
+
+      - name: nome_cid
+        description: Descrição do diagnóstico
+        tests:
+          - not_null
+
+      - name: capitulo_cid
+        description: "Capítulo CID-10 (ex: 'Cap. I - Certas doenças infecciosas')"
+
+  - name: stg_ibge_municipios
+    description: >
+      Municípios brasileiros do IBGE. Referência geográfica.
+    columns:
+      - name: municipio_cod6
+        description: "Código IBGE 6 dígitos (sem dígito verificador)"
+        tests:
+          - not_null
+          - unique
+          - dbt_utils.expression_is_true:
+              expression: "length(municipio_cod6) = 6"
+
+      - name: nome_municipio
+        description: "Nome do município (INITCAP)"
+        tests:
+          - not_null
+
+      - name: uf_sigla
+        description: Sigla da UF
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['AC','AL','AM','AP','BA','CE','DF','ES','GO','MA','MG','MS','MT',
+                       'PA','PB','PE','PI','PR','RJ','RN','RO','RR','RS','SC','SE','SP','TO']
+
+  - name: stg_ibge_populacao
+    description: >
+      Estimativas populacionais municipais do IBGE. Uma linha por (municipio, ano).
+    columns:
+      - name: municipio_cod
+        description: Código IBGE 6 dígitos
+        tests:
+          - not_null
+
+      - name: ano
+        description: Ano da estimativa
+        tests:
+          - not_null
+
+      - name: populacao_estimada
+        description: Estimativa populacional
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "populacao_estimada > 0"
+
+  - name: stg_sinan_notificacoes
+    description: >
+      Notificações de doenças compulsórias do SINAN normalizadas e limpas.
+      Uma linha por notificação individual. Inclui colunas derivadas: agravo_label,
+      faixa_etaria e is_obito. Filtrado por ano dentro do intervalo configurado.
+    columns:
+      - name: nu_notific
+        description: "Número da notificação (pode não ser único entre agravos distintos)"
+        tests:
+          - not_null
+
+      - name: agravo
+        description: "Código do agravo (ex: DENG, CHIK, ZIKA)"
+        tests:
+          - not_null
+
+      - name: agravo_label
+        description: "Label humanizado do agravo (dengue, chikungunya, zika, …)"
+        tests:
+          - not_null
+
+      - name: ano_notif
+        description: "Ano da notificação"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "ano_notif between 2000 and 2030"
+
+      - name: mes_notif
+        description: "Mês da notificação (1–12)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: uf_notif
+        description: "UF de notificação (sigla 2 letras)"
+        tests:
+          - not_null
+
+      - name: municipio_notif
+        description: "Código IBGE 6 dígitos do município de notificação"
+        tests:
+          - not_null
+
+      - name: cs_sexo
+        description: "Sexo do paciente: M, F ou I (ignorado)"
+        tests:
+          - accepted_values:
+              values: ['M', 'F', 'I']
+              where: "cs_sexo is not null"
+
+      - name: faixa_etaria
+        description: "Faixa etária derivada: 0-4, 5-14, 15-29, 30-59, 60+, ND"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['0-4', '5-14', '15-29', '30-59', '60+', 'ND']
+
+      - name: classi_fin
+        description: "Classificação final do caso (1=confirmado, 2=alarme, 3=grave, …)"
+
+      - name: is_obito
+        description: "TRUE se evolução indica óbito (evolucao IN 2, 3)"
+        tests:
+          - not_null
+
+  - name: stg_cnes_estabelecimentos
+    description: >
+      Estabelecimentos de saúde do CNES-ST normalizados. Uma linha por
+      (cnes, ano_cmpt, mes_cmpt). Inclui capacidades de leitos, ambulatório e
+      serviços especializados. Colunas derivadas: esfera_adm_desc, tp_gestao_desc,
+      vincula_sus, qt_leitos_total.
+    columns:
+      - name: cnes
+        description: "Código CNES do estabelecimento (7 dígitos)"
+        tests:
+          - not_null
+
+      - name: ano_cmpt
+        description: "Ano da competência"
+        tests:
+          - not_null
+
+      - name: mes_cmpt
+        description: "Mês da competência (1–12)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: uf
+        description: "Sigla da UF (2 letras)"
+        tests:
+          - not_null
+
+      - name: municipio_cod
+        description: "Código IBGE 6 dígitos do município"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "length(municipio_cod) = 6"
+
+      - name: vincula_sus
+        description: "TRUE se o estabelecimento tem vínculo com o SUS"
+        tests:
+          - not_null
+
+      - name: qt_leitos_total
+        description: "Total de leitos (SUS + não-SUS) informados na ST"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "qt_leitos_total >= 0"
+
+      - name: esfera_adm_desc
+        description: "Esfera administrativa: Federal, Estadual, Municipal, Privado, Outro/Ignorado"
+
+      - name: tp_gestao_desc
+        description: "Tipo de gestão: Estadual, Municipal, Dupla, Sem gestão, Outro/Ignorado"
+
+  - name: stg_cnes_leitos
+    description: >
+      Leitos por tipo e especialidade do CNES-LT normalizados. Uma linha por
+      (cnes, tp_leito, cod_espec, ano_cmpt, mes_cmpt). Inclui quantidades
+      existentes, SUS, não-SUS e contratualizadas. Coluna derivada: tp_leito_grupo
+      e pct_sus.
+    columns:
+      - name: cnes
+        description: "Código CNES do estabelecimento"
+        tests:
+          - not_null
+
+      - name: ano_cmpt
+        description: "Ano da competência"
+        tests:
+          - not_null
+
+      - name: mes_cmpt
+        description: "Mês da competência (1–12)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: uf
+        description: "Sigla da UF"
+        tests:
+          - not_null
+
+      - name: municipio_cod
+        description: "Código IBGE 6 dígitos do município"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "length(municipio_cod) = 6"
+
+      - name: tp_leito
+        description: "Código do tipo de leito (01–07)"
+        tests:
+          - not_null
+
+      - name: tp_leito_grupo
+        description: "Grupo do leito: Cirúrgico, Clínico, Complementar, Obstétrico, Pediátrico, Reabilitação, Outro/Ignorado"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['Cirúrgico', 'Clínico', 'Complementar', 'Obstétrico', 'Pediátrico', 'Reabilitação', 'Outro/Ignorado']
+
+      - name: qt_exist
+        description: "Quantidade de leitos existentes"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "qt_exist >= 0"
+
+      - name: qt_sus
+        description: "Quantidade de leitos SUS"
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "qt_sus >= 0"
+
+      - name: pct_sus
+        description: "Proporção de leitos SUS sobre total existente (NULL se qt_exist = 0)"
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "pct_sus between 0 and 1"
+              where: "pct_sus is not null"

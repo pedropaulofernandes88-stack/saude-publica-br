@@ -1,0 +1,230 @@
+# ============================================================
+# saude-publica-br — docker-compose.yml  (produção com dados reais)
+# saudeemdado.com — Hetzner CX31 + Volume 300 GB
+#
+# Serviços:
+#   postgres       — PostgreSQL 16 (dados reais DataSUS, volume externo)
+#   redis          — Cache da API
+#   api            — FastAPI + asyncpg
+#   frontend       — Next.js
+#   nginx          — Reverse proxy SSL (saudeemdado.com)
+#   nginx-exporter — Métricas nginx → Prometheus
+#   prometheus     — Coleta de métricas
+#   grafana        — Dashboards operacionais
+#
+# Volumes:
+#   postgres_data  → bind mount em /mnt/dados/postgres  (volume Hetzner 300 GB)
+#   redis_data     → volume docker local
+#   prometheus_data→ volume docker local
+#   grafana_data   → volume docker local
+# ============================================================
+version: "3.9"
+
+services:
+
+  # ── PostgreSQL 16 (banco principal com dados reais DataSUS) ──────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: saude_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-saude_publica}
+      POSTGRES_USER: ${POSTGRES_USER:-saude}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # Tuning para servidor com 8 GB RAM (CX31)
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8 --locale=pt_BR.UTF-8"
+    command: >
+      postgres
+        -c shared_buffers=2GB
+        -c effective_cache_size=6GB
+        -c maintenance_work_mem=512MB
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=64MB
+        -c default_statistics_target=100
+        -c random_page_cost=1.1
+        -c effective_io_concurrency=200
+        -c work_mem=10485kB
+        -c min_wal_size=1GB
+        -c max_wal_size=4GB
+        -c max_worker_processes=4
+        -c max_parallel_workers_per_gather=2
+        -c max_parallel_workers=4
+        -c max_parallel_maintenance_workers=2
+        -c log_min_duration_statement=1000
+        -c log_connections=off
+        -c log_disconnections=off
+    ports:
+      - "127.0.0.1:5432:5432"   # só localhost — não exposto à internet
+    volumes:
+      # bind mount no volume Hetzner (300 GB montado em /mnt/dados)
+      - /mnt/dados/postgres:/var/lib/postgresql/data
+      # scripts de inicialização (migrations)
+      - ./migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-saude} -d ${POSTGRES_DB:-saude_publica}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  # ── Redis ────────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: saude_redis
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    command: redis-server --save 60 1 --loglevel warning --maxmemory 512mb --maxmemory-policy allkeys-lru
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  # ── FastAPI ──────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: saude_api
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-saude}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-saude_publica}
+      REDIS_URL: redis://redis:6379/0
+      PORT: "8000"
+      ENV: production
+      API_SECRET_KEY: ${API_SECRET_KEY}
+      JWT_SECRET_KEY: ${JWT_SECRET_KEY}
+      CORS_ORIGINS: https://saudeemdado.com,https://www.saudeemdado.com
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 15s
+
+  # ── Next.js frontend ─────────────────────────────────────────────────────────
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: https://saudeemdado.com/api
+    container_name: saude_frontend
+    restart: unless-stopped
+    environment:
+      NODE_ENV: production
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  # ── nginx ────────────────────────────────────────────────────────────────────
+  nginx:
+    build:
+      context: ./nginx
+      dockerfile: Dockerfile
+    container_name: saude_nginx
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt:/etc/letsencrypt:ro   # certificados Let's Encrypt do host
+    depends_on:
+      api:
+        condition: service_healthy
+      frontend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/nginx-health"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── nginx exporter ────────────────────────────────────────────────────────────
+  nginx-exporter:
+    image: nginx/nginx-prometheus-exporter:1.1
+    container_name: saude_nginx_exporter
+    restart: unless-stopped
+    command: ["--nginx.scrape-uri=http://nginx/nginx-status"]
+    depends_on:
+      nginx:
+        condition: service_healthy
+
+  # ── Prometheus ───────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: saude_prometheus
+    restart: unless-stopped
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=30d"
+      - "--web.enable-lifecycle"
+    depends_on: [api, nginx-exporter]
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:9090/-/ready"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:10.4.2
+    container_name: saude_grafana
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:3001:3000"   # só localhost — acesse via SSH tunnel
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+      GF_SECURITY_ADMIN_USER: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+      GF_LOG_LEVEL: warn
+    depends_on:
+      prometheus:
+        condition: service_healthy
+
+  # ── pgbackup — backup automático diário (opcional) ───────────────────────────
+  pgbackup:
+    image: prodrigestivill/postgres-backup-local:16
+    container_name: saude_pgbackup
+    restart: unless-stopped
+    volumes:
+      - /mnt/dados/backups:/backups
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: ${POSTGRES_DB:-saude_publica}
+      POSTGRES_USER: ${POSTGRES_USER:-saude}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      SCHEDULE: "@daily"
+      BACKUP_KEEP_DAYS: 7
+      BACKUP_KEEP_WEEKS: 4
+      BACKUP_KEEP_MONTHS: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+volumes:
+  redis_data:
+  prometheus_data:
+  grafana_data:

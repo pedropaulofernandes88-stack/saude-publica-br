@@ -1,0 +1,38 @@
+# profiles.yml — Configuração de conexão dbt
+# Coloque em ~/.dbt/profiles.yml OU defina DBT_PROFILES_DIR=./dbt no .env
+
+saude_publica_br:
+  target: dev
+
+  outputs:
+    # Ambiente de desenvolvimento — Supabase Cloud
+    dev:
+      type: postgres
+      host: "db.{{ env_var('SUPABASE_HOST', 'xxxx.supabase.co') }}"
+      port: 5432
+      user: postgres
+      password: "{{ env_var('SUPABASE_DB_PASSWORD', '') }}"
+      dbname: postgres
+      schema: public
+      threads: 4
+      keepalives_idle: 0
+      connect_timeout: 10
+      search_path: public,staging,intermediate,marts
+
+    # Alternativa: DuckDB local sobre Parquet (sem custo Supabase)
+    duckdb:
+      type: duckdb
+      path: "data/analytics.duckdb"
+      threads: 4
+      schema: main
+
+    # Produção (Supabase Pro ou self-hosted)
+    prod:
+      type: postgres
+      host: "{{ env_var('PROD_DB_HOST') }}"
+      port: 5432
+      user: "{{ env_var('PROD_DB_USER') }}"
+      password: "{{ env_var('PROD_DB_PASSWORD') }}"
+      dbname: "{{ env_var('PROD_DB_NAME', 'postgres') }}"
+      schema: public
+      threads: 8

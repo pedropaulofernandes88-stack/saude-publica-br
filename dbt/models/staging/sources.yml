@@ -1,0 +1,166 @@
+version: 2
+
+sources:
+  - name: raw
+    schema: public
+    description: "Dados brutos ingeridos pelo pipeline Python (PySUS + PyArrow)"
+    tables:
+      - name: sia_pa_raw
+        description: "Produção Ambulatorial SIA/PA — DataSUS bruto, particionado por UF"
+        columns:
+          - name: mes_competencia
+            description: "Mês/Ano de competência (AAAAMM)"
+            tests: [not_null]
+          - name: municipio_cod
+            description: "Código IBGE do município (6 dígitos)"
+          - name: proc_id
+            description: "Código SIGTAP do procedimento (10 dígitos)"
+          - name: qtd_aprovada
+            description: "Quantidade de procedimentos aprovados"
+            tests:
+              - not_null
+              - dbt_utils.expression_is_true:
+                  expression: ">= 1"
+          - name: uf_sigla
+            description: "Sigla da UF"
+            tests:
+              - not_null
+              - accepted_values:
+                  values: [AC,AL,AP,AM,BA,CE,DF,ES,GO,MA,MT,MS,MG,PA,PB,PR,PE,PI,RJ,RN,RS,RO,RR,SC,SP,SE,TO]
+
+      - name: ref_sigtap
+        description: "Tabela SIGTAP — procedimentos do SUS"
+        columns:
+          - name: proc_id
+            tests: [not_null, unique]
+          - name: complexidade
+            tests:
+              - accepted_values:
+                  values: ['01', '02', '03']
+                  quote: true
+
+      - name: ref_cid10
+        description: "CID-10 — Classificação Internacional de Doenças"
+        columns:
+          - name: codigo_cid
+            tests: [not_null, unique]
+
+      - name: ref_ibge_municipios
+        description: "Municípios brasileiros (IBGE)"
+        columns:
+          - name: municipio_cod6
+            tests: [not_null, unique]
+
+      - name: ref_ibge_populacao
+        description: "Estimativas populacionais anuais por município (IBGE)"
+        columns:
+          - name: municipio_cod6
+            tests: [not_null]
+          - name: ano_referencia
+            tests: [not_null]
+          - name: populacao_estimada
+            tests:
+              - not_null
+              - dbt_utils.expression_is_true:
+                  expression: "> 0"
+
+      - name: sim_do_raw
+        description: "Sistema de Informações sobre Mortalidade (SIM/DO) — DataSUS bruto, particionado por UF e ano"
+        columns:
+          - name: ano_obito
+            description: "Ano do óbito"
+            tests: [not_null]
+          - name: municipio_res
+            description: "Código IBGE 6 dígitos do município de residência"
+            tests: [not_null]
+          - name: causabas
+            description: "Causa básica do óbito (CID-10)"
+            tests: [not_null]
+          - name: uf_arquivo
+            description: "UF de origem do arquivo DataSUS"
+            tests: [not_null]
+
+      - name: sih_aih_raw
+        description: "Sistema de Informações Hospitalares (SIH/AIH) — DataSUS bruto, particionado por UF e competência"
+        columns:
+          - name: ano_cmpt
+            description: "Ano da competência"
+            tests: [not_null]
+          - name: mes_cmpt
+            description: "Mês da competência (1–12)"
+            tests: [not_null]
+          - name: municipio_res
+            description: "Código IBGE 6 dígitos do município de residência do paciente"
+            tests: [not_null]
+          - name: diag_princ
+            description: "Diagnóstico principal (CID-10)"
+            tests: [not_null]
+          - name: uf_arquivo
+            description: "UF de origem do arquivo DataSUS"
+            tests: [not_null]
+
+      - name: sinan_notificacoes
+        description: "Sistema de Informação de Agravos de Notificação (SINAN) — notificações de doenças compulsórias, particionado por agravo e UF"
+        columns:
+          - name: nu_notific
+            description: "Número da notificação"
+            tests: [not_null]
+          - name: agravo
+            description: "Código do agravo (DENG, CHIK, ZIKA, …)"
+            tests: [not_null]
+          - name: ano_notif
+            description: "Ano da notificação"
+            tests: [not_null]
+          - name: uf_notif
+            description: "UF de notificação (sigla 2 letras)"
+            tests: [not_null]
+          - name: uf_arquivo
+            description: "UF de origem do arquivo DataSUS"
+            tests: [not_null]
+
+      - name: cnes_estabelecimentos
+        description: "CNES ST — estabelecimentos de saúde (capacidades, serviços, vínculo SUS), particionado por UF e competência"
+        columns:
+          - name: cnes
+            description: "Código CNES do estabelecimento (7 dígitos)"
+            tests: [not_null]
+          - name: ano_cmpt
+            description: "Ano da competência"
+            tests: [not_null]
+          - name: mes_cmpt
+            description: "Mês da competência (1–12)"
+            tests: [not_null]
+          - name: uf
+            description: "Sigla da UF do estabelecimento"
+            tests: [not_null]
+          - name: municipio_cod
+            description: "Código IBGE 6 dígitos do município"
+            tests: [not_null]
+          - name: uf_arquivo
+            description: "UF de origem do arquivo DataSUS"
+            tests: [not_null]
+
+      - name: cnes_leitos
+        description: "CNES LT — leitos por tipo e especialidade, particionado por UF e competência"
+        columns:
+          - name: cnes
+            description: "Código CNES do estabelecimento (7 dígitos)"
+            tests: [not_null]
+          - name: ano_cmpt
+            description: "Ano da competência"
+            tests: [not_null]
+          - name: mes_cmpt
+            description: "Mês da competência (1–12)"
+            tests: [not_null]
+          - name: uf
+            description: "Sigla da UF do estabelecimento"
+            tests: [not_null]
+          - name: municipio_cod
+            description: "Código IBGE 6 dígitos do município"
+            tests: [not_null]
+          - name: tp_leito
+            description: "Código do tipo de leito (01=Cirúrgico, 02=Clínico, …)"
+            tests: [not_null]
+          - name: uf_arquivo
+            description: "UF de origem do arquivo DataSUS"
+            tests: [not_null]

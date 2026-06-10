@@ -1,0 +1,126 @@
+<div align="center">
+
+# 🏥 saude-publica-br
+
+**Dados abertos do SUS transformados em inteligência epidemiológica acessível**
+
+Mortalidade no Brasil (SIM/DataSUS) — 27 estados, 5.570+ municípios,
+4,4 milhões de óbitos (2022–2024) — em uma API pública gratuita.
+
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
+[![Custo](https://img.shields.io/badge/Custo-R%24%200%2Fm%C3%AAs-success.svg)](PUBLICACAO_CUSTO_ZERO.md)
+
+</div>
+
+---
+
+## O que é isso?
+
+Os dados do SUS são públicos, mas **inacessíveis na prática**: arquivos
+fragmentados, formatos proprietários, sem padronização. Pesquisadores perdem
+semanas para obter um indicador simples.
+
+**saude-publica-br** automatiza o processo — coleta → normalização →
+indicadores → API → visualização — e publica o resultado **a custo zero**,
+para todo o público de pesquisa.
+
+## 🚀 Acesso imediato (sem instalar nada)
+
+**API REST pública** (PostgREST/Supabase):
+
+```bash
+URL="https://zekjhmxjamatlxpkykde.supabase.co"
+KEY="<chave pública de leitura — veja .env.example>"
+
+# Série mensal de óbitos no Brasil (todas as causas)
+curl "$URL/rest/v1/mart_mortalidade_uf_mes?select=mes_competencia,uf_sigla,obitos&capitulo_cid=eq.TOTAL&sexo=eq.TOTAL&faixa_etaria=eq.TOTAL" \
+  -H "apikey: $KEY"
+
+# Municípios de MG com maior taxa de mortalidade em 2023 (pop ≥ 50 mil)
+curl "$URL/rest/v1/mart_mortalidade_municipio?uf_sigla=eq.MG&ano=eq.2023&capitulo_cid=eq.TOTAL&sexo=eq.TOTAL&populacao=gte.50000&order=taxa_obitos_100k.desc&limit=20" \
+  -H "apikey: $KEY"
+```
+
+Guia completo, tabelas e exemplos: **[PUBLICACAO_CUSTO_ZERO.md](PUBLICACAO_CUSTO_ZERO.md)**
+
+**Dashboard interativo**: `streamlit run dashboard_publico/app.py`
+(ou publique grátis no [Streamlit Community Cloud](https://share.streamlit.io)).
+
+## 📊 Dados publicados
+
+| Conjunto | Fonte | Cobertura |
+|----------|-------|-----------|
+| Óbitos por município, ano, capítulo CID-10 e sexo (+ taxas /100k hab) | SIM/DataSUS | 2022–2024, nacional |
+| Série mensal de óbitos por UF, causa, sexo e faixa etária | SIM/DataSUS | 2022–2024, nacional |
+| Óbitos por causa básica (CID-10, 3 caracteres) por UF e ano | SIM/DataSUS | 2022–2024, nacional |
+| Municípios (códigos IBGE, UF, região) | IBGE | 5.571 municípios |
+| População municipal por ano | IBGE Censo 2022 + Estimativas | 2022–2024 |
+
+Metodologia: óbitos fetais excluídos; ano mais recente pode ser preliminar;
+população de 2023 por interpolação Censo 2022 ↔ Estimativas 2024. Metadados
+completos na tabela `meta_dataset` da própria API.
+
+## 🔁 Reprodutibilidade
+
+Todo o dataset é gerado por um único script auditável, a partir de fontes
+100% abertas:
+
+```bash
+pip install duckdb pandas pyarrow requests
+python scripts/pipeline_custo_zero.py --anos 2022 2023 2024
+```
+
+O script baixa os microdados nacionais do
+[OpenDataSUS](https://opendatasus.saude.gov.br/dataset/sim) (~1,5 GB), agrega
+4,4M+ registros com DuckDB em segundos e publica apenas os marts compactos
+(~150 MB) no Postgres.
+
+## Arquitetura de publicação (R$ 0/mês)
+
+```
+OpenDataSUS (SIM, CSV)   IBGE (localidades + SIDRA)
+        └──────────┬──────────┘
+                   ▼
+     pipeline_custo_zero.py  (local: DuckDB)
+                   │
+                   ▼
+     Supabase free tier (Postgres + PostgREST)
+        ├── API REST pública (leitura, RLS)
+        └── Dashboard Streamlit (Community Cloud)
+```
+
+## 🏗️ Modo completo (self-hosted)
+
+O repositório também contém a plataforma completa para quem quiser hospedar
+com mais sistemas (SIA, SIH, SINAN, CNES), API FastAPI própria, dbt,
+orquestração Prefect e observabilidade:
+
+- `api/` — FastAPI REST (producao, internacoes, mortalidade, epidemiologia…)
+- `dbt/` — staging → intermediate → marts
+- `ingestion/` — ingestão PySUS por estado/sistema/ano
+- `dashboard/` — Streamlit multi-página
+- `frontend/` — Next.js 14 (esqueleto)
+- `docker-compose.yml`, `nginx/`, `monitoring/` — stack de produção
+
+Veja [SETUP.md](SETUP.md) e [LAUNCH.md](LAUNCH.md) (requer servidor pago,
+~€4–30/mês). O caminho recomendado e mantido é o de custo zero.
+
+## Roadmap
+
+- [x] Publicação a custo zero — mortalidade nacional 2022–2024 (SIM)
+- [ ] SINAN (dengue e agravos de notificação) via OpenDataSUS
+- [ ] SIH (internações) — agregados por UF
+- [ ] Anos históricos (2010–2021) conforme couber no free tier
+- [ ] Mortalidade infantil e materna (indicadores derivados)
+
+## Contribuindo
+
+Contribuições são bem-vindas — leia [CONTRIBUTING.md](CONTRIBUTING.md).
+Áreas prioritárias: novos indicadores, validação epidemiológica, documentação
+e tutoriais de uso da API para pesquisadores.
+
+## Licença
+
+Código: MIT. Dados originais: DATASUS/Ministério da Saúde e IBGE — públicos;
+cite as fontes em trabalhos acadêmicos.

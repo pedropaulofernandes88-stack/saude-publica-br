@@ -1,0 +1,73 @@
+name: dbt Docs
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "dbt/**"
+      - ".github/workflows/dbt-docs.yml"
+  workflow_dispatch:   # permite rodar manualmente
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Garante que só uma publicação roda por vez
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build-and-deploy:
+    name: Generate & Publish dbt Docs
+    runs-on: ubuntu-22.04
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: dbt/requirements-dbt.txt
+
+      - name: Install dbt
+        run: pip install --upgrade pip && pip install -r dbt/requirements-dbt.txt
+
+      - name: Generate dbt docs
+        working-directory: dbt
+        env:
+          DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
+          # Supabase connection (secrets registrados no repo)
+          SUPABASE_HOST: ${{ secrets.SUPABASE_HOST }}
+          SUPABASE_PORT: "5432"
+          SUPABASE_DB: ${{ secrets.SUPABASE_DB }}
+          SUPABASE_USER: ${{ secrets.SUPABASE_USER }}
+          SUPABASE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+        run: |
+          dbt deps
+          dbt docs generate --profiles-dir . --target prod
+
+      - name: Move docs to publish dir
+        run: |
+          mkdir -p _site
+          cp dbt/target/index.html   _site/
+          cp dbt/target/catalog.json _site/
+          cp dbt/target/manifest.json _site/
+          cp dbt/target/run_results.json _site/ || true
+          cp dbt/target/graph.gpickle  _site/ || true
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,139 @@
+version: 2
+
+models:
+  - name: int_pop_municipio_mes
+    description: >
+      Estimativa populacional expandida de anual para mensal. Para cada município
+      e cada mês do período, mantém a estimativa do ano correspondente.
+      Permite calcular taxas por habitante em qualquer competência mensal.
+    columns:
+      - name: municipio_cod
+        description: Código IBGE 6 dígitos do município
+        tests:
+          - not_null
+
+      - name: ano
+        description: Ano da estimativa utilizada
+        tests:
+          - not_null
+
+      - name: mes
+        description: Número do mês (1–12)
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]
+
+      - name: mes_competencia
+        description: "Chave de competência YYYYMM"
+        tests:
+          - not_null
+
+      - name: populacao_estimada
+        description: Estimativa populacional do município no ano
+        tests:
+          - not_null
+          - dbt_utils.expression_is_true:
+              expression: "populacao_estimada > 0"
+
+  - name: int_proc_complexidade
+    description: >
+      Tabela de procedimentos com peso de complexidade calculado via dbt vars.
+      AB=peso_ab(1), MC=peso_mc(2), AC=peso_ac(3).
+    columns:
+      - name: proc_id
+        description: Código do procedimento SIGTAP
+        tests:
+          - not_null
+          - unique
+
+      - name: complexidade
+        description: "Código de complexidade: AB, MC, AC"
+        tests:
+          - not_null
+          - accepted_values:
+              values: ['AB', 'MC', 'AC']
+
+      - name: complexidade_label
+        description: Label legível da complexidade
+        tests:
+          - not_null
+
+      - name: peso_complexidade
+        description: "Peso numérico para cálculo do índice composto (1, 2 ou 3)"
+        tests:
+          - not_null
+          - accepted_values:
+              values: [1, 2, 3]
+
+  - name: int_sia_pa_enriched
+    description: >
+      Modelo central de dados enriquecidos. Junta stg_sia_pa com referências
+      de procedimento (complexidade + peso), CID-10 (capítulo), município
+      (nome, UF) e população mensal. É a base para todos os marts.
+      Filtrado pelo período configurado via dbt vars (ano_inicio..ano_fim).
+    config:
+      indexes:
+        - columns: [mes_competencia, uf_sigla]
+        - columns: [mes_competencia, municipio_cod]
+        - columns: [proc_id]
+        - columns: [cid_primario]
+    columns:
+      - name: proc_id
+        description: Código do procedimento SIGTAP
+        tests:
+          - not_null
+
+      - name: municipio_cod
+        description: Código IBGE 6 dígitos
+        tests:
+          - not_null
+
+      - name: uf_sigla
+        description: Sigla da UF (2 letras)
+        tests:
+          - not_null
+
+      - name: mes_competencia
+        description: "Competência YYYYMM"
+        tests:
+          - not_null
+
+      - name: ano_competencia
+        description: Ano da competência
+        tests:
+          - not_null
+
+      - name: mes_num
+        description: Número do mês (1–12)
+        tests:
+          - not_null
+
+      - name: qtd_aprovada
+        description: Quantidade de procedimentos aprovados
+        tests:
+          - not_null
+
+      - name: valor_aprovado
+        description: Valor aprovado em R$
+        tests:
+          - not_null
+
+      - name: complexidade
+        description: "Complexidade do procedimento: AB, MC ou AC (NULL se não encontrado)"
+
+      - name: peso_complexidade
+        description: Peso numérico da complexidade (1, 2 ou 3)
+
+      - name: capitulo_cid
+        description: Capítulo CID-10 do diagnóstico primário (pode ser NULL)
+
+      - name: nome_municipio
+        description: Nome do município (INITCAP)
+
+      - name: populacao_estimada
+        description: Estimativa populacional do município/mês (para cálculo de taxas)
+        tests:
+          - dbt_utils.expression_is_true:
+              expression: "populacao_estimada > 0"
+              where: "populacao_estimada is not null"

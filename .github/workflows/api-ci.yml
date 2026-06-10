@@ -1,0 +1,96 @@
+name: API CI
+
+on:
+  push:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+  pull_request:
+    paths:
+      - "api/**"
+      - ".github/workflows/api-ci.yml"
+
+jobs:
+  lint-and-test:
+    name: Lint & Test (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    services:
+      postgres:
+        image: postgres:15-alpine
+        env:
+          POSTGRES_USER: saude
+          POSTGRES_PASSWORD: saude
+          POSTGRES_DB: saude_publica
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U saude"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+asyncpg://saude:saude@localhost:5432/saude_publica
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: api/requirements*.txt
+
+      - name: Install dependencies
+        working-directory: api
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Ruff lint
+        working-directory: api
+        run: ruff check . --output-format=github
+
+      - name: Ruff format check
+        working-directory: api
+        run: ruff format --check .
+
+      - name: mypy type check
+        working-directory: api
+        run: mypy . --ignore-missing-imports --no-error-summary
+
+      - name: Apply SQL migrations
+        env:
+          PGPASSWORD: saude
+        run: |
+          for f in $(ls migrations/V*.sql | sort); do
+            echo "Applying $f …"
+            psql -h localhost -U saude -d saude_publica -f "$f"
+          done
+
+      - name: Pytest
+        working-directory: api
+        run: |
+          pytest tests/ \
+            -v \
+            --tb=short \
+            --cov=. \
+            --cov-report=term-missing \
+            --cov-report=xml:coverage.xml \
+            -x
+
+      - name: Upload coverage
+        if: matrix.python-version == '3.12'
+        uses: codecov/codecov-action@v4
+        with:
+          files: api/coverage.xml
+          flags: api
+          fail_ci_if_error: false

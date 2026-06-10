@@ -1,0 +1,97 @@
+# ============================================================
+# deploy.yml — CI/CD unificado: testa, depois deploia
+# API → Railway  |  Frontend → Vercel
+# ============================================================
+name: 🚀 Deploy — saudeemdado.com
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # permite trigger manual no GitHub
+
+jobs:
+  # ── Testes ────────────────────────────────────────────────────────────────
+  test:
+    name: ✅ Testes (27 API + validação)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Instalar dependências
+        run: pip install -r requirements.txt -r api/requirements-dev.txt
+
+      - name: Rodar testes da API
+        run: PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/api/ -q --tb=short
+        env:
+          DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
+          REDIS_URL: "redis://localhost:6379/0"
+          API_SECRET_KEY: "test-secret-key-32-chars-minimum!!"
+          JWT_SECRET_KEY: "test-jwt-key-32-chars-minimum!!!!"
+
+  # ── Deploy API no Railway ──────────────────────────────────────────────────
+  deploy-api:
+    name: 🚂 Deploy API → Railway
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Instalar Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy no Railway
+        run: railway up --service api --detach
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+
+  # ── Deploy Frontend no Vercel ──────────────────────────────────────────────
+  deploy-frontend:
+    name: ▲ Deploy Frontend → Vercel
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar Vercel CLI
+        run: npm install -g vercel
+
+      - name: Deploy no Vercel (preview → produção)
+        run: |
+          cd frontend
+          vercel --token ${{ secrets.VERCEL_TOKEN }} \
+                 --yes \
+                 --prod \
+                 -e NEXT_PUBLIC_API_BASE_URL=https://saudeemdado.com/api
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+  # ── Notificação final ──────────────────────────────────────────────────────
+  notify:
+    name: 📢 Status do deploy
+    needs: [deploy-api, deploy-frontend]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - name: Resumo
+        run: |
+          echo "## Deploy concluído" >> $GITHUB_STEP_SUMMARY
+          echo "| Serviço | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|---------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| API (Railway) | ${{ needs.deploy-api.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Frontend (Vercel) | ${{ needs.deploy-frontend.result }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| URL | https://saudeemdado.com |" >> $GITHUB_STEP_SUMMARY

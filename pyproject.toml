@@ -1,0 +1,102 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "saude-publica-br"
+version = "0.1.0"
+description = "Plataforma de Inteligência Epidemiológica do SUS — O Our World in Data do SUS"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+    { name = "Pedro Paulo Fernandes", email = "pedropaulofernandes88@gmail.com" }
+]
+keywords = ["datasus", "sus", "epidemiologia", "saude-publica", "pysus", "dbt"]
+
+dependencies = [
+    # Ingestão de dados DataSUS
+    "pysus>=0.12.0",
+    "pyarrow>=14.0.0",
+    "pandas>=2.1.0",
+    "numpy>=1.26.0",
+
+    # Banco de dados
+    "psycopg[binary]>=3.1.0",
+    "supabase>=2.0.0",
+    "duckdb>=0.9.0",
+
+    # dbt (transformação)
+    "dbt-core>=1.7.0",
+    "dbt-postgres>=1.7.0",
+    "dbt-duckdb>=1.7.0",
+
+    # API
+    "fastapi>=0.109.0",
+    "uvicorn[standard]>=0.27.0",
+    "pydantic>=2.5.0",
+    "redis>=5.0.0",
+
+    # Orquestração
+    "prefect>=2.14.0",
+
+    # Qualidade de dados
+    "great-expectations>=1.0.0",
+
+    # Utilitários
+    "python-dotenv>=1.0.0",
+    "loguru>=0.7.0",
+    "tqdm>=4.66.0",
+    "httpx>=0.26.0",
+    "tenacity>=8.2.0",       # Retry com backoff
+    "click>=8.1.0",          # CLI para scripts
+]
+
+[project.optional-dependencies]
+ml = [
+    "prophet>=1.1.5",        # Anomaly detection e forecasting
+    "scikit-learn>=1.4.0",
+    "statsmodels>=0.14.0",
+]
+
+dashboard = [
+    "streamlit>=1.30.0",
+    "plotly>=5.18.0",
+    "folium>=0.15.0",        # Mapas no Streamlit
+]
+
+dev = [
+    "pytest>=7.4.0",
+    "pytest-asyncio>=0.23.0",
+    "pytest-cov>=4.1.0",
+    "ruff>=0.2.0",           # Linter
+    "mypy>=1.8.0",
+    "ipython>=8.20.0",
+    "jupyter>=1.0.0",
+]
+
+[project.scripts]
+ingest-sia = "ingestion.ingest_sia_pa:main"
+load-refs = "ingestion.refs_loader:main"
+run-dbt = "flows.dbt_run:main"
+validate-marts = "validation.run_validations:main"
+
+[tool.hatch.envs.default]
+dependencies = ["saude-publica-br[dev]"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "N", "UP", "B", "SIM"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = false
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

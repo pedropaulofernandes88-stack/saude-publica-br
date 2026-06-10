@@ -1,0 +1,16 @@
+# ============================================================
+# monitoring/grafana/provisioning/dashboards/provider.yml
+# Aponta Grafana para a pasta de dashboards JSON
+# ============================================================
+apiVersion: 1
+
+providers:
+  - name: "saude-publica-br"
+    orgId: 1
+    type: file
+    disableDeletion: false
+    updateIntervalSeconds: 30
+    allowUiUpdates: true
+    options:
+      path: /var/lib/grafana/dashboards
+      foldersFromFilesStructure: false
