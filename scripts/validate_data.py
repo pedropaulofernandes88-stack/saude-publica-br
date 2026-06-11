@@ -87,7 +87,7 @@ def main() -> None:
         check(f"excesso {a}: 28 séries", n == 28, f"obtido={n}")
 
     # 5. Dimensões
-    n_mun = len(agg("dim_municipio", {"select": "municipio_cod", "limit": "10000"}))
+    n_mun = int(agg("dim_municipio", {"select": "count"})[0]["count"])
     check("dim_municipio ≥ 5570", n_mun >= 5570, f"obtido={n_mun}")
     n_pad = len(agg("dim_pop_padrao", {"select": "faixa_etaria"}))
     check("dim_pop_padrao = 8 faixas", n_pad == 8, f"obtido={n_pad}")

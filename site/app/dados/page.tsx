@@ -146,11 +146,15 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
         </thead>
         <tbody>
           {[
-            ["mart_mortalidade_municipio.parquet", "5,7 MB", "d9648fbd240033477a8854f2d3139d5fc1d434a601a997a386668fee88fb6b82"],
-            ["mart_mortalidade_uf_mes.parquet", "1,2 MB", "3658cea00a05ba45f4379be35cc20b2000ddd31ef41fbc5aca440b0918fc4826"],
-            ["mart_mortalidade_causa.parquet", "0,2 MB", "24179a19691f56447e8c903570a408271bece76fd9ee520c914c1ccf9f9ede2e"],
-            ["dim_municipio.parquet", "0,06 MB", "c446195fc9c5aa637948efde3c79bcd84dd70e059893008bd43924f189e446ee"],
-            ["dim_populacao.parquet", "0,05 MB", "0af1b438eb832284c220f91f0c3aab32a3d0b7ff7d9ee60454d81c8dffc2d9b6"],
+            ["mart_mortalidade_municipio.parquet", "14,2 MB", "748310975375de33d289cb72a54c7d52d63a7118af8df2b2a7477f0bc97c3071"],
+            ["mart_mortalidade_uf_mes.parquet", "1,6 MB", "3958450095820478e582ee30fae57be1c49e6c9f91e174865e00bd0ed9f06db3"],
+            ["mart_mortalidade_causa.parquet", "0,7 MB", "c51f2c553810eaf92d996aa52fb7b436da2a80a971526d060c7beacc341fa4ad"],
+            ["mart_excesso_uf_mes.parquet", "0,04 MB", "37feefc7694bbf055f271552942c0ccbd9c1de40185002548514dcdbcc7810a9"],
+            ["dim_municipio.parquet", "0,09 MB", "a7f3f66aad10ef9bd99f6d1f0dc919f9017dcc3ae7e55de9da65344790e2d7e4"],
+            ["dim_populacao.parquet", "0,29 MB", "c88335c58dc4e45c46a91512d749cc6f40d00d4659cdcb289921a54467c0456d"],
+            ["dim_pop_faixa.parquet", "0,13 MB", "a7aaa140fd70bfea6f18c77ec5ebdeb25a26bd26437ca8289b355ba3e05c3b0a"],
+            ["dim_pop_padrao.parquet", "0,01 MB", "bee34904f471812432ac2d047ed56a4eed5a88d905a28a55c24c02fb0153aebc"],
+            ["dim_cid10_categoria.parquet", "0,04 MB", "3202eca9d645ae8bdb6ba98aa4dda940a1e878fc267bb6d6a711629fcc4ebf3f"],
           ].map(([nome, tamanho, sha]) => (
             <tr key={nome}>
               <td>

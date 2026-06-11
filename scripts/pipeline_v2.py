@@ -658,7 +658,7 @@ def add_ic95(df: pd.DataFrame) -> pd.DataFrame:
 
 # ───────────────────────────── Upload ───────────────────────────────────────
 class SupabaseLoader:
-    def __init__(self, url: str, anon_key: str, batch_rows: int = 20_000):
+    def __init__(self, url: str, anon_key: str, batch_rows: int = 8_000):
         self.url = url.rstrip("/")
         self.headers = {
             "apikey": anon_key,
