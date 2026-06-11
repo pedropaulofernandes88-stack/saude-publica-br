@@ -195,7 +195,7 @@ mg.nlargest(10, "taxa_padronizada_100k")`}</code>
       <p>
         O dataset também é acessível por assistentes de IA via{" "}
         <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a>:
-        aponte o Claude Desktop/Code para <code>mcp/server.py</code> do
+        aponte o Claude Desktop/Code para <code>mcp_server/server.py</code> do
         repositório e pergunte em linguagem natural ("compare o excesso de
         mortalidade de SP e AM em 2021") — as respostas usam exatamente os
         números citáveis desta base.

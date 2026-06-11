@@ -17,7 +17,7 @@ Configuração no Claude Desktop (claude_desktop_config.json):
       "mcpServers": {
         "saudeemdado": {
           "command": "python",
-          "args": ["/caminho/para/saude-publica-br/mcp/server.py"]
+          "args": ["/caminho/para/saude-publica-br/mcp_server/server.py"]
         }
       }
     }
