@@ -52,6 +52,19 @@ body {
 .prose-doc pre code {
   @apply bg-transparent p-0 text-inherit;
 }
+@media print {
+  header, footer, .no-print {
+    display: none !important;
+  }
+  body {
+    background: white;
+  }
+  .card {
+    box-shadow: none;
+    break-inside: avoid;
+  }
+}
+
 .prose-doc a {
   @apply font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-700;
 }

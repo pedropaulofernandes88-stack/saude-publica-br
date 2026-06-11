@@ -178,6 +178,37 @@ sha256sum mart_mortalidade_municipio.parquet
 duckdb -c "SELECT uf_sigla, sum(obitos) FROM read_parquet('${SUPABASE_URL}/storage/v1/object/public/dados/mart_mortalidade_uf_mes.parquet') WHERE capitulo_cid='TOTAL' AND sexo='TOTAL' AND faixa_etaria='TOTAL' GROUP BY 1 ORDER BY 2 DESC"`}</code>
       </pre>
 
+      <h2>Pacote Python</h2>
+      <p>
+        Cliente oficial com paginação automática e suporte a pandas — ideal
+        para notebooks de pesquisa:
+      </p>
+      <pre>
+        <code>{`pip install "git+https://github.com/pedropaulofernandes88-stack/saude-publica-br#subdirectory=clients/python"
+
+import saudeemdado as sd
+mg = sd.municipios(uf="MG", ano=2023, pop_min=50_000, as_df=True)
+mg.nlargest(10, "taxa_padronizada_100k")`}</code>
+      </pre>
+
+      <h2>Servidor MCP (pesquise via assistentes de IA)</h2>
+      <p>
+        O dataset também é acessível por assistentes de IA via{" "}
+        <a href="https://modelcontextprotocol.io" target="_blank" rel="noreferrer">Model Context Protocol</a>:
+        aponte o Claude Desktop/Code para <code>mcp/server.py</code> do
+        repositório e pergunte em linguagem natural ("compare o excesso de
+        mortalidade de SP e AM em 2021") — as respostas usam exatamente os
+        números citáveis desta base.
+      </p>
+
+      <h2>Boletim municipal</h2>
+      <p>
+        Cada município tem um boletim imprimível (PDF via navegador) com série
+        de taxas 2015–2024, IC95% e principais grupos de causas:{" "}
+        <code>/boletim/?m=&lt;código IBGE 6 dígitos&gt;</code> — ou clique no
+        nome do município no painel.
+      </p>
+
       <h2>Licença e citação</h2>
       <p>
         Dados originais em domínio público (DATASUS/Ministério da Saúde e IBGE).

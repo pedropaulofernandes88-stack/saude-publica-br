@@ -323,7 +323,11 @@ export default function Painel() {
                   <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
                     <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
                     <td className="px-3 py-2 font-medium text-ink-900">
-                      {m.municipio_nome ?? m.municipio_cod}
+                      <a href={`/boletim/?m=${m.municipio_cod}`}
+                         className="hover:text-accent-700 hover:underline"
+                         title="Abrir boletim do município">
+                        {m.municipio_nome ?? m.municipio_cod}
+                      </a>
                       {(m.populacao ?? 0) > 0 && (m.populacao ?? 0) < 10_000 && (
                         <span title="População pequena: taxas instáveis — observe o IC95%" className="ml-1 text-amber-600">⚠</span>
                       )}

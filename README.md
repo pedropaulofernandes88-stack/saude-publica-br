@@ -56,8 +56,14 @@ cd site && npm install && npm run build   # gera site/out/ (deploy automático n
 ```
 
 Páginas: painel com filtros, **mapa coroplético municipal**, **tendências e
-excesso de mortalidade**, dados & API, metodologia e sobre. Dados de navegação
-comum servidos como JSON estático gerado no build (egress zero no banco).
+excesso de mortalidade**, **boletim municipal imprimível** (`/boletim/?m=<cod>`),
+dados & API, metodologia e sobre. Dados de navegação comum servidos como JSON
+estático gerado no build (egress zero no banco).
+
+**Para pesquisadores**:
+- 🐍 Pacote Python [`clients/python`](clients/python/) — `sd.municipios(uf="MG", ano=2023, as_df=True)`
+- 🤖 Servidor MCP [`mcp/server.py`](mcp/server.py) — consulte o dataset por
+  assistentes de IA (Claude Desktop/Code) em linguagem natural
 
 **Dashboard alternativo (Streamlit)**: `streamlit run dashboard_publico/app.py`
 (ou publique grátis no [Streamlit Community Cloud](https://share.streamlit.io)).
