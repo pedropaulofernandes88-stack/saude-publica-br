@@ -7,29 +7,81 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-serif" });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://saudeemdado.com"),
   title: {
-    default: "Saúde Pública BR — Mortalidade no Brasil (SIM/DataSUS)",
-    template: "%s · Saúde Pública BR",
+    default: "Saúde em Dado — Mortalidade no Brasil (SIM/DataSUS)",
+    template: "%s · Saúde em Dado",
   },
   description:
-    "Plataforma aberta de inteligência epidemiológica: 4,4 milhões de óbitos do SIM/DataSUS (2022–2024) em painéis navegáveis e API pública gratuita, para pesquisa acadêmica.",
+    "Dez anos de mortalidade no Brasil (SIM/DataSUS, 2015–2024): painéis navegáveis, mapa municipal, taxas padronizadas por idade, excesso de mortalidade e API pública gratuita para pesquisa.",
   keywords: [
     "DataSUS", "SIM", "mortalidade", "epidemiologia", "dados abertos",
-    "saúde pública", "CID-10", "Brasil",
+    "saúde pública", "CID-10", "Brasil", "excesso de mortalidade", "taxa padronizada",
   ],
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    locale: "pt_BR",
+    url: "https://saudeemdado.com",
+    siteName: "Saúde em Dado",
+    title: "Saúde em Dado — Mortalidade no Brasil (SIM/DataSUS)",
+    description:
+      "13M+ óbitos (2015–2024) em painéis navegáveis, mapa municipal, taxas padronizadas e API pública gratuita.",
+  },
+};
+
+// schema.org/Dataset — indexação no Google Dataset Search
+const DATASET_JSONLD = {
+  "@context": "https://schema.org",
+  "@type": "Dataset",
+  name: "Saúde em Dado — Mortalidade no Brasil (SIM/DataSUS), 2015–2024",
+  description:
+    "Indicadores agregados de mortalidade no Brasil a partir dos microdados do SIM/DataSUS: óbitos por município, ano, capítulo CID-10, sexo e faixa etária; taxas brutas com IC95%, taxas padronizadas por idade e excesso de mortalidade. População IBGE (Censo 2022 e Estimativas).",
+  url: "https://saudeemdado.com",
+  sameAs: "https://github.com/pedropaulofernandes88-stack/saude-publica-br",
+  license: "https://creativecommons.org/publicdomain/mark/1.0/",
+  isAccessibleForFree: true,
+  creator: { "@type": "Person", name: "Pedro Paulo Fernandes" },
+  temporalCoverage: "2015-01-01/2024-12-31",
+  spatialCoverage: { "@type": "Place", name: "Brasil" },
+  keywords: ["mortalidade", "SIM", "DataSUS", "CID-10", "epidemiologia", "dados abertos", "Brasil"],
+  distribution: [
+    {
+      "@type": "DataDownload",
+      encodingFormat: "application/json",
+      contentUrl: "https://zekjhmxjamatlxpkykde.supabase.co/rest/v1/",
+      description: "API REST pública (PostgREST), somente leitura",
+    },
+    {
+      "@type": "DataDownload",
+      encodingFormat: "application/x-parquet",
+      contentUrl:
+        "https://zekjhmxjamatlxpkykde.supabase.co/storage/v1/object/public/dados/mart_mortalidade_municipio.parquet",
+      description: "Download em lote (Parquet, com SHA-256 publicado)",
+    },
+  ],
+  citation:
+    "BRASIL. Ministério da Saúde. SIM — Sistema de Informações sobre Mortalidade (microdados, OpenDataSUS). IBGE. Censo 2022 e Estimativas de População (SIDRA).",
 };
 
 const NAV = [
   { href: "/", label: "Início", curto: "Início" },
   { href: "/painel/", label: "Painel", curto: "Painel" },
+  { href: "/mapa/", label: "Mapa", curto: "Mapa" },
+  { href: "/tendencias/", label: "Tendências", curto: "Tendências" },
   { href: "/dados/", label: "Dados & API", curto: "Dados" },
   { href: "/metodologia/", label: "Metodologia", curto: "Método" },
+  { href: "/sobre/", label: "Sobre", curto: "Sobre" },
 ];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${serif.variable}`}>
       <body className="flex min-h-screen flex-col font-sans">
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(DATASET_JSONLD) }}
+        />
         <header className="sticky top-0 z-40 border-b border-ink-200 bg-white/90 backdrop-blur">
           <div className="mx-auto flex h-14 max-w-7xl items-center justify-between gap-2 px-3 sm:h-16 sm:px-6">
             <Link href="/" className="flex shrink-0 items-center gap-2 sm:gap-2.5">

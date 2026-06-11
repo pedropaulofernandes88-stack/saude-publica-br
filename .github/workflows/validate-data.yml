@@ -1,0 +1,21 @@
+# Validação automática da base publicada: âncoras oficiais, conciliação entre
+# marts e integridade dimensional — tudo via API pública (verificável por terceiros).
+name: Validação dos dados
+
+on:
+  schedule:
+    - cron: "23 7 2 * *"   # mensal
+  workflow_dispatch:
+  push:
+    paths: ["scripts/validate_data.py"]
+
+jobs:
+  validar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+      - run: python scripts/validate_data.py

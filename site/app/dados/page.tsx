@@ -55,18 +55,23 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
         <tbody>
           <tr>
             <td><code>mart_mortalidade_municipio</code></td>
-            <td>município × ano × capítulo CID-10 × sexo (+ taxas /100 mil hab.)</td>
-            <td>~600 mil</td>
+            <td>município × ano (2015–2024) × capítulo CID-10 × sexo; taxa bruta + IC95% + <b>taxa padronizada por idade</b></td>
+            <td>~1,3 mi</td>
           </tr>
           <tr>
             <td><code>mart_mortalidade_uf_mes</code></td>
-            <td>UF × mês × capítulo × sexo × faixa etária</td>
-            <td>~324 mil</td>
+            <td>UF × mês (2015–2024) × capítulo × sexo × faixa etária</td>
+            <td>~400 mil</td>
           </tr>
           <tr>
             <td><code>mart_mortalidade_causa</code></td>
-            <td>UF × ano × causa básica (CID-10, 3 caracteres)</td>
-            <td>~62 mil</td>
+            <td>UF × ano (2015–2024) × causa básica (CID-10, 3 caracteres)</td>
+            <td>~200 mil</td>
+          </tr>
+          <tr>
+            <td><code>mart_excesso_uf_mes</code></td>
+            <td>excesso de mortalidade: observado × esperado por UF/BR × mês (2020+)</td>
+            <td>~1,7 mil</td>
           </tr>
           <tr>
             <td><code>dim_municipio</code></td>
@@ -75,17 +80,27 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
           </tr>
           <tr>
             <td><code>dim_populacao</code></td>
-            <td>população municipal por ano</td>
-            <td>~16,7 mil</td>
+            <td>população municipal por ano (2015–2024)</td>
+            <td>~56 mil</td>
           </tr>
           <tr>
-            <td><code>dim_cid10_capitulo</code></td>
-            <td>capítulos da CID-10</td>
-            <td>22</td>
+            <td><code>dim_pop_faixa</code></td>
+            <td>população municipal por faixa etária (Censo 2022)</td>
+            <td>~44,6 mil</td>
+          </tr>
+          <tr>
+            <td><code>dim_pop_padrao</code></td>
+            <td>população padrão da padronização (Brasil, Censo 2022)</td>
+            <td>8</td>
+          </tr>
+          <tr>
+            <td><code>dim_cid10_capitulo</code> / <code>dim_cid10_categoria</code></td>
+            <td>capítulos e descrições das categorias CID-10</td>
+            <td>22 / ~2 mil</td>
           </tr>
           <tr>
             <td><code>meta_dataset</code></td>
-            <td>metadados: fontes, datas, exclusões, licença</td>
+            <td>metadados: fontes, métodos, datas, exclusões, licença, versão</td>
             <td>—</td>
           </tr>
         </tbody>

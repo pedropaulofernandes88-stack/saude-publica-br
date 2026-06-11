@@ -47,6 +47,31 @@ export function SerieLinha({ data }: { data: { mes: string; obitos: number }[] }
   );
 }
 
+export function LinhasExcesso({
+  data,
+}: {
+  data: { mes: string; obitos: number; esperado: number }[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={340}>
+      <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+        <CartesianGrid stroke={GRID} vertical={false} />
+        <XAxis dataKey="mes" tick={AXIS} tickFormatter={mesPt} tickMargin={8} minTickGap={28} />
+        <YAxis tick={AXIS} tickFormatter={compactPt} width={56} />
+        <Tooltip
+          formatter={(v, name) => [fmtInt(Math.round(v as number)), name === "obitos" ? "Observado" : "Esperado (2015–2019)"]}
+          labelFormatter={(l) =>
+            new Date(`${l}T00:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+          }
+          contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
+        />
+        <Line type="monotone" dataKey="esperado" stroke="#8694ab" strokeWidth={2} strokeDasharray="6 4" dot={false} />
+        <Line type="monotone" dataKey="obitos" stroke="#b4232a" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
 export function Barras({
   data,
   cor = ACCENT,

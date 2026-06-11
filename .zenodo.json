@@ -1,0 +1,35 @@
+{
+  "title": "Saúde em Dado: indicadores abertos de mortalidade no Brasil (SIM/DataSUS)",
+  "description": "Plataforma aberta que transforma os microdados do Sistema de Informações sobre Mortalidade (SIM/DataSUS, 2015–2024; 13M+ óbitos) em indicadores acessíveis: taxas brutas com IC95%, taxas padronizadas por idade (padrão Brasil Censo 2022), excesso de mortalidade e séries por município, causa (CID-10), sexo e faixa etária — via painel navegável (saudeemdado.com), API REST pública e downloads em Parquet. Pipeline 100% reproduzível a partir das fontes oficiais.",
+  "creators": [
+    {
+      "name": "Fernandes, Pedro Paulo"
+    }
+  ],
+  "license": "MIT",
+  "upload_type": "software",
+  "access_right": "open",
+  "keywords": [
+    "mortalidade",
+    "SIM",
+    "DataSUS",
+    "epidemiologia",
+    "dados abertos",
+    "saúde pública",
+    "Brasil",
+    "CID-10",
+    "excesso de mortalidade"
+  ],
+  "related_identifiers": [
+    {
+      "identifier": "https://saudeemdado.com",
+      "relation": "isSupplementTo",
+      "scheme": "url"
+    },
+    {
+      "identifier": "https://opendatasus.saude.gov.br/dataset/sim",
+      "relation": "isDerivedFrom",
+      "scheme": "url"
+    }
+  ]
+}

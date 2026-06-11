@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SerieLinha } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { fmtInt, rest, type MetaItem, type SerieMensal } from "@/lib/api";
+import { fmtInt, sdata, type MetaItem, type SerieTotalItem } from "@/lib/api";
 
 interface HomeData {
   serie: { mes: string; obitos: number }[];
@@ -20,23 +20,15 @@ export default function Home() {
   useEffect(() => {
     (async () => {
       try {
+        // dados estáticos gerados no build — nenhuma chamada ao banco
         const [serieRaw, meta] = await Promise.all([
-          rest<SerieMensal>("mart_mortalidade_uf_mes", {
-            select: "mes_competencia,uf_sigla,obitos",
-            capitulo_cid: "eq.TOTAL",
-            sexo: "eq.TOTAL",
-            faixa_etaria: "eq.TOTAL",
-            order: "mes_competencia,uf_sigla",
-          }),
-          rest<MetaItem>("meta_dataset", { select: "chave,valor" }),
+          sdata<SerieTotalItem[]>("serie_total"),
+          sdata<MetaItem[]>("meta"),
         ]);
-        const porMes = new Map<string, number>();
-        for (const r of serieRaw) {
-          porMes.set(r.mes_competencia, (porMes.get(r.mes_competencia) ?? 0) + r.obitos);
-        }
-        const serie = [...porMes.entries()]
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([mes, obitos]) => ({ mes, obitos }));
+        const serie = serieRaw
+          .filter((r) => r.uf_sigla === "BR")
+          .sort((a, b) => a.mes_competencia.localeCompare(b.mes_competencia))
+          .map((r) => ({ mes: r.mes_competencia, obitos: r.obitos }));
         const geradoEm =
           meta.find((m) => m.chave === "gerado_em")?.valor.slice(0, 10) ?? "";
         setData({
@@ -60,19 +52,23 @@ export default function Home() {
             Dados abertos · SIM/DataSUS · IBGE
           </p>
           <h1 className="mt-3 max-w-3xl font-serif text-4xl font-semibold leading-tight tracking-tight text-ink-950 sm:text-5xl">
-            A mortalidade no Brasil, acessível para a pesquisa.
+            Dez anos da mortalidade no Brasil, acessíveis para a pesquisa.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-600">
-            4,4 milhões de declarações de óbito (2022–2024) processadas a partir
-            dos microdados oficiais do Ministério da Saúde — em painéis
-            navegáveis, API pública gratuita e pipeline 100% reproduzível.
+            Mais de 13 milhões de declarações de óbito (2015–2024) processadas
+            dos microdados oficiais do Ministério da Saúde — com taxas
+            padronizadas por idade, intervalos de confiança, excesso de
+            mortalidade, mapa municipal e API pública gratuita.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/painel/" className="btn-primary">
               Explorar o painel →
             </Link>
-            <Link href="/dados/" className="btn-ghost">
-              Acessar via API
+            <Link href="/mapa/" className="btn-ghost">
+              Mapa municipal
+            </Link>
+            <Link href="/tendencias/" className="btn-ghost">
+              Excesso de mortalidade
             </Link>
           </div>
         </div>
@@ -90,7 +86,7 @@ export default function Home() {
           <Kpi
             rotulo="Óbitos registrados"
             valor={data ? fmtInt(data.total) : "…"}
-            detalhe="2022–2024, não fetais"
+            detalhe="2015–2024, não fetais"
           />
           <Kpi rotulo="Municípios cobertos" valor={data ? fmtInt(data.municipios) : "…"} detalhe="Todos — base IBGE" />
           <Kpi rotulo="Causas (CID-10)" valor="22 capítulos" detalhe="+ categorias de 3 caracteres" />

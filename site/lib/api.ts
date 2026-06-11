@@ -76,6 +76,33 @@ export interface LinhaMunicipio {
   obitos_domicilio: number | null;
   populacao: number | null;
   taxa_obitos_100k: number | null;
+  taxa_padronizada_100k: number | null;
+  ic95_inf: number | null;
+  ic95_sup: number | null;
+}
+
+export interface LinhaExcesso {
+  uf_sigla: string;
+  ano: number;
+  mes_competencia: string;
+  obitos: number;
+  esperado: number;
+  excesso: number;
+  pct_excesso: number | null;
+}
+
+export interface SerieTotalItem {
+  uf_sigla: string;
+  ano: number;
+  mes_competencia: string;
+  obitos: number;
+}
+
+/** Dados estáticos gerados no build (servidos pelo próprio site — egress zero). */
+export async function sdata<T>(name: string): Promise<T> {
+  const res = await fetch(`/sdata/${name}.json`);
+  if (!res.ok) throw new Error(`sdata/${name}: HTTP ${res.status}`);
+  return (await res.json()) as T;
 }
 
 export interface CapituloCid {
@@ -103,7 +130,10 @@ export const UFS = [
   "SE", "SP", "TO",
 ] as const;
 
-export const ANOS = [2022, 2023, 2024] as const;
+export const ANOS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024] as const;
+
+/** A partir deste ano há detalhe demográfico completo (sexo × faixa × capítulo). */
+export const ANO_DETALHE = 2022;
 
 export const FAIXAS_ORDEM = [
   "<1", "1-4", "5-14", "15-29", "30-44", "45-59", "60-74", "75+", "IGN",

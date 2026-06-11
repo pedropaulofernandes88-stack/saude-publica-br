@@ -1,0 +1,41 @@
+cff-version: 1.2.0
+message: >-
+  Se você usar esta plataforma ou seus dados em trabalho acadêmico, cite o
+  software conforme abaixo E as fontes primárias (SIM/DataSUS — Ministério da
+  Saúde; IBGE — Censo 2022 e Estimativas de População).
+title: "Saúde em Dado: indicadores abertos de mortalidade no Brasil (SIM/DataSUS)"
+type: software
+authors:
+  - family-names: Fernandes
+    given-names: Pedro Paulo
+    email: pedropaulofernandes88@gmail.com
+repository-code: "https://github.com/pedropaulofernandes88-stack/saude-publica-br"
+url: "https://saudeemdado.com"
+license: MIT
+keywords:
+  - mortalidade
+  - SIM
+  - DataSUS
+  - epidemiologia
+  - dados abertos
+  - saúde pública
+  - Brasil
+  - CID-10
+abstract: >-
+  Plataforma aberta que transforma os microdados do Sistema de Informações
+  sobre Mortalidade (SIM/DataSUS, 2015–2024; 13M+ óbitos) em indicadores
+  acessíveis: taxas brutas com IC95%, taxas padronizadas por idade (padrão
+  Brasil Censo 2022), excesso de mortalidade e séries por município, causa
+  (CID-10), sexo e faixa etária — via painel navegável, mapa, API REST pública
+  e downloads em Parquet. Pipeline 100% reproduzível.
+references:
+  - type: data
+    title: "SIM — Sistema de Informações sobre Mortalidade (microdados)"
+    authors:
+      - name: "Ministério da Saúde (Brasil) / DATASUS"
+    url: "https://opendatasus.saude.gov.br/dataset/sim"
+  - type: data
+    title: "Censo Demográfico 2022 e Estimativas de População"
+    authors:
+      - name: "Instituto Brasileiro de Geografia e Estatística (IBGE)"
+    url: "https://sidra.ibge.gov.br"

@@ -5,7 +5,10 @@
 **Dados abertos do SUS transformados em inteligência epidemiológica acessível**
 
 Mortalidade no Brasil (SIM/DataSUS) — 27 estados, 5.570+ municípios,
-4,4 milhões de óbitos (2022–2024) — em uma API pública gratuita.
+**13+ milhões de óbitos (2015–2024)** — com taxas padronizadas por idade,
+IC95%, excesso de mortalidade, mapa municipal e API pública gratuita.
+
+🌐 **[saudeemdado.com](https://saudeemdado.com)**
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 [![Python](https://img.shields.io/badge/Python-3.11+-blue.svg)](https://www.python.org/)
@@ -49,8 +52,12 @@ filtros (UF, ano, causa CID-10, sexo), ranking de municípios com exportação
 CSV, página de dados/API e metodologia completa. Export 100% estático:
 
 ```bash
-cd site && npm install && npm run build   # gera site/out/ — hospede grátis na Vercel/Cloudflare Pages
+cd site && npm install && npm run build   # gera site/out/ (deploy automático no GitHub Pages)
 ```
+
+Páginas: painel com filtros, **mapa coroplético municipal**, **tendências e
+excesso de mortalidade**, dados & API, metodologia e sobre. Dados de navegação
+comum servidos como JSON estático gerado no build (egress zero no banco).
 
 **Dashboard alternativo (Streamlit)**: `streamlit run dashboard_publico/app.py`
 (ou publique grátis no [Streamlit Community Cloud](https://share.streamlit.io)).
@@ -64,15 +71,20 @@ de Tarefas do Windows em [scripts/supabase_keepalive.ps1](scripts/supabase_keepa
 
 | Conjunto | Fonte | Cobertura |
 |----------|-------|-----------|
-| Óbitos por município, ano, capítulo CID-10 e sexo (+ taxas /100k hab) | SIM/DataSUS | 2022–2024, nacional |
-| Série mensal de óbitos por UF, causa, sexo e faixa etária | SIM/DataSUS | 2022–2024, nacional |
-| Óbitos por causa básica (CID-10, 3 caracteres) por UF e ano | SIM/DataSUS | 2022–2024, nacional |
-| Municípios (códigos IBGE, UF, região) | IBGE | 5.571 municípios |
-| População municipal por ano | IBGE Censo 2022 + Estimativas | 2022–2024 |
+| Óbitos por município, ano, capítulo CID-10 e sexo + taxa bruta com **IC95%** e **taxa padronizada por idade** | SIM/DataSUS | 2015–2024, nacional |
+| Série mensal de óbitos por UF, causa, sexo e faixa etária | SIM/DataSUS | 2015–2024, nacional |
+| Óbitos por causa básica (CID-10, 3 caracteres) por UF e ano | SIM/DataSUS | 2015–2024, nacional |
+| **Excesso de mortalidade** (observado × esperado, baseline 2015–2019) | derivado | 2020+, UF e Brasil |
+| Municípios, população total e por faixa etária | IBGE | Censo 2022 + Estimativas |
+| Descrições CID-10 (capítulos e categorias) | DATASUS | — |
 
-Metodologia: óbitos fetais excluídos; ano mais recente pode ser preliminar;
-população de 2023 por interpolação Censo 2022 ↔ Estimativas 2024. Metadados
-completos na tabela `meta_dataset` da própria API.
+Metodologia completa (padronização direta com padrão Brasil/Censo 2022, IC
+gamma/Poisson exato, redistribuição de idade ignorada, grão histórico,
+limitações declaradas): [saudeemdado.com/metodologia](https://saudeemdado.com/metodologia/).
+Validação automática contínua: [.github/workflows/validate-data.yml](.github/workflows/validate-data.yml).
+
+> Detalhe demográfico completo (capítulo × sexo × faixa) a partir de 2022;
+> 2015–2021 publica totais e marginais. 2024 é preliminar.
 
 ## 🔁 Reprodutibilidade
 
