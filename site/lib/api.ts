@@ -98,6 +98,49 @@ export interface SerieTotalItem {
   obitos: number;
 }
 
+export interface DengueSemana {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  ano_epi: number;
+  semana_epi: number;
+  casos_provaveis: number;
+  casos_graves: number;
+  obitos: number;
+}
+
+export interface DengueAno {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano_epi: number;
+  casos_provaveis: number;
+  casos_graves: number;
+  obitos: number;
+  populacao: number | null;
+  incidencia_100k: number | null;
+  letalidade_pct: number | null;
+}
+
+export interface Internacao {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  capitulo_cid: string;
+  internacoes: number;
+  obitos: number;
+  dias_permanencia: number;
+  valor_total: number;
+  permanencia_media: number | null;
+  mortalidade_pct: number | null;
+  custo_medio: number | null;
+  internacoes_100k: number | null;
+  populacao: number | null;
+}
+
 /** Dados estáticos gerados no build (servidos pelo próprio site — egress zero). */
 export async function sdata<T>(name: string): Promise<T> {
   const res = await fetch(`/sdata/${name}.json`);

@@ -49,15 +49,15 @@ export default function Home() {
       <section className="border-b border-ink-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
           <p className="text-sm font-semibold uppercase tracking-widest text-accent-700">
-            Dados abertos · SIM/DataSUS · IBGE
+            Dados abertos · SIM · SINAN · SIH · DataSUS · IBGE
           </p>
           <h1 className="mt-3 max-w-3xl font-serif text-4xl font-semibold leading-tight tracking-tight text-ink-950 sm:text-5xl">
-            Dez anos da mortalidade no Brasil, acessíveis para a pesquisa.
+            A saúde do Brasil em dados, acessível para a pesquisa.
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-600">
-            Mais de 13 milhões de declarações de óbito (2015–2024) processadas
-            dos microdados oficiais do Ministério da Saúde — com taxas
-            padronizadas por idade, intervalos de confiança, excesso de
+            Mortalidade, dengue e internações hospitalares do SUS — dezenas de
+            milhões de registros oficiais (2015–2024) em painéis navegáveis, com
+            taxas padronizadas, incidência epidemiológica, excesso de
             mortalidade, mapa municipal e API pública gratuita.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
@@ -110,8 +110,36 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Pilares de credibilidade */}
+        {/* Três domínios */}
         <div className="mt-12 grid gap-4 sm:grid-cols-3">
+          <Link href="/painel/" className="card group transition hover:border-accent-400 hover:shadow-md">
+            <h3 className="font-serif text-lg font-semibold text-ink-900">💀 Mortalidade <span className="text-ink-400">· SIM</span></h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-600">
+              14,4 milhões de óbitos (2015–2024) por causa, sexo e idade. Taxas
+              padronizadas, IC95% e excesso de mortalidade.
+            </p>
+            <span className="mt-3 inline-block text-sm font-medium text-accent-700 group-hover:underline">Abrir painel →</span>
+          </Link>
+          <Link href="/dengue/" className="card group transition hover:border-accent-400 hover:shadow-md">
+            <h3 className="font-serif text-lg font-semibold text-ink-900">🦟 Dengue <span className="text-ink-400">· SINAN</span></h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-600">
+              Casos prováveis, incidência e óbitos por semana epidemiológica,
+              incluindo a epidemia recorde de 2024 (6,6 milhões de casos).
+            </p>
+            <span className="mt-3 inline-block text-sm font-medium text-accent-700 group-hover:underline">Ver dengue →</span>
+          </Link>
+          <Link href="/internacoes/" className="card group transition hover:border-accent-400 hover:shadow-md">
+            <h3 className="font-serif text-lg font-semibold text-ink-900">🏥 Internações <span className="text-ink-400">· SIH</span></h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-600">
+              Internações pagas pelo SUS por município e causa: permanência
+              média, mortalidade hospitalar e custo.
+            </p>
+            <span className="mt-3 inline-block text-sm font-medium text-accent-700 group-hover:underline">Ver internações →</span>
+          </Link>
+        </div>
+
+        {/* Pilares de credibilidade */}
+        <div className="mt-8 grid gap-4 sm:grid-cols-3">
           <div className="card">
             <h3 className="font-semibold text-ink-900">🔬 Reprodutível</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
@@ -126,9 +154,8 @@ export default function Home() {
           <div className="card">
             <h3 className="font-semibold text-ink-900">🏛️ Fontes oficiais</h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
-              Microdados do Sistema de Informações sobre Mortalidade
-              (SIM/DataSUS) e população do IBGE (Censo 2022 e Estimativas) —
-              ambos em domínio público.
+              Microdados do DataSUS (SIM, SINAN, SIH) e população do IBGE
+              (Censo 2022 e Estimativas) — todos em domínio público.
             </p>
           </div>
           <div className="card">

@@ -38,11 +38,13 @@ from mcp.server.fastmcp import FastMCP  # noqa: E402
 mcp = FastMCP(
     "saudeemdado",
     instructions=(
-        "Dados oficiais de mortalidade no Brasil (SIM/DataSUS, 2015–2024; "
-        "14,4M óbitos não fetais). Use taxa_padronizada_100k para comparar "
-        "municípios (ajustada por idade); a taxa bruta acompanha IC95%. "
-        "Dados de 2024 são preliminares. Detalhe por sexo/faixa etária só a "
-        "partir de 2022. Sempre cite: SIM/DataSUS (MS) e IBGE, via saudeemdado.com."
+        "Dados oficiais de saúde no Brasil (DataSUS, 2015–2024): mortalidade "
+        "(SIM, 14,4M óbitos), dengue (SINAN) e internações SUS (SIH). Para "
+        "mortalidade use taxa_padronizada_100k ao comparar municípios (ajustada "
+        "por idade); a taxa bruta acompanha IC95%. Para dengue, caso provável = "
+        "notificação não descartada; 2024 foi epidemia recorde. Para internações, "
+        "valores são da rede SUS (AIH aprovadas). Dados de 2024 são preliminares. "
+        "Sempre cite as fontes (DataSUS/MS e IBGE) via saudeemdado.com."
     ),
 )
 
@@ -77,6 +79,27 @@ def descricao_cid10(codigos: list[str]) -> dict[str, str]:
     """Descrições oficiais de categorias CID-10 de 3 caracteres (ex.: I21, C34)."""
     todos = {r["causabas_3"]: r["descricao"] for r in sd.cid10()}
     return {c.upper(): todos.get(c.upper(), "código não encontrado") for c in codigos}
+
+
+@mcp.tool()
+def dengue_municipios(uf: str = "", ano: int = 2024) -> list[dict]:
+    """Dengue (SINAN) por município/ano: casos prováveis, graves, óbitos,
+    incidência por 100 mil hab. e letalidade. 2024 foi epidemia recorde."""
+    return sd.dengue(uf=uf or None, ano=ano, nivel="ano")
+
+
+@mcp.tool()
+def dengue_semanal(uf: str, ano: int = 2024) -> list[dict]:
+    """Dengue (SINAN) por semana epidemiológica de uma UF/ano — para curvas
+    sazonais e identificação de picos epidêmicos."""
+    return sd.dengue(uf=uf, ano=ano, nivel="semana")
+
+
+@mcp.tool()
+def internacoes_municipios(uf: str = "", ano: int = 2024, capitulo_cid: str = "TOTAL") -> list[dict]:
+    """Internações SUS (SIH/AIH) por município: volume, permanência média (dias),
+    mortalidade intra-hospitalar (%) e custo médio (R$). capitulo_cid: I–XXII ou TOTAL."""
+    return sd.internacoes(uf=uf or None, ano=ano, capitulo=capitulo_cid)
 
 
 @mcp.tool()

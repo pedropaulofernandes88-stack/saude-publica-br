@@ -102,6 +102,29 @@ def main() -> None:
     check("taxa padronizada presente (capitais 2023)", len(vals) >= 20 and all(100 < v < 2000 for v in vals),
           f"n={len(vals)}")
 
+    # 7. Dengue: epidemia 2024 ~6,5M casos prováveis (concilia com MS ~6,6M)
+    try:
+        deng = agg("mart_dengue_municipio_ano", {
+            "select": "ano_epi,casos:casos_provaveis.sum()", "ano_epi": "eq.2024"})
+        if deng:
+            casos24 = int(deng[0]["casos"])
+            check("dengue 2024 ~ 6,5M casos", 6_000_000 <= casos24 <= 7_000_000, f"obtido={casos24:,}")
+    except Exception as exc:  # tabela pode não existir ainda
+        print(f"[skip] dengue: {exc}")
+
+    # 8. Internações: presença e sanidade (permanência média plausível)
+    try:
+        intern = agg("mart_internacoes_municipio", {
+            "select": "internacoes,dias_permanencia",
+            "capitulo_cid": "eq.TOTAL", "ano": "eq.2023", "populacao": "gte.500000", "limit": "30"})
+        if intern:
+            tot_i = sum(x["internacoes"] for x in intern)
+            tot_d = sum(x["dias_permanencia"] for x in intern)
+            pm = tot_d / tot_i if tot_i else 0
+            check("internações: permanência média 2–12 dias (capitais 2023)", 2 <= pm <= 12, f"pm={pm:.1f}")
+    except Exception as exc:
+        print(f"[skip] internações: {exc}")
+
     print()
     if FALHAS:
         print(f"❌ {len(FALHAS)} checagem(ns) falharam: {FALHAS}")

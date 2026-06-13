@@ -150,6 +150,55 @@ def excesso(uf: str = "BR", as_df: bool = False):
     return _maybe_df(_get("mart_excesso_uf_mes", params), as_df)
 
 
+def dengue(
+    uf: Optional[str] = None,
+    ano: int = 2024,
+    nivel: str = "ano",
+    as_df: bool = False,
+):
+    """Dengue (SINAN). nivel='ano' → resumo municipal anual com incidência e
+    letalidade; nivel='semana' → série por semana epidemiológica."""
+    if nivel == "semana":
+        params = {
+            "select": "municipio_cod,uf_sigla,ano_epi,semana_epi,casos_provaveis,casos_graves,obitos",
+            "ano_epi": f"eq.{ano}",
+            "order": "municipio_cod,semana_epi",
+        }
+        table = "mart_dengue_semana"
+    else:
+        params = {
+            "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano_epi,"
+                      "casos_provaveis,casos_graves,obitos,populacao,incidencia_100k,letalidade_pct",
+            "ano_epi": f"eq.{ano}",
+            "order": "municipio_cod",
+        }
+        table = "mart_dengue_municipio_ano"
+    if uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return _maybe_df(_get(table, params), as_df)
+
+
+def internacoes(
+    uf: Optional[str] = None,
+    ano: int = 2024,
+    capitulo: str = "TOTAL",
+    as_df: bool = False,
+):
+    """Internações SUS (SIH/AIH) por município: volume, permanência média,
+    mortalidade intra-hospitalar e custo médio. capitulo: I–XXII ou TOTAL."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,capitulo_cid,"
+                  "internacoes,obitos,dias_permanencia,valor_total,permanencia_media,"
+                  "mortalidade_pct,custo_medio,internacoes_100k,populacao",
+        "ano": f"eq.{ano}",
+        "capitulo_cid": f"eq.{capitulo}",
+        "order": "municipio_cod",
+    }
+    if uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return _maybe_df(_get("mart_internacoes_municipio", params), as_df)
+
+
 def cid10(as_df: bool = False):
     """Descrições das categorias CID-10 (3 caracteres) e capítulos."""
     cats = _get("dim_cid10_categoria", {"select": "causabas_3,descricao", "order": "causabas_3"})

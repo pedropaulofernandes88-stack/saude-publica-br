@@ -75,6 +75,20 @@ const excesso = await rest("mart_excesso_uf_mes", {
 await writeFile(path.join(OUT, "excesso.json"), JSON.stringify(excesso));
 console.log(`[sdata]   ${excesso.length} linhas`);
 
+console.log("[sdata] dengue — agregado por UF × ano × semana (server-side)…");
+try {
+  const dengue = await rest("mart_dengue_semana", {
+    select: "uf_sigla,ano_epi,semana_epi,casos_provaveis:casos_provaveis.sum(),casos_graves:casos_graves.sum(),obitos:obitos.sum()",
+    semana_epi: "gte.1",
+    order: "uf_sigla,ano_epi,semana_epi",
+  });
+  await writeFile(path.join(OUT, "dengue_uf_semana.json"), JSON.stringify(dengue));
+  console.log(`[sdata]   ${dengue.length} linhas`);
+} catch (e) {
+  console.warn("[sdata]   dengue indisponível (ainda não carregado?):", String(e).slice(0, 120));
+  await writeFile(path.join(OUT, "dengue_uf_semana.json"), "[]");
+}
+
 console.log("[sdata] capítulos, padrão etário e metadados…");
 const caps = await rest("dim_cid10_capitulo", {
   select: "capitulo,capitulo_num,faixa,descricao",

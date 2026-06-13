@@ -13,10 +13,11 @@ export const metadata: Metadata = {
     template: "%s · Saúde em Dado",
   },
   description:
-    "Dez anos de mortalidade no Brasil (SIM/DataSUS, 2015–2024): painéis navegáveis, mapa municipal, taxas padronizadas por idade, excesso de mortalidade e API pública gratuita para pesquisa.",
+    "Mortalidade, dengue e internações no Brasil (DataSUS, 2015–2024): painéis navegáveis, mapa municipal, taxas padronizadas, excesso de mortalidade, incidência de dengue e API pública gratuita para pesquisa.",
   keywords: [
-    "DataSUS", "SIM", "mortalidade", "epidemiologia", "dados abertos",
-    "saúde pública", "CID-10", "Brasil", "excesso de mortalidade", "taxa padronizada",
+    "DataSUS", "SIM", "SINAN", "SIH", "mortalidade", "dengue", "internações",
+    "epidemiologia", "dados abertos", "saúde pública", "CID-10", "Brasil",
+    "excesso de mortalidade", "taxa padronizada",
   ],
   alternates: { canonical: "/" },
   openGraph: {
@@ -34,9 +35,9 @@ export const metadata: Metadata = {
 const DATASET_JSONLD = {
   "@context": "https://schema.org",
   "@type": "Dataset",
-  name: "Saúde em Dado — Mortalidade no Brasil (SIM/DataSUS), 2015–2024",
+  name: "Saúde em Dado — Mortalidade, dengue e internações no Brasil (DataSUS), 2015–2024",
   description:
-    "Indicadores agregados de mortalidade no Brasil a partir dos microdados do SIM/DataSUS: óbitos por município, ano, capítulo CID-10, sexo e faixa etária; taxas brutas com IC95%, taxas padronizadas por idade e excesso de mortalidade. População IBGE (Censo 2022 e Estimativas).",
+    "Indicadores agregados de saúde no Brasil a partir dos microdados do DataSUS: mortalidade (SIM) com taxas padronizadas por idade, IC95% e excesso de mortalidade; dengue (SINAN) com incidência e gravidade; internações SUS (SIH) com permanência, custo e mortalidade hospitalar. Por município, ano e CID-10. População IBGE.",
   url: "https://saudeemdado.com",
   sameAs: "https://github.com/pedropaulofernandes88-stack/saude-publica-br",
   license: "https://creativecommons.org/publicdomain/mark/1.0/",
@@ -66,9 +67,11 @@ const DATASET_JSONLD = {
 
 const NAV = [
   { href: "/", label: "Início", curto: "Início" },
-  { href: "/painel/", label: "Painel", curto: "Painel" },
+  { href: "/painel/", label: "Mortalidade", curto: "Mortal." },
+  { href: "/dengue/", label: "Dengue", curto: "Dengue" },
+  { href: "/internacoes/", label: "Internações", curto: "Intern." },
   { href: "/mapa/", label: "Mapa", curto: "Mapa" },
-  { href: "/tendencias/", label: "Tendências", curto: "Tendências" },
+  { href: "/tendencias/", label: "Tendências", curto: "Tend." },
   { href: "/dados/", label: "Dados & API", curto: "Dados" },
   { href: "/metodologia/", label: "Metodologia", curto: "Método" },
   { href: "/sobre/", label: "Sobre", curto: "Sobre" },

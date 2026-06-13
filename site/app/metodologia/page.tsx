@@ -122,7 +122,48 @@ export default function Metodologia() {
         <li>2024 preliminar; revisões do MS alteram os números do último ano.</li>
       </ul>
 
-      <h2>9. Privacidade</h2>
+      <h2>9. Dengue (SINAN)</h2>
+      <ul>
+        <li>
+          <strong>Fonte</strong>: SINAN/DataSUS, arquivos nacionais <code>DENGBR{"{AA}"}.dbc</code>
+          (FINAIS e PRELIM). 2024 corresponde à maior epidemia já registrada (6,6 milhões
+          de casos prováveis) — número conciliável com os boletins do Ministério da Saúde.
+        </li>
+        <li>
+          <strong>Caso provável</strong> = notificação não descartada
+          (<code>CLASSI_FIN ≠ 5</code>), convenção da vigilância epidemiológica;
+        </li>
+        <li>
+          <strong>Caso grave</strong> = dengue com sinais de alarme ou grave
+          (<code>CLASSI_FIN</code> 11, 12) ou, no padrão legado, FHD/SCD (3, 4);
+        </li>
+        <li><strong>Óbito por dengue</strong> = <code>EVOLUCAO = 2</code>;</li>
+        <li>
+          Município de <strong>residência</strong> (<code>ID_MN_RESI</code>) e semana
+          epidemiológica pela <strong>data dos primeiros sintomas</strong> (<code>SEM_PRI</code>);
+        </li>
+        <li>
+          <strong>Incidência</strong> = casos prováveis por 100 mil hab.;
+          <strong>letalidade</strong> = óbitos / casos prováveis;
+        </li>
+        <li>Em anos recentes a classificação ainda está em andamento, o que pode reduzir descartes.</li>
+      </ul>
+
+      <h2>10. Internações hospitalares (SIH/AIH)</h2>
+      <ul>
+        <li>
+          <strong>Fonte</strong>: SIH/DataSUS, arquivos <code>RD{"{UF}{AAMM}"}.dbc</code>
+          (AIH aprovadas, rede SUS). Cobre apenas internações pagas pelo SUS — não
+          inclui rede privada/suplementar;
+        </li>
+        <li>Município de <strong>residência</strong> (<code>MUNIC_RES</code>); causa pelo <strong>diagnóstico principal</strong> (<code>DIAG_PRINC</code>), agrupado em capítulos CID-10;</li>
+        <li><strong>Permanência média</strong> = soma de <code>DIAS_PERM</code> / nº de internações;</li>
+        <li><strong>Mortalidade intra-hospitalar</strong> = <code>MORTE</code> / internações;</li>
+        <li><strong>Custo</strong> = valor total aprovado (<code>VAL_TOT</code>); custo médio = valor / internações;</li>
+        <li>2024 preliminar; meses podem estar incompletos no processamento mais recente.</li>
+      </ul>
+
+      <h2>11. Privacidade</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria), eliminando risco de reidentificação.

@@ -77,10 +77,10 @@ de Tarefas do Windows em [scripts/supabase_keepalive.ps1](scripts/supabase_keepa
 
 | Conjunto | Fonte | Cobertura |
 |----------|-------|-----------|
-| Óbitos por município, ano, capítulo CID-10 e sexo + taxa bruta com **IC95%** e **taxa padronizada por idade** | SIM/DataSUS | 2015–2024, nacional |
-| Série mensal de óbitos por UF, causa, sexo e faixa etária | SIM/DataSUS | 2015–2024, nacional |
-| Óbitos por causa básica (CID-10, 3 caracteres) por UF e ano | SIM/DataSUS | 2015–2024, nacional |
+| **Mortalidade** por município, ano, CID-10 e sexo + **IC95%** e **taxa padronizada por idade** | SIM/DataSUS | 2015–2024, nacional |
 | **Excesso de mortalidade** (observado × esperado, baseline 2015–2019) | derivado | 2020+, UF e Brasil |
+| **Dengue**: casos prováveis, graves, óbitos e incidência por município × semana epidemiológica | SINAN/DataSUS | 2015–2024, nacional |
+| **Internações SUS**: volume, permanência média, mortalidade hospitalar e custo por município × CID-10 | SIH/DataSUS | 2022–2024, nacional |
 | Municípios, população total e por faixa etária | IBGE | Censo 2022 + Estimativas |
 | Descrições CID-10 (capítulos e categorias) | DATASUS | — |
 
@@ -139,10 +139,13 @@ Veja [SETUP.md](SETUP.md) e [LAUNCH.md](LAUNCH.md) (requer servidor pago,
 
 ## Roadmap
 
-- [x] Publicação a custo zero — mortalidade nacional 2022–2024 (SIM)
-- [ ] SINAN (dengue e agravos de notificação) via OpenDataSUS
-- [ ] SIH (internações) — agregados por UF
-- [ ] Anos históricos (2010–2021) conforme couber no free tier
+- [x] Mortalidade nacional 2015–2024 (SIM) com taxa padronizada, IC95% e excesso
+- [x] **Dengue** (SINAN) 2015–2024 — incidência, gravidade e sazonalidade
+- [x] **Internações** (SIH) 2022–2024 — permanência, custo e mortalidade hospitalar
+- [x] Pacote Python, servidor MCP e boletim municipal
+- [ ] SIH anos anteriores (2015–2021) via GitHub Actions
+- [ ] SINAN outros agravos (chikungunya, zika, leishmaniose)
+- [ ] CNES (estabelecimentos e leitos) e SINASC (nascidos vivos)
 - [ ] Mortalidade infantil e materna (indicadores derivados)
 
 ## Contribuindo

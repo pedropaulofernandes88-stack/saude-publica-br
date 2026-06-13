@@ -30,6 +30,17 @@ causas = sd.causas(ano=2024, top=20, as_df=True)
 # Excesso de mortalidade no Brasil (pandemia e pós)
 exc = sd.excesso("BR", as_df=True)
 
+# Dengue: incidência municipal na epidemia de 2024
+deng = sd.dengue(uf="MG", ano=2024, as_df=True)
+deng.nlargest(10, "incidencia_100k")
+
+# Dengue por semana epidemiológica (curva sazonal de SP)
+sem = sd.dengue(uf="SP", ano=2024, nivel="semana", as_df=True)
+
+# Internações SUS: permanência média e custo por município
+intern = sd.internacoes(uf="SP", ano=2023, as_df=True)
+intern.nlargest(10, "permanencia_media")
+
 # Dicionário CID-10 e metadados do dataset
 cid = sd.cid10(as_df=True)
 sd.metadados()

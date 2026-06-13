@@ -59,8 +59,8 @@ export default function Sobre() {
           </tr>
           <tr>
             <td><strong>Saúde em Dado</strong></td>
-            <td>API REST sem cadastro; painel e mapa imediatos; taxa padronizada e IC95%; pipeline 100% reproduzível; downloads Parquet com checksum</td>
-            <td>Hoje cobre apenas mortalidade (SIM) 2015–2024; demais sistemas no roadmap</td>
+            <td>API REST sem cadastro; painel, mapa e boletim imediatos; mortalidade (SIM), dengue (SINAN) e internações (SIH); taxa padronizada, IC95% e excesso de mortalidade; pacote Python e servidor MCP; pipeline 100% reproduzível; downloads Parquet com checksum</td>
+            <td>Cobre 3 dos sistemas do DataSUS (2015–2024); outros (CNES, nascidos vivos) no roadmap</td>
           </tr>
         </tbody>
       </table>

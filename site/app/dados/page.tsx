@@ -74,6 +74,21 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>~1,7 mil</td>
           </tr>
           <tr>
+            <td><code>mart_dengue_semana</code></td>
+            <td>dengue (SINAN): casos prováveis, graves e óbitos por município × ano × semana epidemiológica</td>
+            <td>centenas de mil</td>
+          </tr>
+          <tr>
+            <td><code>mart_dengue_municipio_ano</code></td>
+            <td>dengue anual por município: casos, incidência /100k e letalidade</td>
+            <td>dezenas de mil</td>
+          </tr>
+          <tr>
+            <td><code>mart_internacoes_municipio</code></td>
+            <td>internações SUS (SIH): volume, permanência média, mortalidade hospitalar e custo, por município × ano × capítulo CID-10</td>
+            <td>centenas de mil</td>
+          </tr>
+          <tr>
             <td><code>dim_municipio</code></td>
             <td>municípios IBGE (códigos 6/7 dígitos, UF, região)</td>
             <td>5.571</td>
