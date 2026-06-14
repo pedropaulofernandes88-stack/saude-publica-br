@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import {
-  Area, AreaChart, CartesianGrid, Legend, Line, LineChart, ResponsiveContainer,
+  Area, AreaChart, CartesianGrid, ComposedChart, Legend, Line, LineChart, ResponsiveContainer,
   Tooltip, XAxis, YAxis,
 } from "recharts";
 import { Kpi, Skeleton } from "@/components/kpi";
@@ -58,6 +58,43 @@ export default function Dengue() {
     }
     return Object.values(porSemana).sort((a, b) => a.semana - b.semana);
   }, [semana]);
+
+  // Canal endêmico (diagrama de controle): faixa esperada = quartis das semanas
+  // de 2015–2023 (excluindo o ano observado); linha = ano selecionado.
+  const canal = useMemo(() => {
+    if (!semana) return null;
+    const obs: Record<number, number> = {};                         // semana -> casos do ano observado
+    const baseByYear: Record<number, Record<number, number>> = {};  // semana -> {ano: casos} (baseline)
+    for (const r of semana) {
+      const w = r.semana_epi;
+      if (w < 1 || w > 52) continue;
+      if (r.ano_epi === ano) {
+        obs[w] = (obs[w] ?? 0) + r.casos_provaveis;
+      } else if (r.ano_epi >= 2015 && r.ano_epi <= 2023) {
+        (baseByYear[w] ??= {});
+        baseByYear[w][r.ano_epi] = (baseByYear[w][r.ano_epi] ?? 0) + r.casos_provaveis;
+      }
+    }
+    const q = (arr: number[], p: number) => {
+      if (!arr.length) return 0;
+      const s = [...arr].sort((a, b) => a - b);
+      const i = (s.length - 1) * p;
+      const lo = Math.floor(i), hi = Math.ceil(i);
+      return s[lo] + (s[hi] - s[lo]) * (i - lo);
+    };
+    return Array.from({ length: 52 }, (_, k) => {
+      const w = k + 1;
+      const vals = Object.values(baseByYear[w] ?? {});
+      return {
+        semana: w,
+        p25: Math.round(q(vals, 0.25)),
+        mediana: Math.round(q(vals, 0.5)),
+        p75: Math.round(q(vals, 0.75)),
+        faixa: [Math.round(q(vals, 0.25)), Math.round(q(vals, 0.75))] as [number, number],
+        observado: obs[w] ?? 0,
+      };
+    });
+  }, [semana, ano]);
 
   const totaisAno = useMemo(() => {
     if (!semana) return null;
@@ -141,6 +178,40 @@ export default function Dengue() {
                 ))}
                 <Legend formatter={(v) => String(v).replace("a", "")} />
               </LineChart>
+            </ResponsiveContainer>
+          ) : <Skeleton altura={340} />}
+        </div>
+      </div>
+
+      <div className="card mt-6">
+        <h2 className="font-serif text-xl font-semibold text-ink-900">
+          Canal endêmico — {ano} vs faixa esperada ({uf === "Brasil" ? "Brasil" : uf})
+        </h2>
+        <p className="mt-1 text-sm text-ink-500">
+          Diagrama de controle: a faixa cinza é o intervalo esperado (quartis P25–P75 das
+          semanas de 2015–2023). Quando a linha do ano observado ultrapassa a faixa, há
+          sinal de <strong>surto epidêmico</strong>.
+        </p>
+        <div className="mt-4">
+          {canal ? (
+            <ResponsiveContainer width="100%" height={340}>
+              <ComposedChart data={canal} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+                <CartesianGrid stroke="#eceef2" vertical={false} />
+                <XAxis dataKey="semana" tick={{ fontSize: 12, fill: "#677791" }}
+                       label={{ value: "semana epidemiológica", position: "insideBottom", offset: -2, fontSize: 11, fill: "#8694ab" }} />
+                <YAxis tick={{ fontSize: 12, fill: "#677791" }} width={52}
+                       tickFormatter={(v) => (v as number).toLocaleString("pt-BR", { notation: "compact" })} />
+                <Tooltip
+                  formatter={(v, n) => [fmtInt(v as number),
+                    n === "observado" ? `Observado ${ano}` : n === "mediana" ? "Mediana histórica" : "Faixa esperada (P75)"]}
+                  labelFormatter={(l) => `Semana ${l}`}
+                  contentStyle={{ borderRadius: 8, borderColor: "#eceef2", fontSize: 13 }} />
+                <Area type="monotone" dataKey="p75" stroke="none" fill="#cdd5e0" fillOpacity={0.6} name="p75" />
+                <Area type="monotone" dataKey="p25" stroke="none" fill="#ffffff" fillOpacity={1} name="p25" />
+                <Line type="monotone" dataKey="mediana" stroke="#8694ab" strokeWidth={1.6} strokeDasharray="5 4" dot={false} name="mediana" />
+                <Line type="monotone" dataKey="observado" stroke="#b4232a" strokeWidth={2.8} dot={false} name="observado" />
+                <Legend />
+              </ComposedChart>
             </ResponsiveContainer>
           ) : <Skeleton altura={340} />}
         </div>

@@ -23,5 +23,18 @@ SOFTWARE.
 ---
 
 Os DADOS originais são públicos, produzidos pelo DATASUS/Ministério da Saúde
-(SIM) e pelo IBGE, e permanecem em domínio público. As agregações derivadas
-publicadas por este projeto são de uso livre, com citação das fontes primárias.
+(SIM, SINAN, SIH), pelo IBGE e pelo IPEA, e permanecem em domínio público. As
+agregações derivadas publicadas por este projeto são de uso livre, com citação
+das fontes primárias.
+
+---
+
+NOTA DE USO ÉTICO (não restritiva — apelo de boa-fé)
+
+Embora a licença MIT permita uso amplo, os mantenedores pedem que esta
+ferramenta e seus dados NÃO sejam usados para: promover discriminação no acesso
+à saúde; alimentar sistemas de vigilância em massa de indivíduos; ou automatizar
+decisões clínicas ou de política pública sem supervisão profissional
+qualificada. Os indicadores são agregados e descritivos — não substituem
+julgamento técnico. Esta nota é inspirada na cláusula de uso ético do projeto
+LabSUS (Lucas Amaral Dourado, Universidade Federal do Tocantins).

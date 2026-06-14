@@ -65,6 +65,29 @@ export default function Sobre() {
         </tbody>
       </table>
 
+      <h2>Uso ético</h2>
+      <p>
+        Os indicadores aqui são <strong>agregados e descritivos</strong> — não
+        substituem julgamento técnico. Pedimos, de boa-fé, que a plataforma não
+        seja usada para discriminação no acesso à saúde, vigilância em massa de
+        indivíduos, ou automação de decisões clínicas/de política pública sem
+        supervisão profissional. Nenhum microdado individual é publicado.
+      </p>
+
+      <h2>Projetos relacionados e créditos</h2>
+      <p>
+        O ecossistema de dados abertos de saúde no Brasil é colaborativo.
+        Reconhecemos especialmente o{" "}
+        <a href="https://github.com/goldenluke/labsus" target="_blank" rel="noreferrer">LabSUS</a>{" "}
+        (Lucas Amaral Dourado, Universidade Federal do Tocantins), de quem
+        partiram inspirações incorporadas aqui — a integração do{" "}
+        <strong>Índice de Vulnerabilidade Social (IVS)</strong>, a{" "}
+        <strong>detecção de surtos por canal endêmico</strong> e a{" "}
+        <strong>nota de uso ético</strong>. Os métodos são de domínio público
+        (epidemiologia clássica) e nenhum código do LabSUS foi copiado; o crédito
+        é pela influência metodológica.
+      </p>
+
       <h2>Princípios</h2>
       <ul>
         <li><strong>Reprodutibilidade</strong> — qualquer número pode ser regenerado das fontes oficiais com um script aberto;</li>

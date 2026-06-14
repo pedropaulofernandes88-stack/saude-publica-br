@@ -154,6 +154,20 @@ Contribuições são bem-vindas — leia [CONTRIBUTING.md](CONTRIBUTING.md).
 Áreas prioritárias: novos indicadores, validação epidemiológica, documentação
 e tutoriais de uso da API para pesquisadores.
 
+## Projetos relacionados e créditos
+
+- **[LabSUS](https://github.com/goldenluke/labsus)** (Lucas Amaral Dourado, UFT) —
+  plataforma acadêmica de inteligência em saúde pública. Inspirou aqui a
+  integração do **IVS**, a **detecção de surtos por canal endêmico** e a **nota
+  de uso ético**. Métodos de domínio público; nenhum código foi copiado.
+- Fontes primárias: **DATASUS/MS** (SIM, SINAN, SIH), **IBGE** e **IPEA** (IVS).
+
+## Uso ético
+
+Indicadores agregados e descritivos — não substituem julgamento técnico. Pedimos
+que não sejam usados para discriminação no acesso à saúde, vigilância em massa ou
+automação de decisões sem supervisão profissional. Detalhes na [LICENSE](LICENSE).
+
 ## Licença
 
 Código: MIT. Dados originais: DATASUS/Ministério da Saúde e IBGE — públicos;
