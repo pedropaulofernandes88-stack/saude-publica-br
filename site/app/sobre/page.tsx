@@ -99,15 +99,22 @@ export default function Sobre() {
       </ul>
 
       <h2>Como citar</h2>
-      <pre><code>{`Saúde em Dado: indicadores abertos de mortalidade no Brasil (SIM/DataSUS).
+      <p>
+        A plataforma tem <strong>DOI</strong> permanente no Zenodo:{" "}
+        <a href="https://doi.org/10.5281/zenodo.20706846" target="_blank" rel="noreferrer">
+          10.5281/zenodo.20706846
+        </a>.
+      </p>
+      <pre><code>{`FERNANDES, Pedro. Saúde em Dado: inteligência epidemiológica aberta sobre
+os microdados do SUS. Zenodo, 2026. DOI: 10.5281/zenodo.20706846.
 Disponível em: https://saudeemdado.com. Acesso em: [data].
 
-Fontes primárias: BRASIL. Ministério da Saúde. SIM — Sistema de Informações
-sobre Mortalidade (microdados, OpenDataSUS). IBGE. Censo Demográfico 2022 e
-Estimativas de População (SIDRA).`}</code></pre>
+Fontes primárias: BRASIL. Ministério da Saúde. SIM, SINAN, SIH, SINASC
+(microdados, DataSUS). IBGE. Censo Demográfico 2022 e Estimativas de
+População (SIDRA).`}</code></pre>
       <p>
-        O arquivo <code>CITATION.cff</code> do repositório fornece a citação em
-        formato legível por gerenciadores de referência.
+        O arquivo <code>CITATION.cff</code> do repositório fornece a citação (com DOI)
+        em formato legível por gerenciadores de referência.
       </p>
     </div>
   );

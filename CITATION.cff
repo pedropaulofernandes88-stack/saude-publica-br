@@ -3,12 +3,19 @@ message: >-
   Se você usar esta plataforma ou seus dados em trabalho acadêmico, cite o
   software conforme abaixo E as fontes primárias (SIM/DataSUS — Ministério da
   Saúde; IBGE — Censo 2022 e Estimativas de População).
-title: "Saúde em Dado: indicadores abertos de mortalidade no Brasil (SIM/DataSUS)"
+title: "Saúde em Dado: inteligência epidemiológica aberta sobre os microdados do SUS"
 type: software
+version: v3.0.1
+doi: 10.5281/zenodo.20706846
+date-released: "2026-06-15"
 authors:
   - family-names: Fernandes
-    given-names: Pedro Paulo
+    given-names: Pedro
     email: pedropaulofernandes88@gmail.com
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.20706846
+    description: DOI do conceito (todas as versões) no Zenodo
 repository-code: "https://github.com/pedropaulofernandes88-stack/saude-publica-br"
 url: "https://saudeemdado.com"
 license: MIT
