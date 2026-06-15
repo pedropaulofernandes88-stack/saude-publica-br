@@ -17,8 +17,17 @@ export default function Sobre() {
 
       <h2>Quem mantém</h2>
       <p>
-        Mantido por <strong>Pedro Paulo Fernandes</strong> (contato:{" "}
-        <a href="mailto:pedropaulofernandes88@gmail.com">pedropaulofernandes88@gmail.com</a>).
+        Mantido por <strong>Pedro Fernandes</strong> — Mestrando em Saúde Coletiva
+        (IAMSPE), Pós-graduando em IA e Ciência de Dados em Saúde (Hospital
+        Sírio-Libanês) e Diretor de TI da Prefeitura Municipal de Penápolis (SP).
+        Contato: <a href="mailto:pedropaulofernandes88@gmail.com">pedropaulofernandes88@gmail.com</a>.
+      </p>
+      <p>
+        <a href="https://orcid.org/0009-0008-6248-2486" target="_blank" rel="noreferrer">ORCID</a> ·{" "}
+        <a href="http://lattes.cnpq.br/6641343625206093" target="_blank" rel="noreferrer">Currículo Lattes</a> ·{" "}
+        <a href="https://www.linkedin.com/in/pedro-f-540154408/" target="_blank" rel="noreferrer">LinkedIn</a>
+      </p>
+      <p>
         Todo o código — do download dos microdados ao site — é aberto (licença
         MIT) e auditável no repositório público do projeto no GitHub
         (<code>saude-publica-br</code>). Correções, críticas metodológicas e
