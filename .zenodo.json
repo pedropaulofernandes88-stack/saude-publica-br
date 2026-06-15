@@ -1,35 +1,39 @@
 {
-  "title": "Saúde em Dado: indicadores abertos de mortalidade no Brasil (SIM/DataSUS)",
-  "description": "Plataforma aberta que transforma os microdados do Sistema de Informações sobre Mortalidade (SIM/DataSUS, 2015–2024; 13M+ óbitos) em indicadores acessíveis: taxas brutas com IC95%, taxas padronizadas por idade (padrão Brasil Censo 2022), excesso de mortalidade e séries por município, causa (CID-10), sexo e faixa etária — via painel navegável (saudeemdado.com), API REST pública e downloads em Parquet. Pipeline 100% reproduzível a partir das fontes oficiais.",
-  "creators": [
-    {
-      "name": "Fernandes, Pedro Paulo"
-    }
-  ],
-  "license": "MIT",
+  "title": "Saúde em Dado: inteligência epidemiológica aberta sobre os microdados do SUS",
+  "description": "Plataforma aberta e de custo zero que transforma os microdados oficiais do DataSUS e do IBGE em indicadores agregados, validados e consultáveis por API pública. Cobre cinco sistemas — mortalidade (SIM, 2015–2024; 14,4 milhões de óbitos), dengue (SINAN, 2015–2024; epidemia recorde de 2024 com 6,56 milhões de casos), internações hospitalares (SIH, 2022–2024; 39,9 milhões de internações), nascidos vivos e mortalidade infantil (SINASC, 2021–2022) — além de um índice-proxy de vulnerabilidade social (Censo 2022). Implementa taxas padronizadas por idade, intervalos de confiança, excesso de mortalidade e canal endêmico, com pipeline 100% reproduzível. Site: https://saudeemdado.com.",
   "upload_type": "software",
   "access_right": "open",
+  "license": "MIT",
+  "language": "por",
+  "creators": [
+    {
+      "name": "Fernandes, Pedro",
+      "affiliation": "IAMSPE (Mestrado em Saúde Coletiva); Hospital Sírio-Libanês (Pós-graduação em IA e Ciência de Dados em Saúde); Prefeitura Municipal de Penápolis (Diretoria de TI)"
+    }
+  ],
   "keywords": [
-    "mortalidade",
-    "SIM",
+    "saúde pública",
+    "saúde coletiva",
     "DataSUS",
+    "SIM",
+    "SINAN",
+    "SIH",
+    "SINASC",
+    "mortalidade",
+    "dengue",
+    "internações",
+    "mortalidade infantil",
+    "excesso de mortalidade",
+    "taxa padronizada por idade",
     "epidemiologia",
     "dados abertos",
-    "saúde pública",
+    "ciência de dados em saúde",
     "Brasil",
-    "CID-10",
-    "excesso de mortalidade"
+    "CID-10"
   ],
   "related_identifiers": [
-    {
-      "identifier": "https://saudeemdado.com",
-      "relation": "isSupplementTo",
-      "scheme": "url"
-    },
-    {
-      "identifier": "https://opendatasus.saude.gov.br/dataset/sim",
-      "relation": "isDerivedFrom",
-      "scheme": "url"
-    }
-  ]
+    { "identifier": "https://saudeemdado.com", "relation": "isSupplementTo", "scheme": "url" },
+    { "identifier": "https://opendatasus.saude.gov.br", "relation": "isDerivedFrom", "scheme": "url" }
+  ],
+  "notes": "Dados originais em domínio público (DATASUS/Ministério da Saúde, IBGE e IPEA). Inspirações metodológicas creditadas ao projeto LabSUS (Lucas Amaral Dourado, Universidade Federal do Tocantins)."
 }
