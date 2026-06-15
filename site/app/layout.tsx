@@ -73,6 +73,7 @@ const NAV = [
   { href: "/nascimentos/", label: "Nascimentos", curto: "Nasc." },
   { href: "/mapa/", label: "Mapa", curto: "Mapa" },
   { href: "/tendencias/", label: "Tendências", curto: "Tend." },
+  { href: "/artigos/", label: "Análises", curto: "Análises" },
   { href: "/dados/", label: "Dados & API", curto: "Dados" },
   { href: "/metodologia/", label: "Metodologia", curto: "Método" },
   { href: "/sobre/", label: "Sobre", curto: "Sobre" },
