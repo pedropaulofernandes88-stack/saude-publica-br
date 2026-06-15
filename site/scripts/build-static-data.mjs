@@ -89,6 +89,33 @@ try {
   await writeFile(path.join(OUT, "dengue_uf_semana.json"), "[]");
 }
 
+console.log("[sdata] vulnerabilidade × mortalidade (IVS proxy × taxa padronizada, 2023)…");
+try {
+  const [ivs, mort] = await Promise.all([
+    rest("dim_ivs", { select: "municipio_cod,municipio_nome,uf_sigla,regiao,ivs_score,ivs_quartil" }),
+    rest("mart_mortalidade_municipio", {
+      select: "municipio_cod,taxa_padronizada_100k,populacao",
+      ano: "eq.2023", capitulo_cid: "eq.TOTAL", sexo: "eq.TOTAL", order: "municipio_cod",
+    }),
+  ]);
+  const mortByCod = new Map(mort.map((m) => [m.municipio_cod, m]));
+  const cruz = [];
+  for (const i of ivs) {
+    const m = mortByCod.get(i.municipio_cod);
+    if (!m || m.taxa_padronizada_100k == null || i.ivs_score == null) continue;
+    if ((m.populacao ?? 0) < 10000) continue; // taxas instáveis em municípios pequenos
+    cruz.push({
+      cod: i.municipio_cod, nome: i.municipio_nome, uf: i.uf_sigla, regiao: i.regiao,
+      ivs: i.ivs_score, taxa_pad: m.taxa_padronizada_100k, pop: m.populacao,
+    });
+  }
+  await writeFile(path.join(OUT, "vulnerab_mortalidade.json"), JSON.stringify(cruz));
+  console.log(`[sdata]   ${cruz.length} municípios`);
+} catch (e) {
+  console.warn("[sdata]   cruzamento indisponível:", String(e).slice(0, 120));
+  await writeFile(path.join(OUT, "vulnerab_mortalidade.json"), "[]");
+}
+
 console.log("[sdata] capítulos, padrão etário e metadados…");
 const caps = await rest("dim_cid10_capitulo", {
   select: "capitulo,capitulo_num,faixa,descricao",

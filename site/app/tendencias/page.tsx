@@ -1,21 +1,44 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { LinhasExcesso, SerieLinha } from "@/components/charts";
+import { DispersaoVulnMort, LinhasExcesso, SerieLinha } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { UFS, fmtDec, fmtInt, sdata, type LinhaExcesso, type SerieTotalItem } from "@/lib/api";
+import { UFS, fmtDec, fmtInt, sdata, type CruzVulnMort, type LinhaExcesso, type SerieTotalItem } from "@/lib/api";
+
+const REGIOES = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"];
+const COR_REG: Record<string, string> = {
+  Norte: "#1f9e8a", Nordeste: "#e07a1f", "Centro-Oeste": "#a05fb4", Sudeste: "#2f6fb0", Sul: "#107752",
+};
 
 export default function Tendencias() {
   const [uf, setUf] = useState("BR");
   const [excesso, setExcesso] = useState<LinhaExcesso[] | null>(null);
   const [serie, setSerie] = useState<SerieTotalItem[] | null>(null);
+  const [cruz, setCruz] = useState<CruzVulnMort[] | null>(null);
+  const [ufScatter, setUfScatter] = useState("Brasil");
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
     Promise.all([sdata<LinhaExcesso[]>("excesso"), sdata<SerieTotalItem[]>("serie_total")])
       .then(([e, s]) => { setExcesso(e); setSerie(s); })
       .catch((e) => setErro(String(e)));
+    sdata<CruzVulnMort[]>("vulnerab_mortalidade").then(setCruz).catch(() => {});
   }, []);
+
+  const cruzFiltrado = useMemo(
+    () => cruz?.filter((d) => ufScatter === "Brasil" || d.uf === ufScatter) ?? null,
+    [cruz, ufScatter],
+  );
+
+  // correlação de Pearson entre vulnerabilidade e taxa padronizada
+  const pearson = useMemo(() => {
+    if (!cruzFiltrado || cruzFiltrado.length < 10) return null;
+    const xs = cruzFiltrado.map((d) => d.ivs), ys = cruzFiltrado.map((d) => d.taxa_pad);
+    const n = xs.length, mx = xs.reduce((a, b) => a + b, 0) / n, my = ys.reduce((a, b) => a + b, 0) / n;
+    let sxy = 0, sx = 0, sy = 0;
+    for (let i = 0; i < n; i++) { const dx = xs[i] - mx, dy = ys[i] - my; sxy += dx * dy; sx += dx * dx; sy += dy * dy; }
+    return sxy / Math.sqrt(sx * sy);
+  }, [cruzFiltrado]);
 
   const serieUf = useMemo(
     () => serie?.filter((r) => r.uf_sigla === uf)
@@ -127,6 +150,63 @@ export default function Tendencias() {
           <p className="mt-2 text-xs text-ink-500">* dados preliminares, sujeitos a revisão pelo MS.</p>
         </div>
       )}
+
+      {/* Vulnerabilidade × mortalidade */}
+      <div className="card mt-10">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-xl font-semibold text-ink-900">
+              Vulnerabilidade social × mortalidade (2023)
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-ink-500">
+              Cada ponto é um município (≥ 10 mil hab.): vulnerabilidade social
+              (proxy Censo 2022) no eixo X, taxa de mortalidade padronizada por
+              idade no eixo Y. Tamanho ∝ população; cor por região.
+            </p>
+          </div>
+          <div>
+            <label className="label" htmlFor="s-uf">Recorte</label>
+            <select id="s-uf" className="select" value={ufScatter} onChange={(e) => setUfScatter(e.target.value)}>
+              <option value="Brasil">Brasil</option>
+              {UFS.map((u) => <option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+        </div>
+
+        {pearson != null && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Kpi rotulo="Correlação (Pearson)" valor={fmtDec(pearson, 2)}
+                 detalhe={Math.abs(pearson) < 0.2 ? "fraca" : Math.abs(pearson) < 0.5 ? "moderada" : "forte"} />
+            <Kpi rotulo="Municípios no gráfico" valor={cruzFiltrado ? fmtInt(cruzFiltrado.length) : "…"} detalhe="≥ 10 mil hab." />
+            <div className="card flex flex-col justify-center">
+              <p className="text-xs leading-relaxed text-ink-600">
+                {pearson > 0.2
+                  ? "Municípios mais vulneráveis tendem a ter maior mortalidade padronizada — coerente com a literatura de determinantes sociais."
+                  : pearson < -0.05
+                    ? "Associação fraca/negativa: a taxa é padronizada por idade e há sub-registro de óbitos em áreas mais vulneráveis, o que atenua a relação esperada. Um sinal a investigar, não uma conclusão."
+                    : "No recorte atual a associação é fraca; a relação varia por região, causa e qualidade do registro."}
+              </p>
+            </div>
+          </div>
+        )}
+
+        <div className="mt-4">
+          {cruzFiltrado ? <DispersaoVulnMort data={cruzFiltrado} /> : <Skeleton altura={420} />}
+        </div>
+
+        <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-600">
+          {REGIOES.map((r) => (
+            <span key={r} className="flex items-center gap-1">
+              <span className="inline-block h-3 w-3 rounded-full" style={{ background: COR_REG[r] }} /> {r}
+            </span>
+          ))}
+        </div>
+        <p className="mt-3 text-xs text-ink-500">
+          Vulnerabilidade = proxy do Censo 2022 (analfabetismo + falta de água, z-score), não o IVS
+          oficial do IPEA. Taxa padronizada por idade (padrão Brasil 2022). Correlação não implica
+          causalidade. Ver <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
+        </p>
+      </div>
     </div>
   );
 }

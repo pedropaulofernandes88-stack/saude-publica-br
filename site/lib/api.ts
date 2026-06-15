@@ -173,6 +173,16 @@ export interface Ivs {
   ivs_quartil: string | null;
 }
 
+export interface CruzVulnMort {
+  cod: string;
+  nome: string | null;
+  uf: string;
+  regiao: string | null;
+  ivs: number;
+  taxa_pad: number;
+  pop: number;
+}
+
 /** Dados estáticos gerados no build (servidos pelo próprio site — egress zero). */
 export async function sdata<T>(name: string): Promise<T> {
   const res = await fetch(`/sdata/${name}.json`);

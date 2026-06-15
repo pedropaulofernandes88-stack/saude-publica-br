@@ -4,14 +4,79 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
   Line,
   LineChart,
   ResponsiveContainer,
+  Scatter,
+  ScatterChart,
   Tooltip,
   XAxis,
   YAxis,
+  ZAxis,
 } from "recharts";
-import { fmtInt } from "@/lib/api";
+import { fmtDec, fmtInt } from "@/lib/api";
+
+const CORES_REGIAO: Record<string, string> = {
+  Norte: "#1f9e8a",
+  Nordeste: "#e07a1f",
+  "Centro-Oeste": "#a05fb4",
+  Sudeste: "#2f6fb0",
+  Sul: "#107752",
+};
+
+export function DispersaoVulnMort({
+  data,
+}: {
+  data: { ivs: number; taxa_pad: number; pop: number; nome: string | null; uf: string; regiao: string | null }[];
+}) {
+  return (
+    <ResponsiveContainer width="100%" height={420}>
+      <ScatterChart margin={{ top: 8, right: 16, bottom: 18, left: 8 }}>
+        <CartesianGrid stroke="#eceef2" />
+        <XAxis
+          type="number" dataKey="ivs" name="Vulnerabilidade" domain={[0, 100]}
+          tick={{ fontSize: 12, fill: "#677791" }}
+          label={{ value: "vulnerabilidade social (proxy 0–100)", position: "insideBottom", offset: -8, fontSize: 11, fill: "#8694ab" }}
+        />
+        <YAxis
+          type="number" dataKey="taxa_pad" name="Taxa padronizada"
+          tick={{ fontSize: 12, fill: "#677791" }} width={52}
+          label={{ value: "óbitos /100 mil (padroniz.)", angle: -90, position: "insideLeft", fontSize: 11, fill: "#8694ab" }}
+        />
+        <ZAxis type="number" dataKey="pop" range={[12, 240]} name="População" />
+        <Tooltip
+          cursor={{ strokeDasharray: "3 3" }}
+          contentStyle={{ borderRadius: 8, borderColor: "#eceef2", fontSize: 13 }}
+          formatter={(v, n) => [
+            n === "Vulnerabilidade" ? fmtDec(v as number, 0)
+              : n === "Taxa padronizada" ? fmtDec(v as number, 0)
+              : fmtInt(v as number),
+            n,
+          ]}
+          labelFormatter={() => ""}
+          content={({ payload }) => {
+            if (!payload || !payload.length) return null;
+            const p = payload[0].payload as { nome: string; uf: string; ivs: number; taxa_pad: number; pop: number };
+            return (
+              <div style={{ background: "#fff", border: "1px solid #eceef2", borderRadius: 8, padding: "8px 10px", fontSize: 13 }}>
+                <div style={{ fontWeight: 600 }}>{p.nome} · {p.uf}</div>
+                <div>Vulnerabilidade: <b>{fmtDec(p.ivs, 0)}</b>/100</div>
+                <div>Taxa padronizada: <b>{fmtDec(p.taxa_pad, 0)}</b> /100 mil</div>
+                <div style={{ color: "#677791" }}>População: {fmtInt(p.pop)}</div>
+              </div>
+            );
+          }}
+        />
+        <Scatter data={data} fillOpacity={0.6}>
+          {data.map((d, i) => (
+            <Cell key={i} fill={CORES_REGIAO[d.regiao ?? ""] ?? "#94a3b8"} />
+          ))}
+        </Scatter>
+      </ScatterChart>
+    </ResponsiveContainer>
+  );
+}
 
 const AXIS = { fontSize: 12, fill: "#677791" };
 const GRID = "#eceef2";
