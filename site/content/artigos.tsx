@@ -8,9 +8,8 @@
 
 export const AUTHOR = {
   nome: "Pedro Fernandes",
-  // Preencha as URLs; os botões só aparecem quando preenchidos.
-  lattes: "",
-  linkedin: "",
+  lattes: "http://lattes.cnpq.br/6641343625206093",
+  linkedin: "https://www.linkedin.com/in/pedro-f-540154408/",
   credenciais: [
     "Mestrando em Saúde Coletiva (IAMSPE)",
     "Pós-graduando em Inteligência Artificial e Ciência de Dados em Saúde (Hospital Sírio-Libanês)",

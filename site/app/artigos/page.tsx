@@ -9,6 +9,17 @@ export const metadata: Metadata = {
   alternates: { canonical: "/artigos/" },
 };
 
+const CAPA: Record<string, { bg: string; icone: string }> = {
+  dengue: { bg: "linear-gradient(135deg,#b4232a,#e07a1f)", icone: "🦟" },
+  mortalidade: { bg: "linear-gradient(135deg,#3a4253,#677791)", icone: "💀" },
+  "mortalidade infantil": { bg: "linear-gradient(135deg,#107752,#46b785)", icone: "👶" },
+  SIH: { bg: "linear-gradient(135deg,#2f6fb0,#1f9e8a)", icone: "🏥" },
+  metodologia: { bg: "linear-gradient(135deg,#5b4b8a,#a05fb4)", icone: "📐" },
+  desigualdade: { bg: "linear-gradient(135deg,#8a5a1f,#e07a1f)", icone: "⚖️" },
+  "ciência de dados": { bg: "linear-gradient(135deg,#0c5c41,#107752)", icone: "🧬" },
+  _default: { bg: "linear-gradient(135deg,#15875e,#0c5c41)", icone: "📊" },
+};
+
 export default function Artigos() {
   const ordenados = [...ARTIGOS].sort((a, b) => b.data.localeCompare(a.data));
   return (
@@ -24,26 +35,32 @@ export default function Artigos() {
         {" "}{AUTHOR.credenciais[1]}.
       </p>
 
-      <div className="mt-10 space-y-5">
-        {ordenados.map((a) => (
-          <Link key={a.slug} href={`/artigos/${a.slug}/`}
-                className="card group block transition hover:border-accent-400 hover:shadow-md">
-            <div className="flex flex-wrap items-center gap-2 text-xs text-ink-500">
-              <time>{new Date(`${a.data}T00:00:00`).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</time>
-              <span>·</span><span>{a.leituraMin} min</span>
-              <span className="ml-auto flex gap-1">
-                {a.tags.slice(0, 3).map((t) => (
-                  <span key={t} className="rounded bg-ink-100 px-2 py-0.5 text-[11px] text-ink-600">{t}</span>
-                ))}
-              </span>
-            </div>
-            <h2 className="mt-2 font-serif text-xl font-semibold text-ink-900 group-hover:text-accent-800">
-              {a.titulo}
-            </h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-ink-600">{a.dek}</p>
-            <span className="mt-3 inline-block text-sm font-medium text-accent-700 group-hover:underline">Ler análise →</span>
-          </Link>
-        ))}
+      <div className="mt-10 grid gap-6 sm:grid-cols-2">
+        {ordenados.map((a) => {
+          const cor = CAPA[a.tags[0]] ?? CAPA._default;
+          return (
+            <Link key={a.slug} href={`/artigos/${a.slug}/`}
+                  className="group flex flex-col overflow-hidden rounded-xl border border-ink-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:border-accent-400 hover:shadow-md">
+              <div className="relative h-28 overflow-hidden" style={{ background: cor.bg }}>
+                <span className="absolute right-3 top-3 text-3xl opacity-90">{cor.icone}</span>
+                <span className="absolute bottom-3 left-4 text-[11px] font-semibold uppercase tracking-widest text-white/90">
+                  {a.tags[0]}
+                </span>
+              </div>
+              <div className="flex flex-1 flex-col p-5">
+                <div className="flex items-center gap-2 text-xs text-ink-500">
+                  <time>{new Date(`${a.data}T00:00:00`).toLocaleDateString("pt-BR", { month: "short", year: "numeric" })}</time>
+                  <span>·</span><span>{a.leituraMin} min</span>
+                </div>
+                <h2 className="mt-2 font-serif text-lg font-semibold leading-snug text-ink-900 group-hover:text-accent-800">
+                  {a.titulo}
+                </h2>
+                <p className="mt-1.5 flex-1 text-sm leading-relaxed text-ink-600">{a.dek}</p>
+                <span className="mt-3 text-sm font-medium text-accent-700 group-hover:underline">Ler análise →</span>
+              </div>
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
