@@ -89,6 +89,21 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>centenas de mil</td>
           </tr>
           <tr>
+            <td><code>mart_natalidade_municipio</code></td>
+            <td>nascidos vivos (SINASC): peso ao nascer, prematuridade, pré-natal, idade da mãe, por município × ano</td>
+            <td>~11 mil</td>
+          </tr>
+          <tr>
+            <td><code>mart_mortalidade_infantil_uf</code></td>
+            <td>Taxa de Mortalidade Infantil por UF e ano (óbitos &lt;1 ano ÷ nascidos vivos)</td>
+            <td>54</td>
+          </tr>
+          <tr>
+            <td><code>dim_ivs</code></td>
+            <td>vulnerabilidade social municipal (proxy Censo 2022: analfabetismo + água; z-score)</td>
+            <td>5.570</td>
+          </tr>
+          <tr>
             <td><code>dim_municipio</code></td>
             <td>municípios IBGE (códigos 6/7 dígitos, UF, região)</td>
             <td>5.571</td>
@@ -168,6 +183,9 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
             ["mart_dengue_semana.parquet", "1,1 MB", "4e9eb4d9a87efc8ded2f3d692252b24d59091ca62ae4f29c1163b996d78d113f"],
             ["mart_dengue_municipio_ano.parquet", "0,3 MB", "1bf5f4d31d395428219b065ea80d68fa138cd8476d3dda1b9734ddfbedb40fcb"],
             ["mart_internacoes_municipio.parquet", "6,0 MB", "09d129d5bbe344f1e3fc12ed9ee9413035e7600b0e1dd9ce6dbdb868857c56d3"],
+            ["mart_natalidade_municipio.parquet", "0,2 MB", "d6f064c2230322368bdf11553b89c9439b86240a2bf223f309ee82a0d25f5294"],
+            ["mart_mortalidade_infantil_uf.parquet", "0,01 MB", "73665f2f9cce2adec1a0431ff67c7ee1ec5a92412baca1ac838bdeb8b7d40732"],
+            ["dim_ivs.parquet", "0,12 MB", "76f386873403eb7aad4d1099eceb05169a737f80083f57d1ba45ecec774517d2"],
             ["dim_municipio.parquet", "0,09 MB", "a7f3f66aad10ef9bd99f6d1f0dc919f9017dcc3ae7e55de9da65344790e2d7e4"],
             ["dim_populacao.parquet", "0,29 MB", "c88335c58dc4e45c46a91512d749cc6f40d00d4659cdcb289921a54467c0456d"],
             ["dim_pop_faixa.parquet", "0,13 MB", "a7aaa140fd70bfea6f18c77ec5ebdeb25a26bd26437ca8289b355ba3e05c3b0a"],

@@ -70,6 +70,7 @@ const NAV = [
   { href: "/painel/", label: "Mortalidade", curto: "Mortal." },
   { href: "/dengue/", label: "Dengue", curto: "Dengue" },
   { href: "/internacoes/", label: "Internações", curto: "Intern." },
+  { href: "/nascimentos/", label: "Nascimentos", curto: "Nasc." },
   { href: "/mapa/", label: "Mapa", curto: "Mapa" },
   { href: "/tendencias/", label: "Tendências", curto: "Tend." },
   { href: "/dados/", label: "Dados & API", curto: "Dados" },

@@ -133,31 +133,41 @@ def _process_file(uf: str, ano: int, mes: int) -> dict | None:
         dbf.unlink(missing_ok=True)
 
 
-def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
-    tarefas = [(uf, a, m) for a in anos for uf in UFS for m in range(1, 13)]
-    total: dict = defaultdict(lambda: [0, 0, 0, 0.0])  # (mun, ano, cap) -> [...]
-    ok = err = 0
-    print(f"[sih] {len(tarefas)} arquivos (UF×mês×ano), {workers} workers", flush=True)
+CKPT = ROOT / "data" / "raw" / "SIH" / "ckpt"
 
+
+def _process_uf_ano(uf: str, ano: int, workers: int) -> pd.DataFrame:
+    """Processa os 12 meses de uma UF/ano (paralelo) → df agregado. Checkpoint resumível."""
+    CKPT.mkdir(parents=True, exist_ok=True)
+    ckpt = CKPT / f"sih_{uf}_{ano}.parquet"
+    if ckpt.exists():
+        return pd.read_parquet(ckpt)
+
+    agg: dict = defaultdict(lambda: [0, 0, 0, 0.0])  # (mun, cap) -> [...]
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = {ex.submit(_process_file, uf, a, m): (uf, a, m) for uf, a, m in tarefas}
+        futs = {ex.submit(_process_file, uf, ano, m): m for m in range(1, 13)}
         for fut in as_completed(futs):
-            uf, a, m = futs[fut]
             res = fut.result()
-            if res is None:
-                err += 1
-            else:
-                ok += 1
+            if res:
                 for (mun, cap), c in res.items():
-                    t = total[(mun, a, cap)]
+                    t = agg[(mun, cap)]
                     t[0] += c[0]; t[1] += c[1]; t[2] += c[2]; t[3] += c[3]
-            if (ok + err) % 50 == 0:
-                print(f"[sih]   {ok+err}/{len(tarefas)} (ok={ok}, vazios={err})", flush=True)
+    df = pd.DataFrame(
+        [(mun, ano, cap, c[0], c[1], c[2], round(c[3], 2)) for (mun, cap), c in agg.items()],
+        columns=["municipio_cod", "ano", "capitulo_cid", "internacoes", "obitos", "dias_permanencia", "valor_total"])
+    df.to_parquet(ckpt, compression="zstd", index=False)
+    print(f"[sih] {uf} {ano}: {int(df['internacoes'].sum()):,} internações → checkpoint", flush=True)
+    return df
 
-    rows = [(mun, a, cap, c[0], c[1], c[2], round(c[3], 2))
-            for (mun, a, cap), c in total.items()]
-    det = pd.DataFrame(rows, columns=[
-        "municipio_cod", "ano", "capitulo_cid", "internacoes", "obitos", "dias_permanencia", "valor_total"])
+
+def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
+    partes = []
+    for a in anos:
+        for uf in UFS:
+            partes.append(_process_uf_ano(uf, a, workers))
+    det = pd.concat(partes, ignore_index=True)
+    det = (det.groupby(["municipio_cod", "ano", "capitulo_cid"], as_index=False)
+           [["internacoes", "obitos", "dias_permanencia", "valor_total"]].sum())
 
     # linha TOTAL (todos os capítulos) por município/ano
     tot = (det.groupby(["municipio_cod", "ano"], as_index=False)[
@@ -181,8 +191,7 @@ def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     mart.loc[m_tot, "internacoes_100k"] = (
         mart.loc[m_tot, "internacoes"] / mart.loc[m_tot, "populacao"] * 100_000
     ).round(1)
-    mart.loc[mart["capitulo_cid"] != "TOTAL", "populacao"] = None
-    mart["populacao"] = mart["populacao"].where(m_tot)
+    mart["populacao"] = mart["populacao"].where(m_tot).astype("Int64")  # nullable int
 
     mart = mart.sort_values(["municipio_cod", "ano", "capitulo_cid"]).reset_index(drop=True)
     print(f"[sih] mart_internacoes: {len(mart):,} linhas")

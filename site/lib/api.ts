@@ -141,6 +141,38 @@ export interface Internacao {
   populacao: number | null;
 }
 
+export interface Natalidade {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  nascidos: number;
+  pct_baixo_peso: number | null;
+  pct_prematuro: number | null;
+  pct_prenatal_7mais: number | null;
+  idade_media_mae: number | null;
+}
+
+export interface MortalidadeInfantil {
+  uf_sigla: string;
+  ano: number;
+  nascidos: number;
+  obitos_menor1: number | null;
+  tmi_por_mil: number | null;
+}
+
+export interface Ivs {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  taxa_analfabetismo: number | null;
+  pct_sem_agua: number | null;
+  ivs_score: number | null;
+  ivs_quartil: string | null;
+}
+
 /** Dados estáticos gerados no build (servidos pelo próprio site — egress zero). */
 export async function sdata<T>(name: string): Promise<T> {
   const res = await fetch(`/sdata/${name}.json`);

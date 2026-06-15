@@ -107,20 +107,22 @@ def _aggregate_year(ano: int) -> pd.DataFrame:
 
     dbc = _download_dbc(ano)
     dbf = Path(tempfile.gettempdir()) / f"DENG{ano}.dbf"
-    # descompressão em subprocesso: um eventual segfault do datasus_dbc não mata o pipeline
-    for tent in range(2):
-        if dbf.exists() and dbf.stat().st_size > 1000:
-            break
+    # SEMPRE descomprime do zero (um .dbf truncado de um run morto produz contagem errada).
+    # Descompressão em subprocesso isola eventual segfault do datasus_dbc.
+    dbf.unlink(missing_ok=True)
+    ok = False
+    for tent in range(3):
         r = subprocess.run(
             [sys.executable, "-c",
              f"import datasus_dbc; datasus_dbc.decompress(r'{dbc}', r'{dbf}')"],
             capture_output=True, text=True,
         )
-        if r.returncode == 0 and dbf.exists():
+        if r.returncode == 0 and dbf.exists() and dbf.stat().st_size > 10_000:
+            ok = True
             break
-        print(f"[dengue {ano}] decompress falhou (tent {tent+1}, rc={r.returncode}); tentando de novo", flush=True)
+        print(f"[dengue {ano}] decompress falhou (tent {tent+1}, rc={r.returncode}) {r.stderr[:150]}", flush=True)
         dbf.unlink(missing_ok=True)
-    if not dbf.exists():
+    if not ok:
         raise RuntimeError(f"não foi possível descomprimir DENGBR{ano % 100:02d}.dbc")
 
     counts: dict = defaultdict(lambda: [0, 0, 0])
@@ -189,6 +191,7 @@ def build(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     )
     pop_y = pop.rename(columns={"ano": "ano_epi"})[["municipio_cod", "ano_epi", "populacao"]]
     anual = anual.merge(pop_y, on=["municipio_cod", "ano_epi"], how="left")
+    anual["populacao"] = anual["populacao"].astype("Int64")  # nullable int (evita 25578.0)
     anual["incidencia_100k"] = (
         anual["casos_provaveis"] / anual["populacao"] * 100_000
     ).round(1).where(anual["populacao"] > 0)

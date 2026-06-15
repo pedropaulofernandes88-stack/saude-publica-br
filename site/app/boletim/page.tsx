@@ -8,7 +8,7 @@ import { Kpi, Skeleton } from "@/components/kpi";
 import {
   Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type LinhaMunicipio } from "@/lib/api";
+import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type Ivs, type LinhaMunicipio } from "@/lib/api";
 
 function SerieTaxas({ data }: { data: { ano: number; bruta: number | null; padronizada: number | null }[] }) {
   return (
@@ -34,6 +34,7 @@ function BoletimInner() {
   const [linhas, setLinhas] = useState<LinhaMunicipio[] | null>(null);
   const [capitulos, setCapitulos] = useState<(LinhaMunicipio & { capitulo_cid: string })[] | null>(null);
   const [capsDim, setCapsDim] = useState<CapituloCid[]>([]);
+  const [ivs, setIvs] = useState<Ivs | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -58,6 +59,10 @@ function BoletimInner() {
     ])
       .then(([l, c, dim]) => { setLinhas(l); setCapitulos(c); setCapsDim(dim); })
       .catch((e) => setErro(String(e)));
+    rest<Ivs>("dim_ivs", {
+      select: "municipio_cod,taxa_analfabetismo,pct_sem_agua,ivs_score,ivs_quartil",
+      municipio_cod: `eq.${cod}`,
+    }).then((r) => setIvs(r[0] ?? null)).catch(() => {});
   }, [cod]);
 
   const atual = useMemo(() => linhas?.length ? linhas[linhas.length - 1] : null, [linhas]);
@@ -117,6 +122,33 @@ function BoletimInner() {
             <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
               ⚠ Município com população pequena: taxas anuais são instáveis. Interprete com o IC95%.
             </p>
+          )}
+
+          {ivs && (
+            <div className="card mt-6">
+              <h2 className="font-serif text-xl font-semibold text-ink-900">Contexto social (Censo 2022)</h2>
+              <div className="mt-3 grid gap-4 sm:grid-cols-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Vulnerabilidade (proxy)</p>
+                  <p className="mt-1 font-serif text-2xl font-semibold text-ink-900">
+                    {fmtDec(ivs.ivs_score, 0)}<span className="text-base text-ink-400">/100</span>
+                    <span className="ml-2 rounded bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600">{ivs.ivs_quartil}</span>
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Analfabetismo (15+)</p>
+                  <p className="mt-1 font-serif text-2xl font-semibold text-ink-900">{fmtDec(ivs.taxa_analfabetismo, 1)}%</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Sem água encanada</p>
+                  <p className="mt-1 font-serif text-2xl font-semibold text-ink-900">{fmtDec(ivs.pct_sem_agua, 1)}%</p>
+                </div>
+              </div>
+              <p className="mt-2 text-xs text-ink-500">
+                Proxy de vulnerabilidade (z-score de analfabetismo e falta de água, Censo 2022) — quartil entre
+                os 5.570 municípios; Q4 = mais vulnerável. Não é o IVS oficial do IPEA.
+              </p>
+            </div>
           )}
 
           <div className="card mt-6">
