@@ -15,7 +15,13 @@ export function Byline({ data, leituraMin }: { data?: string; leituraMin?: numbe
           {dataFmt}{dataFmt && leituraMin ? " · " : ""}{leituraMin ? `${leituraMin} min de leitura` : ""}
         </p>
       </div>
-      <div className="ml-auto flex gap-2">
+      <div className="ml-auto flex flex-wrap gap-2">
+        {AUTHOR.orcid && (
+          <a href={AUTHOR.orcid} target="_blank" rel="noreferrer"
+             className="rounded-lg border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-100">
+            ORCID
+          </a>
+        )}
         {AUTHOR.lattes && (
           <a href={AUTHOR.lattes} target="_blank" rel="noreferrer"
              className="rounded-lg border border-ink-300 px-3 py-1.5 text-xs font-medium text-ink-700 hover:bg-ink-100">
@@ -42,8 +48,11 @@ export function AuthorCard() {
         {AUTHOR.credenciais.map((c) => <li key={c}>· {c}</li>)}
       </ul>
       <p className="mt-3 text-sm leading-relaxed text-ink-600">{AUTHOR.resumoBio}</p>
-      {(AUTHOR.lattes || AUTHOR.linkedin) && (
-        <div className="mt-3 flex gap-2">
+      {(AUTHOR.lattes || AUTHOR.linkedin || AUTHOR.orcid) && (
+        <div className="mt-3 flex flex-wrap gap-2">
+          {AUTHOR.orcid && (
+            <a href={AUTHOR.orcid} target="_blank" rel="noreferrer" className="btn-ghost text-xs">ORCID</a>
+          )}
           {AUTHOR.lattes && (
             <a href={AUTHOR.lattes} target="_blank" rel="noreferrer" className="btn-ghost text-xs">Currículo Lattes</a>
           )}

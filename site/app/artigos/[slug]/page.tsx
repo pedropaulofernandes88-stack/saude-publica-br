@@ -43,7 +43,10 @@ export default function ArtigoPage({ params }: { params: { slug: string } }) {
     author: {
       "@type": "Person",
       name: AUTHOR.nome,
-      ...(AUTHOR.linkedin || AUTHOR.lattes ? { sameAs: [AUTHOR.lattes, AUTHOR.linkedin].filter(Boolean) } : {}),
+      ...(AUTHOR.orcid ? { "@id": AUTHOR.orcid, identifier: AUTHOR.orcid } : {}),
+      ...(AUTHOR.linkedin || AUTHOR.lattes || AUTHOR.orcid
+        ? { sameAs: [AUTHOR.orcid, AUTHOR.lattes, AUTHOR.linkedin].filter(Boolean) }
+        : {}),
       jobTitle: "Diretor de TI — Prefeitura de Penápolis; Mestrando em Saúde Coletiva (IAMSPE)",
     },
     publisher: { "@type": "Organization", name: "Saúde em Dado", url: "https://saudeemdado.com" },

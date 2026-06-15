@@ -8,6 +8,7 @@
 
 export const AUTHOR = {
   nome: "Pedro Fernandes",
+  orcid: "https://orcid.org/0009-0008-6248-2486",
   lattes: "http://lattes.cnpq.br/6641343625206093",
   linkedin: "https://www.linkedin.com/in/pedro-f-540154408/",
   credenciais: [

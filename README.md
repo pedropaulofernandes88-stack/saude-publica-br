@@ -221,6 +221,7 @@ Metadados legíveis por gerenciadores de referência em [`CITATION.cff`](CITATIO
 Mestrando em Saúde Coletiva (IAMSPE) · Pós-graduando em Inteligência Artificial e Ciência de Dados em
 Saúde (Hospital Sírio-Libanês) · Diretor de Tecnologia da Informação — Prefeitura Municipal de Penápolis (SP)
 
+[![ORCID](https://img.shields.io/badge/ORCID-0009--0008--6248--2486-a6ce39)](https://orcid.org/0009-0008-6248-2486)
 [![Lattes](https://img.shields.io/badge/Currículo-Lattes-1f6feb)](http://lattes.cnpq.br/6641343625206093)
 [![LinkedIn](https://img.shields.io/badge/LinkedIn-pedro--f-0a66c2)](https://www.linkedin.com/in/pedro-f-540154408/)
 
