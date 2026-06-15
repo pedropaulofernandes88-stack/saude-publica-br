@@ -163,7 +163,35 @@ export default function Metodologia() {
         <li>2024 preliminar; meses podem estar incompletos no processamento mais recente.</li>
       </ul>
 
-      <h2>11. Privacidade</h2>
+      <h2>11. Vulnerabilidade social (proxy, Censo 2022)</h2>
+      <p>
+        Para permitir cruzar saúde com desigualdade, calculamos um{" "}
+        <strong>índice-proxy de vulnerabilidade social</strong> por município, a
+        partir de dois indicadores oficiais e atuais do <strong>Censo 2022 (IBGE/SIDRA)</strong>:
+      </p>
+      <ul>
+        <li><strong>Taxa de analfabetismo</strong> (15 anos ou mais) — tabela SIDRA 9543;</li>
+        <li><strong>% de domicílios sem ligação à rede geral de água</strong> — tabela SIDRA 6803.</li>
+      </ul>
+      <p>
+        Cada indicador é padronizado por <strong>z-score</strong>
+        (<code>z = (x − μ) / σ</code>) e o índice é a média dos dois z-scores,
+        reescalada de 0 a 100 (maior = mais vulnerável); os municípios são
+        classificados em quartis (Q1 = menos vulnerável … Q4 = mais vulnerável).
+      </p>
+      <p>
+        <strong>Transparência — o que este índice é e o que não é:</strong> trata-se
+        de um <em>proxy</em> transparente, reproduzível e <strong>atual (2022)</strong>,
+        não do <strong>IVS oficial do IPEA</strong> (Atlas da Vulnerabilidade Social),
+        que combina 16 indicadores em três dimensões e tem ano-base 2010. Usamos
+        apenas duas dimensões disponíveis municipalmente no Censo 2022 (a renda per
+        capita municipal de 2022 ainda não foi liberada). O método de composição por
+        z-score segue a linha do{" "}
+        <a href="https://github.com/goldenluke/labsus" target="_blank" rel="noreferrer">LabSUS</a>.
+        Incorporar o IVS oficial do IPEA está no roadmap.
+      </p>
+
+      <h2>12. Privacidade</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria), eliminando risco de reidentificação.

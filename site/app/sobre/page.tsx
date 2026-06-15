@@ -80,8 +80,10 @@ export default function Sobre() {
         Reconhecemos especialmente o{" "}
         <a href="https://github.com/goldenluke/labsus" target="_blank" rel="noreferrer">LabSUS</a>{" "}
         (Lucas Amaral Dourado, Universidade Federal do Tocantins), de quem
-        partiram inspirações incorporadas aqui — a integração do{" "}
-        <strong>Índice de Vulnerabilidade Social (IVS)</strong>, a{" "}
+        partiram inspirações incorporadas aqui — o cruzamento de saúde com{" "}
+        <strong>vulnerabilidade social</strong> (publicamos um proxy do Censo 2022,
+        não o IVS oficial do IPEA — ver{" "}
+        <a href="/metodologia/" className="font-medium text-accent-700 hover:underline">metodologia</a>), a{" "}
         <strong>detecção de surtos por canal endêmico</strong> e a{" "}
         <strong>nota de uso ético</strong>. Os métodos são de domínio público
         (epidemiologia clássica) e nenhum código do LabSUS foi copiado; o crédito
