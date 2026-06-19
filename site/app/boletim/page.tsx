@@ -8,7 +8,7 @@ import { Kpi, Skeleton } from "@/components/kpi";
 import {
   Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type Ivs, type LinhaMunicipio } from "@/lib/api";
+import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type Ivs, type LinhaMunicipio } from "@/lib/api";
 
 function SerieTaxas({ data }: { data: { ano: number; bruta: number | null; padronizada: number | null }[] }) {
   return (
@@ -35,6 +35,7 @@ function BoletimInner() {
   const [capitulos, setCapitulos] = useState<(LinhaMunicipio & { capitulo_cid: string })[] | null>(null);
   const [capsDim, setCapsDim] = useState<CapituloCid[]>([]);
   const [ivs, setIvs] = useState<Ivs | null>(null);
+  const [cluster, setCluster] = useState<ClusterMunicipio | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -63,6 +64,10 @@ function BoletimInner() {
       select: "municipio_cod,taxa_analfabetismo,pct_sem_agua,ivs_score,ivs_quartil",
       municipio_cod: `eq.${cod}`,
     }).then((r) => setIvs(r[0] ?? null)).catch(() => {});
+    rest<ClusterMunicipio>("dim_cluster_municipio", {
+      select: "municipio_cod,cluster,perfil",
+      municipio_cod: `eq.${cod}`,
+    }).then((r) => setCluster(r[0] ?? null)).catch(() => {});
   }, [cod]);
 
   const atual = useMemo(() => linhas?.length ? linhas[linhas.length - 1] : null, [linhas]);
@@ -148,6 +153,15 @@ function BoletimInner() {
                 Proxy de vulnerabilidade (z-score de analfabetismo e falta de água, Censo 2022) — quartil entre
                 os 5.570 municípios; Q4 = mais vulnerável. Não é o IVS oficial do IPEA.
               </p>
+              {cluster && (
+                <p className="mt-3 border-t border-ink-200 pt-3 text-sm text-ink-700">
+                  <span className="font-semibold">Arquétipo de saúde:</span> {cluster.perfil}
+                  <span className="ml-2 rounded bg-ink-100 px-2 py-0.5 text-xs text-ink-600">grupo {cluster.cluster + 1}/5</span>
+                  <span className="mt-1 block text-xs text-ink-500">
+                    Agrupamento k-means de municípios semelhantes (mortalidade × vulnerabilidade × internações), 2023.
+                  </span>
+                </p>
+              )}
             </div>
           )}
 

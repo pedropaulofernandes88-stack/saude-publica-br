@@ -104,6 +104,11 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>5.570</td>
           </tr>
           <tr>
+            <td><code>dim_cluster_municipio</code></td>
+            <td>arquétipos de saúde por k-means (mortalidade × vulnerabilidade × internações, 2023)</td>
+            <td>~1,7 mil</td>
+          </tr>
+          <tr>
             <td><code>dim_municipio</code></td>
             <td>municípios IBGE (códigos 6/7 dígitos, UF, região)</td>
             <td>5.571</td>
@@ -186,6 +191,7 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
             ["mart_natalidade_municipio.parquet", "0,2 MB", "d6f064c2230322368bdf11553b89c9439b86240a2bf223f309ee82a0d25f5294"],
             ["mart_mortalidade_infantil_uf.parquet", "0,01 MB", "73665f2f9cce2adec1a0431ff67c7ee1ec5a92412baca1ac838bdeb8b7d40732"],
             ["dim_ivs.parquet", "0,12 MB", "76f386873403eb7aad4d1099eceb05169a737f80083f57d1ba45ecec774517d2"],
+            ["dim_cluster_municipio.parquet", "0,05 MB", "f02e5be4fd3efccefb18cd671742f1ab5090c22a6d44bed21179caa2ea081646"],
             ["dim_municipio.parquet", "0,09 MB", "a7f3f66aad10ef9bd99f6d1f0dc919f9017dcc3ae7e55de9da65344790e2d7e4"],
             ["dim_populacao.parquet", "0,29 MB", "c88335c58dc4e45c46a91512d749cc6f40d00d4659cdcb289921a54467c0456d"],
             ["dim_pop_faixa.parquet", "0,13 MB", "a7aaa140fd70bfea6f18c77ec5ebdeb25a26bd26437ca8289b355ba3e05c3b0a"],

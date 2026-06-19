@@ -183,6 +183,16 @@ export interface CruzVulnMort {
   pop: number;
 }
 
+export interface ClusterMunicipio {
+  municipio_cod: string;
+  uf_sigla: string;
+  cluster: number;
+  perfil: string;
+  taxa_padronizada_100k: number | null;
+  ivs_score: number | null;
+  internacoes_100k: number | null;
+}
+
 /** Dados estáticos gerados no build (servidos pelo próprio site — egress zero). */
 export async function sdata<T>(name: string): Promise<T> {
   const res = await fetch(`/sdata/${name}.json`);
