@@ -49,12 +49,20 @@ export default function Mapa() {
           setGeo(geoCache.current.get(uf)!);
           return;
         }
-        const r = await fetch(
-          `https://servicodados.ibge.gov.br/api/v4/malhas/estados/${uf}?formato=application/vnd.geo+json&intrarregiao=municipio&qualidade=minima`,
-        );
-        if (!r.ok) throw new Error(`malha IBGE: HTTP ${r.status}`);
-        const gj = await r.json();
-        geoCache.current.set(uf, gj);
+        // Malha auto-hospedada (rápida e estável); IBGE só como fallback.
+        let gj: { features: Feature[] } | null = null;
+        try {
+          const local = await fetch(`/sdata/malhas/${uf}.json`);
+          if (local.ok) gj = await local.json();
+        } catch { /* tenta IBGE abaixo */ }
+        if (!gj) {
+          const r = await fetch(
+            `https://servicodados.ibge.gov.br/api/v4/malhas/estados/${uf}?formato=application/vnd.geo+json&intrarregiao=municipio&qualidade=minima`,
+          );
+          if (!r.ok) throw new Error(`malha indisponível: HTTP ${r.status}`);
+          gj = await r.json();
+        }
+        geoCache.current.set(uf, gj!);
         setGeo(gj);
       } catch (e) {
         setErro(String(e));
