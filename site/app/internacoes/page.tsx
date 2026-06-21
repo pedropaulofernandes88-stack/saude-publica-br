@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Barras } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { UFS, fmtDec, fmtInt, rest, sdata, type CapituloCid, type Internacao } from "@/lib/api";
+import { UFS, fmtDec, fmtInt, rest, sdata, type CapituloCid, type FluxoIntermunicipal, type Icsap, type Internacao } from "@/lib/api";
 
 const ANOS_SIH = [2024, 2023, 2022];
 
@@ -23,9 +23,33 @@ export default function Internacoes() {
   const [erro, setErro] = useState<string | null>(null);
   const [ordenar, setOrdenar] = useState<"internacoes" | "permanencia_media" | "mortalidade_pct" | "custo_medio">("internacoes");
 
+  // ICSAP (internações evitáveis) — 2024
+  const [icsap, setIcsap] = useState<Icsap[] | null>(null);
+  // Fluxo de pacientes — 2024
+  const [fluxoBusca, setFluxoBusca] = useState("");
+  const [fluxoSel, setFluxoSel] = useState<{ cod: string; nome: string } | null>(null);
+  const [fluxoSai, setFluxoSai] = useState<FluxoIntermunicipal[] | null>(null);
+
   useEffect(() => {
     sdata<CapituloCid[]>("capitulos").then(setCapsDim).catch(() => {});
   }, []);
+
+  useEffect(() => {
+    const ufF: Record<string, string> = uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` };
+    rest<Icsap>("mart_icsap_municipio", {
+      select: "municipio_cod,municipio_nome,uf_sigla,ano,internacoes_total,internacoes_icsap,pct_icsap,icsap_100k,populacao",
+      ano: "eq.2024", order: "municipio_cod", ...ufF,
+    }).then(setIcsap).catch(() => setIcsap([]));
+  }, [uf]);
+
+  useEffect(() => {
+    if (!fluxoSel) { setFluxoSai(null); return; }
+    rest<FluxoIntermunicipal>("mart_fluxo_intermunicipal", {
+      select: "municipio_mov,municipio_mov_nome,uf_mov,internacoes",
+      municipio_res: `eq.${fluxoSel.cod}`, ano: "eq.2024",
+      order: "internacoes.desc", limit: "15",
+    }).then(setFluxoSai).catch(() => setFluxoSai([]));
+  }, [fluxoSel]);
 
   useEffect(() => {
     setLinhas(null); setErro(null);
@@ -61,6 +85,28 @@ export default function Internacoes() {
       .sort((a, b) => (b[ordenar] ?? -1) - (a[ordenar] ?? -1))
       .slice(0, 50);
   }, [linhas, ordenar]);
+
+  const icsapAgg = useMemo(() => {
+    if (!icsap) return null;
+    const tot = icsap.reduce((s, m) => s + m.internacoes_total, 0);
+    const ic = icsap.reduce((s, m) => s + m.internacoes_icsap, 0);
+    return { tot, ic, pct: tot ? (ic / tot) * 100 : 0 };
+  }, [icsap]);
+
+  const icsapRank = useMemo(() => {
+    if (!icsap) return null;
+    return [...icsap].filter((m) => m.internacoes_total >= 200)
+      .sort((a, b) => (b.pct_icsap ?? -1) - (a.pct_icsap ?? -1)).slice(0, 30);
+  }, [icsap]);
+
+  const fluxoOpcoes = useMemo(() => {
+    if (!icsap || fluxoBusca.trim().length < 2) return [];
+    const q = fluxoBusca.trim().toLowerCase();
+    return icsap.filter((m) => (m.municipio_nome ?? "").toLowerCase().includes(q)).slice(0, 8);
+  }, [icsap, fluxoBusca]);
+
+  const fluxoTotalSai = useMemo(
+    () => fluxoSai?.reduce((s, f) => s + f.internacoes, 0) ?? 0, [fluxoSai]);
 
   // Para a visão por capítulo (apenas quando capítulo=TOTAL e Brasil/UF): buscar todos os capítulos
   const [porCap, setPorCap] = useState<{ nome: string; obitos: number }[] | null>(null);
@@ -182,10 +228,110 @@ export default function Internacoes() {
         </div>
       </div>
 
+      {/* ICSAP — internações evitáveis */}
+      <div className="card mt-6">
+        <h2 className="font-serif text-xl font-semibold text-ink-900">
+          Internações evitáveis (ICSAP) — {uf === "Brasil" ? "Brasil" : uf}, 2024
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-500">
+          Internações por Condições Sensíveis à Atenção Primária: casos que <strong>bom acesso à atenção
+          básica</strong> (vacinação, pré-natal, controle de hipertensão/diabetes) poderia ter evitado.
+          Proporção alta sinaliza fragilidade da porta de entrada do SUS.
+        </p>
+        {icsapAgg && (
+          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+            <Kpi rotulo="% de internações evitáveis" valor={`${fmtDec(icsapAgg.pct, 1)}%`}
+                 detalhe={`${fmtInt(icsapAgg.ic)} de ${fmtInt(icsapAgg.tot)} internações`} />
+            <Kpi rotulo="Municípios analisados" valor={icsap ? fmtInt(icsap.length) : "…"} detalhe="com internações em 2024" />
+          </div>
+        )}
+        <div className="mt-4 overflow-x-auto">
+          {icsapRank ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+                  <th className="px-3 py-2">#</th><th className="px-3 py-2">Município (≥200 intern.)</th><th className="px-3 py-2">UF</th>
+                  <th className="px-3 py-2 text-right">% evitáveis</th><th className="px-3 py-2 text-right">ICSAP</th><th className="px-3 py-2 text-right">Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {icsapRank.map((m, i) => (
+                  <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
+                    <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                    <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
+                    <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
+                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">{fmtDec(m.pct_icsap, 1)}%</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(m.internacoes_icsap)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(m.internacoes_total)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <Skeleton altura={300} />}
+        </div>
+      </div>
+
+      {/* Fluxo de pacientes */}
+      <div className="card mt-6">
+        <h2 className="font-serif text-xl font-semibold text-ink-900">Fluxo de pacientes (2024)</h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-500">
+          Para onde vão os moradores de um município se internar. Revela dependência de polos
+          regionais e evasão da rede local. Inspirado no LabSUS.
+        </p>
+        <div className="mt-4 max-w-md">
+          <label className="label" htmlFor="f-busca">Buscar município de residência</label>
+          <input id="f-busca" className="select" placeholder="ex.: Penápolis" value={fluxoBusca}
+                 onChange={(e) => { setFluxoBusca(e.target.value); setFluxoSel(null); }} />
+          {fluxoOpcoes.length > 0 && !fluxoSel && (
+            <div className="mt-1 rounded-lg border border-ink-200 bg-white shadow-sm">
+              {fluxoOpcoes.map((o) => (
+                <button key={o.municipio_cod} type="button"
+                        onClick={() => { setFluxoSel({ cod: o.municipio_cod, nome: o.municipio_nome ?? o.municipio_cod }); setFluxoBusca(o.municipio_nome ?? ""); }}
+                        className="block w-full px-3 py-2 text-left text-sm hover:bg-ink-50">
+                  {o.municipio_nome} <span className="text-ink-400">· {o.uf_sigla}</span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+        {fluxoSel && (
+          <div className="mt-4">
+            <p className="text-sm text-ink-600">
+              Destinos das internações de moradores de <strong>{fluxoSel.nome}</strong> (fluxos intermunicipais ≥ 5):
+            </p>
+            {fluxoSai ? (
+              fluxoSai.length === 0 ? (
+                <p className="mt-2 text-sm text-ink-500">Sem fluxo intermunicipal relevante registrado (pacientes internados no próprio município).</p>
+              ) : (
+                <table className="mt-2 w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+                      <th className="px-3 py-2">Destino</th><th className="px-3 py-2">UF</th>
+                      <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">% do fluxo</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {fluxoSai.map((f) => (
+                      <tr key={f.municipio_mov} className="border-b border-ink-100">
+                        <td className="px-3 py-2 font-medium text-ink-900">{f.municipio_mov_nome ?? f.municipio_mov}</td>
+                        <td className="px-3 py-2 text-ink-600">{f.uf_mov}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtInt(f.internacoes)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(f.internacoes / fluxoTotalSai * 100, 1)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            ) : <Skeleton altura={160} />}
+          </div>
+        )}
+      </div>
+
       <p className="mt-4 text-xs text-ink-500">
         Fonte: SIH/DataSUS (AIH aprovadas). Internações por município de residência e capítulo CID-10 do
-        diagnóstico principal; valores aprovados (VAL_TOT). Cobre apenas a rede SUS. 2024 preliminar. Ver{" "}
-        <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
+        diagnóstico principal; valores aprovados (VAL_TOT). ICSAP: aproximação da Lista Brasileira (CID-10
+        3 caracteres). Fluxo: município de residência → de atendimento. Cobre apenas a rede SUS. 2024
+        preliminar. Ver <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
       </p>
     </div>
   );

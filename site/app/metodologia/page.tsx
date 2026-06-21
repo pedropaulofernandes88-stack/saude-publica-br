@@ -191,7 +191,38 @@ export default function Metodologia() {
         Incorporar o IVS oficial do IPEA está no roadmap.
       </p>
 
-      <h2>12. Privacidade</h2>
+      <h2>12. Internações evitáveis (ICSAP) e fluxo de pacientes</h2>
+      <ul>
+        <li>
+          <strong>ICSAP</strong> — Internações por Condições Sensíveis à Atenção Primária:
+          classificamos cada internação do SIH (2024) pelo diagnóstico principal e marcamos
+          as condições da <strong>Lista Brasileira de ICSAP</strong> (Portaria SAS/MS 221/2008),
+          em aproximação no nível de CID-10 de 3 caracteres (hipertensão, diabetes, ICC,
+          pneumonias, asma/DPOC, gastroenterites, ITU, etc.). A proporção de ICSAP é um
+          indicador-proxy da qualidade da atenção básica: quanto maior, mais internações que
+          bom acesso à atenção primária poderia ter evitado. A aproximação por 3 caracteres
+          difere marginalmente da lista oficial (que tem exceções em 4 caracteres).
+        </li>
+        <li>
+          <strong>Fluxo intermunicipal de pacientes</strong> — o SIH registra o município de
+          residência (<code>MUNIC_RES</code>) e o de internação (<code>MUNIC_MOV</code>).
+          Cruzando os dois, mapeamos para onde os moradores de cada município se internam
+          (fluxos intermunicipais com 5+ internações em 2024), revelando dependência de polos
+          regionais e evasão da rede local. A ideia segue a linha do{" "}
+          <a href="https://github.com/goldenluke/labsus" target="_blank" rel="noreferrer">LabSUS</a>.
+        </li>
+      </ul>
+
+      <h2>13. Arquétipos de saúde municipal (k-means)</h2>
+      <p>
+        Agrupamos municípios (população ≥ 20 mil) em cinco perfis por <strong>k-means</strong>
+        sobre três dimensões padronizadas por z-score: mortalidade padronizada por idade (2023),
+        vulnerabilidade-proxy (Censo 2022) e internações por 100 mil hab. (2023). Cada município
+        recebe um rótulo interpretável (ex.: "mortalidade alta, vulnerabilidade média, muita
+        internação"), exibido no boletim. Método de normalização z-score + k-means inspirado no LabSUS.
+      </p>
+
+      <h2>14. Privacidade</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria), eliminando risco de reidentificação.

@@ -193,6 +193,30 @@ export interface ClusterMunicipio {
   internacoes_100k: number | null;
 }
 
+export interface FluxoIntermunicipal {
+  ano: number;
+  municipio_res: string;
+  municipio_res_nome: string | null;
+  uf_res: string | null;
+  municipio_mov: string;
+  municipio_mov_nome: string | null;
+  uf_mov: string | null;
+  internacoes: number;
+}
+
+export interface Icsap {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  internacoes_total: number;
+  internacoes_icsap: number;
+  pct_icsap: number | null;
+  populacao: number | null;
+  icsap_100k: number | null;
+}
+
 /** Dados estáticos gerados no build (servidos pelo próprio site — egress zero). */
 export async function sdata<T>(name: string): Promise<T> {
   const res = await fetch(`/sdata/${name}.json`);
