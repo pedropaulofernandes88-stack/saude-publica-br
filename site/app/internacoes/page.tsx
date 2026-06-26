@@ -14,6 +14,16 @@ function fmtReais(v: number | null | undefined): string {
   return `R$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
 }
 
+/** Limite inferior do IC95% (Wilson) da proporção x/n — evita sinalizar ruído de amostra pequena. */
+function wilsonInf(x: number, n: number): number {
+  if (!n) return 0;
+  const z = 1.96, p = x / n;
+  const den = 1 + (z * z) / n;
+  const centro = p + (z * z) / (2 * n);
+  const margem = z * Math.sqrt((p * (1 - p)) / n + (z * z) / (4 * n * n));
+  return (centro - margem) / den;
+}
+
 export default function Internacoes() {
   const [uf, setUf] = useState("Brasil");
   const [ano, setAno] = useState(2024);
@@ -132,6 +142,17 @@ export default function Internacoes() {
   // ── Item 2: agravos traçadores (CID-3) ────────────────────────────────────
   const AGRAVOS_ORDEM = ["diabetes", "avc", "iam", "icc", "asma", "dpoc", "pneumonia",
     "depressao", "esquizofrenia", "alcool_drogas", "tce"];
+
+  // Custo unitário proxy das condições ICSAP (nacional) → estimativa de gasto evitável.
+  const [custoIcsapUnit, setCustoIcsapUnit] = useState<number | null>(null);
+  useEffect(() => {
+    rest<{ valor_total: number; internacoes: number }>("mart_internacoes_agravo", {
+      select: "valor_total:valor_total.sum(),internacoes:internacoes.sum()",
+      agravo: "in.(pneumonia,icc,dpoc,asma,diabetes)",
+    }).then((r) => {
+      if (r[0]?.internacoes) setCustoIcsapUnit(r[0].valor_total / r[0].internacoes);
+    }).catch(() => {});
+  }, []);
   const [agravoPanorama, setAgravoPanorama] = useState<InternacaoAgravo[] | null>(null);
   const [agravoSel, setAgravoSel] = useState("diabetes");
   const [agravoRank, setAgravoRank] = useState<InternacaoAgravo[] | null>(null);
@@ -289,9 +310,11 @@ export default function Internacoes() {
           Proporção alta sinaliza fragilidade da porta de entrada do SUS.
         </p>
         {icsapAgg && (
-          <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
             <Kpi rotulo="% de internações evitáveis" valor={`${fmtDec(icsapAgg.pct, 1)}%`}
                  detalhe={`${fmtInt(icsapAgg.ic)} de ${fmtInt(icsapAgg.tot)} internações`} />
+            <Kpi rotulo="Gasto potencialmente evitável" valor={custoIcsapUnit ? fmtReais(icsapAgg.ic * custoIcsapUnit) : "…"}
+                 detalhe="estimativa (ordem de grandeza)" />
             <Kpi rotulo="Municípios analisados" valor={icsap ? fmtInt(icsap.length) : "…"} detalhe="com internações em 2024" />
           </div>
         )}
@@ -302,23 +325,38 @@ export default function Internacoes() {
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
                   <th className="px-3 py-2">#</th><th className="px-3 py-2">Município (≥200 intern.)</th><th className="px-3 py-2">UF</th>
                   <th className="px-3 py-2 text-right">% evitáveis</th><th className="px-3 py-2 text-right">ICSAP</th><th className="px-3 py-2 text-right">Total</th>
+                  <th className="px-3 py-2 text-right">R$ evitável (est.)</th>
                 </tr>
               </thead>
               <tbody>
-                {icsapRank.map((m, i) => (
-                  <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
-                    <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
-                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">{fmtDec(m.pct_icsap, 1)}%</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(m.internacoes_icsap)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(m.internacoes_total)}</td>
-                  </tr>
-                ))}
+                {icsapRank.map((m, i) => {
+                  const acima = !!icsapAgg && m.internacoes_total > 0
+                    && wilsonInf(m.internacoes_icsap, m.internacoes_total) > icsapAgg.pct / 100;
+                  return (
+                    <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
+                      <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                      <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
+                      <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
+                      <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">
+                        {fmtDec(m.pct_icsap, 1)}%
+                        {acima && <span title="Acima da média do recorte com 95% de confiança (IC de Wilson)" className="ml-1 text-red-600">▲</span>}
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(m.internacoes_icsap)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(m.internacoes_total)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-ink-500">{custoIcsapUnit ? fmtReais(m.internacoes_icsap * custoIcsapUnit) : "—"}</td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           ) : <Skeleton altura={300} />}
         </div>
+        <p className="mt-2 text-xs text-ink-400">
+          <span className="text-red-600">▲</span> município cujo IC95% (Wilson) do %ICSAP supera a média do
+          recorte ({icsapAgg ? fmtDec(icsapAgg.pct, 1) : "…"}%) — sinal robusto, não ruído de amostra pequena.
+          Gasto evitável (est.) = internações ICSAP × custo médio das internações por condições sensíveis
+          (≈ {custoIcsapUnit ? fmtReais(custoIcsapUnit) : "…"}/internação, nacional); ordem de grandeza, não valor contábil.
+        </p>
       </div>
 
       {/* Fluxo de pacientes */}
