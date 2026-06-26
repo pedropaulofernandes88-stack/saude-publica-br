@@ -119,6 +119,16 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>dezenas de mil</td>
           </tr>
           <tr>
+            <td><code>mart_internacoes_agravo</code></td>
+            <td>internações por agravo traçador (CID-3) por município, 2024: volume, permanência, mortalidade, custo</td>
+            <td>~53 mil</td>
+          </tr>
+          <tr>
+            <td><code>mart_internacoes_hospital</code></td>
+            <td>internações por estabelecimento (CNES), 2024: volume, permanência, mortalidade, custo, capítulo principal</td>
+            <td>~4,7 mil</td>
+          </tr>
+          <tr>
             <td><code>dim_municipio</code></td>
             <td>municípios IBGE (códigos 6/7 dígitos, UF, região)</td>
             <td>5.571</td>
@@ -200,6 +210,8 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
             ["mart_internacoes_municipio.parquet", "6,0 MB", "09d129d5bbe344f1e3fc12ed9ee9413035e7600b0e1dd9ce6dbdb868857c56d3"],
             ["mart_icsap_municipio.parquet", "0,2 MB", "90b65857b3717e1479310ff68a1f717bbbb91fef8c3aae55599e45c97ebd2efd"],
             ["mart_fluxo_intermunicipal.parquet", "0,3 MB", "233d3ec76916fd9efb73fafe2dbeb33419816d032e5c8dfcc2e4dd54fd313b29"],
+            ["mart_internacoes_agravo.parquet", "1,2 MB", "8690e2df0586337a34f66fe493b7c443ee4e931d4d8fcef8aeabf4719baafe35"],
+            ["mart_internacoes_hospital.parquet", "0,2 MB", "31e39b7793d5e811f784a9da3578ea7fecd3e8d51c862e2da0b3ab0b2158c58c"],
             ["mart_natalidade_municipio.parquet", "0,2 MB", "d6f064c2230322368bdf11553b89c9439b86240a2bf223f309ee82a0d25f5294"],
             ["mart_mortalidade_infantil_uf.parquet", "0,01 MB", "73665f2f9cce2adec1a0431ff67c7ee1ec5a92412baca1ac838bdeb8b7d40732"],
             ["dim_ivs.parquet", "0,12 MB", "76f386873403eb7aad4d1099eceb05169a737f80083f57d1ba45ecec774517d2"],

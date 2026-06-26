@@ -141,6 +141,43 @@ export interface Internacao {
   populacao: number | null;
 }
 
+export interface InternacaoAgravo {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  agravo: string;
+  agravo_label: string | null;
+  grupo: string | null;
+  internacoes: number;
+  obitos: number;
+  dias_permanencia: number;
+  valor_total: number;
+  permanencia_media: number | null;
+  mortalidade_pct: number | null;
+  custo_medio: number | null;
+  populacao: number | null;
+  internacoes_100k: number | null;
+}
+
+export interface InternacaoHospital {
+  cnes: string;
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  capitulo_principal: string | null;
+  internacoes: number;
+  obitos: number;
+  dias_permanencia: number;
+  valor_total: number;
+  permanencia_media: number | null;
+  mortalidade_pct: number | null;
+  custo_medio: number | null;
+}
+
 export interface Natalidade {
   municipio_cod: string;
   municipio_nome: string | null;

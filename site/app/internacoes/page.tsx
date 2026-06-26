@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Barras } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { UFS, fmtDec, fmtInt, rest, sdata, type CapituloCid, type FluxoIntermunicipal, type Icsap, type Internacao } from "@/lib/api";
+import { UFS, fmtDec, fmtInt, rest, sdata, type CapituloCid, type FluxoIntermunicipal, type Icsap, type Internacao, type InternacaoAgravo, type InternacaoHospital } from "@/lib/api";
 
 const ANOS_SIH = [2024, 2023, 2022];
 
@@ -128,6 +128,56 @@ export default function Internacoes() {
       )
       .catch(() => {});
   }, [uf, ano]);
+
+  // ── Item 2: agravos traçadores (CID-3) ────────────────────────────────────
+  const AGRAVOS_ORDEM = ["diabetes", "avc", "iam", "icc", "asma", "dpoc", "pneumonia",
+    "depressao", "esquizofrenia", "alcool_drogas", "tce"];
+  const [agravoPanorama, setAgravoPanorama] = useState<InternacaoAgravo[] | null>(null);
+  const [agravoSel, setAgravoSel] = useState("diabetes");
+  const [agravoRank, setAgravoRank] = useState<InternacaoAgravo[] | null>(null);
+
+  useEffect(() => {
+    setAgravoPanorama(null);
+    const ufF: Record<string, string> = uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` };
+    rest<InternacaoAgravo>("mart_internacoes_agravo", {
+      select: "agravo,agravo_label,grupo,internacoes:internacoes.sum(),obitos:obitos.sum(),dias_permanencia:dias_permanencia.sum(),valor_total:valor_total.sum()",
+      ano: "eq.2024", order: "agravo", ...ufF,
+    }).then(setAgravoPanorama).catch(() => setAgravoPanorama([]));
+  }, [uf]);
+
+  useEffect(() => {
+    setAgravoRank(null);
+    const ufF: Record<string, string> = uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` };
+    rest<InternacaoAgravo>("mart_internacoes_agravo", {
+      select: "municipio_cod,municipio_nome,uf_sigla,internacoes,internacoes_100k,permanencia_media,mortalidade_pct,custo_medio",
+      ano: "eq.2024", agravo: `eq.${agravoSel}`, internacoes: "gte.20",
+      order: "internacoes_100k.desc.nullslast", limit: "30", ...ufF,
+    }).then(setAgravoRank).catch(() => setAgravoRank([]));
+  }, [uf, agravoSel]);
+
+  const agravoPanoramaCalc = useMemo(() => {
+    if (!agravoPanorama) return null;
+    return [...agravoPanorama]
+      .map((a) => ({
+        ...a,
+        permanencia_media: a.internacoes ? a.dias_permanencia / a.internacoes : null,
+        mortalidade_pct: a.internacoes ? (a.obitos / a.internacoes) * 100 : null,
+        custo_medio: a.internacoes ? a.valor_total / a.internacoes : null,
+      }))
+      .sort((x, y) => y.internacoes - x.internacoes);
+  }, [agravoPanorama]);
+
+  // ── Item 3: visão hospitalar (CNES) ───────────────────────────────────────
+  const [hospRank, setHospRank] = useState<InternacaoHospital[] | null>(null);
+  const [hospOrd, setHospOrd] = useState<"internacoes" | "mortalidade_pct" | "permanencia_media" | "custo_medio">("internacoes");
+  useEffect(() => {
+    setHospRank(null);
+    const ufF: Record<string, string> = uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` };
+    rest<InternacaoHospital>("mart_internacoes_hospital", {
+      select: "cnes,municipio_nome,uf_sigla,capitulo_principal,internacoes,permanencia_media,mortalidade_pct,custo_medio",
+      ano: "eq.2024", internacoes: "gte.50", order: `${hospOrd}.desc`, limit: "50", ...ufF,
+    }).then(setHospRank).catch(() => setHospRank([]));
+  }, [uf, hospOrd]);
 
   const capDesc = capitulo === "TOTAL" ? "Todas as causas"
     : `Capítulo ${capitulo} — ${capsDim.find((c) => c.capitulo === capitulo)?.descricao ?? ""}`;
@@ -327,11 +377,145 @@ export default function Internacoes() {
         )}
       </div>
 
+      {/* Item 2 — Internações por agravo (condições traçadoras) */}
+      <div className="card mt-6">
+        <h2 className="font-serif text-xl font-semibold text-ink-900">
+          Internações por agravo — {uf === "Brasil" ? "Brasil" : uf}, 2024
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-500">
+          Condições traçadoras isoladas no nível de CID-10 (3 caracteres): permanência média,
+          mortalidade hospitalar e custo médio por agravo. Clique numa linha para ver o ranking de municípios.
+        </p>
+        <div className="mt-4 overflow-x-auto">
+          {agravoPanoramaCalc ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+                  <th className="px-3 py-2">Agravo</th><th className="px-3 py-2">Grupo</th>
+                  <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">Perm. média</th>
+                  <th className="px-3 py-2 text-right">Mortalidade</th><th className="px-3 py-2 text-right">Custo médio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {agravoPanoramaCalc.map((a) => (
+                  <tr key={a.agravo}
+                      className={`cursor-pointer border-b border-ink-100 hover:bg-ink-50 ${a.agravo === agravoSel ? "bg-accent-50" : ""}`}
+                      onClick={() => setAgravoSel(a.agravo)}>
+                    <td className="px-3 py-2 font-medium text-ink-900">{a.agravo_label}</td>
+                    <td className="px-3 py-2 text-ink-500">{a.grupo}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtInt(a.internacoes)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(a.permanencia_media)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(a.mortalidade_pct, 2)}%</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-accent-800">{fmtReais(a.custo_medio)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <Skeleton altura={360} />}
+        </div>
+
+        <div className="mt-6">
+          <p className="label">
+            Municípios com maior taxa de{" "}
+            <strong className="text-ink-700">{agravoPanorama?.find((p) => p.agravo === agravoSel)?.agravo_label ?? agravoSel}</strong>{" "}
+            (≥ 20 internações, por 100k hab.)
+          </p>
+          <div className="mt-3 overflow-x-auto">
+            {agravoRank ? (
+              agravoRank.length === 0 ? (
+                <p className="text-sm text-ink-500">Sem municípios com ≥ 20 internações para este agravo no recorte.</p>
+              ) : (
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+                      <th className="px-3 py-2">#</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                      <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">por 100k</th>
+                      <th className="px-3 py-2 text-right">Mortalidade</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {agravoRank.map((m, i) => (
+                      <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
+                        <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                        <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
+                        <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.internacoes)}</td>
+                        <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">{fmtDec(m.internacoes_100k)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(m.mortalidade_pct, 2)}%</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              )
+            ) : <Skeleton altura={300} />}
+          </div>
+        </div>
+      </div>
+
+      {/* Item 3 — Visão hospitalar (CNES) */}
+      <div className="card mt-6 overflow-x-auto">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h2 className="font-serif text-xl font-semibold text-ink-900">
+              Hospitais — {uf === "Brasil" ? "Brasil" : uf}, 2024
+            </h2>
+            <p className="mt-1 max-w-2xl text-sm text-ink-500">
+              Visão por estabelecimento (CNES), com ≥ 50 internações: volume, permanência média,
+              mortalidade hospitalar e custo médio, com o capítulo CID predominante.
+            </p>
+          </div>
+          <div>
+            <label className="label" htmlFor="h-ord">Ordenar por</label>
+            <select id="h-ord" className="select" value={hospOrd} onChange={(e) => setHospOrd(e.target.value as typeof hospOrd)}>
+              <option value="internacoes">Internações</option>
+              <option value="mortalidade_pct">Mortalidade</option>
+              <option value="permanencia_media">Permanência média</option>
+              <option value="custo_medio">Custo médio</option>
+            </select>
+          </div>
+        </div>
+        <div className="mt-4">
+          {hospRank ? (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+                  <th className="px-3 py-2">#</th><th className="px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                  <th className="px-3 py-2">Cap.</th><th className="px-3 py-2 text-right">Internações</th>
+                  <th className="px-3 py-2 text-right">Perm.</th><th className="px-3 py-2 text-right">Mortalidade</th><th className="px-3 py-2 text-right">Custo médio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {hospRank.map((hh, i) => (
+                  <tr key={hh.cnes} className="border-b border-ink-100 hover:bg-ink-50">
+                    <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                    <td className="px-3 py-2 tabular-nums text-ink-500">{hh.cnes}</td>
+                    <td className="px-3 py-2 font-medium text-ink-900">{hh.municipio_nome ?? hh.municipio_cod}</td>
+                    <td className="px-3 py-2 text-ink-600">{hh.uf_sigla}</td>
+                    <td className="px-3 py-2 text-ink-500">{hh.capitulo_principal}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{fmtInt(hh.internacoes)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(hh.permanencia_media)}</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(hh.mortalidade_pct, 2)}%</td>
+                    <td className="px-3 py-2 text-right tabular-nums text-accent-800">{fmtReais(hh.custo_medio)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          ) : <Skeleton altura={300} />}
+        </div>
+        <p className="mt-2 text-xs text-ink-400">
+          Hospitais identificados pelo código CNES (o nome do estabelecimento não está incluído nesta versão).
+          Ocupação de leitos não é estimada (não deriva de forma confiável da AIH).
+        </p>
+      </div>
+
       <p className="mt-4 text-xs text-ink-500">
         Fonte: SIH/DataSUS (AIH aprovadas). Internações por município de residência e capítulo CID-10 do
         diagnóstico principal; valores aprovados (VAL_TOT). ICSAP: aproximação da Lista Brasileira (CID-10
-        3 caracteres). Fluxo: município de residência → de atendimento. Cobre apenas a rede SUS. 2024
-        preliminar. Ver <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
+        3 caracteres). Agravos: condições traçadoras pelo diagnóstico principal (CID-10, 3 caracteres) —
+        causas externas representadas pelo TCE, pois o mecanismo do acidente (códigos V) não consta no
+        diagnóstico principal da AIH. Hospitais: agregados por CNES (município de atendimento). Fluxo:
+        município de residência → de atendimento. Cobre apenas a rede SUS. 2024 preliminar.
+        Ver <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
       </p>
     </div>
   );
