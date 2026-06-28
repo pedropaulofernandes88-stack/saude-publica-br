@@ -210,6 +210,14 @@ export default function Internacoes() {
         Internações pagas pelo SUS (SIH/AIH, 2022–2024) por município e capítulo
         CID-10: volume, permanência média, mortalidade intra-hospitalar e custo.
       </p>
+      <div className="mt-4 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <strong>Como ler com cuidado:</strong> esta base cobre <strong>apenas a rede SUS</strong>.
+        Como cerca de um quarto da população tem plano de saúde (concentrado em municípios mais
+        ricos), internações por 100 mil habitantes <strong>não são comparáveis entre municípios</strong>{" "}
+        sem considerar a cobertura privada — um valor baixo pode significar mais plano, não menos
+        adoecimento. A mortalidade hospitalar é bruta, <strong>sem ajuste de risco</strong> (case-mix).
+        Detalhes na <a className="underline" href="/metodologia/">metodologia</a>.
+      </div>
 
       <div className="card mt-6 grid gap-4 sm:grid-cols-3">
         <div>
@@ -307,7 +315,9 @@ export default function Internacoes() {
         <p className="mt-1 max-w-3xl text-sm text-ink-500">
           Internações por Condições Sensíveis à Atenção Primária: casos que <strong>bom acesso à atenção
           básica</strong> (vacinação, pré-natal, controle de hipertensão/diabetes) poderia ter evitado.
-          Proporção alta sinaliza fragilidade da porta de entrada do SUS.
+          Proporção alta sinaliza fragilidade da porta de entrada do SUS — é um indicador de{" "}
+          <strong>sistema</strong>, não de "má gestão" local: costuma refletir subfinanciamento e
+          barreiras de acesso à atenção básica, não culpa do município.
         </p>
         {icsapAgg && (
           <div className="mt-4 grid gap-4 sm:grid-cols-3">

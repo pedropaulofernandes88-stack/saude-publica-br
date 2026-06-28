@@ -275,11 +275,56 @@ mg.nlargest(10, "taxa_padronizada_100k")`}</code>
         nome do município no painel.
       </p>
 
+      <h2>Vigência por base (data-fonte)</h2>
+      <p>
+        Cada sistema tem cobertura e atualidade próprias — uma análise deve sempre
+        confrontar o ano disponível de cada base:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Base</th><th>Sistema</th><th>Cobertura</th><th>Observação</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Mortalidade</td><td>SIM</td><td>2015–2024</td><td>2024 preliminar</td></tr>
+          <tr><td>Internações</td><td>SIH/AIH</td><td>2022–2024</td><td>2024 preliminar; só rede SUS</td></tr>
+          <tr><td>Dengue</td><td>SINAN</td><td>2015–2024</td><td>2024 em classificação</td></tr>
+          <tr><td>Nascimentos</td><td>SINASC</td><td>2021–2023</td><td>2024 não liberado pelo MS</td></tr>
+          <tr><td>Vulnerabilidade / população</td><td>IBGE Censo 2022 + estimativas</td><td>2022 (2023 interpolado)</td><td>renda municipal 2022 ainda não liberada</td></tr>
+        </tbody>
+      </table>
+
+      <h2>Qualidade do registro</h2>
+      <p>
+        A transparência exige medir o que é incerto. Cerca de{" "}
+        <strong>5,4% dos óbitos têm causa mal-definida</strong> (capítulo XVIII —
+        sintomas e sinais), e essa proporção <strong>varia entre regiões</strong>{" "}
+        (maior no Norte/Nordeste), o que afeta comparações de mortalidade
+        causa-específica. Não redistribuímos esses códigos entre causas; eles
+        permanecem visíveis. Use as taxas causa-específicas com essa ressalva onde
+        a qualidade de registro é menor.
+      </p>
+
       <h2>Licença e citação</h2>
       <p>
-        Dados originais em domínio público (DATASUS/Ministério da Saúde e IBGE).
-        Agregações e código sob licença MIT. Em publicações, cite as fontes
-        primárias (SIM/DataSUS; IBGE) e, se desejar, esta plataforma.
+        <strong>Dados originais</strong> em domínio público (DATASUS/Ministério da
+        Saúde e IBGE). <strong>Agregações e marts derivados</strong> sob{" "}
+        <a href="https://creativecommons.org/licenses/by/4.0/deed.pt-br" target="_blank" rel="noreferrer">CC BY 4.0</a>{" "}
+        (uso livre com atribuição); <strong>código</strong> sob licença MIT. Em
+        publicações, cite as fontes primárias (DataSUS; IBGE) e, se a agregação for
+        usada, esta plataforma.
+      </p>
+      <p><strong>Como citar:</strong></p>
+      <pre>
+        <code>{`Fernandes, P. P. Saúde em Dado: inteligência epidemiológica aberta
+sobre os microdados do SUS. https://saudeemdado.com
+DOI: 10.5281/zenodo.20706846. Acesso em: AAAA-MM-DD.
+Fontes primárias: DATASUS (SIM, SIH, SINAN, SINASC) e IBGE.`}</code>
+      </pre>
+      <p className="text-sm text-ink-500">
+        DOI de conceito (todas as versões) no Zenodo:{" "}
+        <a href="https://doi.org/10.5281/zenodo.20706846" target="_blank" rel="noreferrer">10.5281/zenodo.20706846</a>.
+        O repositório traz <code>CITATION.cff</code> para citação automática (botão "Cite this
+        repository" no GitHub). Cada release versiona o dataset e publica os checksums acima.
       </p>
     </div>
   );

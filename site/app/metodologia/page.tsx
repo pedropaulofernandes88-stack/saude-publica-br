@@ -10,9 +10,11 @@ export default function Metodologia() {
       </h1>
       <p>
         Esta página documenta integralmente como os indicadores são produzidos,
-        para permitir avaliação crítica e reprodução independente. Todo o
-        processamento é feito por um único script aberto
-        (<code>scripts/pipeline_v2.py</code>).
+        para permitir avaliação crítica e reprodução independente. O processamento
+        é feito por scripts abertos e versionados em <code>scripts/</code>:{" "}
+        <code>pipeline_v2.py</code> (mortalidade e população) e pipelines dedicados
+        para dengue (SINAN), internações (SIH), nascimentos (SINASC) e os recortes
+        de internação por agravo/hospital.
       </p>
 
       <h2>1. Fontes de dados</h2>
@@ -102,7 +104,11 @@ export default function Metodologia() {
         multiplicada pela razão entre a população de <em>a</em> e a população
         média 2015–2019. <strong>Excesso = observado − esperado</strong>. É um
         método transparente e replicável; não modela tendência secular nem
-        sazonalidade além do mês civil (limitação declarada).
+        sazonalidade além do mês civil. <strong>Direção do viés:</strong> por não
+        captar o envelhecimento populacional (que eleva o número esperado de óbitos
+        ano a ano), o esperado tende a ficar subestimado nos anos mais recentes —
+        o que <em>superestima</em> o excesso. Um modelo Poisson com termo de
+        tendência e sazonalidade harmônica corrigiria isso e está no roadmap.
       </p>
 
       <h2>7. Validação automática</h2>
@@ -161,6 +167,22 @@ export default function Metodologia() {
         <li><strong>Mortalidade intra-hospitalar</strong> = <code>MORTE</code> / internações;</li>
         <li><strong>Custo</strong> = valor total aprovado (<code>VAL_TOT</code>); custo médio = valor / internações;</li>
         <li>2024 preliminar; meses podem estar incompletos no processamento mais recente.</li>
+        <li>
+          <strong>Confundimento por cobertura suplementar (importante):</strong> a base só
+          enxerga internações pagas pelo SUS. Cerca de um quarto da população tem plano de
+          saúde (ANS), concentrado em municípios mais ricos e urbanos. Logo,{" "}
+          <em>internações SUS por 100 mil habitantes não são comparáveis entre municípios
+          sem considerar a fração coberta por planos</em> — um valor baixo pode refletir alta
+          cobertura privada, não menos adoecimento. Vale para internações/100k, ICSAP e a
+          visão hospitalar.
+        </li>
+        <li>
+          <strong>Mortalidade hospitalar é taxa bruta, sem ajuste de risco:</strong> reflete
+          fortemente o perfil de casos (<em>case-mix</em>) de cada hospital — um terciário de
+          alta complexidade tende a mortalidade maior que uma maternidade. Não comparar
+          hospitais por mortalidade bruta como se fosse qualidade; uma razão de mortalidade
+          padronizada (SMR) está no roadmap.
+        </li>
       </ul>
 
       <h2>11. Vulnerabilidade social (proxy, Censo 2022)</h2>
@@ -201,7 +223,25 @@ export default function Metodologia() {
           pneumonias, asma/DPOC, gastroenterites, ITU, etc.). A proporção de ICSAP é um
           indicador-proxy da qualidade da atenção básica: quanto maior, mais internações que
           bom acesso à atenção primária poderia ter evitado. A aproximação por 3 caracteres
-          difere marginalmente da lista oficial (que tem exceções em 4 caracteres).
+          difere marginalmente da lista oficial (que tem exceções em 4 caracteres) e tende a
+          incluir um pouco a mais (leve sobrecontagem).
+        </li>
+        <li>
+          <strong>Gasto potencialmente evitável (estimativa):</strong> nº de internações ICSAP
+          × custo médio das internações por condições sensíveis (≈ R$ 1,5 mil/internação,
+          calculado a partir das próprias condições no SIH — não da média geral, que é inflada
+          por cirurgia/UTI). É uma <em>estimativa de ordem de grandeza</em>, não valor contábil.
+        </li>
+        <li>
+          <strong>Sinalização de outlier (▲):</strong> um município só é marcado como acima da
+          média do recorte quando o <strong>limite inferior do IC95% (método de Wilson)</strong>
+          da sua proporção de ICSAP supera essa média — com piso de 200 internações. Isso evita
+          confundir ruído de amostra pequena com sinal real.
+        </li>
+        <li>
+          <strong>Leitura com equidade:</strong> ICSAP alto e gasto evitável não são, por si,
+          "má gestão" do município — frequentemente refletem subfinanciamento e barreiras de
+          acesso à atenção básica. São indicadores de sistema, não de culpa local.
         </li>
         <li>
           <strong>Fluxo intermunicipal de pacientes</strong> — o SIH registra o município de
@@ -213,7 +253,32 @@ export default function Metodologia() {
         </li>
       </ul>
 
-      <h2>13. Arquétipos de saúde municipal (k-means)</h2>
+      <h2>13. Agravos traçadores e visão hospitalar (SIH 2024)</h2>
+      <p>
+        Além do recorte por capítulo, isolamos <strong>condições traçadoras</strong> no nível de
+        CID-10 de 3 caracteres (diagnóstico principal), com internações, óbitos, permanência e
+        custo por município:
+      </p>
+      <ul>
+        <li>Diabetes (E10–E14); AVC/cerebrovascular (I60–I69); infarto (I21–I22); insuficiência cardíaca (I50);</li>
+        <li>Asma (J45–J46); DPOC (J40–J44); pneumonia (J12–J18);</li>
+        <li>Depressão (F32–F33); esquizofrenia e outras psicoses (F20–F29); transtornos por álcool/drogas (F10–F19);</li>
+        <li>Traumatismo cranioencefálico (S02, S06, S07).</li>
+      </ul>
+      <p>
+        <strong>Causas externas — limitação:</strong> acidentes de transporte (códigos V) não
+        entram, porque na AIH o diagnóstico principal registra a <em>natureza da lesão</em>{" "}
+        (S/T), não o <em>mecanismo</em> (V). As causas externas ficam representadas pelo TCE.
+      </p>
+      <p>
+        <strong>Visão hospitalar (CNES):</strong> agregamos as internações por estabelecimento
+        (≥ 12 internações), com volume, permanência, mortalidade bruta, custo médio e capítulo
+        predominante. Os hospitais são identificados pelo código CNES — o nome do estabelecimento
+        não consta nos arquivos RD. <strong>Não estimamos ocupação de leitos</strong>: ela não
+        deriva de forma confiável da AIH (exigiria o cadastro de leitos do CNES).
+      </p>
+
+      <h2>14. Arquétipos de saúde municipal (k-means)</h2>
       <p>
         Agrupamos municípios (população ≥ 20 mil) em cinco perfis por <strong>k-means</strong>
         sobre três dimensões padronizadas por z-score: mortalidade padronizada por idade (2023),
@@ -221,8 +286,15 @@ export default function Metodologia() {
         recebe um rótulo interpretável (ex.: "mortalidade alta, vulnerabilidade média, muita
         internação"), exibido no boletim. Método de normalização z-score + k-means inspirado no LabSUS.
       </p>
+      <p>
+        <strong>Cuidado com a falácia ecológica:</strong> clusters, o cruzamento
+        vulnerabilidade × mortalidade e demais associações desta base são{" "}
+        <em>municipais</em> (agregadas). Uma associação no nível do município não implica
+        relação no nível do indivíduo, nem causalidade — servem para descrever padrões e
+        levantar hipóteses, não para inferir risco individual.
+      </p>
 
-      <h2>14. Privacidade</h2>
+      <h2>15. Privacidade</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria), eliminando risco de reidentificação.

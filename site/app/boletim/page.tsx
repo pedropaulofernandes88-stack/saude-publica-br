@@ -151,7 +151,9 @@ function BoletimInner() {
               </div>
               <p className="mt-2 text-xs text-ink-500">
                 Proxy de vulnerabilidade (z-score de analfabetismo e falta de água, Censo 2022) — quartil entre
-                os 5.570 municípios; Q4 = mais vulnerável. Não é o IVS oficial do IPEA.
+                os 5.570 municípios; Q4 = mais vulnerável. Não é o IVS oficial do IPEA. Associações entre
+                vulnerabilidade e saúde aqui são <strong>municipais</strong> (agregadas): descrevem padrões,
+                não implicam risco individual nem causalidade (falácia ecológica).
               </p>
               {cluster && (
                 <p className="mt-3 border-t border-ink-200 pt-3 text-sm text-ink-700">
