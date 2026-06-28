@@ -100,15 +100,27 @@ export default function Metodologia() {
       <h2>6. Excesso de mortalidade</h2>
       <p>
         Para cada UF (e Brasil), o <strong>esperado</strong> do mês <em>m</em> do ano{" "}
-        <em>a</em> é a média de óbitos do mesmo mês civil em 2015–2019,
-        multiplicada pela razão entre a população de <em>a</em> e a população
-        média 2015–2019. <strong>Excesso = observado − esperado</strong>. É um
-        método transparente e replicável; não modela tendência secular nem
-        sazonalidade além do mês civil. <strong>Direção do viés:</strong> por não
-        captar o envelhecimento populacional (que eleva o número esperado de óbitos
-        ano a ano), o esperado tende a ficar subestimado nos anos mais recentes —
-        o que <em>superestima</em> o excesso. Um modelo Poisson com termo de
-        tendência e sazonalidade harmônica corrigiria isso e está no roadmap.
+        <em>a</em> vem de uma <strong>tendência linear ajustada ao período 2015–2019</strong>,
+        por mês civil: regredimos os óbitos daquele mês contra o ano (mínimos quadrados, 5 pontos)
+        e projetamos para <em>a</em>. Isso captura tanto o crescimento populacional quanto o{" "}
+        <strong>envelhecimento</strong> — que elevam o número esperado de óbitos ano a ano —,
+        corrigindo um viés do método anterior (média 2015–2019 × razão populacional), que ignorava
+        a tendência secular e por isso <em>superestimava</em> o excesso nos anos recentes.{" "}
+        <strong>Excesso = observado − esperado</strong>; método transparente e replicável.
+      </p>
+      <p>
+        <strong>Efeito da correção (Brasil):</strong> o pico pandêmico permanece robusto
+        (2020–2021 ≈ <strong>643 mil</strong> óbitos em excesso, ~8% abaixo do método anterior),
+        mas o "excesso persistente" de 2022–2023 encolhe muito — era em boa parte artefato da
+        tendência não modelada — e <strong>2024 fica próximo de zero</strong>.{" "}
+        <strong>Cautela com 2024:</strong> a extrapolação é menos confiável no extremo da série{" "}
+        <em>e</em> os dados de 2024 ainda são preliminares (subcontagem que puxa o observado para
+        baixo) — não interpretar o valor literalmente.
+      </p>
+      <p>
+        Limitações remanescentes: a extrapolação linear assume que a tendência pré-pandemia teria
+        continuado e não modela <em>harvesting</em> (deslocamento de mortalidade). Uma variante
+        padronizada por idade (taxas etárias 2015–19 aplicadas à estrutura do ano) está no roadmap.
       </p>
 
       <h2>7. Validação automática</h2>

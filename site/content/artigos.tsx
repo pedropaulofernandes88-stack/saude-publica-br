@@ -85,23 +85,23 @@ export const ARTIGOS: Artigo[] = [
   {
     slug: "excesso-mortalidade-pos-pandemia",
     titulo: "Excesso de mortalidade no Brasil (2020–2024): o que sobrou da pandemia",
-    dek: "Comparando o observado ao esperado pela média 2015–2019, estimamos 702 mil óbitos em excesso no biênio pandêmico — e analisamos o retorno gradual ao patamar histórico.",
+    dek: "Comparando o observado ao esperado por uma tendência 2015–2019, estimamos cerca de 643 mil óbitos em excesso no biênio pandêmico — e analisamos o retorno ao patamar histórico.",
     data: "2026-02-10",
     leituraMin: 8,
     tags: ["mortalidade", "SIM", "excesso de mortalidade", "COVID-19"],
     resumo:
-      "O excesso de mortalidade é a métrica mais robusta para medir o impacto total de uma crise sanitária, pois independe da causa declarada. Construímos um baseline 2015–2019 ajustado por população e quantificamos o excesso mensal por UF e Brasil de 2020 a 2024.",
+      "O excesso de mortalidade é a métrica mais robusta para medir o impacto total de uma crise sanitária, pois independe da causa declarada. Construímos um baseline de tendência 2015–2019 — que capta crescimento e envelhecimento da população — e quantificamos o excesso mensal por UF e Brasil de 2020 a 2024.",
     secoes: [
       {
         paragrafos: [
           "Durante emergências sanitárias, a contagem direta de mortes por uma causa específica subestima o impacto real: há subdiagnóstico, sobrecarga dos serviços e mortes indiretas. O excesso de mortalidade — diferença entre os óbitos observados e os esperados na ausência da crise — contorna esses vieses e é hoje o padrão internacional de avaliação.",
-          "Nossa estimativa do esperado parte da média de óbitos do mesmo mês civil no período 2015–2019, multiplicada pela razão entre a população do ano e a população média do baseline. É um método transparente e replicável, deliberadamente simples; não modela tendência secular nem mudanças na estrutura etária além do ajuste populacional — limitações que declaramos explicitamente.",
+          "Nossa estimativa do esperado vem de uma tendência linear ajustada a cada mês civil no período 2015–2019, projetada para o ano-alvo. Diferente de uma simples média do baseline, ela capta o crescimento e o envelhecimento da população — que elevam o número esperado de óbitos ano a ano —, evitando superestimar o excesso nos anos recentes. É um método transparente e replicável; sua principal limitação é assumir que a tendência pré-pandemia teria continuado (não modela harvesting nem mudanças bruscas de estrutura etária).",
         ],
       },
       {
         titulo: "O biênio 2020–2021",
         paragrafos: [
-          "O excesso concentrou-se em 2020 e 2021, somando aproximadamente 702.871 óbitos acima do esperado no agregado nacional — magnitude compatível com as estimativas independentes publicadas para o período. Os picos mensais acompanham as ondas da pandemia, com destaque para o primeiro semestre de 2021, o mais letal da série.",
+          "O excesso concentrou-se em 2020 e 2021, somando aproximadamente 643.482 óbitos acima do esperado no agregado nacional — magnitude compatível com as estimativas independentes publicadas para o período. Os picos mensais acompanham as ondas da pandemia, com destaque para o primeiro semestre de 2021, o mais letal da série.",
           "A desagregação por unidade federativa, disponível na plataforma, revela forte heterogeneidade regional no tempo e na intensidade — reflexo de diferenças em estrutura etária, acesso a leitos, momento de circulação viral e cobertura vacinal.",
         ],
       },

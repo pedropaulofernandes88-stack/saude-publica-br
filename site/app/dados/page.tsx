@@ -204,7 +204,7 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
             ["mart_mortalidade_municipio.parquet", "14,2 MB", "748310975375de33d289cb72a54c7d52d63a7118af8df2b2a7477f0bc97c3071"],
             ["mart_mortalidade_uf_mes.parquet", "1,6 MB", "3958450095820478e582ee30fae57be1c49e6c9f91e174865e00bd0ed9f06db3"],
             ["mart_mortalidade_causa.parquet", "0,7 MB", "c51f2c553810eaf92d996aa52fb7b436da2a80a971526d060c7beacc341fa4ad"],
-            ["mart_excesso_uf_mes.parquet", "0,04 MB", "37feefc7694bbf055f271552942c0ccbd9c1de40185002548514dcdbcc7810a9"],
+            ["mart_excesso_uf_mes.parquet", "0,04 MB", "3954a0838a18a96394002ff07c9ad3428697312d11356a4c572c8edd262b0c5f"],
             ["mart_dengue_semana.parquet", "1,1 MB", "4e9eb4d9a87efc8ded2f3d692252b24d59091ca62ae4f29c1163b996d78d113f"],
             ["mart_dengue_municipio_ano.parquet", "0,3 MB", "1bf5f4d31d395428219b065ea80d68fa138cd8476d3dda1b9734ddfbedb40fcb"],
             ["mart_internacoes_municipio.parquet", "6,0 MB", "09d129d5bbe344f1e3fc12ed9ee9413035e7600b0e1dd9ce6dbdb868857c56d3"],
