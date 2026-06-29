@@ -6,7 +6,7 @@ message: >-
 title: "Saúde em Dado: inteligência epidemiológica aberta sobre os microdados do SUS"
 type: software
 version: v3.1.0
-doi: 10.5281/zenodo.20706846
+doi: 10.5281/zenodo.20706845
 date-released: "2026-06-29"
 authors:
   - family-names: Fernandes
@@ -15,7 +15,7 @@ authors:
     orcid: "https://orcid.org/0009-0008-6248-2486"
 identifiers:
   - type: doi
-    value: 10.5281/zenodo.20706846
+    value: 10.5281/zenodo.20706845
     description: DOI do conceito (todas as versões) no Zenodo
 repository-code: "https://github.com/pedropaulofernandes88-stack/saude-publica-br"
 url: "https://saudeemdado.com"

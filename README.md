@@ -10,8 +10,8 @@
 [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](LICENSE)
 [![Custo](https://img.shields.io/badge/custo-R%24%200%2Fmês-success.svg)](#-arquitetura-a-custo-zero)
 [![Dados](https://img.shields.io/badge/DataSUS-SIM·SINAN·SIH·SINASC-009688.svg)](#-fontes-de-dados)
-[![Release](https://img.shields.io/badge/release-v3.0.1-blue.svg)](https://github.com/pedropaulofernandes88-stack/saude-publica-br/releases)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20706846.svg)](https://doi.org/10.5281/zenodo.20706846)
+[![Release](https://img.shields.io/badge/release-v3.1.0-blue.svg)](https://github.com/pedropaulofernandes88-stack/saude-publica-br/releases)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20706845.svg)](https://doi.org/10.5281/zenodo.20706845)
 
 [**Site**](https://saudeemdado.com) · [**API**](https://saudeemdado.com/dados/) · [**Análises**](https://saudeemdado.com/artigos/) · [**Metodologia**](https://saudeemdado.com/metodologia/)
 
@@ -206,10 +206,10 @@ ou automação de decisões clínicas/de política pública sem supervisão prof
 Código sob licença **MIT**. Dados originais em **domínio público** (DATASUS/MS, IBGE, IPEA) — cite as
 fontes primárias.
 
-**Como citar** (DOI [10.5281/zenodo.20706846](https://doi.org/10.5281/zenodo.20706846)):
+**Como citar** (DOI [10.5281/zenodo.20706845](https://doi.org/10.5281/zenodo.20706845)):
 
 > Fernandes, Pedro. *Saúde em Dado: inteligência epidemiológica aberta sobre os microdados do SUS.*
-> Zenodo, 2026. https://doi.org/10.5281/zenodo.20706846
+> Zenodo, 2026. https://doi.org/10.5281/zenodo.20706845
 
 Metadados legíveis por gerenciadores de referência em [`CITATION.cff`](CITATION.cff).
 

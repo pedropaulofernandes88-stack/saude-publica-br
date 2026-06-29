@@ -317,12 +317,12 @@ mg.nlargest(10, "taxa_padronizada_100k")`}</code>
       <pre>
         <code>{`Fernandes, P. P. Saúde em Dado: inteligência epidemiológica aberta
 sobre os microdados do SUS. https://saudeemdado.com
-DOI: 10.5281/zenodo.20706846. Acesso em: AAAA-MM-DD.
+DOI: 10.5281/zenodo.20706845. Acesso em: AAAA-MM-DD.
 Fontes primárias: DATASUS (SIM, SIH, SINAN, SINASC) e IBGE.`}</code>
       </pre>
       <p className="text-sm text-ink-500">
         DOI de conceito (todas as versões) no Zenodo:{" "}
-        <a href="https://doi.org/10.5281/zenodo.20706846" target="_blank" rel="noreferrer">10.5281/zenodo.20706846</a>.
+        <a href="https://doi.org/10.5281/zenodo.20706845" target="_blank" rel="noreferrer">10.5281/zenodo.20706845</a>.
         O repositório traz <code>CITATION.cff</code> para citação automática (botão "Cite this
         repository" no GitHub). Cada release versiona o dataset e publica os checksums acima.
       </p>

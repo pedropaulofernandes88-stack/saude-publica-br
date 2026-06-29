@@ -110,12 +110,12 @@ export default function Sobre() {
       <h2>Como citar</h2>
       <p>
         A plataforma tem <strong>DOI</strong> permanente no Zenodo:{" "}
-        <a href="https://doi.org/10.5281/zenodo.20706846" target="_blank" rel="noreferrer">
-          10.5281/zenodo.20706846
+        <a href="https://doi.org/10.5281/zenodo.20706845" target="_blank" rel="noreferrer">
+          10.5281/zenodo.20706845
         </a>.
       </p>
       <pre><code>{`FERNANDES, Pedro. Saúde em Dado: inteligência epidemiológica aberta sobre
-os microdados do SUS. Zenodo, 2026. DOI: 10.5281/zenodo.20706846.
+os microdados do SUS. Zenodo, 2026. DOI: 10.5281/zenodo.20706845.
 Disponível em: https://saudeemdado.com. Acesso em: [data].
 
 Fontes primárias: BRASIL. Ministério da Saúde. SIM, SINAN, SIH, SINASC
