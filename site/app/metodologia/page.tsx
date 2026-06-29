@@ -119,8 +119,19 @@ export default function Metodologia() {
       </p>
       <p>
         Limitações remanescentes: a extrapolação linear assume que a tendência pré-pandemia teria
-        continuado e não modela <em>harvesting</em> (deslocamento de mortalidade). Uma variante
-        padronizada por idade (taxas etárias 2015–19 aplicadas à estrutura do ano) está no roadmap.
+        continuado e não modela <em>harvesting</em> (deslocamento de mortalidade).
+      </p>
+      <p>
+        <strong>Robustez (padronização por idade).</strong> Testamos uma variante do esperado{" "}
+        <em>padronizada por idade</em>, usando a população por idade/UF/ano da projeção do IBGE
+        (revisão 2018). Ela estima o pico pandêmico em ~505 mil — <em>abaixo</em> do nosso valor
+        (643 mil) <em>e</em> do consenso de estimativas independentes (~680 mil) — e gera excesso
+        fortemente negativo em 2023–2024. A causa não é o método, e sim o <strong>denominador</strong>:
+        a projeção 2018 superestima a população (o Censo 2022 a revisou para baixo) e a série pós-Censo
+        introduz uma <strong>descontinuidade em 2022</strong> — ambos inflam o esperado e subestimam o
+        excesso. Por isso <strong>retivemos o método de tendência</strong>, que se apoia apenas nos
+        óbitos observados e é imune a esses problemas de denominador. O script e a base dessa análise
+        de sensibilidade estão no repositório.
       </p>
 
       <h2>7. Validação automática</h2>
