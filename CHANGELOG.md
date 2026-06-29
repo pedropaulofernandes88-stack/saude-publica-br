@@ -7,6 +7,33 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [3.1.0] — 2026-06-29 — Internações, agravos, fluxo e excesso corrigido
+
+> Linha atual da plataforma (site estático + Supabase). As entradas de versão
+> `0.x` abaixo são da arquitetura legada (backend FastAPI, descontinuada).
+
+### ✨ Adicionado
+- **Internações hospitalares (SIH/AIH 2022–2024)** por município e capítulo CID-10: permanência média, mortalidade intra-hospitalar e custo.
+- **ICSAP — internações por condições sensíveis à atenção primária** (aproximação da Lista Brasileira, CID-3): proporção, **gasto potencialmente evitável** (estimativa) e **sinalização de outlier** (IC95% de Wilson).
+- **Fluxo intermunicipal de pacientes** (residência → atendimento, SIH 2024) — inspirado no LabSUS.
+- **Internações por agravo traçador** (CID-3): diabetes, AVC, IAM, insuficiência cardíaca, asma, DPOC, pneumonia, depressão, esquizofrenia, álcool/drogas, TCE.
+- **Visão hospitalar (CNES)**: agregados por estabelecimento (volume, permanência, mortalidade, custo, capítulo predominante).
+- **Arquétipos de saúde municipal** (k-means) no boletim.
+- Página Dados: **vigência por base**, **qualidade do registro** (% causas mal-definidas), licença **CC BY 4.0** para os agregados e bloco "Como citar".
+
+### 🔧 Alterado
+- **Excesso de mortalidade — método corrigido.** Baseline mudou de "média 2015–2019 × razão populacional" para **tendência linear por mês civil**, captando o envelhecimento. Brasil 2020–2021: 702.871 → **643.482**; "excesso persistente" de 2022–2023 encolhe; 2024 ~zero. **(altera números publicados)**
+- Caveats epidemiológicos no ponto de uso: confundimento por cobertura SUS-only, mortalidade hospitalar bruta (case-mix), falácia ecológica.
+- Malhas municipais auto-hospedadas (remove dependência instável do IBGE em runtime).
+
+### 🔬 Robustez
+- **Análise de sensibilidade do excesso** (variante padronizada por idade com a projeção IBGE 2018): documenta que ela subestima por problemas de denominador (overcount pré-Censo + descontinuidade de 2022); o método de tendência foi retido por ser imune ao denominador. Script e base reproduzíveis em `scripts/sensibilidade_excesso_idade.py`.
+
+### Fontes e cobertura
+- SIM 2015–2024 · SIH 2022–2024 · SINAN 2015–2024 · SINASC 2021–2023 · IBGE Censo 2022 e projeções.
+
+---
+
 ## [0.7.0] — 2024-01-15 — API Pública Estável v1.0 (Fase 12)
 
 ### ✨ Adicionado
