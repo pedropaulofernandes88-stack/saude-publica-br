@@ -460,32 +460,72 @@ export const ARTIGOS: Artigo[] = [
     leituraMin: 6,
     tags: ["mortalidade", "CID-10", "transição epidemiológica"],
     resumo:
-      "Classificando 14,4 milhões de óbitos (2015–2024) pelos capítulos e categorias da CID-10, descrevemos o perfil de causas do Brasil contemporâneo: predomínio de doenças crônicas não transmissíveis, com infarto (I21) e pneumonia (J18) entre as categorias mais frequentes.",
+      "Classificando os óbitos de 2024 (1,43 milhão) pelos capítulos e categorias da CID-10, descrevemos o perfil de causas do Brasil contemporâneo: as doenças do aparelho circulatório respondem por 25,7% das mortes, seguidas de neoplasias (17,1%) e respiratórias (13,0%). No nível de categoria, o infarto (I21) lidera — mas as causas mal definidas (R99) aparecem em terceiro, um alerta sobre a qualidade do registro.",
     secoes: [
       {
+        titulo: "Dados e métodos",
         paragrafos: [
-          "A Classificação Internacional de Doenças (CID-10) organiza a causa básica de cada óbito em 22 capítulos e milhares de categorias. Processar a causa básica de 14,4 milhões de óbitos entre 2015 e 2024 permite desenhar o mapa do que mata no Brasil — e como isso muda.",
-          "No agregado, o capítulo IX (doenças do aparelho circulatório) lidera, seguido pelo capítulo II (neoplasias) e pelo capítulo X (doenças do aparelho respiratório). É a assinatura de um país que completou, em grande medida, a transição epidemiológica: as crônicas não transmissíveis suplantaram as infecciosas como principal causa de morte.",
+          "Fonte: SIM/DataSUS, óbitos não fetais de 2024 (1.426.346 no total), classificados pela causa básica em capítulos (I–XXII) e categorias de 3 caracteres da CID-10. Percentuais calculados sobre o total de óbitos com capítulo definido.",
+          "A CID-10 organiza a causa básica em 22 capítulos e milhares de categorias. Mapear essa distribuição desenha o perfil do que mata no Brasil — e revela o grau de transição epidemiológica.",
         ],
       },
       {
-        titulo: "Do capítulo à categoria",
+        titulo: "O perfil por capítulo (2024)",
         paragrafos: [
-          "Descer ao nível da categoria de três caracteres é revelador. O infarto agudo do miocárdio (I21) figura sistematicamente no topo das causas específicas; a pneumonia (J18) e a doença pulmonar obstrutiva crônica (J44) aparecem com força, assim como o diabetes (E14) e causas do aparelho geniturinário (N39). Em São Paulo, em 2024, essa ordem se confirma nos dados da plataforma.",
-          "O capítulo XVIII (sintomas e achados mal definidos, com destaque para R99) merece vigilância: sua participação é um marcador inverso da qualidade da informação — quanto mais óbitos 'mal definidos', menos confiável o perfil de causas daquela localidade.",
+          "As doenças do aparelho circulatório lideram com folga (um quarto das mortes), seguidas de neoplasias e respiratórias. É a assinatura de um país que completou, em grande medida, a transição epidemiológica — as crônicas não transmissíveis suplantaram as infecciosas. Duas exceções pedem leitura crítica: as causas externas (10%), marcador de violência e trânsito; e o capítulo XVIII (mal definidas, 5,4%), que não é uma 'doença', mas um indicador inverso da qualidade da informação.",
         ],
+        tabela: {
+          titulo: "Óbitos por capítulo CID-10 — Brasil, 2024 (oito maiores)",
+          colunas: ["Capítulo", "Óbitos", "% do total"],
+          linhas: [
+            ["IX — Aparelho circulatório", "365.952", "25,7"],
+            ["II — Neoplasias", "243.935", "17,1"],
+            ["X — Aparelho respiratório", "184.926", "13,0"],
+            ["XX — Causas externas", "143.547", "10,1"],
+            ["IV — Endócrinas/metabólicas", "80.291", "5,6"],
+            ["XVIII — Sintomas e sinais mal definidos", "77.657", "5,4"],
+            ["XI — Aparelho digestivo", "75.232", "5,3"],
+            ["I — Infecciosas e parasitárias", "72.382", "5,1"],
+          ],
+          nota: "Fonte: SIM/DataSUS, 2024 preliminar. Elaboração: Saúde em Dado.",
+        },
       },
       {
-        titulo: "Por que mapear causas importa",
+        titulo: "Do capítulo à categoria específica",
         paragrafos: [
-          "O perfil de causas orienta prioridades: prevenção cardiovascular, rastreamento de câncer, manejo de doenças respiratórias crônicas. Disponibilizar essa distribuição por município, ano e sexo — de forma aberta — aproxima o planejamento da realidade local, em vez de aplicar médias nacionais a contextos heterogêneos.",
+          "Descer ao nível de 3 caracteres é ainda mais revelador. O infarto agudo do miocárdio (I21) lidera isoladamente, seguido da pneumonia (J18). O achado que merece vigilância é o terceiro lugar: R99 (causas mal definidas), com quase 49 mil óbitos — sinal de que, para uma fração relevante das mortes, sequer sabemos a causa. DPOC (J44), diabetes (E14), AVC (I64), insuficiência cardíaca (I50) e hipertensão (I10) completam o topo, confirmando o peso cardiometabólico e respiratório.",
+        ],
+        tabela: {
+          titulo: "Categorias CID-10 (3 caracteres) mais frequentes — Brasil, 2024",
+          colunas: ["Categoria", "Descrição", "Óbitos"],
+          linhas: [
+            ["I21", "Infarto agudo do miocárdio", "86.300"],
+            ["J18", "Pneumonia", "74.676"],
+            ["R99", "Causas mal definidas", "48.773"],
+            ["J44", "DPOC", "45.146"],
+            ["E14", "Diabetes mellitus", "40.142"],
+            ["I64", "AVC (não especificado)", "32.455"],
+            ["I50", "Insuficiência cardíaca", "31.598"],
+            ["I10", "Hipertensão essencial", "31.055"],
+            ["C34", "Neoplasia de brônquios/pulmão", "29.822"],
+            ["N39", "Transtornos do trato urinário", "28.719"],
+          ],
+          nota: "Fonte: SIM/DataSUS, 2024 preliminar. R99 não é doença: é ausência de diagnóstico. Elaboração: Saúde em Dado.",
+        },
+      },
+      {
+        titulo: "Por que mapear causas importa (e suas limitações)",
+        paragrafos: [
+          "O perfil de causas orienta prioridades — prevenção cardiovascular, rastreamento de câncer, manejo de crônicas respiratórias — e, disponibilizado por município/ano/sexo, aproxima o planejamento da realidade local em vez de aplicar médias nacionais a contextos heterogêneos.",
+          "Limitações: 2024 é preliminar; as causas mal definidas (R99 e capítulo XVIII) não são redistribuídas, o que subestima levemente as causas específicas onde o registro é pior (Norte/Nordeste); e a causa básica, embora padronizada, depende da qualidade do preenchimento da declaração de óbito.",
         ],
       },
     ],
     referencias: [
-      "OMS. Classificação Estatística Internacional de Doenças e Problemas Relacionados à Saúde (CID-10).",
-      "Saúde em Dado. mart_mortalidade_causa e mart_mortalidade_municipio. saudeemdado.com.",
-      "Schramm J.M.A. et al. Transição epidemiológica e o estudo de carga de doença no Brasil. Ciência & Saúde Coletiva.",
+      "OMS. Classificação Estatística Internacional de Doenças e Problemas Relacionados à Saúde (CID-10). 10ª rev.",
+      "Saúde em Dado. mart_mortalidade_causa e mart_mortalidade_uf_mes (v3.1.0). saudeemdado.com.",
+      "Schramm JMA et al. Transição epidemiológica e o estudo de carga de doença no Brasil. Ciência & Saúde Coletiva, 2004.",
+      "GBD Brazil Collaborators. Burden of disease in Brazil, 1990–2016. The Lancet, 2018.",
     ],
   },
   {
@@ -499,10 +539,23 @@ export const ARTIGOS: Artigo[] = [
       "Descrevemos as decisões de arquitetura que permitem servir indicadores de cinco sistemas do DataSUS sem custo de manutenção: agregação local em DuckDB, publicação apenas de marts agregados, API automática via PostgREST e front-end estático. Uma discussão metodológica sobre como infraestrutura define o que é possível em pesquisa.",
     secoes: [
       {
+        titulo: "O problema e a tese",
         paragrafos: [
           "Os dados do SUS são públicos, mas a barreira de acesso é técnica: microdados em formato DBC proprietário, fragmentados por unidade federativa e competência, somando dezenas de gigabytes. A maior parte do esforço de qualquer estudo epidemiológico no Brasil é gasta antes da análise — em obtenção e limpeza.",
-          "A tese desta plataforma é que a infraestrutura determina a pesquisa possível. Reduzir a barreira de acesso a zero — uma consulta de API em vez de semanas de engenharia — muda o que pesquisadores, jornalistas e gestores conseguem perguntar.",
+          "A tese desta plataforma é que a infraestrutura determina a pesquisa possível. Reduzir a barreira de acesso a zero — uma consulta de API em vez de semanas de engenharia — muda o que pesquisadores, jornalistas e gestores conseguem perguntar. A tabela resume a pilha que torna isso sustentável sem custo de manutenção.",
         ],
+        tabela: {
+          titulo: "A pilha de custo zero",
+          colunas: ["Camada", "Tecnologia", "Papel", "Custo"],
+          linhas: [
+            ["Processamento", "DuckDB (local)", "agrega microdados → marts", "R$ 0"],
+            ["Banco", "Supabase / PostgreSQL (free)", "serve os marts agregados", "R$ 0"],
+            ["API", "PostgREST", "REST automática sobre o Postgres", "R$ 0"],
+            ["Front-end", "Next.js estático + CDN", "site + JSON congelado no build", "R$ 0"],
+            ["Citação", "Zenodo + GitHub Releases", "DOI versionado, reprodutibilidade", "R$ 0"],
+          ],
+          nota: "Egress ao banco é minimizado congelando as consultas comuns em JSON no build. Elaboração: Saúde em Dado.",
+        },
       },
       {
         titulo: "Princípio 1: agregar localmente, publicar o essencial",
