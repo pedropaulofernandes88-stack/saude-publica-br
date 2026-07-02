@@ -236,32 +236,49 @@ export const ARTIGOS: Artigo[] = [
     leituraMin: 6,
     tags: ["metodologia", "padronização etária", "estatística", "mortalidade"],
     resumo:
-      "Demonstramos, com os dados municipais de 2023, como a estrutura etária distorce comparações de mortalidade e por que a taxa padronizada pelo método direto e o intervalo de confiança de 95% são indispensáveis para rankings responsáveis.",
+      "Demonstramos, com quatro municípios grandes em 2023, como a estrutura etária inverte rankings de mortalidade: cidades envelhecidas parecem 'piores' pela taxa bruta e cidades jovens parecem 'melhores', quando a taxa padronizada revela o oposto. Explicamos a padronização direta e o intervalo de confiança gama.",
     secoes: [
       {
+        titulo: "Dados e métodos",
         paragrafos: [
-          "A taxa bruta de mortalidade — óbitos divididos pela população — é intuitiva e profundamente enganosa quando usada para comparar lugares. A mortalidade cresce exponencialmente com a idade; portanto, um município com população mais velha terá taxa bruta maior mesmo que sua saúde, idade a idade, seja idêntica ou melhor que a de um município jovem.",
-          "Cidades litorâneas e do interior com forte migração de aposentados, por exemplo, exibem taxas brutas elevadas que nada dizem sobre a qualidade da atenção à saúde — dizem apenas que ali vivem mais idosos.",
+          "A taxa bruta de mortalidade — óbitos divididos pela população — é intuitiva e profundamente enganosa para comparar lugares. A mortalidade cresce exponencialmente com a idade; um município mais velho terá taxa bruta maior mesmo que sua saúde, idade a idade, seja igual ou melhor que a de um município jovem.",
+          "A padronização direta corrige isso aplicando as taxas específicas por faixa etária de cada município a uma população-padrão comum (aqui, o Brasil no Censo 2022): é a taxa que o município teria se sua composição etária fosse a do país. Idade ignorada é redistribuída pro rata. Toda taxa bruta acompanha IC95% pelo método gama (Poisson exato). Fonte: mart_mortalidade_municipio, 2023, capítulo TOTAL.",
         ],
       },
       {
-        titulo: "A correção: padronização direta",
+        titulo: "O efeito em números: a inversão do ranking",
         paragrafos: [
-          "A padronização por idade resolve o problema aplicando as taxas específicas por faixa etária de cada município a uma população-padrão comum — neste projeto, a do Brasil no Censo 2022. O resultado é a taxa que o município teria se sua composição etária fosse a do país. Só então a comparação é legítima.",
-          "Tratamos ainda a idade ignorada (registros sem idade) redistribuindo-a proporcionalmente entre as faixas conhecidas, evitando subestimação. A plataforma expõe lado a lado a taxa bruta e a padronizada — e a diferença entre elas é, muitas vezes, a diferença entre uma conclusão correta e uma equivocada.",
+          "A tabela mostra dois municípios envelhecidos (Santos, Niterói) e dois jovens (Parauapebas, Boa Vista), todos com mais de 280 mil habitantes. Pela taxa bruta, Santos (1.012/100 mil) parece quase três vezes 'pior' que Parauapebas (359/100 mil). Padronizada por idade, a relação se inverte: Parauapebas (770) tem mortalidade maior que Santos (638). O ranking bruto não estava só impreciso — estava de cabeça para baixo.",
         ],
+        tabela: {
+          titulo: "Taxa bruta × padronizada por idade — municípios selecionados, 2023 (por 100 mil hab.)",
+          colunas: ["Município", "População", "Taxa bruta", "Taxa padronizada"],
+          linhas: [
+            ["Santos (SP) — envelhecido", "424.088", "1.012", "638"],
+            ["Niterói (RJ) — envelhecido", "499.234", "943", "657"],
+            ["Parauapebas (PA) — jovem", "283.345", "359", "770"],
+            ["Boa Vista (RR) — jovem", "441.828", "486", "811"],
+          ],
+          nota: "Fonte: SIM/DataSUS e IBGE, 2023. Padrão: Brasil, Censo 2022. Elaboração: Saúde em Dado.",
+        },
       },
       {
         titulo: "Incerteza: o intervalo de confiança",
         paragrafos: [
-          "Em municípios pequenos, poucos óbitos a mais ou a menos alteram drasticamente a taxa. Por isso, toda taxa bruta é acompanhada de um intervalo de confiança de 95% calculado pelo método gama (Poisson exato), e a interface sinaliza municípios com menos de 10 mil habitantes, onde as taxas são instáveis.",
+          "Em municípios pequenos, poucos óbitos a mais ou a menos alteram drasticamente a taxa. Por isso cada taxa bruta acompanha um IC95% (método gama), e a interface sinaliza municípios com menos de 10 mil habitantes, onde as taxas são instáveis.",
           "A regra prática: nunca leia uma taxa municipal sem olhar seu intervalo. Uma taxa 'alta' com intervalo amplo pode ser indistinguível da média — é ruído, não sinal.",
+        ],
+      },
+      {
+        titulo: "Limitações",
+        paragrafos: [
+          "A padronização remove o efeito da idade, mas não corrige sub-registro de óbitos nem causas mal definidas — vieses que afetam sobretudo municípios com infraestrutura de informação mais frágil. Padronizar torna as comparações legítimas quanto à idade, não quanto à qualidade do dado.",
         ],
       },
     ],
     referencias: [
-      "Ahmad O.B. et al. Age standardization of rates: a new WHO standard. GPE Discussion Paper, WHO, 2001.",
-      "Saúde em Dado. mart_mortalidade_municipio (taxa_padronizada_100k, ic95). saudeemdado.com/metodologia.",
+      "Ahmad OB, Boschi-Pinto C, Lopez AD, et al. Age standardization of rates: a new WHO standard. GPE Discussion Paper No. 31. WHO, 2001.",
+      "Saúde em Dado. mart_mortalidade_municipio (taxa_padronizada_100k, ic95_inf/sup) (v3.1.0). saudeemdado.com/metodologia.",
       "IBGE. Censo Demográfico 2022 — população por idade (população-padrão).",
     ],
   },
@@ -394,13 +411,25 @@ export const ARTIGOS: Artigo[] = [
     leituraMin: 7,
     tags: ["desigualdade", "determinantes sociais", "qualidade do dado", "metodologia"],
     resumo:
-      "Cruzando um índice-proxy de vulnerabilidade social (Censo 2022) com a taxa de mortalidade padronizada em 3.089 municípios, encontramos correlação de Pearson de aproximadamente −0,18. Argumentamos que o resultado revela menos sobre saúde e mais sobre a qualidade do registro de óbitos.",
+      "Cruzando um índice-proxy de vulnerabilidade social (Censo 2022) com a taxa de mortalidade padronizada nos 5.570 municípios, encontramos correlação de Pearson de −0,125 — fraca e na direção oposta à esperada. Argumentamos que o resultado revela menos sobre saúde e mais sobre a qualidade do registro de óbitos.",
     secoes: [
       {
+        titulo: "Dados e métodos",
         paragrafos: [
-          "Os determinantes sociais da saúde preveem que pobreza, baixa escolaridade e falta de saneamento se traduzam em pior saúde — e, portanto, maior mortalidade. Ao cruzar nosso índice-proxy de vulnerabilidade social (composto por analfabetismo e ausência de água encanada no Censo 2022, via z-score) com a mortalidade padronizada de 2023, esperávamos correlação positiva.",
-          "O que encontramos foi uma correlação de Pearson de cerca de −0,18: fraca e na direção oposta. Em vez de descartar o achado, ele merece ser explicado — e é aqui que a análise se torna interessante.",
+          "Os determinantes sociais da saúde preveem que pobreza, baixa escolaridade e falta de saneamento se traduzam em pior saúde — e maior mortalidade. Cruzamos nosso índice-proxy de vulnerabilidade social (analfabetismo + ausência de água encanada no Censo 2022, combinados por z-score, em quartis Q1–Q4) com a taxa de mortalidade padronizada por idade de 2023, nos 5.570 municípios.",
+          "Esperávamos correlação positiva. O que encontramos foi uma correlação de Pearson de −0,125 (n = 5.570): fraca e na direção oposta. Em vez de descartar o achado, ele merece ser explicado — e é aqui que a análise se torna interessante.",
         ],
+        tabela: {
+          titulo: "Mortalidade padronizada média por quartil de vulnerabilidade (2023)",
+          colunas: ["Quartil de vulnerabilidade", "Municípios (n)", "Mortalidade padronizada média (/100 mil)"],
+          linhas: [
+            ["Q1 — menos vulnerável", "1.403", "706"],
+            ["Q2", "1.392", "721"],
+            ["Q3", "1.388", "696"],
+            ["Q4 — mais vulnerável", "1.387", "663"],
+          ],
+          nota: "Fonte: dim_ivs (proxy Censo 2022) × mart_mortalidade_municipio (taxa padronizada, 2023). O quartil mais vulnerável tem a menor mortalidade medida — o paradoxo. Elaboração: Saúde em Dado.",
+        },
       },
       {
         titulo: "Três explicações plausíveis",
