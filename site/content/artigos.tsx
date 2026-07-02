@@ -40,6 +40,53 @@ export interface Artigo {
 
 export const ARTIGOS: Artigo[] = [
   {
+    slug: "643-mil-nao-702-mil-baseline-excesso-mortalidade",
+    titulo: "643 mil, não 702 mil: como a escolha do baseline muda a história da pandemia",
+    dek: "Corrigir o esperado pelo envelhecimento reduz o excesso pandêmico e quase zera o 'excesso persistente' de 2022–2024. Mas testar a alternativa mais sofisticada revelou por que ela falha no Brasil — e por que o método mais simples é o mais robusto.",
+    data: "2026-06-29",
+    leituraMin: 9,
+    tags: ["excesso de mortalidade", "SIM", "COVID-19", "métodos", "análise de sensibilidade"],
+    resumo:
+      "O excesso de mortalidade é a métrica-síntese do impacto de uma crise, mas depende inteiramente do 'esperado'. Mostramos como trocar um baseline de média por um de tendência corrige um viés de envelhecimento (excesso 2020–2021: 702.871 → 643.482) e faz o 'excesso persistente' pós-pandemia encolher. E documentamos uma análise de sensibilidade: a variante padronizada por idade subestima o excesso (~505 mil) porque o denominador populacional anual do Brasil é problemático — expondo por que o método que não usa população é o mais confiável.",
+    secoes: [
+      {
+        paragrafos: [
+          "Quantos brasileiros morreram a mais por causa da pandemia? A resposta parece uma questão de contar mortes, mas na verdade depende de uma escolha metodológica raramente examinada: o que teria sido o 'normal'. Excesso de mortalidade é a diferença entre os óbitos observados e os esperados na ausência da crise — e todo o peso recai sobre esse 'esperado'.",
+          "Nossa estimativa inicial usava um baseline simples: a média de óbitos de cada mês em 2015–2019, ajustada pelo crescimento da população. É transparente, mas tem um defeito: ignora que a população brasileira envelhece. Mais idosos significam mais óbitos esperados a cada ano — e um baseline que não capta isso subestima o esperado nos anos recentes, superestimando o excesso.",
+        ],
+      },
+      {
+        titulo: "A correção: de média para tendência",
+        paragrafos: [
+          "Substituímos a média por uma tendência linear ajustada a cada mês civil de 2015–2019 e projetada adiante. Essa tendência embute empiricamente tudo o que crescia na mortalidade de base — inclusive o envelhecimento — sem precisar modelá-lo explicitamente.",
+          "O efeito é revelador. O pico pandêmico permanece robusto: o excesso de 2020–2021 passa de 702.871 para 643.482 óbitos — uma redução de cerca de 8%, ainda plenamente compatível com as estimativas internacionais independentes (~660–680 mil). A história da pandemia não muda.",
+          "O que muda é o depois. Pelo método antigo, o Brasil parecia carregar um 'excesso persistente' em 2022 e 2023. Pela tendência, esse excedente encolhe drasticamente — de 260 mil para 145 mil em 2022, de 152 mil para 48 mil em 2023 — e 2024 fica essencialmente em zero. Em outras palavras: boa parte do 'excesso persistente' era um artefato de não descontar o envelhecimento, não um efeito real da pandemia.",
+        ],
+      },
+      {
+        titulo: "O teste que quase inverteu tudo — e por que não inverteu",
+        paragrafos: [
+          "A epidemiologia clássica recomendaria ir além: padronizar por idade, aplicando taxas de mortalidade por faixa etária à estrutura populacional de cada ano. Testamos essa variante usando a população por idade da projeção do IBGE de 2018. Ela deveria ser superior — e produziu números drasticamente menores: excesso pandêmico de apenas ~505 mil, e excesso fortemente negativo a partir de 2023.",
+          "Antes de adotar o resultado 'mais sofisticado', investigamos a discrepância. E o problema não era o método, era o denominador. A projeção de 2018 superestima a população brasileira — o Censo 2022 revisou o total para baixo em cerca de 8 a 11 milhões de pessoas. Uma população idosa inflada infla o número esperado de óbitos e, portanto, esconde o excesso. Reescalar para o total pós-Censo não resolve: a série do Censo introduz uma descontinuidade em 2022 que distorce os anos ao redor.",
+          "A conclusão é contraintuitiva e importante: no Brasil de 2015–2024, o dado populacional anual por idade é frágil demais para sustentar um excesso padronizado confiável. O método de tendência, justamente por se apoiar apenas nos óbitos observados e nunca tocar a população, é imune a esse problema — e é o que concorda com as estimativas independentes. O 'mais simples' venceu por ser o mais robusto.",
+        ],
+      },
+      {
+        titulo: "Por que isso importa além do número",
+        paragrafos: [
+          "Este episódio é um argumento a favor da transparência metodológica como método. Não escolhemos o baseline que dava o número mais impressionante nem o mais sofisticado; escolhemos o que sobrevive ao escrutínio, e publicamos a comparação inteira — inclusive o script que qualquer pessoa pode rodar para reproduzir a tabela.",
+          "Para quem lê indicadores de saúde, a lição é prática: desconfie de 'excesso persistente' e de qualquer número de excesso sem saber como o esperado foi construído. A escolha do baseline pode mudar a conclusão em centenas de milhares de vidas — e, no limite, inverter o sinal.",
+        ],
+      },
+    ],
+    referencias: [
+      "Saúde em Dado. mart_excesso_uf_mes (baseline por tendência 2015–2019) e scripts/sensibilidade_excesso_idade.py. saudeemdado.com/metodologia.",
+      "Karlinsky A., Kobak D. Excess mortality during the COVID-19 pandemic: World Mortality Dataset. eLife, 2021.",
+      "IBGE. Censo Demográfico 2022; Projeções da População (revisão 2018). SIDRA.",
+      "Organização Mundial da Saúde. Global excess deaths associated with COVID-19, 2020–2021.",
+    ],
+  },
+  {
     slug: "epidemia-dengue-2024-anatomia-recorde",
     titulo: "A epidemia de dengue de 2024: anatomia de um recorde",
     dek: "Com 6,56 milhões de casos prováveis, 2024 foi o maior surto de dengue já registrado no Brasil. O que os microdados do SINAN revelam sobre escala, sazonalidade e letalidade.",

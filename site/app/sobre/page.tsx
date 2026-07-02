@@ -8,30 +8,65 @@ export default function Sobre() {
       <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink-950">
         Sobre o Saúde em Dado
       </h1>
-      <p>
+
+      {/* Cartão do autor — posicionamento em 5 segundos */}
+      <div className="mt-6 rounded-xl border border-ink-200 bg-ink-50 p-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-accent-700">
+          Concebido e mantido por
+        </p>
+        <p className="mt-1 font-serif text-2xl font-semibold text-ink-950">Pedro Fernandes</p>
+        <p className="mt-1 text-ink-700">
+          Trabalho na interseção de <strong>saúde coletiva</strong>,{" "}
+          <strong>inteligência artificial</strong> e <strong>gestão pública</strong> —
+          transformando o dado bruto do SUS em evidência que gestor, pesquisador e
+          jornalista conseguem usar.
+        </p>
+        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+          <div className="rounded-lg bg-white p-3 ring-1 ring-ink-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Saúde</p>
+            <p className="mt-1 text-sm text-ink-800">Mestrando em Saúde Coletiva — IAMSPE</p>
+          </div>
+          <div className="rounded-lg bg-white p-3 ring-1 ring-ink-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">IA &amp; Dados</p>
+            <p className="mt-1 text-sm text-ink-800">Pós em IA e Ciência de Dados em Saúde — Hospital Sírio-Libanês</p>
+          </div>
+          <div className="rounded-lg bg-white p-3 ring-1 ring-ink-200">
+            <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Gestão pública</p>
+            <p className="mt-1 text-sm text-ink-800">Diretor de TI — Prefeitura de Penápolis (SP)</p>
+          </div>
+        </div>
+        <p className="mt-4 text-sm">
+          <a href="https://orcid.org/0009-0008-6248-2486" target="_blank" rel="noreferrer" className="font-medium text-accent-700 hover:underline">ORCID</a> ·{" "}
+          <a href="http://lattes.cnpq.br/6641343625206093" target="_blank" rel="noreferrer" className="font-medium text-accent-700 hover:underline">Lattes</a> ·{" "}
+          <a href="https://www.linkedin.com/in/pedro-f-540154408/" target="_blank" rel="noreferrer" className="font-medium text-accent-700 hover:underline">LinkedIn</a> ·{" "}
+          <a href="mailto:pedropaulofernandes88@gmail.com" className="font-medium text-accent-700 hover:underline">e-mail</a>
+        </p>
+      </div>
+
+      {/* Proof points */}
+      <div className="mt-6 grid gap-4 sm:grid-cols-4">
+        {[
+          ["14,4 mi", "óbitos processados (SIM 2015–2024)"],
+          ["5 sistemas", "SIM · SIH · SINAN · SINASC · IBGE"],
+          ["DOI", "citável e versionado (Zenodo)"],
+          ["100%", "pipeline aberto e reproduzível"],
+        ].map(([n, d]) => (
+          <div key={d} className="rounded-lg border border-ink-200 p-4 text-center">
+            <p className="font-serif text-2xl font-semibold text-accent-800">{n}</p>
+            <p className="mt-1 text-xs text-ink-600">{d}</p>
+          </div>
+        ))}
+      </div>
+
+      <p className="mt-6">
         O <strong>Saúde em Dado</strong> é uma plataforma aberta, independente e
         sem fins lucrativos que transforma microdados públicos do SUS em
         indicadores acessíveis para pesquisa, jornalismo e gestão. Não há
-        anúncios, cadastro, paywall ou uso comercial dos dados.
-      </p>
-
-      <h2>Quem mantém</h2>
-      <p>
-        Mantido por <strong>Pedro Fernandes</strong> — Mestrando em Saúde Coletiva
-        (IAMSPE), Pós-graduando em IA e Ciência de Dados em Saúde (Hospital
-        Sírio-Libanês) e Diretor de TI da Prefeitura Municipal de Penápolis (SP).
-        Contato: <a href="mailto:pedropaulofernandes88@gmail.com">pedropaulofernandes88@gmail.com</a>.
-      </p>
-      <p>
-        <a href="https://orcid.org/0009-0008-6248-2486" target="_blank" rel="noreferrer">ORCID</a> ·{" "}
-        <a href="http://lattes.cnpq.br/6641343625206093" target="_blank" rel="noreferrer">Currículo Lattes</a> ·{" "}
-        <a href="https://www.linkedin.com/in/pedro-f-540154408/" target="_blank" rel="noreferrer">LinkedIn</a>
-      </p>
-      <p>
-        Todo o código — do download dos microdados ao site — é aberto (licença
-        MIT) e auditável no repositório público do projeto no GitHub
-        (<code>saude-publica-br</code>). Correções, críticas metodológicas e
-        contribuições são bem-vindas via issues.
+        anúncios, cadastro, paywall ou uso comercial dos dados. Todo o código — do
+        download dos microdados ao site — é aberto e auditável no{" "}
+        <a href="https://github.com/pedropaulofernandes88-stack/saude-publica-br" target="_blank" rel="noreferrer">repositório público</a>{" "}
+        (MIT); os dados agregados são livres sob CC BY 4.0. Correções e críticas
+        metodológicas são bem-vindas via issues.
       </p>
 
       <h2>Política de atualização</h2>
