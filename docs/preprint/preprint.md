@@ -178,7 +178,12 @@ pré-pandemia e não modela *harvesting*.
 - **Código:** https://github.com/pedropaulofernandes88-stack/saude-publica-br (MIT)
 - **Dados agregados:** Parquet com checksum SHA-256 e API REST pública (CC BY 4.0)
 - **DOI (conceito, todas as versões):** 10.5281/zenodo.20706845
+- **DOI da versão analisada (v3.1.0):** 10.5281/zenodo.21036341
 - **Dados originais:** domínio público (DATASUS/Ministério da Saúde; IBGE)
+
+**Como citar a plataforma:** Fernandes, P. P. *Saúde em Dado: inteligência
+epidemiológica aberta sobre os microdados do SUS* (v3.1.0). Zenodo, 2026.
+https://doi.org/10.5281/zenodo.21036341
 
 Inspirações metodológicas creditadas ao projeto LabSUS (Lucas Amaral Dourado,
 Universidade Federal do Tocantins).
