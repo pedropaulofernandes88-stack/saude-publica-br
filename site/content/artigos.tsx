@@ -20,10 +20,18 @@ export const AUTHOR = {
     "Pesquisador na interseção entre saúde coletiva, ciência de dados e gestão pública. Concebeu e mantém a plataforma Saúde em Dado.",
 };
 
+export interface TabelaArtigo {
+  titulo?: string;
+  colunas: string[];
+  linhas: (string | number)[][];
+  nota?: string;
+}
+
 export interface Secao {
   titulo?: string;
   paragrafos: string[];
   lista?: string[];
+  tabela?: TabelaArtigo;
 }
 
 export interface Artigo {
@@ -70,6 +78,18 @@ export const ARTIGOS: Artigo[] = [
           "Antes de adotar o resultado 'mais sofisticado', investigamos a discrepância. E o problema não era o método, era o denominador. A projeção de 2018 superestima a população brasileira — o Censo 2022 revisou o total para baixo em cerca de 8 a 11 milhões de pessoas. Uma população idosa inflada infla o número esperado de óbitos e, portanto, esconde o excesso. Reescalar para o total pós-Censo não resolve: a série do Censo introduz uma descontinuidade em 2022 que distorce os anos ao redor.",
           "A conclusão é contraintuitiva e importante: no Brasil de 2015–2024, o dado populacional anual por idade é frágil demais para sustentar um excesso padronizado confiável. O método de tendência, justamente por se apoiar apenas nos óbitos observados e nunca tocar a população, é imune a esse problema — e é o que concorda com as estimativas independentes. O 'mais simples' venceu por ser o mais robusto.",
         ],
+        tabela: {
+          titulo: "Excesso de mortalidade no Brasil por método (óbitos)",
+          colunas: ["Período", "Tendência (publicado)", "Padronizado (projeção)", "Padronizado (reescalado)"],
+          linhas: [
+            ["2020–2021", "643.482", "503.913", "510.243"],
+            ["2022", "144.541", "36.182", "121.406"],
+            ["2023", "48.065", "−88.267", "−24.681"],
+            ["2024", "−9.018", "−174.699", "−134.195"],
+            ["2020–2024", "827.070", "277.129", "472.774"],
+          ],
+          nota: "As duas variantes padronizadas por idade usam a projeção IBGE 2018 (cru e reescalado ao total pós-Censo). Reprodutível em scripts/sensibilidade_excesso_idade.py. Elaboração: Saúde em Dado.",
+        },
       },
       {
         titulo: "Por que isso importa além do número",
@@ -97,10 +117,34 @@ export const ARTIGOS: Artigo[] = [
       "Analisamos 6.564.924 casos prováveis de dengue notificados ao SINAN em 2024, contra uma média de ~1,3 milhão/ano na década anterior. A magnitude do surto, sua concentração no primeiro semestre e a distribuição espacial são examinadas à luz do canal endêmico construído a partir da série 2015–2023.",
     secoes: [
       {
+        titulo: "Dados e métodos",
         paragrafos: [
-          "A dengue é doença de notificação compulsória no Brasil desde a década de 1990, e o Sistema de Informação de Agravos de Notificação (SINAN) é a sua principal fonte de vigilância. Em 2024, os microdados nacionais registraram 6.564.924 casos prováveis — definidos como notificações não descartadas após investigação — um valor sem precedentes na série histórica.",
-          "Para dimensionar o evento, comparamos esse total com os anos anteriores processados nesta plataforma: 2015 (1,62 milhão), 2019 (1,55 milhão) e 2023 (1,65 milhão) figuravam entre os mais intensos até então. O ano de 2024 multiplica por aproximadamente quatro o pior ano prévio recente, configurando não uma flutuação, mas uma ruptura de patamar.",
+          "Fonte: SINAN — arquivos nacionais DENGBR (bases FINAIS e PRELIM), 2015–2024, por município de residência (ID_MN_RESI) e semana epidemiológica dos primeiros sintomas (SEM_PRI). Caso provável = notificação não descartada após investigação (CLASSI_FIN ≠ 5), convenção da vigilância; óbito por dengue = EVOLUCAO = 2; letalidade = óbitos ÷ casos prováveis.",
+          "A dengue é de notificação compulsória desde os anos 1990, e o SINAN é sua principal fonte de vigilância. Em 2024, os microdados nacionais registraram 6.564.924 casos prováveis e 6.337 óbitos — valores sem precedentes na série.",
         ],
+      },
+      {
+        titulo: "A série 2015–2024",
+        paragrafos: [
+          "A tabela mostra a magnitude do rompimento de patamar: 2024 multiplica por ~4 o pior ano prévio (2023) e concentra mais óbitos do que os cinco anos anteriores somados. A letalidade sobe para 0,097% — a maior da série —, mas permanece baixa em termos absolutos: o recorde de óbitos é efeito do denominador explosivo, não de piora clínica.",
+        ],
+        tabela: {
+          titulo: "Dengue no Brasil por ano epidemiológico (SINAN)",
+          colunas: ["Ano", "Casos prováveis", "Óbitos", "Letalidade (%)"],
+          linhas: [
+            ["2015", "1.623.172", "972", "0,060"],
+            ["2016", "1.450.074", "704", "0,049"],
+            ["2017", "239.395", "188", "0,079"],
+            ["2018", "262.611", "203", "0,077"],
+            ["2019", "1.546.252", "843", "0,055"],
+            ["2020", "975.842", "587", "0,060"],
+            ["2021", "540.049", "279", "0,052"],
+            ["2022", "1.405.095", "1.056", "0,075"],
+            ["2023", "1.645.956", "1.192", "0,072"],
+            ["2024", "6.564.924", "6.337", "0,097"],
+          ],
+          nota: "Fonte: SINAN/DataSUS (DENGBR). Casos prováveis = CLASSI_FIN ≠ 5. Elaboração: Saúde em Dado.",
+        },
       },
       {
         titulo: "O canal endêmico como termômetro",
@@ -146,11 +190,24 @@ export const ARTIGOS: Artigo[] = [
         ],
       },
       {
-        titulo: "O biênio 2020–2021",
+        titulo: "Resultados: excesso por ano",
         paragrafos: [
-          "O excesso concentrou-se em 2020 e 2021, somando aproximadamente 643.482 óbitos acima do esperado no agregado nacional — magnitude compatível com as estimativas independentes publicadas para o período. Os picos mensais acompanham as ondas da pandemia, com destaque para o primeiro semestre de 2021, o mais letal da série.",
-          "A desagregação por unidade federativa, disponível na plataforma, revela forte heterogeneidade regional no tempo e na intensidade — reflexo de diferenças em estrutura etária, acesso a leitos, momento de circulação viral e cobertura vacinal.",
+          "O excesso concentrou-se em 2020 e 2021, somando 643.482 óbitos acima do esperado no agregado nacional — magnitude compatível com as estimativas independentes para o período (~660–680 mil; World Mortality Dataset, OMS). O pico foi o primeiro semestre de 2021, o mais letal da série.",
+          "A partir de 2022 o excesso recua de forma consistente e 2024 fica essencialmente em zero, indicando retorno ao regime pré-pandêmico. A desagregação por UF, na plataforma, revela forte heterogeneidade regional — reflexo de estrutura etária, acesso a leitos, momento de circulação viral e cobertura vacinal.",
         ],
+        tabela: {
+          titulo: "Excesso de mortalidade no Brasil por ano (baseline por tendência 2015–2019)",
+          colunas: ["Ano", "Excesso (óbitos)", "% sobre o esperado"],
+          linhas: [
+            ["2020", "192.739", "+14,1"],
+            ["2021", "450.744", "+32,6"],
+            ["2022", "144.541", "+10,3"],
+            ["2023", "48.065", "+3,4"],
+            ["2024 (prelim.)", "−9.018", "−0,6"],
+            ["2020–2021", "643.482", "—"],
+          ],
+          nota: "Fonte: SIM/DataSUS; esperado por regressão linear 2015–2019 por mês civil. 2024 preliminar e sujeito à extrapolação; ver análise de sensibilidade. Elaboração: Saúde em Dado.",
+        },
       },
       {
         titulo: "2022–2024: normalização com ressalvas",
@@ -219,35 +276,55 @@ export const ARTIGOS: Artigo[] = [
       "Combinando nascidos vivos do SINASC com óbitos de menores de 1 ano do SIM, estimamos a Taxa de Mortalidade Infantil (TMI) por UF. A média nacional de ~12,6‰ convive com extremos que vão de ~9‰ a ~20‰, expondo um gradiente socioespacial persistente.",
     secoes: [
       {
+        titulo: "Dados e métodos",
         paragrafos: [
-          "A Taxa de Mortalidade Infantil — óbitos de menores de 1 ano por mil nascidos vivos — é um dos indicadores mais sensíveis de desenvolvimento e qualidade da atenção materno-infantil. Calculá-la corretamente exige duas fontes: o numerador (óbitos infantis) vem do SIM; o denominador (nascidos vivos), do SINASC.",
-          "Para os anos com ambas as bases consolidadas, a TMI nacional situou-se em torno de 12,6 por mil — patamar que coloca o Brasil em posição intermediária no contexto latino-americano e ainda distante das menores taxas mundiais (abaixo de 3‰).",
+          "A Taxa de Mortalidade Infantil (TMI) — óbitos de menores de 1 ano por mil nascidos vivos — é um dos indicadores mais sensíveis de desenvolvimento e de qualidade da atenção materno-infantil. Seu cálculo combina duas fontes: o numerador (óbitos de menores de 1 ano) do SIM e o denominador (nascidos vivos) do SINASC, ambos por município/UF de residência da mãe.",
+          "Apresentamos a TMI por UF para o ano mais recente com ambas as bases consolidadas (2022). A TMI nacional situou-se em 12,6 por mil — posição intermediária no contexto latino-americano e ainda distante das menores taxas mundiais (abaixo de 3‰).",
         ],
       },
       {
         titulo: "O gradiente Norte–Sul",
         paragrafos: [
-          "A média nacional, porém, é uma abstração. A desagregação por UF revela amplitude de cerca de duas vezes: estados do Sul e Sudeste aproximam-se de 9–10‰, enquanto unidades do Norte e Nordeste alcançam 18–20‰. Esse gradiente acompanha, de perto, indicadores de renda, saneamento e cobertura de pré-natal.",
-          "Parte da mortalidade infantil é evitável por intervenções conhecidas e de baixo custo: pré-natal adequado, atenção ao parto e vacinação. O componente neonatal (primeiros 28 dias), hoje majoritário, depende sobretudo da qualidade assistencial no parto e nas primeiras horas de vida.",
+          "A média nacional é uma abstração. A desagregação por UF revela amplitude de ~1,9 vez entre os extremos — de 9,8‰ (Santa Catarina) a 18,8‰ (Roraima). O gradiente acompanha de perto renda, saneamento e cobertura de pré-natal, e separa nitidamente Sul/Sudeste do Norte/Nordeste.",
+        ],
+        tabela: {
+          titulo: "TMI por UF — extremos e nacional, 2022 (óbitos <1 ano por mil nascidos vivos)",
+          colunas: ["UF", "TMI (‰)"],
+          linhas: [
+            ["Roraima (RR)", "18,8"],
+            ["Amapá (AP)", "18,1"],
+            ["Sergipe (SE)", "17,6"],
+            ["Acre (AC)", "17,2"],
+            ["Piauí (PI)", "15,8"],
+            ["— Brasil —", "12,6"],
+            ["Espírito Santo (ES)", "10,8"],
+            ["Rio Grande do Sul (RS)", "10,5"],
+            ["Paraná (PR)", "10,3"],
+            ["Distrito Federal (DF)", "10,1"],
+            ["Santa Catarina (SC)", "9,8"],
+          ],
+          nota: "Fonte: SIM (óbitos <1 ano) e SINASC (nascidos vivos), 2022. Cinco maiores e cinco menores UFs. Elaboração: Saúde em Dado.",
+        },
+      },
+      {
+        titulo: "Evitabilidade e sinais na porta de entrada",
+        paragrafos: [
+          "Parte da mortalidade infantil é evitável por intervenções conhecidas e de baixo custo: pré-natal adequado, atenção qualificada ao parto e vacinação. O componente neonatal (primeiros 28 dias), hoje majoritário, depende sobretudo da assistência ao parto e às primeiras horas de vida.",
+          "Os próprios dados do SINASC antecipam risco: baixo peso ao nascer (<2.500 g), prematuridade (<37 semanas) e cobertura de sete ou mais consultas de pré-natal variam fortemente entre municípios e ajudam a explicar diferenças na TMI. A plataforma disponibiliza esses indicadores por município, permitindo focalizar a ação.",
         ],
       },
       {
-        titulo: "Sinais na porta de entrada",
+        titulo: "Limitações",
         paragrafos: [
-          "Os próprios dados do SINAStratuC antecipam risco: proporção de baixo peso ao nascer (<2.500 g), prematuridade (<37 semanas) e cobertura de sete ou mais consultas de pré-natal variam fortemente entre municípios e ajudam a explicar diferenças na TMI. A plataforma disponibiliza esses indicadores por município, permitindo focalizar a ação.",
-        ],
-      },
-      {
-        titulo: "Ressalvas",
-        paragrafos: [
-          "A TMI municipal é instável em localidades com poucos nascimentos; por isso a apresentamos preferencialmente por UF. Além disso, o SINASC tem defasagem de consolidação maior que o SIM, o que limita o ano mais recente disponível para o cálculo.",
+          "A TMI municipal é instável em localidades com poucos nascimentos; por isso a apresentamos por UF. O SINASC tem defasagem de consolidação maior que o SIM, limitando o ano mais recente disponível. E o sub-registro de óbitos infantis, historicamente maior no Norte/Nordeste, pode atenuar o gradiente real — ou seja, a desigualdade verdadeira tende a ser ainda maior que a medida.",
         ],
       },
     ],
     referencias: [
-      "BRASIL. Ministério da Saúde. SINASC e SIM — microdados.",
-      "Saúde em Dado. mart_mortalidade_infantil_uf e mart_natalidade_municipio. saudeemdado.com/nascimentos.",
-      "RIPSA. Indicadores básicos para a saúde no Brasil: conceitos e aplicações.",
+      "BRASIL. Ministério da Saúde. SINASC e SIM — microdados 2021–2023. DATASUS.",
+      "Saúde em Dado. mart_mortalidade_infantil_uf e mart_natalidade_municipio (v3.1.0). saudeemdado.com/nascimentos.",
+      "RIPSA. Indicadores e Dados Básicos para a Saúde no Brasil (IDB): conceitos e aplicações. 2ª ed.",
+      "França EB et al. Mortalidade infantil no Brasil: tendências e desigualdades. Rev Bras Epidemiol.",
     ],
   },
   {
@@ -258,39 +335,55 @@ export const ARTIGOS: Artigo[] = [
     leituraMin: 8,
     tags: ["SIH", "internações", "gestão", "custos"],
     resumo:
-      "A partir das Autorizações de Internação Hospitalar (SIH/AIH) de 2022 a 2024 — 39,9 milhões de internações e R$ 63,2 bilhões aprovados —, analisamos permanência média (~5 dias), mortalidade intra-hospitalar (~4,4%) e a composição do gasto por grupo de causas.",
+      "A partir das Autorizações de Internação Hospitalar (SIH/AIH) de 2022 a 2024 — 39,9 milhões de internações e R$ 63,2 bilhões aprovados —, descrevemos volume, permanência média, mortalidade intra-hospitalar e custo por capítulo da CID-10, evidenciando que o gasto se concentra nas doenças circulatórias e que a mortalidade hospitalar varia de <0,1% (parto) a 13% (infecciosas).",
     secoes: [
       {
+        titulo: "Dados e métodos",
         paragrafos: [
-          "O Sistema de Informações Hospitalares (SIH) registra cada internação paga pelo SUS por meio da Autorização de Internação Hospitalar (AIH). É a principal janela para entender a produção e o custo da assistência hospitalar pública — que cobre a maioria dos brasileiros, embora não a rede privada/suplementar.",
-          "No triênio 2022–2024, contabilizamos 39.883.796 internações por residência do paciente, com valor total aprovado de R$ 63,2 bilhões. Só em 2024 foram 14,2 milhões de internações.",
+          "Fonte: SIH/SUS — arquivos RD (AIH aprovadas), microdados 2022–2024, processados por município de residência do paciente (MUNIC_RES). Foram contabilizadas 39.883.796 internações no triênio (14.171.364 apenas em 2024), com valor total aprovado de R$ 63,2 bilhões.",
+          "Definições: a causa é o capítulo da CID-10 do diagnóstico principal (DIAG_PRINC); a permanência média é a soma de DIAS_PERM dividida pelo número de internações; a mortalidade intra-hospitalar é a razão entre AIH com MORTE=1 e o total; o custo é o valor total aprovado (VAL_TOT). Este artigo detalha o ano de 2024 (preliminar).",
         ],
       },
       {
-        titulo: "Três indicadores de eficiência e desfecho",
+        titulo: "Resultados: os oito maiores capítulos (2024)",
         paragrafos: [
-          "A permanência média situou-se em torno de 5,0 dias — número que sintetiza perfil de casos e eficiência de fluxo. A mortalidade intra-hospitalar ficou em cerca de 4,4%, variando enormemente por causa: internações por causas externas e por doenças circulatórias têm desfechos muito distintos de partos ou procedimentos eletivos.",
-          "O custo médio por internação, derivável do valor aprovado, é um insumo direto para planejamento. Mas atenção: o valor da AIH reflete a tabela SUS, não o custo real do procedimento — uma limitação importante para análises econômicas.",
+          "A tabela ordena, por volume, os oito capítulos que mais internam. Três padrões se destacam: gravidez/parto lidera em volume mas tem a menor permanência, mortalidade e custo; as doenças do aparelho circulatório, embora não sejam o maior volume, concentram o maior gasto (R$ 5,1 bilhões) e um custo médio quase seis vezes o do parto; e as doenças infecciosas apresentam a maior mortalidade intra-hospitalar (13%) e a maior permanência (7,6 dias).",
+        ],
+        tabela: {
+          titulo: "Internações SUS por capítulo CID-10 — Brasil, 2024",
+          colunas: ["Capítulo (CID-10)", "Internações", "Perm. (dias)", "Mort. (%)", "Custo médio (R$)", "Gasto (R$ bi)"],
+          linhas: [
+            ["XV — Gravidez, parto e puerpério", "2.115.667", "2,6", "0,04", "610", "1,29"],
+            ["XIX — Lesões e causas externas", "1.580.034", "4,9", "2,09", "1.457", "2,30"],
+            ["XI — Aparelho digestivo", "1.501.891", "3,5", "2,91", "1.409", "2,12"],
+            ["X — Aparelho respiratório", "1.361.054", "6,0", "8,89", "1.467", "2,00"],
+            ["IX — Aparelho circulatório", "1.333.288", "6,4", "8,07", "3.824", "5,10"],
+            ["II — Neoplasias", "1.105.852", "4,4", "7,29", "2.490", "2,75"],
+            ["XIV — Aparelho geniturinário", "1.073.282", "4,3", "3,21", "1.232", "1,32"],
+            ["I — Infecciosas e parasitárias", "967.291", "7,6", "13,04", "1.910", "1,85"],
+          ],
+          nota: "Fonte: SIH/SUS (AIH aprovadas), 2024 preliminar. Mortalidade e custo são brutos, sem ajuste por perfil de casos. Elaboração: Saúde em Dado.",
+        },
+      },
+      {
+        titulo: "Interpretação para a gestão",
+        paragrafos: [
+          "A leitura conjunta dos quatro indicadores é o que dá sentido gerencial. Volume alto com baixo custo e baixa mortalidade (parto) indica linha de cuidado de rotina; volume moderado com custo e mortalidade altos (circulatório) sinaliza onde a alocação de recursos e a organização da rede de urgência mais pesam. A plataforma permite reproduzir esta tabela por município e ordenar por qualquer coluna, viabilizando benchmarking entre pares.",
+          "Uma ressalva de interpretação: a mortalidade intra-hospitalar bruta reflete fortemente o perfil de casos (case-mix) — um hospital terciário concentra casos graves e, por isso, mortalidade maior, sem que isso signifique pior qualidade. Comparações de mortalidade entre serviços exigem ajuste de risco, que não fazemos aqui.",
         ],
       },
       {
-        titulo: "A composição por capítulo da CID-10",
+        titulo: "Limitações",
         paragrafos: [
-          "Agrupando o diagnóstico principal pelos capítulos da CID-10, emergem os grandes blocos: gravidez/parto e puerpério (alto volume, baixa mortalidade), doenças do aparelho circulatório e respiratório (alta mortalidade), lesões e causas externas, e neoplasias. Cada bloco demanda respostas de rede distintas — da obstetrícia à oncologia.",
-          "A plataforma permite ordenar municípios por volume, permanência, mortalidade ou custo, e filtrar por capítulo — útil para gestores compararem seu município com pares e identificarem desvios.",
-        ],
-      },
-      {
-        titulo: "Limites",
-        paragrafos: [
-          "O SIH cobre apenas a rede SUS; serviços exclusivamente privados não aparecem. Além disso, a AIH é unidade administrativa, não paciente: reinternações contam múltiplas vezes. Lemos volume de internações, não de pessoas internadas.",
+          "O SIH cobre apenas a rede SUS; como cerca de um quarto da população tem plano privado, concentrado em municípios mais ricos, comparações de internações por habitante entre municípios são confundidas pela cobertura suplementar. A AIH é unidade administrativa, não paciente — reinternações contam múltiplas vezes. O valor aprovado segue a tabela SUS, não o custo econômico real. E 2024 é preliminar.",
         ],
       },
     ],
     referencias: [
-      "BRASIL. Ministério da Saúde. SIH/SUS — AIH. Microdados 2022–2024.",
-      "Saúde em Dado. mart_internacoes_municipio. saudeemdado.com/internacoes.",
-      "Ministério da Saúde. Manual técnico do SIH e tabela de procedimentos SUS.",
+      "BRASIL. Ministério da Saúde. SIH/SUS — Autorização de Internação Hospitalar (AIH). Microdados 2022–2024. DATASUS.",
+      "Saúde em Dado. mart_internacoes_municipio (v3.1.0). DOI: 10.5281/zenodo.20706845. saudeemdado.com/internacoes.",
+      "Ministério da Saúde. Manual técnico do SIH/SUS e Tabela de Procedimentos, Medicamentos e OPM do SUS.",
+      "Iezzoni LI. Risk Adjustment for Measuring Health Care Outcomes. 4ª ed. Health Administration Press, 2013.",
     ],
   },
   {

@@ -87,6 +87,34 @@ export default function ArtigoPage({ params }: { params: { slug: string } }) {
           {s.titulo && <h2>{s.titulo}</h2>}
           {s.paragrafos.map((p, j) => <p key={j}>{p}</p>)}
           {s.lista && <ul>{s.lista.map((li, k) => <li key={k}>{li}</li>)}</ul>}
+          {s.tabela && (
+            <figure className="not-prose my-6 overflow-x-auto">
+              {s.tabela.titulo && (
+                <figcaption className="mb-2 text-xs font-semibold uppercase tracking-wide text-ink-500">
+                  {s.tabela.titulo}
+                </figcaption>
+              )}
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr className="border-b-2 border-ink-300 text-left">
+                    {s.tabela.colunas.map((c, k) => (
+                      <th key={k} className={`px-3 py-2 font-semibold text-ink-700 ${k > 0 ? "text-right" : ""}`}>{c}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {s.tabela.linhas.map((row, r) => (
+                    <tr key={r} className="border-b border-ink-100">
+                      {row.map((cell, c) => (
+                        <td key={c} className={`px-3 py-1.5 ${c > 0 ? "text-right tabular-nums text-ink-700" : "font-medium text-ink-900"}`}>{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {s.tabela.nota && <p className="mt-2 text-xs text-ink-500">{s.tabela.nota}</p>}
+            </figure>
+          )}
         </section>
       ))}
 
