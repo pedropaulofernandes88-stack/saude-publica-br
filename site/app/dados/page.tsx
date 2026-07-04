@@ -99,6 +99,11 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>54</td>
           </tr>
           <tr>
+            <td><code>mart_qualidade_registro_municipio</code></td>
+            <td>índice de confiabilidade do registro de óbitos por município (% causas mal-definidas, 2022–2024) com classificação Bom/Regular/Ruim</td>
+            <td>5.595</td>
+          </tr>
+          <tr>
             <td><code>dim_ivs</code></td>
             <td>vulnerabilidade social municipal (proxy Censo 2022: analfabetismo + água; z-score)</td>
             <td>5.570</td>
@@ -214,6 +219,7 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
             ["mart_internacoes_hospital.parquet", "0,2 MB", "31e39b7793d5e811f784a9da3578ea7fecd3e8d51c862e2da0b3ab0b2158c58c"],
             ["mart_natalidade_municipio.parquet", "0,2 MB", "d6f064c2230322368bdf11553b89c9439b86240a2bf223f309ee82a0d25f5294"],
             ["mart_mortalidade_infantil_uf.parquet", "0,01 MB", "73665f2f9cce2adec1a0431ff67c7ee1ec5a92412baca1ac838bdeb8b7d40732"],
+            ["mart_qualidade_registro_municipio.parquet", "0,13 MB", "32f0827acaa90887753557b469eff65af254ae2313944d6e9391ff031214c0ee"],
             ["dim_ivs.parquet", "0,12 MB", "76f386873403eb7aad4d1099eceb05169a737f80083f57d1ba45ecec774517d2"],
             ["dim_cluster_municipio.parquet", "0,05 MB", "f02e5be4fd3efccefb18cd671742f1ab5090c22a6d44bed21179caa2ea081646"],
             ["dim_municipio.parquet", "0,09 MB", "a7f3f66aad10ef9bd99f6d1f0dc919f9017dcc3ae7e55de9da65344790e2d7e4"],
@@ -293,15 +299,24 @@ mg.nlargest(10, "taxa_padronizada_100k")`}</code>
         </tbody>
       </table>
 
-      <h2>Qualidade do registro</h2>
+      <h2>Observatório de qualidade do registro</h2>
       <p>
-        A transparência exige medir o que é incerto. Cerca de{" "}
-        <strong>5,4% dos óbitos têm causa mal-definida</strong> (capítulo XVIII —
-        sintomas e sinais), e essa proporção <strong>varia entre regiões</strong>{" "}
-        (maior no Norte/Nordeste), o que afeta comparações de mortalidade
-        causa-específica. Não redistribuímos esses códigos entre causas; eles
-        permanecem visíveis. Use as taxas causa-específicas com essa ressalva onde
-        a qualidade de registro é menor.
+        A transparência exige medir o que é incerto. Publicamos um{" "}
+        <strong>índice de confiabilidade do registro de óbitos por município</strong>{" "}
+        (<code>mart_qualidade_registro_municipio</code>), baseado na proporção de{" "}
+        <strong>causas mal-definidas</strong> (capítulo XVIII — sintomas e sinais),
+        indicador clássico de qualidade da informação em mortalidade (padrão RIPSA/OPAS).
+        No agregado nacional a proporção é de <strong>5,2%</strong> (2022–2024), mas o
+        número esconde a desigualdade: <strong>1.096 municípios (1 em cada 5)</strong>{" "}
+        estão na classe <strong>Ruim</strong> (&gt; 10%), onde a causa de morte é pouco
+        confiável — concentrados no Norte e Nordeste.
+      </p>
+      <p>
+        Classificação: <strong>Bom</strong> (&lt; 5%), <strong>Regular</strong> (5–10%),{" "}
+        <strong>Ruim</strong> (&gt; 10%). Não redistribuímos causas mal-definidas entre
+        causas específicas — elas permanecem visíveis. Use as taxas causa-específicas com
+        essa ressalva onde a confiabilidade é menor. O índice serve para{" "}
+        <strong>direcionar busca ativa de óbitos</strong> e para ponderar comparações.
       </p>
 
       <h2>Licença e citação</h2>
