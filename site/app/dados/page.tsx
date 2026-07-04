@@ -14,6 +14,12 @@ export default function Dados() {
         (PostgREST), sem cadastro. A chave abaixo é pública por design e dá
         acesso <em>somente leitura</em>.
       </p>
+      <div className="mt-4 rounded-lg border border-accent-200 bg-accent-50 px-4 py-3 text-sm text-ink-800">
+        <strong>🔌 Consulte por IA (MCP).</strong> Conecte o Claude Desktop/Code e pergunte a saúde do
+        Brasil em linguagem natural — 15 ferramentas, camada de confiabilidade do dado e detector de
+        anomalias, com regras anti-alucinação (todo número vem com fonte). Roda na sua máquina, custo zero.{" "}
+        <a href="https://github.com/pedropaulofernandes88-stack/saude-publica-br/tree/main/mcp_server" target="_blank" rel="noreferrer" className="font-medium text-accent-700 underline">Guia de instalação →</a>
+      </div>
 
       <h2>Acesso rápido</h2>
       <pre>
