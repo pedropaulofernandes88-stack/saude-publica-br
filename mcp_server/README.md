@@ -10,8 +10,9 @@ projeto e devolve os mesmos números citáveis do site — com **regras anti-alu
 
 ---
 
-## Instalação rápida — 1 linha (após publicação no PyPI)
+## Instalação rápida — 1 linha (recomendada)
 
+Publicado no PyPI: [`saudeemdado-mcp`](https://pypi.org/project/saudeemdado-mcp/).
 Requer [uv](https://docs.astral.sh/uv/). No `claude_desktop_config.json`:
 
 ```json
@@ -20,8 +21,6 @@ Requer [uv](https://docs.astral.sh/uv/). No `claude_desktop_config.json`:
 
 O `uvx` baixa e roda o pacote automaticamente — nada a clonar. Alternativa com pip:
 `pip install saudeemdado-mcp` e use `"command": "saudeemdado-mcp"`.
-
-> Enquanto o pacote não estiver no PyPI, use a instalação a partir do código, abaixo.
 
 ---
 
