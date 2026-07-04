@@ -120,8 +120,18 @@ sd.municipios(uf="MG", ano=2023, as_df=True).nlargest(10, "taxa_padronizada_100k
 sd.dengue(uf="SP", ano=2024, as_df=True)
 ```
 
-**Servidor MCP** ([`mcp_server/server.py`](mcp_server/server.py)) — consulte a base por assistentes de IA
-(Claude Desktop/Code) em linguagem natural.
+**Servidor MCP — a saúde do Brasil consultável por IA** ([`mcp_server/server.py`](mcp_server/server.py)).
+Conecte o Claude Desktop/Code e pergunte em linguagem natural. Expõe **15 ferramentas** sobre mortalidade,
+internações, dengue, ICSAP, fluxo de pacientes, visão hospitalar e excesso — mais uma **camada de
+confiabilidade** (avisa quando o registro do município é pouco confiável) e um **detector de anomalias**
+(`detectar_anomalias`) que prioriza sinais para um briefing de gestor. Custo zero: roda no seu cliente e
+consome a API pública — cada usuário traz o próprio Claude. Regras **anti-alucinação** embutidas: todo
+número vem de uma ferramenta, com a fonte citada.
+
+```json
+{ "mcpServers": { "saudeemdado": { "command": "python",
+  "args": ["/caminho/para/saude-publica-br/mcp_server/server.py"] } } }
+```
 
 **Downloads** — marts completos em **Parquet** com **SHA-256** na [página Dados & API](https://saudeemdado.com/dados/).
 
