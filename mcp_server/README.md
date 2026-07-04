@@ -10,22 +10,39 @@ projeto e devolve os mesmos números citáveis do site — com **regras anti-alu
 
 ---
 
-## 1. Baixe os arquivos
+## Instalação rápida — 1 linha (após publicação no PyPI)
 
-O servidor usa o cliente Python do projeto, então o mais simples é clonar o repositório:
+Requer [uv](https://docs.astral.sh/uv/). No `claude_desktop_config.json`:
+
+```json
+{ "mcpServers": { "saudeemdado": { "command": "uvx", "args": ["saudeemdado-mcp"] } } }
+```
+
+O `uvx` baixa e roda o pacote automaticamente — nada a clonar. Alternativa com pip:
+`pip install saudeemdado-mcp` e use `"command": "saudeemdado-mcp"`.
+
+> Enquanto o pacote não estiver no PyPI, use a instalação a partir do código, abaixo.
+
+---
+
+## Instalação a partir do código (funciona já)
+
+### 1. Baixe os arquivos
+
+O servidor usa o cliente Python do projeto, então clone o repositório:
 
 ```bash
 git clone https://github.com/pedropaulofernandes88-stack/saude-publica-br.git
 cd saude-publica-br
 ```
 
-## 2. Instale as dependências
+### 2. Instale as dependências
 
 ```bash
 pip install mcp requests
 ```
 
-## 3. Conecte ao seu cliente
+### 3. Conecte ao seu cliente
 
 ### Opção A — Claude Desktop
 

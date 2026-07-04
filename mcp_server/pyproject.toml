@@ -1,0 +1,30 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "saudeemdado-mcp"
+version = "0.1.0"
+description = "Servidor MCP do Saúde em Dado — a saúde do Brasil (DataSUS + IBGE) consultável por IA"
+readme = "README.md"
+license = { text = "MIT" }
+authors = [{ name = "Pedro Paulo Fernandes", email = "pedropaulofernandes88@gmail.com" }]
+requires-python = ">=3.10"
+dependencies = ["mcp>=1.2", "requests>=2.28", "saudeemdado>=2.0"]
+keywords = ["mcp", "datasus", "sus", "epidemiologia", "dados abertos", "brasil", "ia"]
+classifiers = [
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+
+[project.scripts]
+saudeemdado-mcp = "saudeemdado_mcp:main"
+
+[project.urls]
+Homepage = "https://saudeemdado.com"
+Repository = "https://github.com/pedropaulofernandes88-stack/saude-publica-br"
+
+[tool.hatch.build.targets.wheel]
+packages = ["saudeemdado_mcp"]
