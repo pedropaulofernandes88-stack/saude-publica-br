@@ -129,8 +129,8 @@ Dataset; WHO) — and yield strongly negative excess from 2023 onward (Table 1).
 | 2024 | −9,018 | −174,699 | −134,195 |
 | 2020–2024 | 827,070 | 277,129 | 472,774 |
 
-**Diagnosis.** The discrepancy is not driven by the method but by Brazil's
-**annual population denominator for 2015–2024**:
+**Initial hypothesis — the denominator.** Our first suspect for the discrepancy was
+Brazil's **annual population denominator for 2015–2024**:
 
 1. The **2018 IBGE projection overestimates** population — the 2022 Census revised
    it downward (≈215 million projected vs. 203 million counted). An inflated
@@ -144,6 +144,17 @@ Algebraically, age-standardizing with a time-invariant age structure reduces
 exactly to the "mean × population-ratio" method; the gain from standardization
 depends entirely on the quality of the **annual** age structure, which for Brazil
 in this period is precisely the weak link.
+
+**Convergence test.** To isolate the cause, we reconciled the denominator —
+interpolating the population total per state between the 2010 and 2022 Censuses,
+removing the overcount and the 2022 step (the 2020 population drops from 211.8 to
+~200.9 million) — and recomputed the excess. It rose (2020–2021: **~530,000**) but
+did **not converge** to the trend method (643,000) nor to the independent consensus
+(~680,000), remaining ~18% below. Conclusion: the denominator is *one* factor but not
+the whole story — part of the gap is **methodological** (how each method projects the
+expected under accelerating ageing). The trend method, being denominator-free and
+best-matched to external estimates, was retained. Reproducible in
+`scripts/reconciliacao_denominador.py`.
 
 **Decision.** The **trend method on observed deaths** never touches population and
 is therefore immune to the pre-census overcount and the 2022 discontinuity. For

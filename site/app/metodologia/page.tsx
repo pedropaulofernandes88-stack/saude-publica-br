@@ -126,12 +126,19 @@ export default function Metodologia() {
         <em>padronizada por idade</em>, usando a população por idade/UF/ano da projeção do IBGE
         (revisão 2018). Ela estima o pico pandêmico em ~505 mil — <em>abaixo</em> do nosso valor
         (643 mil) <em>e</em> do consenso de estimativas independentes (~680 mil) — e gera excesso
-        fortemente negativo em 2023–2024. A causa não é o método, e sim o <strong>denominador</strong>:
+        fortemente negativo em 2023–2024. Nossa primeira hipótese foi o <strong>denominador</strong>:
         a projeção 2018 superestima a população (o Censo 2022 a revisou para baixo) e a série pós-Censo
-        introduz uma <strong>descontinuidade em 2022</strong> — ambos inflam o esperado e subestimam o
-        excesso. Por isso <strong>retivemos o método de tendência</strong>, que se apoia apenas nos
-        óbitos observados e é imune a esses problemas de denominador. O script e a base dessa análise
-        de sensibilidade estão no repositório.
+        tem uma <strong>descontinuidade em 2022</strong>.
+      </p>
+      <p>
+        <strong>Teste de convergência.</strong> Para isolar a causa, reconciliamos o denominador —
+        interpolando o total populacional por UF entre os Censos 2010 e 2022 (removendo o overcount e o
+        degrau; a população de 2020 cai de 211,8 para ~200,9 milhões) — e recomputamos o excesso. Ele
+        subiu, mas <strong>não convergiu</strong>: permaneceu em ~530 mil, ainda ~18% abaixo da tendência.
+        Ou seja, o denominador é <em>um</em> fator, mas não o todo — parte do gap é <strong>metodológica</strong>
+        (como cada método projeta o esperado sob envelhecimento acelerado). Por isso <strong>retivemos o
+        método de tendência</strong>, que tem a melhor concordância com as estimativas independentes e não
+        depende do denominador. Scripts e séries de ambas as análises estão no repositório.
       </p>
 
       <h2>7. Validação automática</h2>

@@ -132,8 +132,8 @@ fortemente negativo a partir de 2023 (Tabela 1).
 | 2024 | −9.018 | −174.699 | −134.195 |
 | 2020–2024 | 827.070 | 277.129 | 472.774 |
 
-**Diagnóstico.** A discrepância não decorre do método, mas do **denominador
-populacional anual do Brasil em 2015–2024**:
+**Hipótese inicial — o denominador.** Nossa primeira suspeita para a discrepância
+foi o **denominador populacional anual do Brasil em 2015–2024**:
 
 1. A **projeção IBGE 2018 superestima** a população — o Censo 2022 a revisou para
    baixo (≈ 215 milhões projetados vs. 203 milhões recenseados). Uma população
@@ -147,6 +147,16 @@ Algebricamente, padronizar por idade com uma estrutura etária invariante no tem
 reduz-se exatamente ao método "média × razão populacional"; o ganho da
 padronização depende inteiramente da qualidade da estrutura etária **anual**, que
 para o Brasil neste período é justamente o elo fraco.
+
+**Teste de convergência.** Para isolar a causa, reconciliamos o denominador —
+interpolando o total populacional por UF entre os Censos de 2010 e 2022, removendo o
+overcount e o degrau de 2022 (a população de 2020 cai de 211,8 para ~200,9 milhões) —
+e recomputamos o excesso. Ele subiu (2020–2021: **~530 mil**), mas **não convergiu**
+para a tendência (643 mil) nem para o consenso independente (~680 mil), permanecendo
+~18% abaixo. Conclusão: o denominador é *um* fator, mas não o todo — parte do gap é
+**metodológica** (como cada método projeta o esperado sob envelhecimento acelerado).
+O método de tendência, por não depender de denominador e por sua melhor concordância
+externa, foi retido. Reprodutível em `scripts/reconciliacao_denominador.py`.
 
 **Decisão.** O método de **tendência sobre os óbitos observados** não toca a
 população e é, portanto, imune ao overcount pré-Censo e à descontinuidade de
