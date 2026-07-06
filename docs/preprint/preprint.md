@@ -1,7 +1,9 @@
 # Saúde em Dado: uma plataforma aberta e reprodutível de indicadores epidemiológicos do SUS, com baseline de excesso de mortalidade robusto ao denominador populacional
 
+*Saúde em Dado: an open, reproducible platform of epidemiological indicators from Brazil's Unified Health System, with an excess-mortality baseline robust to population-denominator error*
+
 **Pedro Paulo Fernandes**¹²³
-ORCID: 0009-0008-6248-2486
+ORCID: https://orcid.org/0009-0008-6248-2486
 
 ¹ IAMSPE — Mestrado em Saúde Coletiva
 ² Hospital Sírio-Libanês — Pós-graduação em IA e Ciência de Dados em Saúde
@@ -41,6 +43,35 @@ publicados (DOI de conceito: 10.5281/zenodo.20706845).
 
 **Palavras-chave:** saúde coletiva; DataSUS; mortalidade; excesso de mortalidade;
 padronização por idade; dados abertos; reprodutibilidade; Brasil.
+
+---
+
+## Abstract
+
+**Background.** Brazil's Unified Health System (SUS) publishes some of the largest
+openly available health microdata in the world, yet the gap between raw records and
+interpretable, reproducible indicators remains wide. **Objective.** To describe an
+open, zero-cost platform that turns DataSUS and IBGE microdata into validated
+municipal indicators with a fully reproducible pipeline, and to report a sensitivity
+analysis of the excess-mortality method. **Methods.** We integrate five information
+systems (SIM, SIH, SINAN, SINASC and IBGE census/projections), applying direct age
+standardization (Brazil 2022 census standard), exact confidence intervals (gamma
+method) and excess mortality with a 2015–2019 baseline. **Results.** The platform
+covers mortality (2015–2024), hospital admissions (2022–2024), dengue (2015–2024)
+and births (2021–2023), plus derived indicators (ambulatory-care-sensitive
+conditions [ACSC], inter-municipal patient flow, admissions by tracer condition,
+hospital-level view). For excess mortality we replaced a "mean × population-ratio"
+baseline with a linear trend by calendar month, which captures population ageing. In
+a sensitivity analysis we show that an age-standardized variant underestimates
+pandemic excess (~505,000 vs. 643,000) because of denominator contamination — the
+2018 population projection overestimates population and the post-2022-census series
+introduces a discontinuity. **Conclusion.** The trend method, relying only on
+observed deaths, is immune to these problems and was retained. All aggregated data
+(CC BY 4.0), code (MIT) and checksums are published (concept DOI:
+10.5281/zenodo.20706845).
+
+**Keywords:** collective health; DataSUS; mortality; excess mortality; age
+standardization; open data; reproducibility; Brazil.
 
 ---
 
@@ -173,7 +204,40 @@ repositório (`scripts/sensibilidade_excesso_idade.py`).
   estimativa de gasto evitável da ordem de bilhões de reais (ordem de grandeza).
 - Cobertura: SIM 2015–2024; SIH 2022–2024; SINAN 2015–2024; SINASC 2021–2023.
 
-## 5. Limitações
+## 5. Contribuições e originalidade
+
+Este trabalho oferece três contribuições que o distinguem dos painéis de dados
+abertos em saúde disponíveis no Brasil.
+
+Primeira, de natureza metodológica: demonstramos empiricamente que a padronização
+por idade do excesso de mortalidade no período 2020–2024 subestima o resultado
+(~505 mil vs. 643 mil óbitos), e identificamos a causa — a contaminação do
+denominador populacional, decorrente da superestimação da projeção IBGE 2018 e da
+descontinuidade introduzida pelo Censo 2022. Ao reconciliar o denominador
+(interpolação intercensitária 2010–2022), mostramos que a estimativa converge apenas
+parcialmente (~530 mil), permanecendo ~18% abaixo tanto da tendência quanto do
+consenso independente. Isso indica que parte da divergência é intrinsecamente
+metodológica, e sustenta a escolha de um método de excesso baseado apenas nos óbitos
+observados, imune a erro de denominador. Este achado tem implicações que extrapolam
+a plataforma, aplicando-se a qualquer estimativa de excesso de mortalidade no Brasil
+neste período.
+
+Segunda, de natureza infraestrutural: a plataforma implementa uma cadeia de
+reprodutibilidade auditável de ponta a ponta — pipeline aberto e versionado,
+agregados em formato analítico (Parquet) com checksums SHA-256, API REST pública e
+identificadores persistentes (DOI de conceito e de versão) — operando integralmente
+em custo zero de infraestrutura. Qualquer terceiro pode reproduzir cada indicador e
+verificar sua integridade criptográfica, um padrão de transparência raramente
+atendido pelos painéis oficiais.
+
+Terceira, de natureza de acesso: disponibilizamos um agente de consulta em linguagem
+natural (protocolo MCP) com regras anti-alucinação, no qual todo número retornado
+provém de uma ferramenta determinística com fonte citada, executado localmente pelo
+usuário. Isso estabelece uma ponte entre microdados públicos e modelos de linguagem
+que preserva a rastreabilidade da fonte — requisito ainda pouco atendido na interface
+entre dados abertos de saúde e inteligência artificial.
+
+## 6. Limitações
 
 Cobertura e qualidade de registro do SIM variam regionalmente; ~5% dos óbitos têm
 causa mal-definida e não são redistribuídos. As internações cobrem apenas a rede
@@ -182,7 +246,7 @@ mortalidade hospitalar é bruta (não ajustada por *case-mix*). Indicadores
 municipais são ecológicos. O baseline de excesso assume continuidade da tendência
 pré-pandemia e não modela *harvesting*.
 
-## 6. Disponibilidade de dados e código
+## 7. Disponibilidade de dados e código
 
 - **Plataforma:** https://saudeemdado.com
 - **Código:** https://github.com/pedropaulofernandes88-stack/saude-publica-br (MIT)
@@ -197,6 +261,15 @@ https://doi.org/10.5281/zenodo.21036341
 
 Inspirações metodológicas creditadas ao projeto LabSUS (Lucas Amaral Dourado,
 Universidade Federal do Tocantins).
+
+## Conflito de interesses
+
+O autor declara não haver conflito de interesses.
+
+## Financiamento
+
+A pesquisa não recebeu financiamento específico de agências de fomento dos setores
+público, privado ou sem fins lucrativos.
 
 ## Referências (a completar na submissão)
 
