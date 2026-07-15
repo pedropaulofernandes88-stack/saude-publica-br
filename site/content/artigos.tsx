@@ -586,6 +586,101 @@ export const ARTIGOS: Artigo[] = [
       "Saúde em Dado. Pipelines e validação (código aberto). github.com/pedropaulofernandes88-stack/saude-publica-br.",
     ],
   },
+  {
+    slug: "visao-hospitalar-hsmr-los-forecast",
+    titulo: "Visão hospitalar: o que há de novo no Saúde em Dado, e como a plataforma inteira funciona",
+    dek: "HSMR, permanência esperada e previsão de demanda por estabelecimento (CNES), com três anos de SIH e uma regra simples: nenhum indicador é publicado sem declarar, com o mesmo destaque, o que ele não pode responder.",
+    data: "2026-07-15",
+    leituraMin: 12,
+    tags: ["hospitalar", "HSMR", "SIH", "case-mix", "previsão de demanda", "arquitetura"],
+    resumo:
+      "Descrevemos a plataforma Saúde em Dado — cinco sistemas do DataSUS, pipeline aberto, API pública gratuita — e detalhamos seu módulo mais recente: a Visão Hospitalar. Por estabelecimento (CNES), publicamos mortalidade ajustada por case-mix (HSMR, padronização indireta), tempo de permanência esperado por diagnóstico e uma projeção de demanda mensal. Com três anos de SIH (2022–2024, 14.197 registros hospital-ano), o HSMR agregado calibra em 1,0000 nos três anos — a prova estrutural de que a padronização está correta — e a confiança do forecast salta de 0% para 92,3% de previsões 'adequadas' ao passar de 12 para 36 meses de histórico. Também explicamos, com a mesma ênfase, o que a plataforma deliberadamente não calcula: risco de readmissão por paciente, porque a AIH pública não tem identificador estável de indivíduo.",
+    secoes: [
+      {
+        titulo: "O que é o Saúde em Dado",
+        paragrafos: [
+          "Saúde em Dado é uma plataforma aberta e de custo zero que transforma microdados do DataSUS e do IBGE em indicadores municipais e hospitalares validados, com pipeline integralmente reprodutível. Integra cinco sistemas de informação: SIM (mortalidade, 2015–2024, mais de 13 milhões de óbitos), SIH (internações hospitalares, 2022–2024), SINAN (dengue, 2015–2024), SINASC (nascimentos, 2021–2023) e as bases de população e malha do IBGE.",
+          "A arquitetura é deliberadamente simples: agregação local (DuckDB), publicação apenas de marts já agregados — nunca microdado individual —, API REST automática (PostgREST/Supabase) e um site estático servido por CDN. Nenhuma peça dessa pilha tem custo de manutenção, o que é uma escolha metodológica tanto quanto técnica: projetos de dados abertos costumam morrer quando acaba o financiamento ou o tempo do mantenedor. Detalhes da arquitetura estão em outro artigo desta seção; aqui o foco é o módulo mais novo.",
+        ],
+      },
+      {
+        titulo: "A lacuna: dado por município não é dado por hospital",
+        paragrafos: [
+          "Até aqui, a plataforma descrevia internações por município — volume, permanência média, mortalidade bruta, custo — e uma visão hospitalar (CNES) com esses mesmos agregados brutos. Mortalidade bruta, porém, é enganosa quando se compara hospitais: um terciário de alta complexidade internando casos graves tem mortalidade maior que uma maternidade, sem que isso signifique pior assistência. Faltava um ajuste pelo perfil de caso — o que a literatura de gestão hospitalar chama de case-mix.",
+          "A Visão Hospitalar (saudeemdado.com/hospitalar) fecha essa lacuna com três indicadores por estabelecimento: mortalidade ajustada (HSMR), permanência esperada por diagnóstico (LOS) e uma projeção de demanda mensal — todos derivados do mesmo SIH já publicado, sem coleta adicional.",
+        ],
+      },
+      {
+        titulo: "HSMR: padronização indireta, não opinião",
+        paragrafos: [
+          "HSMR (Hospital Standardized Mortality Ratio) é a razão entre óbitos observados e óbitos esperados de um hospital, dado seu perfil de casos. Calculamos o esperado por padronização indireta: para cada estrato definido por faixa etária (9 faixas, de menor de 1 ano a 80+) e capítulo CID-10 (22 capítulos), obtemos a taxa de mortalidade nacional daquele estrato e a aplicamos ao volume de internações do hospital no mesmo estrato. A soma desses óbitos esperados por estrato é o denominador; HSMR = observado / esperado.",
+          "A interpretação é direta: HSMR acima de 1 indica mortalidade acima do esperado para aquele case-mix; abaixo de 1, o inverso. Não é veredito de qualidade assistencial — é um ponto de partida para investigação, exatamente como o método é usado por sistemas de saúde que o publicam há décadas (Reino Unido, Canadá).",
+          "Por construção, a soma nacional de óbitos observados sobre a soma nacional de óbitos esperados converge a 1,0000 — é a verificação estrutural do método, não uma coincidência. Rodamos essa checagem para os três anos disponíveis antes de publicar cada um, e o resultado é exato:",
+        ],
+        tabela: {
+          titulo: "HSMR agregado nacional, por ano (verificação de calibração)",
+          colunas: ["Ano", "Hospitais (≥12 intern.)", "Óbitos observados", "Óbitos esperados", "HSMR agregado", "Instáveis (esp. < 5)"],
+          linhas: [
+            ["2022", "4.757", "605.517", "605.514,6", "1,0000", "412 (8,7%)"],
+            ["2023", "4.701", "588.626", "588.617,9", "1,0000", "439 (9,3%)"],
+            ["2024", "4.739", "622.222", "622.215,2", "1,0000", "457 (9,6%)"],
+          ],
+          nota: "Fonte: mart_hsmr_hospital. 'Instáveis' são hospitais com óbitos esperados < 5 — sinalizados com ⚠ na tabela pública, nunca ocultados. Elaboração: Saúde em Dado.",
+        },
+      },
+      {
+        titulo: "O limiar de instabilidade: por que 5, não 20",
+        paragrafos: [
+          "Quando o número esperado de óbitos é pequeno, a razão observado/esperado fica hipersensível a um único caso a mais — um hospital com 0,2 óbitos esperados e 1 óbito observado produz HSMR de 5, um número tecnicamente correto e estatisticamente inútil. A regra geral de epidemiologia para razões padronizadas marca essa fronteira em esperado < 5, ponto em que o intervalo de confiança exato de Poisson deixa de ser confiável.",
+          "Estudos específicos de HSMR por vezes usam um corte mais conservador — 20 óbitos esperados — mas nesses estudos o hospital é excluído do relatório. Optamos por não excluir: hospitais pequenos continuam na tabela pública, apenas marcados como instáveis (entre 8,7% e 9,6% do total, conforme o ano). É a mesma lógica já aplicada aos municípios pequenos nas taxas de mortalidade da plataforma — sinalizar a incerteza, não apagar o dado.",
+          "Um exemplo real ilustra o mecanismo: em 2024, um hospital de Castanhal (PA) registrou HSMR de 22,38 com apenas 0,04 óbitos esperados e 1 óbito observado — marcado ⚠ corretamente. No mesmo ano, um hospital do Rio de Janeiro com 132,7 óbitos esperados (base grande, estável) registrou HSMR de 7,45 — um sinal que já merece investigação por não depender de um único caso.",
+        ],
+      },
+      {
+        titulo: "Permanência esperada (LOS): mediana do hospital vs. mediana nacional",
+        paragrafos: [
+          "Para cada diagnóstico (CID-10, 3 caracteres), calculamos a mediana nacional de dias de internação e comparamos à mediana do próprio hospital para o mesmo diagnóstico. Por volume — mais de 248 mil combinações hospital×diagnóstico nos três anos —, não guardamos a duração individual de cada internação: a mediana é aproximada por um histograma de oito faixas de dias (0–1, 2–3, 4–7, 8–14, 15–21, 22–30, 31–60, 61+), tomando o ponto médio da faixa onde a frequência acumulada cruza 50%. É uma aproximação declarada, não a mediana exata.",
+          "O desvio (hospital − nacional) revela padrões clinicamente interpretáveis, não ruído: em 2024, hospitais com maior desvio positivo concentraram-se em condições que legitimamente exigem internação prolongada — epilepsia (G40) e transtornos psiquiátricos (F09, F23, F32) em unidades especializadas, com desvios de +40 a +70 dias sobre a mediana nacional. O indicador não classifica hospitais como 'bons' ou 'ruins'; localiza onde a permanência foge do padrão para investigação qualificada.",
+        ],
+      },
+      {
+        titulo: "Previsão de demanda: por que 36 meses mudam tudo",
+        paragrafos: [
+          "O terceiro indicador projeta a demanda mensal de cada hospital por tendência linear sobre a série observada — o mesmo método já usado no excesso de mortalidade da plataforma (regressão sobre a série histórica, projetada adiante), aqui aplicado por estabelecimento em vez de por UF. A faixa de incerteza é a previsão ± 1,96 desvio-padrão dos resíduos do ajuste — uma faixa indicativa, não um intervalo de predição formal.",
+          "O SIH hospitalar (nível CNES) originalmente só cobria 2024. Um forecast sobre 12 pontos mensais é estatisticamente frágil, e declaramos isso: toda previsão nascia marcada confiança 'baixa'. Estendemos o reprocessamento para 2022 e 2023 — com verificação de calibração do HSMR (tabela acima) confirmando a correção de cada ano antes do envio — e a série de demanda passou de 12 para 36 meses por hospital. O efeito na confiança do forecast foi imediato:",
+        ],
+        tabela: {
+          titulo: "Confiança do forecast de demanda, antes e depois da extensão a 3 anos",
+          colunas: ["Situação", "Meses de histórico", "Previsões 'adequada'", "Previsões 'baixa'"],
+          linhas: [
+            ["Antes (só 2024)", "até 12", "0 (0%)", "13.902 (100%)"],
+            ["Depois (2022–2024)", "até 36", "13.419 (92,3%)", "1.125 (7,7%)"],
+          ],
+          nota: "Limiar: confiança 'adequada' a partir de 24 meses de histórico contínuo. Fonte: mart_forecast_demanda_hospital, 14.544 previsões / 4.848 hospitais. Elaboração: Saúde em Dado.",
+        },
+      },
+      {
+        titulo: "O que esta página deliberadamente não faz",
+        paragrafos: [
+          "Não estimamos risco de readmissão ou reinternação por paciente. A AIH pública não tem identificador estável de indivíduo — o CNS é removido dos microdados por exigência da LGPD —, o que significa que ligar duas internações à mesma pessoa exigiria um dado que simplesmente não é público. Ferramentas que oferecem esse indicador a partir de dado aberto do DataSUS, ou têm acesso a dado institucional privado (prontuário, com identificador de paciente) que o Saúde em Dado nunca terá por desenho, ou estão publicando uma aproximação sem essa base.",
+          "Preferimos declarar a limitação, com o mesmo destaque dado aos resultados, a produzir uma métrica que pareça precisa sem sustentação nos dados abertos. É o mesmo princípio já aplicado ao excesso de mortalidade (ver 'Por que isso importa além do número' em outro artigo desta seção) e à taxa padronizada em municípios pequenos: honestidade metodológica não é um adendo, é a condição para que o número seja citável.",
+        ],
+      },
+      {
+        titulo: "Acesso e reprodutibilidade",
+        paragrafos: [
+          "Os quatro marts descritos aqui (mart_hsmr_hospital, mart_los_hospital, mart_demanda_mensal_hospital, mart_forecast_demanda_hospital) são públicos via API REST sem cadastro, com download em Parquet e checksum SHA-256, sob CC BY 4.0. O código dos pipelines é aberto (MIT) — scripts/pipeline_sih_hospitalar.py e scripts/forecast_demanda_hospitalar.py — e cada número desta análise pode ser regenerado a partir dos arquivos originais do SIH/DataSUS. Um agente MCP publicado no PyPI (saudeemdado-mcp) permite consultar os mesmos indicadores em linguagem natural, com cada resposta citando a fonte.",
+        ],
+      },
+    ],
+    referencias: [
+      "Saúde em Dado. mart_hsmr_hospital, mart_los_hospital, mart_demanda_mensal_hospital, mart_forecast_demanda_hospital. saudeemdado.com/hospitalar.",
+      "Brasil, Ministério da Saúde / DATASUS. SIH — Sistema de Informações Hospitalares (AIH aprovadas), 2022–2024.",
+      "Jarman B. et al. Explaining differences in English hospital death rates using routinely collected data. BMJ, 1999 (método HSMR original).",
+      "Canadian Institute for Health Information. Hospital Standardized Mortality Ratio (HSMR): Methodology Notes.",
+      "Saúde em Dado. Inteligência epidemiológica a custo zero: a arquitetura por trás da plataforma. saudeemdado.com/artigos.",
+    ],
+  },
 ];
 
 export function getArtigo(slug: string): Artigo | undefined {
