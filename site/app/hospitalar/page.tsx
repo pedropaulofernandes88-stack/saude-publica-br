@@ -14,7 +14,10 @@ function normalizar(s: string): string {
 
 export default function Hospitalar() {
   const [uf, setUf] = useState("Brasil");
-  const ufF = useMemo<Record<string, string>>(() => (uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` }), [uf]);
+  const ufF = useMemo<Record<string, string>>(
+    () => (uf === "Brasil" ? {} as Record<string, string> : { uf_sigla: `eq.${uf}` }),
+    [uf],
+  );
 
   // ── HSMR — mortalidade hospitalar ajustada por case-mix ──────────────────
   const [hsmr, setHsmr] = useState<HsmrHospital[] | null>(null);
