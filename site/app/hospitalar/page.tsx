@@ -12,8 +12,11 @@ function normalizar(s: string): string {
   return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
+const ANOS_HOSP = [2024, 2023, 2022] as const;
+
 export default function Hospitalar() {
   const [uf, setUf] = useState("Brasil");
+  const [ano, setAno] = useState<number>(2024);
   const ufF = useMemo<Record<string, string>>(
     () => (uf === "Brasil" ? {} as Record<string, string> : { uf_sigla: `eq.${uf}` }),
     [uf],
@@ -26,9 +29,9 @@ export default function Hospitalar() {
     setHsmr(null);
     rest<HsmrHospital>("mart_hsmr_hospital", {
       select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano,internacoes,obitos_observados,obitos_esperados,hsmr,estavel",
-      ano: "eq.2024", order: `${hsmrOrd}.desc.nullslast`, limit: "60", ...ufF,
+      ano: `eq.${ano}`, order: `${hsmrOrd}.desc.nullslast`, limit: "60", ...ufF,
     }).then(setHsmr).catch(() => setHsmr([]));
-  }, [ufF, hsmrOrd]);
+  }, [ufF, hsmrOrd, ano]);
 
   // Agregados do RECORTE COMPLETO (não da lista top-60 exibida, que é enviesada para
   // os piores hospitais quando ordenada por HSMR) — via agregação no servidor.
@@ -38,15 +41,15 @@ export default function Hospitalar() {
     setHsmrAgg(null); setInstaveisTotal(null);
     rest<{ obitos_observados: number; obitos_esperados: number; n: number }>("mart_hsmr_hospital", {
       select: "obitos_observados:obitos_observados.sum(),obitos_esperados:obitos_esperados.sum(),n:cnes.count()",
-      ano: "eq.2024", ...ufF,
+      ano: `eq.${ano}`, ...ufF,
     }).then((r) => {
       const row = r[0];
       if (row) setHsmrAgg({ obs: row.obitos_observados, esp: row.obitos_esperados, n: row.n });
     }).catch(() => setHsmrAgg(null));
     rest<{ cnes: string }>("mart_hsmr_hospital", {
-      select: "cnes", ano: "eq.2024", estavel: "eq.false", ...ufF,
+      select: "cnes", ano: `eq.${ano}`, estavel: "eq.false", ...ufF,
     }).then((r) => setInstaveisTotal(r.length)).catch(() => setInstaveisTotal(null));
-  }, [ufF]);
+  }, [ufF, ano]);
   const hsmrNacional = hsmrAgg && hsmrAgg.esp ? hsmrAgg.obs / hsmrAgg.esp : null;
 
   // ── LOS esperado — mediana do hospital vs. mediana nacional ──────────────
@@ -55,9 +58,9 @@ export default function Hospitalar() {
     setLos(null);
     rest<LosHospital>("mart_los_hospital", {
       select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano,cid3,capitulo_cid,internacoes,mediana_hospital_dias,mediana_nacional_dias,desvio_dias",
-      ano: "eq.2024", internacoes: "gte.30", order: "desvio_dias.desc.nullslast", limit: "40", ...ufF,
+      ano: `eq.${ano}`, internacoes: "gte.30", order: "desvio_dias.desc.nullslast", limit: "40", ...ufF,
     }).then(setLos).catch(() => setLos([]));
-  }, [ufF]);
+  }, [ufF, ano]);
 
   // ── Forecast de demanda — busca por hospital ──────────────────────────────
   const [hospBusca, setHospBusca] = useState("");
@@ -103,20 +106,32 @@ export default function Hospitalar() {
         <a className="underline" href="/metodologia/">metodologia</a>.
       </div>
 
-      <div className="card mt-6 max-w-xs">
-        <label className="label" htmlFor="h-uf">Abrangência</label>
-        <select id="h-uf" className="select" value={uf} onChange={(e) => setUf(e.target.value)}>
-          <option value="Brasil">Brasil (todas as UFs)</option>
-          {UFS.map((u) => <option key={u} value={u}>{u}</option>)}
-        </select>
+      <div className="card mt-6 grid gap-4 sm:max-w-md sm:grid-cols-2">
+        <div>
+          <label className="label" htmlFor="h-uf">Abrangência</label>
+          <select id="h-uf" className="select" value={uf} onChange={(e) => setUf(e.target.value)}>
+            <option value="Brasil">Brasil (todas as UFs)</option>
+            {UFS.map((u) => <option key={u} value={u}>{u}</option>)}
+          </select>
+        </div>
+        <div>
+          <label className="label" htmlFor="h-ano">Ano (HSMR e permanência)</label>
+          <select id="h-ano" className="select" value={ano} onChange={(e) => setAno(Number(e.target.value))}>
+            {ANOS_HOSP.map((a) => <option key={a} value={a}>{a}{a === 2024 ? " (preliminar)" : ""}</option>)}
+          </select>
+        </div>
       </div>
+      <p className="mt-2 text-xs text-ink-500">
+        A projeção de demanda (mais abaixo) sempre usa o histórico mensal completo disponível,
+        independente do ano selecionado aqui.
+      </p>
 
       {/* HSMR */}
       <div className="card mt-6 overflow-x-auto">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-serif text-xl font-semibold text-ink-900">
-              Mortalidade hospitalar ajustada (HSMR) — {uf === "Brasil" ? "Brasil" : uf}, 2024
+              Mortalidade hospitalar ajustada (HSMR) — {uf === "Brasil" ? "Brasil" : uf}, {ano}
             </h2>
             <p className="mt-1 max-w-2xl text-sm text-ink-500">
               Razão entre óbitos observados e óbitos <strong>esperados</strong>, dado o perfil de idade e
@@ -194,7 +209,7 @@ export default function Hospitalar() {
       {/* LOS esperado */}
       <div className="card mt-6 overflow-x-auto">
         <h2 className="font-serif text-xl font-semibold text-ink-900">
-          Tempo de permanência: hospital vs. esperado — {uf === "Brasil" ? "Brasil" : uf}, 2024
+          Tempo de permanência: hospital vs. esperado — {uf === "Brasil" ? "Brasil" : uf}, {ano}
         </h2>
         <p className="mt-1 max-w-2xl text-sm text-ink-500">
           Mediana de dias de internação do hospital para um diagnóstico (CID-3), comparada à mediana
