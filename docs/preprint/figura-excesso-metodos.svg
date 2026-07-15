@@ -1,0 +1,30 @@
+<svg viewBox="0 0 700 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="ttl desc">
+<title id="ttl">Excesso de mortalidade no Brasil 2020–2021 por método</title>
+<desc id="desc">O método padronizado por idade estima 505.913 óbitos em excesso; o método de tendência estima 643.482. A diferença de cerca de 138 mil óbitos não é contabilizada pelo método padronizado por causa do erro no denominador populacional.</desc>
+
+<text x="40" y="42" fill="#1a1a1a" font-family="Georgia, serif" font-size="22" font-weight="700">Excesso de mortalidade no Brasil (2020–2021)</text>
+<text x="40" y="66" fill="#555555" font-family="Georgia, serif" font-size="15">O mesmo dado, dois métodos — e 138 mil mortes de diferença</text>
+
+<line x1="150" y1="110" x2="530" y2="110" stroke="#D85A30" stroke-width="1.5" stroke-dasharray="5 4" opacity="0.9"/>
+
+<rect x="180" y="174" width="130" height="236" rx="4" fill="#B4B2A9"/>
+<rect x="410" y="110" width="130" height="300" rx="4" fill="#185FA5"/>
+
+<line x1="150" y1="410" x2="560" y2="410" stroke="#888780" stroke-width="1.5"/>
+
+<text x="245" y="164" text-anchor="middle" fill="#555555" font-family="Georgia, serif" font-size="20" font-weight="700">505.913</text>
+<text x="475" y="100" text-anchor="middle" fill="#185FA5" font-family="Georgia, serif" font-size="26" font-weight="700">643.482</text>
+
+<line x1="118" y1="110" x2="118" y2="174" stroke="#D85A30" stroke-width="2"/>
+<path d="M113 116 L118 108 L123 116" fill="none" stroke="#D85A30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<path d="M113 168 L118 176 L123 168" fill="none" stroke="#D85A30" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+<text x="100" y="138" text-anchor="end" fill="#D85A30" font-family="Georgia, serif" font-size="19" font-weight="700">−138 mil</text>
+<text x="100" y="157" text-anchor="end" fill="#555555" font-family="Georgia, serif" font-size="12">não contados</text>
+
+<text x="245" y="436" text-anchor="middle" fill="#1a1a1a" font-family="Georgia, serif" font-size="14" font-weight="700">Padronizado por idade</text>
+<text x="245" y="454" text-anchor="middle" fill="#555555" font-family="Georgia, serif" font-size="12.5">método “sofisticado”</text>
+<text x="475" y="436" text-anchor="middle" fill="#1a1a1a" font-family="Georgia, serif" font-size="14" font-weight="700">Tendência sobre óbitos</text>
+<text x="475" y="454" text-anchor="middle" fill="#555555" font-family="Georgia, serif" font-size="12.5">método retido</text>
+
+<text x="40" y="488" fill="#888780" font-family="Georgia, serif" font-size="11.5">Fonte: Saúde em Dado · SIM/DataSUS · a padronização herda o erro do denominador (projeção 2018 + Censo 2022)</text>
+</svg>
