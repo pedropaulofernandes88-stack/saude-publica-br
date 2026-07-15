@@ -178,6 +178,46 @@ export interface InternacaoHospital {
   custo_medio: number | null;
 }
 
+export interface HsmrHospital {
+  cnes: string;
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  ano: number;
+  internacoes: number;
+  obitos_observados: number;
+  obitos_esperados: number;
+  hsmr: number | null;
+  estavel: boolean;
+}
+
+export interface LosHospital {
+  cnes: string;
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  ano: number;
+  cid3: string;
+  capitulo_cid: string;
+  internacoes: number;
+  mediana_hospital_dias: number | null;
+  mediana_nacional_dias: number | null;
+  desvio_dias: number | null;
+}
+
+export interface ForecastDemandaHospital {
+  cnes: string;
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  ano_mes_previsto: string;
+  internacoes_previstas: number;
+  ic_inferior: number;
+  ic_superior: number;
+  n_meses_historico: number;
+  confianca: "adequada" | "baixa";
+}
+
 export interface Natalidade {
   municipio_cod: string;
   municipio_nome: string | null;

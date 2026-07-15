@@ -210,8 +210,8 @@ export default function Metodologia() {
           <strong>Mortalidade hospitalar é taxa bruta, sem ajuste de risco:</strong> reflete
           fortemente o perfil de casos (<em>case-mix</em>) de cada hospital — um terciário de
           alta complexidade tende a mortalidade maior que uma maternidade. Não comparar
-          hospitais por mortalidade bruta como se fosse qualidade; uma razão de mortalidade
-          padronizada (SMR) está no roadmap.
+          hospitais por mortalidade bruta como se fosse qualidade; a razão ajustada por
+          case-mix (HSMR) está na <strong>§14</strong>.
         </li>
       </ul>
 
@@ -308,7 +308,59 @@ export default function Metodologia() {
         deriva de forma confiável da AIH (exigiria o cadastro de leitos do CNES).
       </p>
 
-      <h2>14. Arquétipos de saúde municipal (k-means)</h2>
+      <h2>14. Mortalidade ajustada (HSMR), permanência esperada e projeção de demanda</h2>
+      <p>
+        Página <a href="/hospitalar/">Visão hospitalar</a>. Três indicadores adicionais por
+        estabelecimento (CNES), a partir do mesmo SIH 2024 já usado nas seções 10–13.
+      </p>
+      <p>
+        <strong>HSMR (Hospital Standardized Mortality Ratio) — padronização indireta.</strong>{" "}
+        Para cada hospital, os <strong>óbitos esperados</strong> são a soma, por estrato
+        (<strong>faixa etária × capítulo CID-10</strong>), do número de internações do hospital
+        naquele estrato multiplicado pela <strong>taxa de mortalidade nacional</strong> do mesmo
+        estrato. <code>HSMR = óbitos observados / óbitos esperados</code>. HSMR acima de 1 indica
+        mortalidade acima do esperado dado o case-mix do hospital; abaixo de 1, o inverso. Faixas
+        etárias: &lt;1, 1–4, 5–14, 15–29, 30–44, 45–59, 60–69, 70–79, 80+ (idade só é considerada
+        quando o campo <code>COD_IDADE</code> indica anos; demais casos entram como &lt;1 ano).
+      </p>
+      <p>
+        <strong>Limiar de estabilidade — óbitos esperados &lt; 5:</strong> hospitais abaixo desse
+        valor são marcados como instáveis (⚠), não ocultados. É a regra geral de epidemiologia
+        para razões padronizadas (SMR/HSMR): com esperado &lt; 5, a razão fica hipersensível a um
+        único óbito a mais e o intervalo de confiança exato de Poisson deixa de ser confiável.
+        Estudos específicos de HSMR por vezes usam corte mais conservador (ex.: 20 óbitos
+        esperados) — mas nesses estudos o hospital é <em>excluído</em> do relatório. Optamos por
+        não excluir: hospitais pequenos continuam no mart, apenas sinalizados como instáveis,
+        coerente com o princípio de não ocultar unidades pequenas do dado público (mesma lógica
+        do IC95% em municípios pequenos, §5).
+      </p>
+      <p>
+        <strong>Permanência esperada (LOS).</strong> Para cada diagnóstico (CID-10, 3 caracteres),
+        calculamos a <strong>mediana nacional</strong> de dias de internação e comparamos à
+        mediana do hospital para o mesmo diagnóstico. Por volume, não guardamos a duração
+        individual de cada internação — a mediana é <em>aproximada</em> por um histograma de
+        faixas de dias (0-1, 2-3, 4-7, 8-14, 15-21, 22-30, 31-60, 61+), tomando o ponto médio da
+        faixa onde a frequência acumulada cruza 50%. Hospitais com menos de 30 internações no
+        diagnóstico não entram (ruído).
+      </p>
+      <p>
+        <strong>Projeção de demanda.</strong> Tendência linear sobre a série mensal de
+        internações de cada hospital — o mesmo método de regressão usado no excesso de
+        mortalidade (§6), aplicado por hospital em vez de por UF. A faixa de incerteza é
+        indicativa (previsão ± 1,96 × desvio-padrão dos resíduos do ajuste), não um intervalo de
+        predição formal. Hospitais com menos de 24 meses de histórico recebem
+        <code> confianca=&quot;baixa&quot;</code>: uma tendência calculada sobre poucos pontos é
+        instável — sinalizada, não ocultada.
+      </p>
+      <p>
+        <strong>O que não fazemos, e por quê:</strong> não estimamos risco de readmissão ou
+        reinternação por paciente. A AIH pública <strong>não tem identificador estável de
+        paciente</strong> (removido por LGPD) — ligar duas internações à mesma pessoa exigiria
+        dado que não é público. Preferimos declarar essa limitação a produzir uma métrica que
+        pareça precisa sem sustentação nos dados abertos.
+      </p>
+
+      <h2>15. Arquétipos de saúde municipal (k-means)</h2>
       <p>
         Agrupamos municípios (população ≥ 20 mil) em cinco perfis por <strong>k-means</strong>
         sobre três dimensões padronizadas por z-score: mortalidade padronizada por idade (2023),
@@ -324,7 +376,7 @@ export default function Metodologia() {
         levantar hipóteses, não para inferir risco individual.
       </p>
 
-      <h2>15. Privacidade</h2>
+      <h2>16. Privacidade</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria), eliminando risco de reidentificação.
