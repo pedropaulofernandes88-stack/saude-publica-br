@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import Link from "next/link";
+import { Nav } from "@/components/nav";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
@@ -65,21 +66,6 @@ const DATASET_JSONLD = {
     "BRASIL. Ministério da Saúde. SIM — Sistema de Informações sobre Mortalidade (microdados, OpenDataSUS). IBGE. Censo 2022 e Estimativas de População (SIDRA).",
 };
 
-const NAV = [
-  { href: "/", label: "Início", curto: "Início" },
-  { href: "/painel/", label: "Mortalidade", curto: "Mortal." },
-  { href: "/dengue/", label: "Dengue", curto: "Dengue" },
-  { href: "/internacoes/", label: "Internações", curto: "Intern." },
-  { href: "/hospitalar/", label: "Hospitalar", curto: "Hospital" },
-  { href: "/nascimentos/", label: "Nascimentos", curto: "Nasc." },
-  { href: "/mapa/", label: "Mapa", curto: "Mapa" },
-  { href: "/tendencias/", label: "Tendências", curto: "Tend." },
-  { href: "/artigos/", label: "Análises", curto: "Análises" },
-  { href: "/dados/", label: "Dados & API", curto: "Dados" },
-  { href: "/metodologia/", label: "Metodologia", curto: "Método" },
-  { href: "/sobre/", label: "Sobre", curto: "Sobre" },
-];
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="pt-BR" className={`${inter.variable} ${serif.variable}`}>
@@ -95,21 +81,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 S
               </span>
               <span className="whitespace-nowrap font-serif text-base font-semibold tracking-tight text-ink-900 sm:text-lg">
-                Saúde Pública <span className="text-accent-700">BR</span>
+                Saúde em <span className="text-accent-700">Dado</span>
               </span>
             </Link>
-            <nav className="flex items-center gap-0 overflow-x-auto sm:gap-2">
-              {NAV.map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`whitespace-nowrap rounded-lg px-2 py-2 text-[13px] font-medium text-ink-600 transition hover:bg-ink-100 hover:text-ink-900 sm:px-3 sm:text-sm ${item.href === "/" ? "hidden sm:inline-flex" : ""}`}
-                >
-                  <span className="sm:hidden">{item.curto}</span>
-                  <span className="hidden sm:inline">{item.label}</span>
-                </Link>
-              ))}
-            </nav>
+            <Nav />
           </div>
         </header>
 
@@ -118,7 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="mt-16 border-t border-ink-200 bg-white">
           <div className="mx-auto grid max-w-7xl gap-8 px-4 py-10 sm:grid-cols-3 sm:px-6">
             <div>
-              <p className="font-serif text-base font-semibold text-ink-900">Saúde Pública BR</p>
+              <p className="font-serif text-base font-semibold text-ink-900">Saúde em Dado</p>
               <p className="mt-2 text-sm leading-relaxed text-ink-600">
                 Plataforma aberta e sem fins lucrativos que transforma microdados
                 públicos do SUS em indicadores acessíveis para pesquisa.
