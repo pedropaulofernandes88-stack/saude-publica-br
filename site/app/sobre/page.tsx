@@ -69,6 +69,55 @@ export default function Sobre() {
         metodológicas são bem-vindas via issues.
       </p>
 
+      <h2>Pesquisa &amp; achados</h2>
+      <p>
+        Além de agregar dado, este projeto produziu dois achados metodológicos próprios:
+      </p>
+      <ul>
+        <li>
+          <strong>O denominador do excesso de mortalidade.</strong> Padronizar por idade o
+          excesso de mortalidade da pandemia no Brasil <strong>subestima</strong> o resultado
+          (~505 mil vs. 643 mil óbitos) por contaminação do denominador populacional — a
+          projeção IBGE 2018 superestima a população, e o Censo 2022 introduz uma
+          descontinuidade. Reconciliar o denominador não resolve o gap sozinho: parte é
+          metodológica. Publicado como preprint na SciELO Preprints. Ver{" "}
+          <a href="/artigos/643-mil-nao-702-mil-baseline-excesso-mortalidade/" className="font-medium text-accent-700 hover:underline">artigo</a>.
+        </li>
+        <li>
+          <strong>HSMR calibrado.</strong> A mortalidade hospitalar ajustada por case-mix
+          (padronização indireta por faixa etária × capítulo CID-10) converge, por
+          construção, a 1,0000 nos três anos publicados (2022–2024) — a verificação
+          estrutural de que o método está correto. Ver{" "}
+          <a href="/artigos/visao-hospitalar-hsmr-los-forecast/" className="font-medium text-accent-700 hover:underline">artigo</a>{" "}
+          e <a href="/hospitalar/" className="font-medium text-accent-700 hover:underline">página</a>.
+        </li>
+      </ul>
+
+      <h2>Ferramentas &amp; código aberto</h2>
+      <p>
+        Além do site, o projeto publica dois artefatos reutilizáveis por terceiros:
+      </p>
+      <ul>
+        <li>
+          <strong>Agente MCP</strong> (<code>saudeemdado-mcp</code>, publicado no PyPI) —
+          permite consultar os mesmos indicadores em linguagem natural via Claude, com
+          regras anti-alucinação: todo número retornado cita a ferramenta e a fonte que o gerou.
+        </li>
+        <li>
+          <strong>API REST pública</strong> (PostgREST/Supabase), sem cadastro, e{" "}
+          <strong>downloads em Parquet</strong> com checksum SHA-256 — ver{" "}
+          <a href="/dados/" className="font-medium text-accent-700 hover:underline">Dados &amp; API</a>.
+        </li>
+      </ul>
+
+      <h2>Artigos &amp; publicações</h2>
+      <p>
+        A seção <a href="/artigos/" className="font-medium text-accent-700 hover:underline">Análises</a>{" "}
+        reúne as investigações completas por trás dos indicadores — metodologia, tabelas e
+        limitações declaradas, não só o número. O achado do denominador também está em
+        preprint na SciELO Preprints, com submissão em periódico revisado por pares em andamento.
+      </p>
+
       <h2>Política de atualização</h2>
       <ul>
         <li>Novos anos são incorporados quando o Ministério da Saúde publica os microdados;</li>
