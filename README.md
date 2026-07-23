@@ -120,18 +120,23 @@ sd.municipios(uf="MG", ano=2023, as_df=True).nlargest(10, "taxa_padronizada_100k
 sd.dengue(uf="SP", ano=2024, as_df=True)
 ```
 
-**Servidor MCP — a saúde do Brasil consultável por IA** ([`mcp_server/server.py`](mcp_server/server.py)).
-Conecte o Claude Desktop/Code e pergunte em linguagem natural. Expõe **15 ferramentas** sobre mortalidade,
-internações, dengue, ICSAP, fluxo de pacientes, visão hospitalar e excesso — mais uma **camada de
-confiabilidade** (avisa quando o registro do município é pouco confiável) e um **detector de anomalias**
-(`detectar_anomalias`) que prioriza sinais para um briefing de gestor. Custo zero: roda no seu cliente e
-consome a API pública — cada usuário traz o próprio Claude. Regras **anti-alucinação** embutidas: todo
-número vem de uma ferramenta, com a fonte citada.
+**Servidor MCP — a saúde do Brasil consultável por IA** ([`mcp_server/`](mcp_server/)).
+Conecte o Claude Desktop/Code e pergunte em linguagem natural. Expõe **18 ferramentas**: consulta
+(mortalidade, internações, dengue, ICSAP, fluxo de pacientes, visão hospitalar, excesso) e **análise**
+(`comparar_com_pares` — município vs. arquétipo k-means com percentis; `canal_endemico_dengue` —
+diagrama de controle por UF; `boletim_semanal` — a edição vigente do boletim automático) — mais a
+**camada de confiabilidade** (avisa quando o registro do município é pouco confiável) e o
+**detector de anomalias** para briefing de gestor. Custo zero: roda no seu cliente e consome a API
+pública — cada usuário traz o próprio Claude. Regras **anti-alucinação** embutidas: todo número vem
+de uma ferramenta, com a fonte citada.
 
 ```json
-{ "mcpServers": { "saudeemdado": { "command": "python",
-  "args": ["/caminho/para/saude-publica-br/mcp_server/server.py"] } } }
+{ "mcpServers": { "saudeemdado": { "command": "uvx", "args": ["saudeemdado-mcp"] } } }
 ```
+
+Publicado no [PyPI](https://pypi.org/project/saudeemdado-mcp/) e no
+[registry oficial MCP](https://registry.modelcontextprotocol.io) como
+`io.github.pedropaulofernandes88-stack/saudeemdado`. Instalação e receitas: [`mcp_server/README.md`](mcp_server/README.md).
 
 **Downloads** — marts completos em **Parquet** com **SHA-256** na [página Dados & API](https://saudeemdado.com/dados/).
 

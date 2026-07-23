@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
+  "name": "io.github.pedropaulofernandes88-stack/saudeemdado",
+  "description": "Saúde do Brasil (DataSUS + IBGE) consultável por IA: mortalidade, dengue, internações SUS, excesso de mortalidade, canal endêmico e comparação entre municípios — 18 ferramentas com números citáveis e regras anti-alucinação.",
+  "repository": {
+    "url": "https://github.com/pedropaulofernandes88-stack/saude-publica-br",
+    "source": "github"
+  },
+  "websiteUrl": "https://saudeemdado.com",
+  "version": "0.2.0",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "saudeemdado-mcp",
+      "version": "0.2.0",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}

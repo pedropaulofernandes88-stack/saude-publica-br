@@ -23,9 +23,10 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "clients" / "python"))
     import saudeemdado as sd
 
+import requests
 from mcp.server.fastmcp import FastMCP
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 mcp = FastMCP(
     "saudeemdado",
@@ -224,6 +225,131 @@ def detectar_anomalias(municipio_cod: str) -> dict:
     return {"municipio": nome, "codigo": municipio_cod,
             "n_sinais": len(achados), "sinais": achados or [{"sinal": "nenhum",
             "detalhe": "sem anomalias nos limiares avaliados"}]}
+
+
+# ── Análise: comparação com pares ────────────────────────────────────────────
+@mcp.tool()
+def comparar_com_pares(municipio_cod: str) -> dict:
+    """ANÁLISE: compara um município (6 dígitos) com seus PARES — municípios do mesmo
+    arquétipo de saúde (k-means: mortalidade × vulnerabilidade × internações, 2023).
+    Retorna, para cada métrica, o valor do município, a mediana dos pares e o percentil
+    do município no grupo (0–100; alto = pior em mortalidade/vulnerabilidade).
+    Comparação legítima: pares têm perfil estrutural semelhante, não só a mesma UF.
+    Cobre ~1.700 municípios maiores; nos demais, retorna aviso."""
+    alvo = sd._get("dim_cluster_municipio",
+                   {"select": "municipio_cod,municipio_nome,uf_sigla,regiao,cluster,perfil,"
+                              "taxa_padronizada_100k,ivs_score,internacoes_100k",
+                    "municipio_cod": f"eq.{municipio_cod}"})
+    if not alvo:
+        return {"erro": "município fora da base de arquétipos (cobre ~1.700 municípios "
+                        "maiores). Use municipios_indicadores para os indicadores diretos."}
+    m = alvo[0]
+    pares = sd._get("dim_cluster_municipio",
+                    {"select": "municipio_cod,municipio_nome,uf_sigla,"
+                               "taxa_padronizada_100k,ivs_score,internacoes_100k",
+                     "cluster": f"eq.{m['cluster']}"})
+
+    def _stats(campo: str) -> dict:
+        vals = sorted(p[campo] for p in pares if p[campo] is not None)
+        v = m[campo]
+        if v is None or not vals:
+            return {"valor": v, "mediana_pares": None, "percentil": None}
+        mediana = vals[len(vals) // 2]
+        pct = round(100 * sum(1 for x in vals if x <= v) / len(vals))
+        return {"valor": v, "mediana_pares": mediana, "percentil": pct}
+
+    proximos = sorted(
+        (p for p in pares if p["municipio_cod"] != municipio_cod
+         and p["taxa_padronizada_100k"] is not None and m["taxa_padronizada_100k"] is not None),
+        key=lambda p: abs(p["taxa_padronizada_100k"] - m["taxa_padronizada_100k"]),
+    )[:5]
+    return {
+        "municipio": m["municipio_nome"], "uf": m["uf_sigla"], "codigo": municipio_cod,
+        "arquetipo": m["perfil"], "n_pares": len(pares),
+        "metricas": {
+            "taxa_padronizada_100k": _stats("taxa_padronizada_100k"),
+            "ivs_score": _stats("ivs_score"),
+            "internacoes_100k": _stats("internacoes_100k"),
+        },
+        "pares_mais_proximos": [
+            {"municipio": p["municipio_nome"], "uf": p["uf_sigla"],
+             "taxa_padronizada_100k": p["taxa_padronizada_100k"]} for p in proximos
+        ],
+        "fonte": "SIM/SIH/DataSUS + IBGE Censo 2022; clusters k-means 2023 (dim_cluster_municipio)",
+    }
+
+
+# ── Análise: canal endêmico ──────────────────────────────────────────────────
+@mcp.tool()
+def canal_endemico_dengue(uf: str, ano: int = 2024) -> dict:
+    """ANÁLISE: canal endêmico de dengue de uma UF (diagrama de controle). Compara os
+    casos semanais do ano observado com a faixa esperada (quartis P25–P75 das mesmas
+    semanas nos anos anteriores, 2015+, excluindo o ano observado). Retorna a banda
+    semana a semana, quantas semanas ficaram acima do P75 (sinal de surto) e o status.
+    Semanas acima ≥13 (um trimestre) = surto prolongado."""
+    linhas = sd._get("mart_dengue_semana",
+                     {"select": "ano_epi,semana_epi,casos:casos_provaveis.sum()",
+                      "uf_sigla": f"eq.{uf.upper()}", "semana_epi": "gte.1",
+                      "order": "ano_epi,semana_epi"})
+    if not linhas:
+        return {"erro": f"sem dados de dengue para a UF {uf.upper()}"}
+    por_semana: dict[int, dict[int, int]] = {}
+    for r in linhas:
+        w = r["semana_epi"]
+        if 1 <= w <= 52:
+            por_semana.setdefault(w, {})[r["ano_epi"]] = r["casos"]
+    anos_base = sorted({r["ano_epi"] for r in linhas if r["ano_epi"] != ano})
+
+    def _q(vals: list[int], p: float) -> int:
+        if not vals:
+            return 0
+        s = sorted(vals)
+        i = (len(s) - 1) * p
+        lo, hi = int(i), min(int(i) + 1, len(s) - 1)
+        return round(s[lo] + (s[hi] - s[lo]) * (i - lo))
+
+    canal, acima = [], 0
+    for w in range(1, 53):
+        base = [v for a, v in por_semana.get(w, {}).items() if a != ano]
+        obs = por_semana.get(w, {}).get(ano, 0)
+        p75 = _q(base, 0.75)
+        if obs > p75:
+            acima += 1
+        canal.append({"semana": w, "p25": _q(base, 0.25), "mediana": _q(base, 0.5),
+                      "p75": p75, "observado": obs})
+    status = ("surto prolongado (≥1 trimestre acima da faixa)" if acima >= 13
+              else "acima da faixa em algumas semanas" if acima > 0
+              else "dentro da faixa esperada")
+    return {"uf": uf.upper(), "ano_observado": ano,
+            "baseline": f"{anos_base[0]}–{anos_base[-1]} (exclui o ano observado)",
+            "semanas_acima_p75": acima, "status": status, "canal": canal,
+            "fonte": "SINAN/DataSUS (casos prováveis por semana de primeiros sintomas)"}
+
+
+# ── Boletim epidemiológico semanal ───────────────────────────────────────────
+@mcp.tool()
+def boletim_semanal(edicao: str = "") -> dict:
+    """Boletim epidemiológico semanal do Saúde em Dado — o mesmo publicado em
+    saudeemdado.com/boletim-semanal/. Sem argumento retorna a edição mais recente;
+    edicao no formato '2026-se29' retorna uma edição específica. Traz destaques,
+    canal endêmico Brasil, excesso de mortalidade e KPIs de internações, já com o
+    corte de completude do SIM aplicado (meses preliminares excluídos)."""
+    base = "https://saudeemdado.com/sdata/boletins"
+    idx = requests.get(f"{base}/index.json", timeout=30)
+    idx.raise_for_status()
+    edicoes = idx.json()
+    alvo = edicao or (edicoes[0]["edicao"] if edicoes else "")
+    if not alvo:
+        return {"erro": "nenhuma edição publicada ainda"}
+    r = requests.get(f"{base}/{alvo}.json", timeout=30)
+    if r.status_code == 404:
+        return {"erro": f"edição '{alvo}' não encontrada",
+                "disponiveis": [e["edicao"] for e in edicoes]}
+    r.raise_for_status()
+    b = r.json()
+    b["permalink"] = f"https://saudeemdado.com/boletim-semanal/?e={alvo}"
+    b["edicoes_disponiveis"] = [e["edicao"] for e in edicoes]
+    return b
 
 
 @mcp.tool()

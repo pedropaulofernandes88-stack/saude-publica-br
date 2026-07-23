@@ -1,0 +1,59 @@
+# Publica o servidor MCP: PyPI (saudeemdado-mcp) e registry oficial MCP.
+#
+# Disparo: tag "mcp-v*" (ex.: mcp-v0.2.0) ou manual (workflow_dispatch).
+#
+# Autenticação sem segredos, via OIDC do GitHub Actions:
+#   - PyPI: trusted publishing — requer configuração única em
+#     pypi.org/manage/project/saudeemdado-mcp/settings/publishing/
+#     (owner: pedropaulofernandes88-stack, repo: saude-publica-br,
+#      workflow: publish-mcp.yml)
+#   - Registry MCP: mcp-publisher login github-oidc valida o namespace
+#     io.github.pedropaulofernandes88-stack automaticamente.
+#
+# Ordem importa: o registry valida a posse do pacote PyPI procurando o marcador
+# "mcp-name:" no README publicado — por isso o job registry depende do pypi.
+name: Publicar MCP (PyPI + registry)
+
+on:
+  push:
+    tags: ["mcp-v*"]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  pypi:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Build do pacote
+        working-directory: mcp_server
+        run: |
+          rm -rf dist
+          python -m pip install --quiet build
+          python -m build
+      - name: Publicar no PyPI (trusted publishing)
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          packages-dir: mcp_server/dist
+
+  registry:
+    needs: pypi
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Aguardar propagação no PyPI
+        run: sleep 60
+      - name: Instalar mcp-publisher
+        run: |
+          curl -fsSL "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_linux_amd64.tar.gz" | tar xz mcp-publisher
+      - name: Publicar no registry MCP
+        working-directory: mcp_server
+        run: |
+          ../mcp-publisher login github-oidc
+          ../mcp-publisher publish

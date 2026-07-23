@@ -88,7 +88,9 @@ O Claude vai chamar as ferramentas e responder com os números e a fonte.
 
 ---
 
-## Ferramentas disponíveis (15)
+## Ferramentas disponíveis (18)
+
+### Consulta
 
 | Ferramenta | O que faz |
 |---|---|
@@ -104,8 +106,35 @@ O Claude vai chamar as ferramentas e responder com os números e a fonte.
 | `hospitais` | visão por estabelecimento (CNES) |
 | `fluxo_pacientes` | para onde os moradores viajam para se internar |
 | `dengue_municipios` / `dengue_semanal` | dengue (SINAN) anual e por semana epidemiológica |
-| **`detectar_anomalias`** | **copiloto:** resumo priorizado de sinais de um município |
 | `metadados_dataset` | fontes, métodos, licença, DOI e versão |
+
+### Análise
+
+| Ferramenta | O que faz |
+|---|---|
+| **`comparar_com_pares`** | compara um município com o seu **arquétipo de saúde** (k-means: mortalidade × vulnerabilidade × internações) — valor, mediana dos pares e **percentil no grupo** |
+| **`canal_endemico_dengue`** | **diagrama de controle** de uma UF: banda P25–P75 histórica vs. observado, semanas acima do P75 e status de surto |
+| **`boletim_semanal`** | a edição vigente (ou qualquer edição) do [boletim epidemiológico semanal](https://saudeemdado.com/boletim-semanal/) gerado automaticamente pelo pipeline |
+| **`detectar_anomalias`** | **copiloto:** resumo priorizado de sinais de um município |
+
+## Receitas — pergunte assim
+
+O valor do servidor aparece quando as ferramentas se **combinam**. Exemplos que
+funcionam bem como prompt único:
+
+- *"Compare Sobral (CE) com municípios semelhantes. Em que ele está pior que os pares?"*
+  → `comparar_com_pares` + `detectar_anomalias`
+- *"O surto de dengue no Paraná em 2024 fugiu do padrão histórico? Em quantas semanas?"*
+  → `canal_endemico_dengue`
+- *"Resuma o boletim epidemiológico desta semana e aprofunde no estado com maior excesso."*
+  → `boletim_semanal` + `excesso_mortalidade`
+- *"As mortes por causas mal-definidas em Roraima permitem confiar no ranking de causas?"*
+  → `qualidade_registro` + `principais_causas`
+- *"Monte um briefing de saúde de Penápolis (SP): anomalias, pares, para onde os pacientes viajam."*
+  → `detectar_anomalias` + `comparar_com_pares` + `fluxo_pacientes`
+
+Cada resposta vem com número, fonte e ano — e o modelo é instruído a **não estimar
+nada de cabeça** e a sinalizar quando o registro do município é pouco confiável.
 
 ## Solução de problemas
 
@@ -118,8 +147,16 @@ O Claude vai chamar as ferramentas e responder com os números e a fonte.
   (ele importa o cliente de `clients/python/`). Não mova o `server.py` para fora da
   pasta do projeto.
 
+## Registry oficial MCP
+
+O servidor está listado no [registry oficial do Model Context Protocol](https://registry.modelcontextprotocol.io)
+como `io.github.pedropaulofernandes88-stack/saudeemdado` — clientes que integram o
+registry (Claude, VS Code etc.) podem descobri-lo e instalá-lo diretamente por esse nome.
+
 ## Licença e citação
 
 Dados originais em domínio público (DataSUS/MS; IBGE). Agregados sob **CC BY 4.0**;
 código sob **MIT**. DOI: [10.5281/zenodo.20706845](https://doi.org/10.5281/zenodo.20706845).
 Site e metodologia: https://saudeemdado.com.
+
+mcp-name: io.github.pedropaulofernandes88-stack/saudeemdado
