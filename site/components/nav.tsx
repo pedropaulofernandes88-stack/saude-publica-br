@@ -25,7 +25,13 @@ const NAV: Entry[] = [
       { href: "/nascimentos/", label: "Nascimentos", curto: "Nasc." },
     ],
   },
-  { href: "/artigos/", label: "Análises", curto: "Análises" },
+  {
+    label: "Análises", curto: "Análises",
+    group: [
+      { href: "/artigos/", label: "Artigos", curto: "Artigos" },
+      { href: "/boletim-semanal/", label: "Boletim semanal", curto: "Boletim" },
+    ],
+  },
   {
     label: "Dados", curto: "Dados",
     group: [

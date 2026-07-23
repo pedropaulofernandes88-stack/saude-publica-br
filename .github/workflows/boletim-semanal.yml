@@ -1,0 +1,55 @@
+# Gera a edição semanal do Boletim Epidemiológico e publica no site.
+# Roda toda segunda-feira às 12:00 UTC (09:00 BRT), após as ingestões semanais
+# (04:00 BRT). O gerador consulta os marts públicos, grava a edição em
+# site/public/sdata/boletins/ e o commit dispara o redeploy do site.
+#
+# Nota: push feito com GITHUB_TOKEN não dispara workflows on:push — por isso
+# o deploy do site é disparado explicitamente via workflow_dispatch.
+name: Boletim epidemiológico semanal
+
+on:
+  schedule:
+    - cron: "0 12 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: boletim-semanal
+  cancel-in-progress: false
+
+jobs:
+  gerar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Gerar edição da semana
+        run: node site/scripts/build-boletim.mjs
+
+      - name: Commit e push (se houver edição nova)
+        id: commit
+        run: |
+          git config user.name "boletim-bot"
+          git config user.email "actions@github.com"
+          git add site/public/sdata/boletins/
+          if git diff --cached --quiet; then
+            echo "Nenhuma mudança — edição já publicada."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            EDICAO=$(node -e "const i=require('./site/public/sdata/boletins/index.json');console.log(i[0].edicao)")
+            git commit -m "boletim: edição ${EDICAO} (automático)"
+            git push
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Disparar deploy do site
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy-site.yml --ref main --repo "$GITHUB_REPOSITORY"
