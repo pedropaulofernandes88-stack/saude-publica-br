@@ -272,7 +272,21 @@ const boletim = {
   internacoes,
 };
 
-await writeFile(path.join(OUT, `${edicao}.json`), JSON.stringify(boletim));
+// Idempotência: se a edição já existe com o mesmo conteúdo (ignorando o
+// timestamp de geração), mantém o arquivo — sem commit novo no workflow.
+const outFile = path.join(OUT, `${edicao}.json`);
+const semTimestamp = (b) => JSON.stringify({ ...b, gerado_em: undefined });
+try {
+  const existente = JSON.parse(await readFile(outFile, "utf8"));
+  if (semTimestamp(existente) === semTimestamp(boletim)) {
+    console.log(`[boletim] ${edicao} já publicada com o mesmo conteúdo — nada a fazer.`);
+    process.exit(0);
+  }
+} catch {
+  /* edição nova */
+}
+
+await writeFile(outFile, JSON.stringify(boletim));
 
 let index = [];
 try {
