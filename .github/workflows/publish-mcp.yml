@@ -41,6 +41,7 @@ jobs:
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: mcp_server/dist
+          skip-existing: true
 
   registry:
     needs: pypi
