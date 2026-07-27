@@ -15,6 +15,7 @@ on:
 permissions:
   contents: write
   actions: write
+  issues: write   # guard-rail: abre/comenta issue quando o boletim sai degradado
 
 concurrency:
   group: boletim-semanal
@@ -29,8 +30,19 @@ jobs:
         with:
           node-version: 20
 
+      # Sai com 2 quando a edição foi produzida mas está degradada (fonte fora
+      # do ar, modelo congelado, mart vazia). Publicamos assim mesmo — a página
+      # mostra a degradação — e derrubamos o job no fim, para notificar.
       - name: Gerar edição da semana
-        run: node site/scripts/build-boletim.mjs
+        id: gerar
+        continue-on-error: true
+        run: |
+          set +e
+          node site/scripts/build-boletim.mjs 2>&1 | tee /tmp/boletim.log
+          CODIGO=${PIPESTATUS[0]}
+          echo "codigo=${CODIGO}" >> "$GITHUB_OUTPUT"
+          # Só o código 2 é degradação recuperável; qualquer outro erro é fatal.
+          if [ "$CODIGO" -ne 0 ] && [ "$CODIGO" -ne 2 ]; then exit "$CODIGO"; fi
 
       - name: Apurar o que mudou desde a edição anterior
         run: node site/scripts/build-alertas.mjs
@@ -78,3 +90,41 @@ jobs:
             --data-binary "@${ARQ}")
           echo "Resposta do envio: ${RESP}"
           echo "$RESP" | grep -q '"ok":true' || { echo "Falha no envio"; exit 1; }
+
+      # ── Guard-rail ──────────────────────────────────────────────────────
+      # Degradação silenciosa é o modo de falha que mata um projeto automatizado:
+      # a fonte muda, o boletim continua saindo "plausível" e ninguém percebe por
+      # semanas. Aqui ela vira issue aberta e job vermelho.
+      - name: Abrir issue se o boletim saiu degradado
+        if: steps.gerar.outputs.codigo == '2'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EDICAO=$(node -e "const i=require('./site/public/sdata/boletins/index.json');console.log(i[0].edicao)")
+          TITULO="Boletim degradado na edição ${EDICAO}"
+          FALHAS=$(node -e "
+            const b=require('./site/public/sdata/boletins/${EDICAO}.json');
+            const c=(b.verificacoes||[]).filter(v=>!v.ok);
+            console.log(c.map(v=>'- '+(v.critico?'**CRÍTICA** ':'')+'\`'+v.nome+'\`: '+v.detalhe).join('\n'));
+          ")
+          CORPO=$(printf '%s\n\n%s\n\n%s\n' \
+            "A edição \`${EDICAO}\` foi publicada, mas com verificações falhando:" \
+            "${FALHAS}" \
+            "Execução: ${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")
+          # Reaproveita a issue aberta, se houver, em vez de abrir uma por semana.
+          EXISTENTE=$(gh issue list --repo "$GITHUB_REPOSITORY" --state open \
+            --label boletim-degradado --limit 1 --json number -q '.[0].number')
+          if [ -n "$EXISTENTE" ]; then
+            gh issue comment "$EXISTENTE" --repo "$GITHUB_REPOSITORY" --body "$CORPO"
+          else
+            gh label create boletim-degradado --repo "$GITHUB_REPOSITORY" \
+              --color B60205 --description "Boletim publicado com verificações falhando" 2>/dev/null || true
+            gh issue create --repo "$GITHUB_REPOSITORY" --title "$TITULO" \
+              --label boletim-degradado --body "$CORPO"
+          fi
+
+      - name: Falhar o job para notificar a degradação
+        if: steps.gerar.outputs.codigo == '2'
+        run: |
+          echo "::error::Boletim publicado em estado degradado — ver issue com rótulo boletim-degradado."
+          exit 1

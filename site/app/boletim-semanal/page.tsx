@@ -78,6 +78,8 @@ interface Vigilancia {
   dengue: ResumoDoenca;
   chikungunya: ResumoDoenca;
   capitais_dengue: MunicipioVigilancia[];
+  /** Semanas entre a edição e o dado mais recente da fonte. Normal: 1–2. */
+  atraso_semanas?: number | null;
 }
 
 interface Boletim {
@@ -89,6 +91,7 @@ interface Boletim {
   nota_preliminar: string | null;
   destaques: string[];
   vigilancia_atual: Vigilancia | null;
+  verificacoes?: { nome: string; ok: boolean; critico: boolean; detalhe: string }[];
   dengue: {
     ano_ref: number;
     baseline: string;
@@ -291,6 +294,37 @@ function BoletimInner() {
           ))}
         </ul>
       </div>
+
+      {/* Degradação nunca é omitida em silêncio: se a vigilância faltou ou veio
+          defasada, o leitor precisa saber antes de confiar no que está lendo. */}
+      {!vig && (
+        <div className="card mt-6 border-amber-300 bg-amber-50">
+          <h2 className="font-serif text-lg font-semibold text-amber-900">
+            ⚠ Vigilância indisponível nesta edição
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-amber-900">
+            Não foi possível obter os dados de vigilância corrente do InfoDengue quando esta
+            edição foi gerada. As seções históricas abaixo (DataSUS consolidado) seguem
+            íntegras — <strong>mas esta edição não informa a situação da semana atual</strong>.
+            Consulte diretamente o{" "}
+            <a href="https://info.dengue.mat.br" target="_blank" rel="noreferrer"
+               className="font-medium underline">InfoDengue</a>.
+          </p>
+        </div>
+      )}
+      {vig && vig.atraso_semanas != null && vig.atraso_semanas > 3 && (
+        <div className="card mt-6 border-amber-300 bg-amber-50">
+          <h2 className="font-serif text-lg font-semibold text-amber-900">
+            ⚠ Vigilância defasada
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-amber-900">
+            Os dados de vigilância mais recentes são da SE {vig.semana_epi}/{vig.ano_epi} —{" "}
+            <strong>{vig.atraso_semanas} semanas atrás</strong> desta edição. O atraso normal é
+            de 1 a 2 semanas, então a fonte externa pode estar desatualizada. Trate a seção
+            abaixo como retrato antigo, não como situação de hoje.
+          </p>
+        </div>
+      )}
 
       {/* ── Vigilância atual (InfoDengue) ── */}
       {vig && (

@@ -111,9 +111,25 @@ function diff(doenca) {
 const dengue = diff("dengue");
 const chikungunya = diff("chikungunya");
 
+// Edição sem vigilância é um estado LEGÍTIMO (fonte externa fora do ar), não um
+// erro deste script. Sair com código != 0 aqui derrubaria o workflow antes de
+// publicar a edição degradada e antes de abrir a issue do guard-rail — ou seja,
+// a falha ficaria invisível justamente quando mais importa notificá-la.
 if (!dengue) {
-  console.error("[alertas] edição atual não tem vigilância — nada a alertar");
-  process.exit(1);
+  console.warn("[alertas] edição sem vigilância — nada a alertar nesta semana.");
+  await writeFile(path.join(DIR, `alertas-${edAtual}.json`), JSON.stringify({
+    edicao: edAtual,
+    edicao_anterior: edAnterior,
+    gerado_em: new Date().toISOString(),
+    linha_de_base: false,
+    deve_enviar: false,
+    motivo: "edição sem dados de vigilância",
+    total_novos: 0,
+    total_agravados: 0,
+    ufs_afetadas: [],
+    por_uf: [],
+  }));
+  process.exit(0);
 }
 
 // ── Agrupamento por UF: é assim que o envio é segmentado ───────────────────

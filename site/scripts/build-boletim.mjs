@@ -74,6 +74,20 @@ const fmtInt = (n) => Math.round(n).toLocaleString("pt-BR");
 const fmtPct = (n) => `${n >= 0 ? "+" : ""}${n.toFixed(1).replace(".", ",")}%`;
 const plural = (n, sing, plur) => `${fmtInt(n)} ${n === 1 ? sing : plur}`;
 
+// ── Guard-rail ─────────────────────────────────────────────────────────────
+// Um boletim automático degrada em silêncio: a fonte muda de formato, o modelo
+// externo congela, uma mart some — e ele continua publicando algo plausível.
+// Estas verificações transformam degradação silenciosa em falha ruidosa. As
+// críticas derrubam a execução (exit != 0), o que faz o Actions notificar e
+// abrir issue; as não críticas apenas ficam registradas na edição.
+const verificacoes = [];
+function verificar(nome, ok, detalhe, { critico = false } = {}) {
+  verificacoes.push({ nome, ok, critico, detalhe });
+  const marca = ok ? "ok  " : critico ? "FALHA" : "aviso";
+  console.log(`[verif] ${marca} ${nome}: ${detalhe}`);
+  return ok;
+}
+
 // ── Data da edição ──────────────────────────────────────────────────────────
 const argData = process.argv.indexOf("--data");
 const hoje = argData > -1 ? new Date(`${process.argv[argData + 1]}T12:00:00Z`) : new Date();
@@ -233,9 +247,39 @@ try {
     + `dengue: ${vigilancia.dengue.em_alerta.length} em alerta de ${dg.linhas.length} · `
     + `chik: ${vigilancia.chikungunya.em_alerta.length} · modelo ${vigilancia.versao_modelo}`
     + (dg.falhas.length ? ` · ${dg.falhas.length} falhas` : ""));
+
+  // Cobertura: perder alguns municípios é tolerável; perder metade da rede
+  // significa que o boletim está cego para grande parte do país.
+  const pctResp = (100 * dg.linhas.length) / rede.total;
+  verificar(
+    "rede_sentinela_respondeu",
+    pctResp >= 50,
+    `${dg.linhas.length}/${rede.total} municípios (${pctResp.toFixed(0)}%)`
+      + (pctResp < 80 ? " — abaixo do esperado (80%)" : ""),
+    { critico: true },
+  );
+  if (pctResp >= 50 && pctResp < 80) {
+    verificar("rede_sentinela_cobertura_parcial", false,
+      `só ${pctResp.toFixed(0)}% da rede respondeu; alertas podem estar incompletos`);
+  }
+
+  // A falha MAIS PERIGOSA e mais difícil de notar: se o InfoDengue parar de
+  // atualizar, continuaríamos publicando a mesma semana como se fosse atual.
+  // Atraso normal é de 1 a 2 semanas.
+  const idx = (a, s) => a * 53 + s;
+  const atraso = idx(anoEd, semEd) - idx(vigilancia.ano_epi, vigilancia.semana_epi);
+  verificar(
+    "vigilancia_atualizada",
+    atraso <= 3,
+    `SE ${vigilancia.semana_epi}/${vigilancia.ano_epi} está ${atraso} semana(s) atrás da edição`
+      + (atraso > 3 ? " — fonte externa parece congelada" : ""),
+    { critico: true },
+  );
+  vigilancia.atraso_semanas = atraso;
 } catch (e) {
   vigilancia = null; // não publicar vigilância parcial/inconsistente
-  console.warn(`[boletim]   vigilância indisponível — boletim segue só com o histórico: ${String(e).slice(0, 120)}`);
+  verificar("vigilancia_disponivel", false,
+    `InfoDengue indisponível: ${String(e).slice(0, 120)}`, { critico: true });
 }
 
 // ── 2. Dengue: canal endêmico + alertas por UF ─────────────────────────────
@@ -312,6 +356,9 @@ const totalDengue = dengueUfs.reduce(
 );
 const ufsEmAlerta = dengueUfs.filter((u) => u.semanas_acima_p75 >= 13); // ≥1 trimestre acima da faixa
 
+verificar("mart_dengue_historica", dengueUfs.length >= 20,
+  `${dengueUfs.length} UFs com série histórica de dengue`, { critico: true });
+
 // ── 2. Excesso de mortalidade ──────────────────────────────────────────────
 console.log("[boletim] excesso de mortalidade…");
 const excesso = await rest("mart_excesso_uf_mes", {
@@ -383,6 +430,11 @@ const internacoes = {
   permanencia_media: sih.dias / sih.internacoes,
   mortalidade_pct: (sih.obitos / sih.internacoes) * 100,
 };
+
+verificar("mart_excesso_mortalidade", mesesOrdenados.length >= 12,
+  `${mesesOrdenados.length} meses consolidados de excesso`, { critico: true });
+verificar("mart_internacoes_sih", (sih.internacoes ?? 0) > 1_000_000,
+  `${fmtInt(sih.internacoes ?? 0)} internações em ${anoSih}`, { critico: true });
 
 // ── 4. Metadados de frescor ────────────────────────────────────────────────
 const meta = await rest("meta_dataset", { select: "chave,valor" });
@@ -476,7 +528,30 @@ const boletim = {
     ufs_ultimo_mes: ufsUltimoMes,
   },
   internacoes,
+  verificacoes,
 };
+
+/**
+ * Encerra sinalizando a saúde da execução.
+ *   0 = tudo certo
+ *   2 = a edição foi produzida, mas com falha crítica (fonte fora do ar, dado
+ *       congelado, mart vazia). O workflow publica assim mesmo — a página mostra
+ *       a degradação — e depois derruba o job para notificar e abrir issue.
+ * Publicar em silêncio um boletim degradado é o único desfecho inaceitável.
+ */
+function encerrar() {
+  const criticas = verificacoes.filter((v) => !v.ok && v.critico);
+  const avisos = verificacoes.filter((v) => !v.ok && !v.critico);
+  if (criticas.length) {
+    console.error(`\n[verif] ${criticas.length} verificação(ões) CRÍTICA(s) falharam:`);
+    for (const c of criticas) console.error(`  ✗ ${c.nome}: ${c.detalhe}`);
+    console.error("[verif] a edição foi gravada, mas o boletim está degradado.");
+    process.exit(2);
+  }
+  if (avisos.length) console.warn(`\n[verif] ${avisos.length} aviso(s) não crítico(s).`);
+  else console.log("\n[verif] todas as verificações passaram.");
+  process.exit(0);
+}
 
 // Idempotência: se a edição já existe com o mesmo conteúdo (ignorando o
 // timestamp de geração), mantém o arquivo — sem commit novo no workflow.
@@ -486,7 +561,7 @@ try {
   const existente = JSON.parse(await readFile(outFile, "utf8"));
   if (semTimestamp(existente) === semTimestamp(boletim)) {
     console.log(`[boletim] ${edicao} já publicada com o mesmo conteúdo — nada a fazer.`);
-    process.exit(0);
+    encerrar(); // conteúdo igual não silencia falha crítica
   }
 } catch {
   /* edição nova */
@@ -507,3 +582,5 @@ await writeFile(path.join(OUT, "index.json"), JSON.stringify(index));
 
 console.log(`[boletim] gravado: sdata/boletins/${edicao}.json (${index.length} edições no índice)`);
 destaques.forEach((d) => console.log(`  • ${d}`));
+
+encerrar();
