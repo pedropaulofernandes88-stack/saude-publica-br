@@ -32,6 +32,9 @@ jobs:
       - name: Gerar edição da semana
         run: node site/scripts/build-boletim.mjs
 
+      - name: Apurar o que mudou desde a edição anterior
+        run: node site/scripts/build-alertas.mjs
+
       - name: Commit e push (se houver edição nova)
         id: commit
         run: |
@@ -53,3 +56,25 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run deploy-site.yml --ref main --repo "$GITHUB_REPOSITORY"
+
+      # Só dispara se houver ALERTAS_ENVIO_SECRET configurado. O próprio JSON
+      # carrega `deve_enviar`: semana sem entrada nem agravamento não gera e-mail,
+      # e a Edge Function não reenvia uma edição já entregue.
+      - name: Enviar alertas aos assinantes
+        if: ${{ env.ALERTAS_ENVIO_SECRET != '' }}
+        env:
+          ALERTAS_ENVIO_SECRET: ${{ secrets.ALERTAS_ENVIO_SECRET }}
+          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://zekjhmxjamatlxpkykde.supabase.co' }}
+        run: |
+          EDICAO=$(node -e "const i=require('./site/public/sdata/boletins/index.json');console.log(i[0].edicao)")
+          ARQ="site/public/sdata/boletins/alertas-${EDICAO}.json"
+          if [ ! -f "$ARQ" ]; then
+            echo "Sem arquivo de alertas para ${EDICAO} — nada a enviar."
+            exit 0
+          fi
+          RESP=$(curl -sS -X POST "${SUPABASE_URL}/functions/v1/alertas-envio" \
+            -H "Content-Type: application/json" \
+            -H "x-alertas-secret: ${ALERTAS_ENVIO_SECRET}" \
+            --data-binary "@${ARQ}")
+          echo "Resposta do envio: ${RESP}"
+          echo "$RESP" | grep -q '"ok":true' || { echo "Falha no envio"; exit 1; }

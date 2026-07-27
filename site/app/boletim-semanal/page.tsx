@@ -8,6 +8,7 @@ import {
 } from "recharts";
 import { Kpi, Skeleton } from "@/components/kpi";
 import { LinhasExcesso } from "@/components/charts";
+import { AssinarAlertas } from "@/components/assinar-alertas";
 import { fmtDec, fmtInt, sdata } from "@/lib/api";
 
 interface CanalSemana {
@@ -394,6 +395,9 @@ function BoletimInner() {
           </div>
         </>
       )}
+
+      {/* Momento de maior relevância do convite: logo depois de ver os alertas. */}
+      <AssinarAlertas />
 
       {/* ── Dengue histórica ── */}
       <h2 className="mt-10 font-serif text-2xl font-semibold text-ink-950">🦟 Dengue — retrospectiva {dengue.ano_ref}</h2>
