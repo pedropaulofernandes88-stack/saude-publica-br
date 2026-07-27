@@ -24,6 +24,12 @@ concurrency:
 jobs:
   gerar:
     runs-on: ubuntu-latest
+    # Declarado no JOB, não no passo: a condição `if:` de um passo é avaliada
+    # ANTES do `env:` daquele passo existir, então `env.X != ''` dentro do
+    # próprio passo é sempre falso — o envio ficaria pulado em silêncio.
+    env:
+      ALERTAS_ENVIO_SECRET: ${{ secrets.ALERTAS_ENVIO_SECRET }}
+      SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://zekjhmxjamatlxpkykde.supabase.co' }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -74,9 +80,6 @@ jobs:
       # e a Edge Function não reenvia uma edição já entregue.
       - name: Enviar alertas aos assinantes
         if: ${{ env.ALERTAS_ENVIO_SECRET != '' }}
-        env:
-          ALERTAS_ENVIO_SECRET: ${{ secrets.ALERTAS_ENVIO_SECRET }}
-          SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://zekjhmxjamatlxpkykde.supabase.co' }}
         run: |
           EDICAO=$(node -e "const i=require('./site/public/sdata/boletins/index.json');console.log(i[0].edicao)")
           ARQ="site/public/sdata/boletins/alertas-${EDICAO}.json"
