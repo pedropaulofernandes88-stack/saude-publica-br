@@ -376,7 +376,70 @@ export default function Metodologia() {
         levantar hipóteses, não para inferir risco individual.
       </p>
 
-      <h2>16. Privacidade e células de contagem pequena</h2>
+      <h2>16. Distância até os pares em internações evitáveis (ICSAP)</h2>
+      <p>
+        Traduz o indicador ICSAP na pergunta que um gestor de fato faz: <em>quanto
+        estou acima de municípios comparáveis, e o que isso representa?</em>
+      </p>
+      <p>
+        <strong>Métrica.</strong> Usamos a <em>proporção</em> de internações que são
+        sensíveis à atenção primária (<code>pct_icsap</code>), não a taxa por habitante.
+        A taxa por 100 mil é confundida pelo <strong>acesso</strong>: um município onde
+        as pessoas não conseguem internar tem taxa baixa sem que a atenção primária seja
+        boa. A proporção pergunta outra coisa — &quot;das internações que de fato
+        ocorreram, quantas eram evitáveis?&quot; — e é bem menos sensível a isso.
+      </p>
+      <p>
+        <strong>Pares.</strong> A referência é a mediana do <em>arquétipo de saúde</em>
+        do município (agrupamento k-means por mortalidade × vulnerabilidade × internações,
+        seção 14); onde não há arquétipo, usa-se faixa populacional × região. Comparar
+        com a média nacional seria injusto: municípios diferem em estrutura, não apenas
+        em gestão. Municípios com menos de 100 internações no ano ficam fora do cálculo
+        da mediana do grupo (proporção instável), mas recebem a própria comparação
+        sinalizada.
+      </p>
+      <p>
+        <strong>Conversão.</strong> As internações acima dos pares são
+        (<code>pct_icsap</code> − mediana dos pares) × internações totais. Custo e
+        permanência por internação vêm dos agravos traçadores da Lista Brasileira
+        presentes na base (asma, DPOC, pneumonia, diabetes, insuficiência cardíaca e
+        doença cerebrovascular). Esses seis <strong>pendem para o lado caro</strong> da
+        lista — condições baratas como gastroenterite, infecção urinária e anemia não
+        estão representadas —, então o valor em reais é um <strong>teto</strong>, não
+        uma média fiel.
+      </p>
+      <p>
+        <strong>O que este número não é.</strong> Quatro limites que precisam acompanhar
+        qualquer citação:
+      </p>
+      <ul>
+        <li>
+          <strong>Não é economia disponível.</strong> Alcançar a mediana exige
+          <em> investir</em> em atenção primária — mais equipes, mais acompanhamento de
+          condições crônicas —, não cortar. O valor dimensiona o problema; não é caixa a
+          resgatar.
+        </li>
+        <li>
+          <strong>Nem toda ICSAP é evitável.</strong> A Lista Brasileira reúne condições
+          <em> sensíveis</em> à atenção primária: boa cobertura reduz, não zera. Por isso
+          a referência é a mediana dos pares, e nunca zero.
+        </li>
+        <li>
+          <strong>A associação é ecológica.</strong> Descreve um padrão municipal
+          agregado — não risco individual, não relação causal.
+        </li>
+        <li>
+          <strong>Proporção alta pode ser efeito de acesso restrito.</strong> Onde faltam
+          leitos, a internação eletiva desaparece e a fatia de ICSAP sobe mecanicamente.
+          Cruze com oferta hospitalar antes de concluir que a atenção primária falha.
+        </li>
+      </ul>
+      <p>
+        Disponível na view <code>mart_icsap_pares</code> da API pública, no boletim
+        municipal e na ferramenta MCP <code>icsap_distancia_dos_pares</code>.
+      </p>
+
+      <h2>17. Privacidade e células de contagem pequena</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas

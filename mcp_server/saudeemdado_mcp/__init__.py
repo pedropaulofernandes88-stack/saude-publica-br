@@ -26,7 +26,7 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server.fastmcp import FastMCP
 
-__version__ = "0.2.0"
+__version__ = "0.3.0"
 
 mcp = FastMCP(
     "saudeemdado",
@@ -277,6 +277,47 @@ def comparar_com_pares(municipio_cod: str) -> dict:
         ],
         "fonte": "SIM/SIH/DataSUS + IBGE Censo 2022; clusters k-means 2023 (dim_cluster_municipio)",
     }
+
+
+# ── Tradução: do indicador para a decisão ────────────────────────────────────
+@mcp.tool()
+def icsap_distancia_dos_pares(municipio_cod: str = "", uf: str = "", top: int = 20) -> list[dict]:
+    """TRADUÇÃO: converte o indicador ICSAP na pergunta do gestor — "quanto meu
+    município está acima de municípios COMPARÁVEIS em internações evitáveis, e o que
+    isso representa?". Informe municipio_cod (6 dígitos) OU uf (ranking dos maiores).
+    Retorna: pct_icsap do município, mediana dos pares, diferença em pontos
+    percentuais, e a tradução — internacoes_acima_pares, leitos_equivalentes_ano
+    (leitos que ficariam ocupados o ano inteiro) e custo_associado_reais.
+    Pares = municípios do mesmo arquétipo k-means; sem arquétipo, mesma faixa
+    populacional e região. Comparar com a média nacional seria injusto.
+
+    AO RELATAR, estas ressalvas são obrigatórias — sem elas o número engana:
+    1. NÃO é economia disponível. Chegar à mediana exige INVESTIR em atenção
+       primária, não cortar; o valor mede o tamanho do problema, não caixa a resgatar.
+    2. Nem toda ICSAP é evitável — a Lista Brasileira reúne condições SENSÍVEIS à
+       atenção primária; boa cobertura reduz, não zera. Por isso a referência é a
+       mediana dos pares, nunca zero.
+    3. Associação ECOLÓGICA (municipal): não é risco individual nem prova de causa.
+    4. Proporção alta pode indicar ACESSO restrito, não atenção primária ruim: onde
+       falta leito, internação eletiva some e a fatia de ICSAP sobe. Sugira cruzar
+       com oferta hospitalar antes de concluir.
+    5. O custo em reais é TETO: deriva de 6 agravos traçadores que pendem para o
+       lado caro da lista (AVC e ICC), sem as condições baratas (gastroenterite,
+       infecção urinária, anemia)."""
+    campos = ("municipio_cod,municipio_nome,uf_sigla,ano,populacao,internacoes_total,"
+              "internacoes_icsap,pct_icsap,arquetipo,criterio_pares,n_pares,"
+              "mediana_pares_pct,p25_pares_pct,diferenca_pp,internacoes_acima_pares,"
+              "internacoes_acima_p25,custo_associado_reais,leitos_dia_associados,"
+              "leitos_equivalentes_ano,custo_medio_icsap_ref,amostra_pequena")
+    params = {"select": campos}
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    else:
+        if uf:
+            params["uf_sigla"] = f"eq.{uf.upper()}"
+        params["order"] = "internacoes_acima_pares.desc"
+        params["limit"] = str(top)
+    return sd._get("mart_icsap_pares", params)
 
 
 # ── Análise: canal endêmico ──────────────────────────────────────────────────

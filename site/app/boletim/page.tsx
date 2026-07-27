@@ -8,7 +8,8 @@ import { Kpi, Skeleton } from "@/components/kpi";
 import {
   Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
-import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type Ivs, type LinhaMunicipio } from "@/lib/api";
+import { IcsapPares } from "@/components/icsap-pares";
+import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Ivs, type LinhaMunicipio } from "@/lib/api";
 
 function SerieTaxas({ data }: { data: { ano: number; bruta: number | null; padronizada: number | null }[] }) {
   return (
@@ -36,6 +37,7 @@ function BoletimInner() {
   const [capsDim, setCapsDim] = useState<CapituloCid[]>([]);
   const [ivs, setIvs] = useState<Ivs | null>(null);
   const [cluster, setCluster] = useState<ClusterMunicipio | null>(null);
+  const [icsap, setIcsap] = useState<TIcsapPares | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -68,6 +70,14 @@ function BoletimInner() {
       select: "municipio_cod,cluster,perfil",
       municipio_cod: `eq.${cod}`,
     }).then((r) => setCluster(r[0] ?? null)).catch(() => {});
+    setIcsap(null);
+    rest<TIcsapPares>("mart_icsap_pares", {
+      select: "municipio_cod,municipio_nome,uf_sigla,ano,populacao,internacoes_total,internacoes_icsap,"
+        + "pct_icsap,arquetipo,criterio_pares,n_pares,mediana_pares_pct,p25_pares_pct,diferenca_pp,"
+        + "internacoes_acima_pares,internacoes_acima_p25,custo_associado_reais,leitos_dia_associados,"
+        + "leitos_equivalentes_ano,custo_medio_icsap_ref,permanencia_media_icsap_ref,amostra_pequena",
+      municipio_cod: `eq.${cod}`,
+    }).then((r) => setIcsap(r[0] ?? null)).catch(() => {});
   }, [cod]);
 
   const atual = useMemo(() => linhas?.length ? linhas[linhas.length - 1] : null, [linhas]);
@@ -166,6 +176,8 @@ function BoletimInner() {
               )}
             </div>
           )}
+
+          {icsap && <IcsapPares dados={icsap} />}
 
           <div className="card mt-6">
             <h2 className="font-serif text-xl font-semibold text-ink-900">Taxas de mortalidade, 2015–{atual.ano}</h2>

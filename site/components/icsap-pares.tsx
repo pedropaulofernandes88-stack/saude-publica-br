@@ -1,0 +1,149 @@
+"use client";
+
+import { fmtDec, fmtInt, type IcsapPares } from "@/lib/api";
+
+const fmtReais = (v: number) =>
+  v >= 1e6 ? `R$ ${fmtDec(v / 1e6, 1)} mi`
+  : v >= 1e3 ? `R$ ${fmtDec(v / 1e3, 0)} mil`
+  : `R$ ${fmtInt(v)}`;
+
+/**
+ * Traduz o indicador ICSAP na pergunta que um gestor faz: "quanto estou acima de
+ * municípios comparáveis, e o que isso representa em internações, leitos e custo?".
+ *
+ * O enquadramento é deliberado: DISTÂNCIA até os pares, nunca "economia". Ver as
+ * ressalvas no rodapé do card — elas não são disclaimer decorativo, são o que
+ * separa um número útil de um número enganoso.
+ */
+export function IcsapPares({ dados }: { dados: IcsapPares }) {
+  const acima = dados.internacoes_acima_pares > 0;
+
+  return (
+    <div className="card mt-6">
+      <h2 className="font-serif text-xl font-semibold text-ink-900">
+        Internações evitáveis — distância até municípios semelhantes
+      </h2>
+      <p className="mt-1 text-sm text-ink-500">
+        Comparado com <strong>{fmtInt(dados.n_pares)}</strong> municípios do mesmo grupo
+        ({dados.criterio_pares}
+        {dados.arquetipo ? `: ${dados.arquetipo}` : ""}). ICSAP = internações por condições
+        sensíveis à atenção primária (Lista Brasileira), {dados.ano}.
+      </p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Neste município</p>
+          <p className="mt-1 font-serif text-2xl font-semibold text-ink-900">
+            {fmtDec(dados.pct_icsap, 1)}<span className="text-base text-ink-400">%</span>
+          </p>
+          <p className="mt-0.5 text-xs text-ink-500">
+            {fmtInt(dados.internacoes_icsap)} de {fmtInt(dados.internacoes_total)} internações
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Mediana dos pares</p>
+          <p className="mt-1 font-serif text-2xl font-semibold text-ink-600">
+            {fmtDec(dados.mediana_pares_pct, 1)}<span className="text-base text-ink-400">%</span>
+          </p>
+          <p className="mt-0.5 text-xs text-ink-500">
+            os 25% melhores do grupo: {fmtDec(dados.p25_pares_pct, 1)}%
+          </p>
+        </div>
+        <div>
+          <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Diferença</p>
+          <p className={`mt-1 font-serif text-2xl font-semibold ${acima ? "text-red-700" : "text-accent-700"}`}>
+            {dados.diferenca_pp > 0 ? "+" : ""}{fmtDec(dados.diferenca_pp, 1)}
+            <span className="text-base text-ink-400"> p.p.</span>
+          </p>
+          <p className="mt-0.5 text-xs text-ink-500">
+            {acima ? "acima da mediana dos pares" : "na mediana ou abaixo"}
+          </p>
+        </div>
+      </div>
+
+      {acima ? (
+        <>
+          <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 p-4">
+            <p className="text-sm font-semibold text-amber-900">
+              Se este município estivesse na mediana dos seus pares, teria tido
+            </p>
+            <div className="mt-3 grid gap-4 sm:grid-cols-3">
+              <div>
+                <p className="font-serif text-3xl font-semibold text-amber-900">
+                  {fmtInt(dados.internacoes_acima_pares)}
+                </p>
+                <p className="text-xs text-amber-800">internações evitáveis a menos, no ano</p>
+              </div>
+              <div>
+                <p className="font-serif text-3xl font-semibold text-amber-900">
+                  {fmtDec(dados.leitos_equivalentes_ano, 0)}
+                </p>
+                <p className="text-xs text-amber-800">
+                  leitos livres o ano inteiro ({fmtInt(dados.leitos_dia_associados)} leitos-dia)
+                </p>
+              </div>
+              <div>
+                <p className="font-serif text-3xl font-semibold text-amber-900">
+                  {fmtReais(dados.custo_associado_reais)}
+                </p>
+                <p className="text-xs text-amber-800">em internações não realizadas</p>
+              </div>
+            </div>
+            {dados.internacoes_acima_p25 > dados.internacoes_acima_pares && (
+              <p className="mt-3 border-t border-amber-200 pt-3 text-sm text-amber-900">
+                Contra os <strong>25% melhores</strong> do grupo ({fmtDec(dados.p25_pares_pct, 1)}%), a
+                diferença sobe para <strong>{fmtInt(dados.internacoes_acima_p25)}</strong> internações.
+              </p>
+            )}
+          </div>
+
+          <div className="mt-4 rounded-lg border border-ink-200 bg-ink-50 p-4 text-sm leading-relaxed text-ink-700">
+            <p className="font-semibold text-ink-900">Como (não) ler estes números</p>
+            <ul className="mt-2 space-y-1.5">
+              <li>
+                <strong>Não é economia disponível.</strong> Chegar à mediana exige{" "}
+                <em>investir</em> em atenção primária — mais equipes, mais acompanhamento de
+                crônicos —, não cortar. O valor mostra o tamanho do problema, não um caixa a resgatar.
+              </li>
+              <li>
+                <strong>Nem toda ICSAP é evitável.</strong> A Lista Brasileira reúne condições
+                <em> sensíveis</em> à atenção primária: boa cobertura reduz, não zera. Por isso a
+                referência é a mediana dos pares, não zero.
+              </li>
+              <li>
+                <strong>É uma associação municipal (ecológica).</strong> Descreve um padrão do
+                município, não risco individual, e não estabelece causa.
+              </li>
+              <li>
+                <strong>Proporção alta pode ser boa notícia disfarçada.</strong> Onde o acesso
+                hospitalar é restrito, internações eletivas somem e a fatia de ICSAP sobe. Cruze
+                com a oferta de leitos antes de concluir que a atenção primária falha.
+              </li>
+            </ul>
+          </div>
+        </>
+      ) : (
+        <p className="mt-5 rounded-lg border border-accent-700/20 bg-accent-700/[0.04] px-4 py-3 text-sm text-ink-700">
+          A proporção de internações evitáveis está <strong>na mediana ou abaixo</strong> da dos
+          municípios comparáveis. Isso não significa ausência de ICSAP — significa que, entre
+          pares de perfil semelhante, este município não está acima do padrão.
+        </p>
+      )}
+
+      {dados.amostra_pequena && (
+        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+          ⚠ Município com menos de 100 internações no ano: a proporção é instável e a comparação,
+          frágil. Interprete com cautela.
+        </p>
+      )}
+
+      <p className="mt-3 border-t border-ink-100 pt-3 text-xs leading-relaxed text-ink-500">
+        Custo e permanência por internação ICSAP (R$ {fmtDec(dados.custo_medio_icsap_ref, 0)} e{" "}
+        {fmtDec(dados.permanencia_media_icsap_ref, 1)} dias) derivam dos agravos traçadores da
+        Lista Brasileira presentes na base (asma, DPOC, pneumonia, diabetes, insuficiência
+        cardíaca e doença cerebrovascular). Esses seis pendem para o lado caro da lista, então o
+        valor em reais é um <strong>teto</strong>, não uma média fiel. Fonte: SIH/SUS {dados.ano}.
+      </p>
+    </div>
+  );
+}

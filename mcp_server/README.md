@@ -88,7 +88,7 @@ O Claude vai chamar as ferramentas e responder com os números e a fonte.
 
 ---
 
-## Ferramentas disponíveis (18)
+## Ferramentas disponíveis (19)
 
 ### Consulta
 
@@ -113,6 +113,7 @@ O Claude vai chamar as ferramentas e responder com os números e a fonte.
 | Ferramenta | O que faz |
 |---|---|
 | **`comparar_com_pares`** | compara um município com o seu **arquétipo de saúde** (k-means: mortalidade × vulnerabilidade × internações) — valor, mediana dos pares e **percentil no grupo** |
+| **`icsap_distancia_dos_pares`** | **tradução:** quanto o município está acima de comparáveis em internações evitáveis, convertido em **internações, leitos ocupados o ano inteiro e R$** — com as ressalvas que impedem ler isso como "economia disponível" |
 | **`canal_endemico_dengue`** | **diagrama de controle** de uma UF: banda P25–P75 histórica vs. observado, semanas acima do P75 e status de surto |
 | **`boletim_semanal`** | a edição vigente (ou qualquer edição) do [boletim epidemiológico semanal](https://saudeemdado.com/boletim-semanal/) gerado automaticamente pelo pipeline |
 | **`detectar_anomalias`** | **copiloto:** resumo priorizado de sinais de um município |

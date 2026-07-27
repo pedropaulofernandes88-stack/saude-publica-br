@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "saudeemdado-mcp"
-version = "0.2.0"
+version = "0.3.0"
 description = "Servidor MCP do Saúde em Dado — a saúde do Brasil (DataSUS + IBGE) consultável por IA"
 readme = "README.md"
 license = { text = "MIT" }

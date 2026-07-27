@@ -260,6 +260,32 @@ export interface CruzVulnMort {
   pop: number;
 }
 
+/** Distância até a mediana dos pares em internações evitáveis (ICSAP). */
+export interface IcsapPares {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  ano: number;
+  populacao: number | null;
+  internacoes_total: number;
+  internacoes_icsap: number;
+  pct_icsap: number;
+  arquetipo: string | null;
+  criterio_pares: string;
+  n_pares: number;
+  mediana_pares_pct: number;
+  p25_pares_pct: number;
+  diferenca_pp: number;
+  internacoes_acima_pares: number;
+  internacoes_acima_p25: number;
+  custo_associado_reais: number;
+  leitos_dia_associados: number;
+  leitos_equivalentes_ano: number;
+  custo_medio_icsap_ref: number;
+  permanencia_media_icsap_ref: number;
+  amostra_pequena: boolean;
+}
+
 export interface ClusterMunicipio {
   municipio_cod: string;
   uf_sigla: string;

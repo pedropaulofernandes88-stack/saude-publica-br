@@ -121,7 +121,7 @@ sd.dengue(uf="SP", ano=2024, as_df=True)
 ```
 
 **Servidor MCP — a saúde do Brasil consultável por IA** ([`mcp_server/`](mcp_server/)).
-Conecte o Claude Desktop/Code e pergunte em linguagem natural. Expõe **18 ferramentas**: consulta
+Conecte o Claude Desktop/Code e pergunte em linguagem natural. Expõe **19 ferramentas**: consulta
 (mortalidade, internações, dengue, ICSAP, fluxo de pacientes, visão hospitalar, excesso) e **análise**
 (`comparar_com_pares` — município vs. arquétipo k-means com percentis; `canal_endemico_dengue` —
 diagrama de controle por UF; `boletim_semanal` — a edição vigente do boletim automático) — mais a
