@@ -18,6 +18,39 @@ interface CanalSemana {
   observado: number;
 }
 
+interface CapitalVigilancia {
+  uf: string;
+  municipio: string;
+  geocode: string;
+  semana_epi: number;
+  ano_epi: number;
+  casos_notificados: number;
+  casos_estimados: number;
+  casos_est_min: number | null;
+  casos_est_max: number | null;
+  incidencia_100k: number | null;
+  nivel: number | null;
+  nivel_label: string | null;
+  rt: number | null;
+  variacao_4sem_pct: number | null;
+  versao_modelo: string | null;
+}
+
+interface Vigilancia {
+  fonte: string;
+  fonte_url: string;
+  semana_epi: number;
+  ano_epi: number;
+  versao_modelo: string | null;
+  capitais_consultadas: number;
+  dengue: CapitalVigilancia[];
+  dengue_em_alerta: CapitalVigilancia[];
+  dengue_transmissao_crescente: CapitalVigilancia[];
+  chikungunya_em_alerta: CapitalVigilancia[];
+  total_estimado_capitais: number;
+  total_notificado_capitais: number;
+}
+
 interface Boletim {
   edicao: string;
   ano: number;
@@ -26,6 +59,7 @@ interface Boletim {
   versao_dataset: string | null;
   nota_preliminar: string | null;
   destaques: string[];
+  vigilancia_atual: Vigilancia | null;
   dengue: {
     ano_ref: number;
     baseline: string;
@@ -97,6 +131,70 @@ function CanalEndemico({ data, ano }: { data: CanalSemana[]; ano: number }) {
   );
 }
 
+const NIVEL_ESTILO: Record<number, { cor: string; texto: string }> = {
+  1: { cor: "bg-emerald-100 text-emerald-800 border-emerald-200", texto: "verde" },
+  2: { cor: "bg-amber-100 text-amber-800 border-amber-200", texto: "amarelo" },
+  3: { cor: "bg-orange-100 text-orange-800 border-orange-300", texto: "laranja" },
+  4: { cor: "bg-red-100 text-red-800 border-red-300", texto: "vermelho" },
+};
+
+function NivelBadge({ nivel }: { nivel: number | null }) {
+  const e = nivel ? NIVEL_ESTILO[nivel] : null;
+  if (!e) return <span className="text-ink-400">—</span>;
+  return (
+    <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-medium ${e.cor}`}>
+      {e.texto}
+    </span>
+  );
+}
+
+function TabelaVigilancia({ capitais }: { capitais: CapitalVigilancia[] }) {
+  return (
+    <div className="mt-4 overflow-x-auto">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+            <th className="py-2 pr-3">Capital</th>
+            <th className="py-2 pr-3">Alerta</th>
+            <th className="py-2 pr-3 text-right">Notificados</th>
+            <th className="py-2 pr-3 text-right">Estimados</th>
+            <th className="py-2 pr-3 text-right">Rt</th>
+            <th className="py-2 text-right">4 semanas</th>
+          </tr>
+        </thead>
+        <tbody>
+          {capitais.map((c) => (
+            <tr key={c.geocode} className="border-b border-ink-100">
+              <td className="py-2 pr-3 font-medium text-ink-900">
+                {c.municipio} <span className="text-ink-400">{c.uf}</span>
+              </td>
+              <td className="py-2 pr-3"><NivelBadge nivel={c.nivel} /></td>
+              <td className="py-2 pr-3 text-right tabular-nums text-ink-600">{fmtInt(c.casos_notificados)}</td>
+              <td className="py-2 pr-3 text-right tabular-nums font-medium text-ink-900">
+                {fmtInt(c.casos_estimados)}
+                {/* Intervalo degenerado (min = max) significa que o nowcast não
+                    produziu estimativa própria — exibi-lo sugeriria certeza que não existe. */}
+                {c.casos_est_min != null && c.casos_est_max != null
+                  && c.casos_est_min !== c.casos_est_max && (
+                  <span className="ml-1 text-xs font-normal text-ink-400">
+                    ({fmtInt(c.casos_est_min)}–{fmtInt(c.casos_est_max)})
+                  </span>
+                )}
+              </td>
+              <td className={`py-2 pr-3 text-right tabular-nums ${(c.rt ?? 0) > 1 ? "font-medium text-red-700" : "text-ink-600"}`}>
+                {c.rt != null ? fmtDec(c.rt, 2) : "—"}
+              </td>
+              <td className={`py-2 text-right tabular-nums ${(c.variacao_4sem_pct ?? 0) > 0 ? "text-red-700" : "text-ink-600"}`}>
+                {c.variacao_4sem_pct != null ? fmtPct(c.variacao_4sem_pct) : "—"}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
 function BoletimInner() {
   const params = useSearchParams();
   const edParam = params.get("e");
@@ -129,7 +227,7 @@ function BoletimInner() {
   if (erro) return <div className="card mt-6 border-red-200 bg-red-50 text-sm text-red-800">Falha: {erro}</div>;
   if (!boletim) return <Skeleton altura={480} />;
 
-  const { dengue, mortalidade, internacoes } = boletim;
+  const { dengue, mortalidade, internacoes, vigilancia_atual: vig } = boletim;
   const geradoEm = new Date(boletim.gerado_em).toLocaleDateString("pt-BR", { dateStyle: "long" });
 
   return (
@@ -159,8 +257,69 @@ function BoletimInner() {
         </ul>
       </div>
 
-      {/* ── Dengue ── */}
-      <h2 className="mt-10 font-serif text-2xl font-semibold text-ink-950">🦟 Dengue — situação {dengue.ano_ref}</h2>
+      {/* ── Vigilância atual (InfoDengue) ── */}
+      {vig && (
+        <>
+          <h2 className="mt-10 font-serif text-2xl font-semibold text-ink-950">
+            🚨 Vigilância desta semana — SE {vig.semana_epi}/{vig.ano_epi}
+          </h2>
+          <p className="mt-1 text-sm text-ink-600">
+            Situação corrente de arboviroses nas 27 capitais, por{" "}
+            <a href={vig.fonte_url} target="_blank" rel="noreferrer" className="font-medium text-accent-700 underline">
+              InfoDengue
+            </a>{" "}
+            (Fiocruz/FGV) — fonte independente do DataSUS consolidado usado no resto do boletim.
+          </p>
+
+          <div className="mt-4 grid gap-4 sm:grid-cols-3">
+            <Kpi rotulo="Capitais em alerta" valor={String(vig.dengue_em_alerta.length)}
+                 detalhe="nível laranja ou vermelho (transmissão sustentada)" />
+            <Kpi rotulo="Transmissão em crescimento" valor={String(vig.dengue_transmissao_crescente.length)}
+                 detalhe="capitais com Rt > 1" />
+            <Kpi rotulo="Casos estimados na semana" valor={fmtInt(vig.total_estimado_capitais)}
+                 detalhe={`${fmtInt(vig.total_notificado_capitais)} já notificados — o restante é atraso de digitação`} />
+          </div>
+
+          <p className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm text-sky-900">
+            💡 <strong>Por que estimado &gt; notificado:</strong> a notificação da semana corrente ainda está sendo
+            digitada. O InfoDengue aplica <em>nowcasting</em> para estimar o total real; usar a contagem crua
+            subestima sistematicamente a situação atual.
+          </p>
+
+          {vig.dengue_em_alerta.length > 0 && (
+            <div className="card mt-6 border-orange-200">
+              <h3 className="font-serif text-xl font-semibold text-ink-900">Capitais em alerta — dengue</h3>
+              <TabelaVigilancia capitais={vig.dengue_em_alerta} />
+            </div>
+          )}
+
+          {vig.chikungunya_em_alerta.length > 0 && (
+            <div className="card mt-6 border-orange-200">
+              <h3 className="font-serif text-xl font-semibold text-ink-900">Capitais em alerta — chikungunya</h3>
+              <TabelaVigilancia capitais={vig.chikungunya_em_alerta} />
+            </div>
+          )}
+
+          <div className="card mt-6">
+            <h3 className="font-serif text-xl font-semibold text-ink-900">Todas as capitais — dengue</h3>
+            <p className="mt-1 text-sm text-ink-500">
+              Ordenadas por casos estimados. Rt &gt; 1 indica transmissão em crescimento; a coluna
+              &quot;4 semanas&quot; compara a estimativa desta semana com a de quatro semanas atrás.
+            </p>
+            <TabelaVigilancia capitais={vig.dengue} />
+            <p className="mt-3 text-xs text-ink-500">
+              Níveis do InfoDengue: verde (1) · amarelo (2, atenção) · laranja (3, transmissão sustentada) ·
+              vermelho (4, epidemia). Modelo {vig.versao_modelo}. Intervalo entre parênteses = faixa da estimativa.
+            </p>
+          </div>
+        </>
+      )}
+
+      {/* ── Dengue histórica ── */}
+      <h2 className="mt-10 font-serif text-2xl font-semibold text-ink-950">🦟 Dengue — retrospectiva {dengue.ano_ref}</h2>
+      <p className="mt-1 text-sm text-ink-600">
+        Base consolidada do SINAN/DataSUS — muda quando o Ministério da Saúde publica, não toda semana.
+      </p>
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <Kpi rotulo="Casos prováveis" valor={fmtInt(dengue.casos)} detalhe={`${fmtInt(dengue.graves)} graves/com alarme`} />
         <Kpi rotulo="Óbitos" valor={fmtInt(dengue.obitos)}
@@ -298,7 +457,13 @@ function BoletimInner() {
 
       <div className="card mt-6 text-sm leading-relaxed text-ink-600">
         <p>
-          <b>Fontes e método:</b> SIM, SINAN e SIH/DataSUS (Ministério da Saúde); população IBGE.
+          <b>Fontes e método:</b> a vigilância desta semana vem do{" "}
+          <a href="https://info.dengue.mat.br" target="_blank" rel="noreferrer" className="font-medium text-accent-700 underline">
+            InfoDengue
+          </a>{" "}
+          (Fiocruz/FGV), que aplica <em>nowcasting</em> para corrigir o atraso de notificação —
+          fonte e metodologia independentes do restante do boletim. As seções históricas usam
+          SIM, SINAN e SIH/DataSUS (Ministério da Saúde) e população IBGE.
           Canal endêmico: quartis P25–P75 das semanas epidemiológicas de {dengue.baseline} (diagrama de
           controle). Excesso de mortalidade: observado vs. tendência 2015–2019 projetada.
           {boletim.nota_preliminar && <> {boletim.nota_preliminar}.</>} Metodologia completa em{" "}

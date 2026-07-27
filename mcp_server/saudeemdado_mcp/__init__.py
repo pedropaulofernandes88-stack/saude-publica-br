@@ -329,11 +329,18 @@ def canal_endemico_dengue(uf: str, ano: int = 2024) -> dict:
 # ── Boletim epidemiológico semanal ───────────────────────────────────────────
 @mcp.tool()
 def boletim_semanal(edicao: str = "") -> dict:
-    """Boletim epidemiológico semanal do Saúde em Dado — o mesmo publicado em
-    saudeemdado.com/boletim-semanal/. Sem argumento retorna a edição mais recente;
-    edicao no formato '2026-se29' retorna uma edição específica. Traz destaques,
-    canal endêmico Brasil, excesso de mortalidade e KPIs de internações, já com o
-    corte de completude do SIM aplicado (meses preliminares excluídos)."""
+    """SITUAÇÃO ATUAL + boletim semanal. Use esta ferramenta para perguntas sobre o
+    que está acontecendo AGORA ("como está a dengue esta semana?", "tem alerta no meu
+    estado?") — é a única fonte de dado corrente aqui; todas as outras ferramentas são
+    históricas (DataSUS consolidado até 2024).
+    Campo `vigilancia_atual`: nowcasting semanal do InfoDengue (Fiocruz/FGV) para as 27
+    capitais — nível de alerta (1 verde, 2 amarelo, 3 laranja, 4 vermelho), Rt (>1 =
+    transmissão crescendo), casos notificados vs. ESTIMADOS (o estimado corrige o atraso
+    de digitação; nunca cite só o notificado da semana corrente, ele subestima).
+    Cobre dengue e chikungunya. Traz também as seções históricas: canal endêmico Brasil,
+    excesso de mortalidade e KPIs de internações.
+    Sem argumento retorna a edição mais recente; edicao no formato '2026-se30' retorna
+    uma específica. Ao citar a vigilância, credite InfoDengue (Fiocruz/FGV), não o DataSUS."""
     base = "https://saudeemdado.com/sdata/boletins"
     idx = requests.get(f"{base}/index.json", timeout=30)
     idx.raise_for_status()

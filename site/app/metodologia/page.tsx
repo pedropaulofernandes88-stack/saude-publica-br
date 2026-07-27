@@ -376,10 +376,35 @@ export default function Metodologia() {
         levantar hipóteses, não para inferir risco individual.
       </p>
 
-      <h2>16. Privacidade</h2>
+      <h2>16. Privacidade e células de contagem pequena</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
-        (município × período × categoria), eliminando risco de reidentificação.
+        (município × período × categoria). Não há registros individuais, datas exatas
+        de óbito, nem qualquer chave que permita ligar dois eventos à mesma pessoa.
+      </p>
+      <p>
+        <strong>Sobre células pequenas.</strong> Em recortes finos (município × capítulo
+        CID × sexo × ano) existem cerca de 206 mil células com 1 a 4 óbitos. Optamos
+        deliberadamente por <em>não</em> suprimi-las, e é importante explicitar o porquê:
+        a fonte primária — os microdados do SIM, publicados pelo próprio Ministério da
+        Saúde no OpenDataSUS — contém <em>registros individuais</em> com município de
+        residência, sexo, idade, escolaridade, raça/cor e CID-10 de 4 caracteres. Ou seja,
+        o dado de origem é substancialmente mais granular e mais identificável do que
+        qualquer agregado aqui publicado. O próprio DATASUS oferece o TABNET, ferramenta
+        pública que produz exatamente essas tabulações de forma interativa.
+      </p>
+      <p>
+        Nesse contexto, suprimir células pequenas ofereceria uma <em>aparência</em> de
+        proteção sem ganho real de privacidade, enquanto destruiria justamente a
+        informação dos municípios pequenos — que são os menos servidos pelas ferramentas
+        existentes e os que mais precisam de dados acessíveis. A regra que seguimos é
+        outra e, entendemos, mais honesta: <strong>nunca publicar nada mais granular do
+        que a fonte pública de origem</strong>.
+      </p>
+      <p>
+        Isso não elimina a cautela analítica: contagens pequenas geram taxas instáveis.
+        Por isso toda taxa bruta vem com IC95% e há alerta explícito para municípios com
+        menos de 10 mil habitantes (seção 5).
       </p>
     </div>
   );

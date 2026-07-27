@@ -1,10 +1,15 @@
 /**
  * build-boletim.mjs — gera a edição semanal do Boletim Epidemiológico.
  *
- * Consulta os marts públicos (Supabase/PostgREST, anon key somente-leitura),
- * calcula canal endêmico de dengue, excesso de mortalidade e destaques, e
- * grava a edição em /public/sdata/boletins/<ano>-se<NN>.json + index.json.
+ * Duas camadas, deliberadamente separadas por fonte e método:
  *
+ *  1. VIGILÂNCIA ATUAL (InfoDengue — Fiocruz/FGV): situação da semana corrente
+ *     nas 27 capitais, com nowcasting que corrige o atraso de notificação.
+ *     É o que muda toda semana e justifica um boletim semanal.
+ *  2. ANÁLISE HISTÓRICA (DataSUS consolidado): canal endêmico, excesso de
+ *     mortalidade e internações — base fechada, muda quando o MS publica.
+ *
+ * Grava a edição em /public/sdata/boletins/<ano>-se<NN>.json + index.json.
  * Rodado pelo workflow boletim-semanal.yml (toda segunda-feira) e commitado —
  * cada edição fica arquivada no repositório com permalink próprio.
  *
@@ -67,6 +72,7 @@ function quantil(arr, p) {
 
 const fmtInt = (n) => Math.round(n).toLocaleString("pt-BR");
 const fmtPct = (n) => `${n >= 0 ? "+" : ""}${n.toFixed(1).replace(".", ",")}%`;
+const plural = (n, sing, plur) => `${fmtInt(n)} ${n === 1 ? sing : plur}`;
 
 // ── Data da edição ──────────────────────────────────────────────────────────
 const argData = process.argv.indexOf("--data");
@@ -75,7 +81,116 @@ const { ano: anoEd, semana: semEd } = semanaEpi(hoje);
 const edicao = `${anoEd}-se${String(semEd).padStart(2, "0")}`;
 console.log(`[boletim] edição ${edicao} (gerada em ${hoje.toISOString().slice(0, 10)})`);
 
-// ── 1. Dengue: canal endêmico + alertas por UF ─────────────────────────────
+// ── 1. VIGILÂNCIA ATUAL — InfoDengue (Fiocruz/FGV) ─────────────────────────
+// Rede sentinela das 27 capitais. O InfoDengue publica nowcasting semanal por
+// município: `casos` é a notificação já digitada (sempre subestimada na semana
+// corrente) e `casos_est` é a estimativa corrigida para o atraso de digitação —
+// por isso o boletim reporta as duas, nunca só a contagem crua.
+// Níveis: 1 verde | 2 amarelo (atenção) | 3 laranja (transmissão sustentada) |
+// 4 vermelho (epidemia). Rt > 1 indica transmissão em crescimento.
+const CAPITAIS = [
+  ["AC", "Rio Branco", "1200401"], ["AL", "Maceió", "2704302"], ["AP", "Macapá", "1600303"],
+  ["AM", "Manaus", "1302603"], ["BA", "Salvador", "2927408"], ["CE", "Fortaleza", "2304400"],
+  ["DF", "Brasília", "5300108"], ["ES", "Vitória", "3205309"], ["GO", "Goiânia", "5208707"],
+  ["MA", "São Luís", "2111300"], ["MT", "Cuiabá", "5103403"], ["MS", "Campo Grande", "5002704"],
+  ["MG", "Belo Horizonte", "3106200"], ["PA", "Belém", "1501402"], ["PB", "João Pessoa", "2507507"],
+  ["PR", "Curitiba", "4106902"], ["PE", "Recife", "2611606"], ["PI", "Teresina", "2211001"],
+  ["RJ", "Rio de Janeiro", "3304557"], ["RN", "Natal", "2408102"], ["RS", "Porto Alegre", "4314902"],
+  ["RO", "Porto Velho", "1100205"], ["RR", "Boa Vista", "1400100"], ["SC", "Florianópolis", "4205407"],
+  ["SP", "São Paulo", "3550308"], ["SE", "Aracaju", "2800308"], ["TO", "Palmas", "1721000"],
+];
+const NIVEL_LABEL = { 1: "verde", 2: "amarelo", 3: "laranja", 4: "vermelho" };
+
+async function infodengue(geocode, doenca) {
+  // Janela de 8 semanas para calcular tendência; cruza o ano quando necessário.
+  const cruzaAno = semEd <= 8;
+  const qs = new URLSearchParams({
+    geocode, disease: doenca, format: "json",
+    ew_start: String(cruzaAno ? 45 : semEd - 8),
+    ew_end: String(semEd),
+    ey_start: String(cruzaAno ? anoEd - 1 : anoEd),
+    ey_end: String(anoEd),
+  });
+  const res = await fetch(`https://info.dengue.mat.br/api/alertcity?${qs}`, {
+    signal: AbortSignal.timeout(25_000),
+  });
+  if (!res.ok) throw new Error(`InfoDengue ${geocode}: HTTP ${res.status}`);
+  return res.json();
+}
+
+async function vigilanciaCapitais(doenca) {
+  const linhas = [];
+  for (const [uf, nome, geocode] of CAPITAIS) {
+    try {
+      const serie = await infodengue(geocode, doenca);
+      if (!serie.length) continue;
+      const ordenada = [...serie].sort((a, b) => a.SE - b.SE);
+      const atual = ordenada[ordenada.length - 1];
+      // Tendência: estimativa da semana vs. 4 semanas antes (nowcast, não bruto)
+      const antes = ordenada[Math.max(0, ordenada.length - 5)];
+      const variacao = antes?.casos_est > 0
+        ? ((atual.casos_est - antes.casos_est) / antes.casos_est) * 100 : null;
+      linhas.push({
+        uf, municipio: nome, geocode,
+        // InfoDengue devolve SE no formato AAAASS (202628 = semana 28 de 2026)
+        semana_epi: atual.SE % 100,
+        ano_epi: Math.floor(atual.SE / 100),
+        casos_notificados: atual.casos ?? 0,
+        casos_estimados: Math.round(atual.casos_est ?? 0),
+        casos_est_min: atual.casos_est_min ?? null,
+        casos_est_max: atual.casos_est_max ?? null,
+        incidencia_100k: atual.p_inc100k ?? null,
+        nivel: atual.nivel ?? null,
+        nivel_label: NIVEL_LABEL[atual.nivel] ?? null,
+        rt: atual.Rt ?? null,
+        variacao_4sem_pct: variacao,
+        versao_modelo: atual.versao_modelo ?? null,
+      });
+    } catch (e) {
+      console.warn(`[boletim]   ${doenca}/${uf} indisponível: ${String(e).slice(0, 80)}`);
+    }
+  }
+  return linhas;
+}
+
+console.log("[boletim] vigilância atual — InfoDengue (27 capitais)…");
+let vigilancia = null;
+try {
+  const [dengueAtual, chikAtual] = await Promise.all([
+    vigilanciaCapitais("dengue"),
+    vigilanciaCapitais("chikungunya"),
+  ]);
+  if (!dengueAtual.length) throw new Error("nenhuma capital retornou dados");
+  const maisRecente = dengueAtual.reduce((a, b) =>
+    (b.ano_epi * 100 + b.semana_epi) > (a.ano_epi * 100 + a.semana_epi) ? b : a);
+  const semanaRef = maisRecente.semana_epi;
+  const anoRefVig = maisRecente.ano_epi;
+  const emAlerta = dengueAtual.filter((c) => (c.nivel ?? 0) >= 3)
+    .sort((a, b) => (b.nivel - a.nivel) || (b.casos_estimados - a.casos_estimados));
+  const crescendo = dengueAtual.filter((c) => (c.rt ?? 0) > 1)
+    .sort((a, b) => (b.rt ?? 0) - (a.rt ?? 0));
+  vigilancia = {
+    fonte: "InfoDengue — Fiocruz/FGV (nowcasting; corrige atraso de notificação)",
+    fonte_url: "https://info.dengue.mat.br",
+    semana_epi: semanaRef,
+    ano_epi: anoRefVig,
+    versao_modelo: dengueAtual[0]?.versao_modelo ?? null,
+    capitais_consultadas: dengueAtual.length,
+    dengue: dengueAtual.sort((a, b) => b.casos_estimados - a.casos_estimados),
+    dengue_em_alerta: emAlerta,
+    dengue_transmissao_crescente: crescendo,
+    chikungunya_em_alerta: chikAtual.filter((c) => (c.nivel ?? 0) >= 3)
+      .sort((a, b) => b.casos_estimados - a.casos_estimados),
+    total_estimado_capitais: dengueAtual.reduce((s, c) => s + c.casos_estimados, 0),
+    total_notificado_capitais: dengueAtual.reduce((s, c) => s + c.casos_notificados, 0),
+  };
+  console.log(`[boletim]   SE ${semanaRef}: ${emAlerta.length} capitais em alerta (nível ≥3), `
+    + `${crescendo.length} com Rt>1 · modelo ${vigilancia.versao_modelo}`);
+} catch (e) {
+  console.warn(`[boletim]   vigilância indisponível — boletim segue só com o histórico: ${String(e).slice(0, 120)}`);
+}
+
+// ── 2. Dengue: canal endêmico + alertas por UF ─────────────────────────────
 console.log("[boletim] dengue — série semanal por UF…");
 const dengueRaw = await rest("mart_dengue_semana", {
   select:
@@ -231,12 +346,45 @@ const mesLabel = new Date(`${ultimoMes.slice(0, 10)}T12:00:00Z`).toLocaleDateStr
   year: "numeric",
   timeZone: "UTC",
 });
-const destaques = [
+const destaques = [];
+
+// O destaque de abertura é sempre a situação corrente — é o que muda toda semana.
+if (vigilancia) {
+  const alerta = vigilancia.dengue_em_alerta;
+  const cresc = vigilancia.dengue_transmissao_crescente;
+  if (alerta.length) {
+    destaques.push(
+      `SE ${vigilancia.semana_epi}/${vigilancia.ano_epi} — dengue: `
+      + `${plural(alerta.length, "capital em alerta", "capitais em alerta")} `
+      + `(nível laranja ou vermelho): ${alerta.slice(0, 4).map((c) => `${c.municipio}/${c.uf}`).join(", ")}`
+      + `${alerta.length > 4 ? " e outras" : ""}. Fonte: InfoDengue (Fiocruz/FGV).`,
+    );
+  } else {
+    destaques.push(
+      `SE ${vigilancia.semana_epi}/${vigilancia.ano_epi} — dengue: nenhuma capital em alerta laranja/vermelho; `
+      + `${plural(cresc.length, "capital tem", "capitais têm")} transmissão em crescimento (Rt>1). `
+      + `Fonte: InfoDengue (Fiocruz/FGV).`,
+    );
+  }
+  destaques.push(
+    `Nas 27 capitais, ${fmtInt(vigilancia.total_notificado_capitais)} casos de dengue já notificados na semana, `
+    + `mas ${fmtInt(vigilancia.total_estimado_capitais)} estimados após correção do atraso de digitação `
+    + `(nowcasting) — a contagem crua da semana corrente sempre subestima.`,
+  );
+  if (vigilancia.chikungunya_em_alerta.length) {
+    destaques.push(
+      `Chikungunya: ${plural(vigilancia.chikungunya_em_alerta.length, "capital em alerta", "capitais em alerta")} — `
+      + `${vigilancia.chikungunya_em_alerta.slice(0, 3).map((c) => `${c.municipio}/${c.uf}`).join(", ")}.`,
+    );
+  }
+}
+
+destaques.push(
   `Dengue ${anoRefDengue}: ${fmtInt(totalDengue.casos)} casos prováveis e ${fmtInt(totalDengue.obitos)} óbitos — casos acima da faixa esperada (P75 do canal endêmico ${baseIni}–${baseFim}) em ${semanasAcimaBr} das 52 semanas.`,
   `${ufsEmAlerta.length} UFs passaram um trimestre ou mais acima do canal endêmico em ${anoRefDengue}${ufsEmAlerta.length ? ` — maiores volumes: ${ufsEmAlerta.slice(0, 3).map((u) => u.uf).join(", ")}` : ""}.`,
   `Mortalidade geral em ${mesLabel}: ${fmtInt(brUltimo.obitos)} óbitos, ${fmtPct(pctExcessoBr)} vs. esperado (baseline 2015–2019)${descartados ? ` — ${descartados} mês(es) mais recente(s) excluído(s) por registro incompleto` : ""}.`,
   `Internações SUS ${anoSih}: ${fmtInt(internacoes.internacoes)} AIH, mortalidade intra-hospitalar de ${internacoes.mortalidade_pct.toFixed(1).replace(".", ",")}% e R$ ${(internacoes.valor_total / 1e9).toFixed(1).replace(".", ",")} bi aprovados.`,
-];
+);
 
 // ── 6. Gravar edição + índice ──────────────────────────────────────────────
 const OUT = path.join(import.meta.dirname, "..", "public", "sdata", "boletins");
@@ -250,6 +398,7 @@ const boletim = {
   versao_dataset: metaMap.versao_dataset ?? null,
   nota_preliminar: metaMap.nota_preliminar ?? null,
   destaques,
+  vigilancia_atual: vigilancia,
   dengue: {
     ano_ref: anoRefDengue,
     baseline: `${baseIni}–${baseFim}`,
