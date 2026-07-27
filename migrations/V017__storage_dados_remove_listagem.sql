@@ -1,0 +1,26 @@
+-- =============================================================================
+-- V017 — Bucket `dados`: remove a policy que permitia LISTAR o inventário
+-- =============================================================================
+-- O bucket `dados` é PÚBLICO: cada objeto é servido por URL direta
+--   /storage/v1/object/public/dados/<arquivo>
+-- sem depender de policy alguma em storage.objects.
+--
+-- A policy `select_temporario_dados` (SELECT para anon onde bucket_id='dados')
+-- habilitava apenas a operação de LISTAGEM — enumerar todos os arquivos do
+-- bucket. O site nunca faz isso: referencia cada Parquet por URL fixa em
+-- site/app/dados/page.tsx e site/app/layout.tsx. Era sobra de uma carga de
+-- dados antiga (daí "temporario" no nome).
+--
+-- Remover fecha a enumeração do inventário sem custo funcional. Verificado
+-- após a remoção:
+--   • download direto dos Parquet: HTTP 206/200 em todos os arquivos testados
+--   • leitura remota estilo DuckDB: accept-ranges=bytes, magic PAR1 no início
+--     e no fim, HTTP 206 no range do rodapé (primeiro acesso do httpfs)
+--   • listagem via /storage/v1/object/list/dados: passa a devolver 0 arquivos
+--
+-- Para reverter, se algum dia a listagem for necessária:
+--   CREATE POLICY select_temporario_dados ON storage.objects
+--     FOR SELECT TO anon USING (bucket_id = 'dados');
+-- =============================================================================
+
+DROP POLICY IF EXISTS select_temporario_dados ON storage.objects;
