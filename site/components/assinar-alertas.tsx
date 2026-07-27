@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { SUPABASE_URL, UFS } from "@/lib/api";
 
-const ENDPOINT = `${SUPABASE_URL}/functions/v1/alertas-assinatura/assinar`;
+const BASE = `${SUPABASE_URL}/functions/v1/alertas-assinatura`;
 
 type Estado = "ocioso" | "enviando" | "ok" | "erro";
 
@@ -20,13 +20,26 @@ export function AssinarAlertas() {
   const [consentimento, setConsentimento] = useState(false);
   const [estado, setEstado] = useState<Estado>("ocioso");
   const [mensagem, setMensagem] = useState("");
+  // null = ainda verificando. Não se oferece à pessoa um campo que não pode
+  // funcionar: o formulário só aparece quando o envio está operante, e passa a
+  // aparecer sozinho quando a chave for configurada (sem redeploy do site).
+  const [disponivel, setDisponivel] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    let vivo = true;
+    fetch(`${BASE}/status`)
+      .then((r) => r.json())
+      .then((d) => { if (vivo) setDisponivel(!!d.email_configurado); })
+      .catch(() => { if (vivo) setDisponivel(false); });
+    return () => { vivo = false; };
+  }, []);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setEstado("enviando");
     setMensagem("");
     try {
-      const res = await fetch(ENDPOINT, {
+      const res = await fetch(`${BASE}/assinar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, uf: uf || null, consentimento }),
@@ -35,6 +48,10 @@ export function AssinarAlertas() {
       if (res.ok && dados.ok) {
         setEstado("ok");
         setMensagem(dados.mensagem ?? "Verifique sua caixa de entrada para confirmar.");
+      } else if (dados.email_configurado === false) {
+        // O serviço caiu entre a checagem e o envio: recolhe o formulário em
+        // vez de deixar a pessoa tentando de novo em vão.
+        setDisponivel(false);
       } else {
         setEstado("erro");
         setMensagem(dados.erro ?? "Não foi possível concluir a inscrição agora.");
@@ -44,6 +61,10 @@ export function AssinarAlertas() {
       setMensagem("Falha de conexão. Tente novamente em instantes.");
     }
   }
+
+  // Enquanto verifica, ou quando o envio não está operante, não renderiza nada:
+  // um formulário quebrado é pior do que formulário nenhum.
+  if (disponivel !== true) return null;
 
   if (estado === "ok") {
     return (
