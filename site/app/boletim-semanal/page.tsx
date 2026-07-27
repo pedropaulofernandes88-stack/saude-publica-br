@@ -18,10 +18,11 @@ interface CanalSemana {
   observado: number;
 }
 
-interface CapitalVigilancia {
+interface MunicipioVigilancia {
   uf: string;
   municipio: string;
   geocode: string;
+  populacao: number | null;
   semana_epi: number;
   ano_epi: number;
   casos_notificados: number;
@@ -36,19 +37,46 @@ interface CapitalVigilancia {
   versao_modelo: string | null;
 }
 
+interface ResumoDoenca {
+  municipios_monitorados: number;
+  resumo_niveis: Record<string, number>;
+  em_alerta: MunicipioVigilancia[];
+  transmissao_crescente: number;
+  maiores_volumes: MunicipioVigilancia[];
+  por_uf: {
+    uf: string;
+    municipios: number;
+    em_alerta: number;
+    casos_estimados: number;
+    casos_notificados: number;
+  }[];
+  total_estimado: number;
+  total_notificado: number;
+}
+
 interface Vigilancia {
   fonte: string;
   fonte_url: string;
   semana_epi: number;
   ano_epi: number;
   versao_modelo: string | null;
-  capitais_consultadas: number;
-  dengue: CapitalVigilancia[];
-  dengue_em_alerta: CapitalVigilancia[];
-  dengue_transmissao_crescente: CapitalVigilancia[];
-  chikungunya_em_alerta: CapitalVigilancia[];
-  total_estimado_capitais: number;
-  total_notificado_capitais: number;
+  rede: {
+    total: number;
+    consultados: number;
+    falhas: number;
+    populacao_coberta: number;
+    cobertura_pct: number;
+    ufs_cobertas: number;
+    criterios: {
+      populacao_minima: number;
+      top_risco_dengue: number;
+      ano_populacao: number;
+      ano_dengue: number;
+    };
+  };
+  dengue: ResumoDoenca;
+  chikungunya: ResumoDoenca;
+  capitais_dengue: MunicipioVigilancia[];
 }
 
 interface Boletim {
@@ -148,13 +176,19 @@ function NivelBadge({ nivel }: { nivel: number | null }) {
   );
 }
 
-function TabelaVigilancia({ capitais }: { capitais: CapitalVigilancia[] }) {
+function TabelaVigilancia({
+  capitais,
+  rotulo = "Município",
+}: {
+  capitais: MunicipioVigilancia[];
+  rotulo?: string;
+}) {
   return (
     <div className="mt-4 overflow-x-auto">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-            <th className="py-2 pr-3">Capital</th>
+            <th className="py-2 pr-3">{rotulo}</th>
             <th className="py-2 pr-3">Alerta</th>
             <th className="py-2 pr-3 text-right">Notificados</th>
             <th className="py-2 pr-3 text-right">Estimados</th>
@@ -264,52 +298,98 @@ function BoletimInner() {
             🚨 Vigilância desta semana — SE {vig.semana_epi}/{vig.ano_epi}
           </h2>
           <p className="mt-1 text-sm text-ink-600">
-            Situação corrente de arboviroses nas 27 capitais, por{" "}
+            Rede sentinela de <strong>{fmtInt(vig.rede.total)} municípios</strong> (as 27 capitais, municípios
+            com mais de {fmtInt(vig.rede.criterios.populacao_minima)} habitantes e os de maior carga histórica
+            de dengue) — <strong>{fmtDec(vig.rede.cobertura_pct, 0)}% da população do país</strong>, todas as
+            UFs. Dados do{" "}
             <a href={vig.fonte_url} target="_blank" rel="noreferrer" className="font-medium text-accent-700 underline">
               InfoDengue
             </a>{" "}
-            (Fiocruz/FGV) — fonte independente do DataSUS consolidado usado no resto do boletim.
+            (Fiocruz/FGV) — fonte e metodologia independentes do DataSUS consolidado usado no resto do boletim.
           </p>
 
           <div className="mt-4 grid gap-4 sm:grid-cols-3">
-            <Kpi rotulo="Capitais em alerta" valor={String(vig.dengue_em_alerta.length)}
-                 detalhe="nível laranja ou vermelho (transmissão sustentada)" />
-            <Kpi rotulo="Transmissão em crescimento" valor={String(vig.dengue_transmissao_crescente.length)}
-                 detalhe="capitais com Rt > 1" />
-            <Kpi rotulo="Casos estimados na semana" valor={fmtInt(vig.total_estimado_capitais)}
-                 detalhe={`${fmtInt(vig.total_notificado_capitais)} já notificados — o restante é atraso de digitação`} />
+            <Kpi rotulo="Municípios em alerta" valor={String(vig.dengue.em_alerta.length)}
+                 detalhe={`nível laranja ou vermelho, de ${fmtInt(vig.dengue.municipios_monitorados)} monitorados`} />
+            <Kpi rotulo="Transmissão em crescimento" valor={String(vig.dengue.transmissao_crescente)}
+                 detalhe="municípios com Rt > 1" />
+            <Kpi rotulo="Casos estimados na semana" valor={fmtInt(vig.dengue.total_estimado)}
+                 detalhe={`${fmtInt(vig.dengue.total_notificado)} já notificados — o restante é atraso de digitação`} />
           </div>
 
           <p className="mt-3 rounded-lg border border-sky-200 bg-sky-50 px-4 py-2 text-sm text-sky-900">
             💡 <strong>Por que estimado &gt; notificado:</strong> a notificação da semana corrente ainda está sendo
             digitada. O InfoDengue aplica <em>nowcasting</em> para estimar o total real; usar a contagem crua
-            subestima sistematicamente a situação atual.
+            subestima sistematicamente a situação atual. Um município pode aparecer em alerta com poucos casos
+            já digitados — o alerta vem do padrão de crescimento, não só do número bruto.
           </p>
 
-          {vig.dengue_em_alerta.length > 0 && (
+          {vig.dengue.em_alerta.length > 0 && (
             <div className="card mt-6 border-orange-200">
-              <h3 className="font-serif text-xl font-semibold text-ink-900">Capitais em alerta — dengue</h3>
-              <TabelaVigilancia capitais={vig.dengue_em_alerta} />
+              <h3 className="font-serif text-xl font-semibold text-ink-900">
+                Municípios em alerta — dengue
+              </h3>
+              <p className="mt-1 text-sm text-ink-500">
+                Nível laranja (transmissão sustentada) ou vermelho (epidemia), ordenados por gravidade.
+              </p>
+              <TabelaVigilancia capitais={vig.dengue.em_alerta} />
             </div>
           )}
 
-          {vig.chikungunya_em_alerta.length > 0 && (
+          {vig.chikungunya.em_alerta.length > 0 && (
             <div className="card mt-6 border-orange-200">
-              <h3 className="font-serif text-xl font-semibold text-ink-900">Capitais em alerta — chikungunya</h3>
-              <TabelaVigilancia capitais={vig.chikungunya_em_alerta} />
+              <h3 className="font-serif text-xl font-semibold text-ink-900">
+                Municípios em alerta — chikungunya
+              </h3>
+              <TabelaVigilancia capitais={vig.chikungunya.em_alerta} />
             </div>
           )}
 
           <div className="card mt-6">
-            <h3 className="font-serif text-xl font-semibold text-ink-900">Todas as capitais — dengue</h3>
+            <h3 className="font-serif text-xl font-semibold text-ink-900">Panorama por UF — dengue</h3>
             <p className="mt-1 text-sm text-ink-500">
-              Ordenadas por casos estimados. Rt &gt; 1 indica transmissão em crescimento; a coluna
-              &quot;4 semanas&quot; compara a estimativa desta semana com a de quatro semanas atrás.
+              Municípios da rede sentinela em cada UF e quantos estão em alerta nesta semana.
             </p>
-            <TabelaVigilancia capitais={vig.dengue} />
+            <div className="mt-4 overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+                    <th className="py-2 pr-3">UF</th>
+                    <th className="py-2 pr-3 text-right">Monitorados</th>
+                    <th className="py-2 pr-3 text-right">Em alerta</th>
+                    <th className="py-2 pr-3 text-right">Notificados</th>
+                    <th className="py-2 text-right">Estimados</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {vig.dengue.por_uf.map((u) => (
+                    <tr key={u.uf} className="border-b border-ink-100">
+                      <td className="py-2 pr-3 font-medium text-ink-900">{u.uf}</td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-ink-600">{u.municipios}</td>
+                      <td className={`py-2 pr-3 text-right tabular-nums ${u.em_alerta > 0 ? "font-medium text-orange-700" : "text-ink-400"}`}>
+                        {u.em_alerta || "—"}
+                      </td>
+                      <td className="py-2 pr-3 text-right tabular-nums text-ink-600">{fmtInt(u.casos_notificados)}</td>
+                      <td className="py-2 text-right tabular-nums font-medium text-ink-900">{fmtInt(u.casos_estimados)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="card mt-6">
+            <h3 className="font-serif text-xl font-semibold text-ink-900">Capitais — dengue</h3>
+            <p className="mt-1 text-sm text-ink-500">
+              Referência das 27 capitais, ordenadas por casos estimados. A coluna &quot;4 semanas&quot; compara
+              a estimativa desta semana com a de quatro semanas atrás.
+            </p>
+            <TabelaVigilancia capitais={vig.capitais_dengue} rotulo="Capital" />
             <p className="mt-3 text-xs text-ink-500">
               Níveis do InfoDengue: verde (1) · amarelo (2, atenção) · laranja (3, transmissão sustentada) ·
-              vermelho (4, epidemia). Modelo {vig.versao_modelo}. Intervalo entre parênteses = faixa da estimativa.
+              vermelho (4, epidemia). Modelo {vig.versao_modelo}. Intervalo entre parênteses = faixa da
+              estimativa; quando ausente, o modelo não estimou incerteza para aquele município.
+              {vig.rede.falhas > 0 && ` ${vig.rede.falhas} municípios da rede não responderam nesta execução.`}
             </p>
           </div>
         </>

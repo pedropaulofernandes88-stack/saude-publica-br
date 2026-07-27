@@ -82,26 +82,22 @@ const edicao = `${anoEd}-se${String(semEd).padStart(2, "0")}`;
 console.log(`[boletim] edição ${edicao} (gerada em ${hoje.toISOString().slice(0, 10)})`);
 
 // ── 1. VIGILÂNCIA ATUAL — InfoDengue (Fiocruz/FGV) ─────────────────────────
-// Rede sentinela das 27 capitais. O InfoDengue publica nowcasting semanal por
-// município: `casos` é a notificação já digitada (sempre subestimada na semana
-// corrente) e `casos_est` é a estimativa corrigida para o atraso de digitação —
-// por isso o boletim reporta as duas, nunca só a contagem crua.
+// Rede sentinela definida em sdata/rede-sentinela.json (ver build-rede-sentinela.mjs):
+// capitais + municípios grandes + municípios de alto risco histórico de dengue.
+//
+// O InfoDengue publica nowcasting semanal por município: `casos` é a notificação
+// já digitada (sempre subestimada na semana corrente) e `casos_est` é a estimativa
+// corrigida para o atraso — por isso o boletim reporta as duas, nunca só a crua.
 // Níveis: 1 verde | 2 amarelo (atenção) | 3 laranja (transmissão sustentada) |
 // 4 vermelho (epidemia). Rt > 1 indica transmissão em crescimento.
-const CAPITAIS = [
-  ["AC", "Rio Branco", "1200401"], ["AL", "Maceió", "2704302"], ["AP", "Macapá", "1600303"],
-  ["AM", "Manaus", "1302603"], ["BA", "Salvador", "2927408"], ["CE", "Fortaleza", "2304400"],
-  ["DF", "Brasília", "5300108"], ["ES", "Vitória", "3205309"], ["GO", "Goiânia", "5208707"],
-  ["MA", "São Luís", "2111300"], ["MT", "Cuiabá", "5103403"], ["MS", "Campo Grande", "5002704"],
-  ["MG", "Belo Horizonte", "3106200"], ["PA", "Belém", "1501402"], ["PB", "João Pessoa", "2507507"],
-  ["PR", "Curitiba", "4106902"], ["PE", "Recife", "2611606"], ["PI", "Teresina", "2211001"],
-  ["RJ", "Rio de Janeiro", "3304557"], ["RN", "Natal", "2408102"], ["RS", "Porto Alegre", "4314902"],
-  ["RO", "Porto Velho", "1100205"], ["RR", "Boa Vista", "1400100"], ["SC", "Florianópolis", "4205407"],
-  ["SP", "São Paulo", "3550308"], ["SE", "Aracaju", "2800308"], ["TO", "Palmas", "1721000"],
-];
+//
+// Detalhe completo é guardado só para municípios em alerta e para os maiores
+// volumes; o resto entra como agregado — cada edição é commitada toda semana e
+// guardar ~900 registros inteiros incharia o repositório sem ganho de leitura.
 const NIVEL_LABEL = { 1: "verde", 2: "amarelo", 3: "laranja", 4: "vermelho" };
+const CONCORRENCIA = 6; // medido: sem erros; ~15 req/s. Serviço público — não abusar.
 
-async function infodengue(geocode, doenca) {
+async function infodengue(geocode, doenca, tentativa = 1) {
   // Janela de 8 semanas para calcular tendência; cruza o ano quando necessário.
   const cruzaAno = semEd <= 8;
   const qs = new URLSearchParams({
@@ -111,82 +107,134 @@ async function infodengue(geocode, doenca) {
     ey_start: String(cruzaAno ? anoEd - 1 : anoEd),
     ey_end: String(anoEd),
   });
-  const res = await fetch(`https://info.dengue.mat.br/api/alertcity?${qs}`, {
-    signal: AbortSignal.timeout(25_000),
-  });
-  if (!res.ok) throw new Error(`InfoDengue ${geocode}: HTTP ${res.status}`);
-  return res.json();
-}
-
-async function vigilanciaCapitais(doenca) {
-  const linhas = [];
-  for (const [uf, nome, geocode] of CAPITAIS) {
-    try {
-      const serie = await infodengue(geocode, doenca);
-      if (!serie.length) continue;
-      const ordenada = [...serie].sort((a, b) => a.SE - b.SE);
-      const atual = ordenada[ordenada.length - 1];
-      // Tendência: estimativa da semana vs. 4 semanas antes (nowcast, não bruto)
-      const antes = ordenada[Math.max(0, ordenada.length - 5)];
-      const variacao = antes?.casos_est > 0
-        ? ((atual.casos_est - antes.casos_est) / antes.casos_est) * 100 : null;
-      linhas.push({
-        uf, municipio: nome, geocode,
-        // InfoDengue devolve SE no formato AAAASS (202628 = semana 28 de 2026)
-        semana_epi: atual.SE % 100,
-        ano_epi: Math.floor(atual.SE / 100),
-        casos_notificados: atual.casos ?? 0,
-        casos_estimados: Math.round(atual.casos_est ?? 0),
-        casos_est_min: atual.casos_est_min ?? null,
-        casos_est_max: atual.casos_est_max ?? null,
-        incidencia_100k: atual.p_inc100k ?? null,
-        nivel: atual.nivel ?? null,
-        nivel_label: NIVEL_LABEL[atual.nivel] ?? null,
-        rt: atual.Rt ?? null,
-        variacao_4sem_pct: variacao,
-        versao_modelo: atual.versao_modelo ?? null,
-      });
-    } catch (e) {
-      console.warn(`[boletim]   ${doenca}/${uf} indisponível: ${String(e).slice(0, 80)}`);
-    }
+  try {
+    const res = await fetch(`https://info.dengue.mat.br/api/alertcity?${qs}`, {
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return await res.json();
+  } catch (e) {
+    if (tentativa >= 3) throw e;
+    await new Promise((r) => setTimeout(r, 800 * tentativa));
+    return infodengue(geocode, doenca, tentativa + 1);
   }
-  return linhas;
 }
 
-console.log("[boletim] vigilância atual — InfoDengue (27 capitais)…");
+function extrair(serie, mun) {
+  if (!serie.length) return null;
+  const ordenada = [...serie].sort((a, b) => a.SE - b.SE);
+  const atual = ordenada[ordenada.length - 1];
+  // Tendência: estimativa desta semana vs. 4 semanas antes (nowcast, não bruto)
+  const antes = ordenada[Math.max(0, ordenada.length - 5)];
+  const variacao = antes?.casos_est > 0
+    ? ((atual.casos_est - antes.casos_est) / antes.casos_est) * 100 : null;
+  const min = atual.casos_est_min ?? null;
+  const max = atual.casos_est_max ?? null;
+  return {
+    uf: mun.uf, municipio: mun.municipio, geocode: mun.geocode,
+    populacao: mun.populacao ?? null,
+    // InfoDengue devolve SE no formato AAAASS (202628 = semana 28 de 2026)
+    semana_epi: atual.SE % 100,
+    ano_epi: Math.floor(atual.SE / 100),
+    casos_notificados: atual.casos ?? 0,
+    casos_estimados: Math.round(atual.casos_est ?? 0),
+    // min = max significa que o modelo não estimou incerteza — não é intervalo
+    casos_est_min: min !== max ? min : null,
+    casos_est_max: min !== max ? max : null,
+    incidencia_100k: atual.p_inc100k ?? null,
+    nivel: atual.nivel ?? null,
+    nivel_label: NIVEL_LABEL[atual.nivel] ?? null,
+    rt: atual.Rt ?? null,
+    variacao_4sem_pct: variacao,
+    versao_modelo: atual.versao_modelo ?? null,
+  };
+}
+
+async function vigilanciaRede(municipios, doenca) {
+  const fila = [...municipios];
+  const linhas = [];
+  const falhas = [];
+  await Promise.all(Array.from({ length: CONCORRENCIA }, async () => {
+    while (fila.length) {
+      const mun = fila.shift();
+      try {
+        const r = extrair(await infodengue(mun.geocode, doenca), mun);
+        if (r) linhas.push(r);
+      } catch (e) {
+        falhas.push(`${mun.uf}/${mun.municipio}`);
+      }
+    }
+  }));
+  return { linhas, falhas };
+}
+
+/** Resume uma doença: agregados para toda a rede, detalhe só onde importa. */
+function resumirDoenca(linhas) {
+  const niveis = { 1: 0, 2: 0, 3: 0, 4: 0 };
+  const ufMap = new Map();
+  for (const l of linhas) {
+    if (l.nivel) niveis[l.nivel] = (niveis[l.nivel] ?? 0) + 1;
+    const u = ufMap.get(l.uf) ?? { uf: l.uf, municipios: 0, em_alerta: 0, casos_estimados: 0, casos_notificados: 0 };
+    u.municipios++;
+    if ((l.nivel ?? 0) >= 3) u.em_alerta++;
+    u.casos_estimados += l.casos_estimados;
+    u.casos_notificados += l.casos_notificados;
+    ufMap.set(l.uf, u);
+  }
+  const porNivel = (a, b) => (b.nivel - a.nivel) || (b.casos_estimados - a.casos_estimados);
+  return {
+    municipios_monitorados: linhas.length,
+    resumo_niveis: niveis,
+    em_alerta: linhas.filter((l) => (l.nivel ?? 0) >= 3).sort(porNivel),
+    transmissao_crescente: linhas.filter((l) => (l.rt ?? 0) > 1).length,
+    maiores_volumes: [...linhas].sort((a, b) => b.casos_estimados - a.casos_estimados).slice(0, 20),
+    por_uf: [...ufMap.values()].sort((a, b) => b.em_alerta - a.em_alerta || b.casos_estimados - a.casos_estimados),
+    total_estimado: linhas.reduce((s, l) => s + l.casos_estimados, 0),
+    total_notificado: linhas.reduce((s, l) => s + l.casos_notificados, 0),
+  };
+}
+
 let vigilancia = null;
 try {
-  const [dengueAtual, chikAtual] = await Promise.all([
-    vigilanciaCapitais("dengue"),
-    vigilanciaCapitais("chikungunya"),
-  ]);
-  if (!dengueAtual.length) throw new Error("nenhuma capital retornou dados");
-  const maisRecente = dengueAtual.reduce((a, b) =>
+  const rede = JSON.parse(
+    await readFile(path.join(import.meta.dirname, "..", "public", "sdata", "rede-sentinela.json"), "utf8"),
+  );
+  console.log(`[boletim] vigilância atual — InfoDengue (${rede.total} municípios sentinela)…`);
+  const t0 = Date.now();
+  const dg = await vigilanciaRede(rede.municipios, "dengue");
+  const ch = await vigilanciaRede(rede.municipios, "chikungunya");
+  if (!dg.linhas.length) throw new Error("nenhum município retornou dados");
+
+  const maisRecente = dg.linhas.reduce((a, b) =>
     (b.ano_epi * 100 + b.semana_epi) > (a.ano_epi * 100 + a.semana_epi) ? b : a);
-  const semanaRef = maisRecente.semana_epi;
-  const anoRefVig = maisRecente.ano_epi;
-  const emAlerta = dengueAtual.filter((c) => (c.nivel ?? 0) >= 3)
-    .sort((a, b) => (b.nivel - a.nivel) || (b.casos_estimados - a.casos_estimados));
-  const crescendo = dengueAtual.filter((c) => (c.rt ?? 0) > 1)
-    .sort((a, b) => (b.rt ?? 0) - (a.rt ?? 0));
+  const codCapitais = new Set(rede.municipios.filter((m) => m.motivos.includes("capital")).map((m) => m.geocode));
+
   vigilancia = {
     fonte: "InfoDengue — Fiocruz/FGV (nowcasting; corrige atraso de notificação)",
     fonte_url: "https://info.dengue.mat.br",
-    semana_epi: semanaRef,
-    ano_epi: anoRefVig,
-    versao_modelo: dengueAtual[0]?.versao_modelo ?? null,
-    capitais_consultadas: dengueAtual.length,
-    dengue: dengueAtual.sort((a, b) => b.casos_estimados - a.casos_estimados),
-    dengue_em_alerta: emAlerta,
-    dengue_transmissao_crescente: crescendo,
-    chikungunya_em_alerta: chikAtual.filter((c) => (c.nivel ?? 0) >= 3)
+    semana_epi: maisRecente.semana_epi,
+    ano_epi: maisRecente.ano_epi,
+    versao_modelo: maisRecente.versao_modelo ?? null,
+    rede: {
+      total: rede.total,
+      consultados: dg.linhas.length,
+      falhas: dg.falhas.length,
+      populacao_coberta: rede.populacao_coberta,
+      cobertura_pct: rede.cobertura_pct,
+      ufs_cobertas: rede.ufs_cobertas,
+      criterios: rede.criterios,
+    },
+    dengue: resumirDoenca(dg.linhas),
+    chikungunya: resumirDoenca(ch.linhas),
+    capitais_dengue: dg.linhas.filter((l) => codCapitais.has(l.geocode))
       .sort((a, b) => b.casos_estimados - a.casos_estimados),
-    total_estimado_capitais: dengueAtual.reduce((s, c) => s + c.casos_estimados, 0),
-    total_notificado_capitais: dengueAtual.reduce((s, c) => s + c.casos_notificados, 0),
   };
-  console.log(`[boletim]   SE ${semanaRef}: ${emAlerta.length} capitais em alerta (nível ≥3), `
-    + `${crescendo.length} com Rt>1 · modelo ${vigilancia.versao_modelo}`);
+  console.log(`[boletim]   SE ${vigilancia.semana_epi}/${vigilancia.ano_epi} em ${((Date.now() - t0) / 1000).toFixed(0)}s · `
+    + `dengue: ${vigilancia.dengue.em_alerta.length} em alerta de ${dg.linhas.length} · `
+    + `chik: ${vigilancia.chikungunya.em_alerta.length} · modelo ${vigilancia.versao_modelo}`
+    + (dg.falhas.length ? ` · ${dg.falhas.length} falhas` : ""));
 } catch (e) {
+  vigilancia = null; // não publicar vigilância parcial/inconsistente
   console.warn(`[boletim]   vigilância indisponível — boletim segue só com o histórico: ${String(e).slice(0, 120)}`);
 }
 
@@ -350,31 +398,40 @@ const destaques = [];
 
 // O destaque de abertura é sempre a situação corrente — é o que muda toda semana.
 if (vigilancia) {
-  const alerta = vigilancia.dengue_em_alerta;
-  const cresc = vigilancia.dengue_transmissao_crescente;
+  const dg = vigilancia.dengue;
+  const ch = vigilancia.chikungunya;
+  const rede = vigilancia.rede;
+  const alerta = dg.em_alerta;
+  const ufsComAlerta = new Set(alerta.map((m) => m.uf));
+
   if (alerta.length) {
     destaques.push(
       `SE ${vigilancia.semana_epi}/${vigilancia.ano_epi} — dengue: `
-      + `${plural(alerta.length, "capital em alerta", "capitais em alerta")} `
-      + `(nível laranja ou vermelho): ${alerta.slice(0, 4).map((c) => `${c.municipio}/${c.uf}`).join(", ")}`
-      + `${alerta.length > 4 ? " e outras" : ""}. Fonte: InfoDengue (Fiocruz/FGV).`,
+      + `${plural(alerta.length, "município em alerta", "municípios em alerta")} `
+      + `(nível laranja ou vermelho) em ${plural(ufsComAlerta.size, "UF", "UFs")}, `
+      + `de ${fmtInt(dg.municipios_monitorados)} monitorados. Maiores: `
+      + `${alerta.slice(0, 4).map((m) => `${m.municipio}/${m.uf}`).join(", ")}`
+      + `${alerta.length > 4 ? " e outros" : ""}. Fonte: InfoDengue (Fiocruz/FGV).`,
     );
   } else {
     destaques.push(
-      `SE ${vigilancia.semana_epi}/${vigilancia.ano_epi} — dengue: nenhuma capital em alerta laranja/vermelho; `
-      + `${plural(cresc.length, "capital tem", "capitais têm")} transmissão em crescimento (Rt>1). `
+      `SE ${vigilancia.semana_epi}/${vigilancia.ano_epi} — dengue: nenhum dos `
+      + `${fmtInt(dg.municipios_monitorados)} municípios monitorados está em alerta laranja/vermelho; `
+      + `${plural(dg.transmissao_crescente, "tem", "têm")} transmissão em crescimento (Rt>1). `
       + `Fonte: InfoDengue (Fiocruz/FGV).`,
     );
   }
   destaques.push(
-    `Nas 27 capitais, ${fmtInt(vigilancia.total_notificado_capitais)} casos de dengue já notificados na semana, `
-    + `mas ${fmtInt(vigilancia.total_estimado_capitais)} estimados após correção do atraso de digitação `
+    `Na rede sentinela (${fmtInt(rede.total)} municípios, ${rede.cobertura_pct.toFixed(0)}% da população), `
+    + `${fmtInt(dg.total_notificado)} casos de dengue já notificados na semana, `
+    + `mas ${fmtInt(dg.total_estimado)} estimados após correção do atraso de digitação `
     + `(nowcasting) — a contagem crua da semana corrente sempre subestima.`,
   );
-  if (vigilancia.chikungunya_em_alerta.length) {
+  if (ch.em_alerta.length) {
     destaques.push(
-      `Chikungunya: ${plural(vigilancia.chikungunya_em_alerta.length, "capital em alerta", "capitais em alerta")} — `
-      + `${vigilancia.chikungunya_em_alerta.slice(0, 3).map((c) => `${c.municipio}/${c.uf}`).join(", ")}.`,
+      `Chikungunya: ${plural(ch.em_alerta.length, "município em alerta", "municípios em alerta")} — `
+      + `${ch.em_alerta.slice(0, 3).map((m) => `${m.municipio}/${m.uf}`).join(", ")}`
+      + `${ch.em_alerta.length > 3 ? " e outros" : ""}.`,
     );
   }
 }
