@@ -247,6 +247,53 @@ export default function AtencaoBasica() {
         </p>
       </div>
 
+      {/* ── Teste de robustez: comparar só pares do mesmo porte ──────────── */}
+      <div className="card mt-6">
+        <h2 className="font-serif text-xl font-semibold text-ink-900">
+          Teste de robustez: e se compararmos só municípios do mesmo tamanho?
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-500">
+          A seção anterior mostra que a cobertura (%) não serve para comparar municípios de portes
+          diferentes. Mas talvez sirva para comparar municípios <strong>do mesmo porte</strong> entre
+          si — a pergunta de equidade legítima. Testamos com o método mais rigoroso possível:
+          substituímos a cobertura por <strong>densidade real de equipes</strong> (ESF por 10 mil
+          habitantes, sem o teto artificial de capacidade padronizada), comparamos cada município
+          apenas aos pares do <strong>mesmo quartil de população</strong>, e usamos{" "}
+          <strong>%ICSAP</strong> em vez de ICSAP por 100 mil — porque testamos e o ICSAP por 100 mil
+          cai em municípios vulneráveis simplesmente porque o acesso hospitalar geral é menor lá, não
+          porque a atenção primária seja melhor.
+        </p>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Kpi rotulo="Densidade de ESF × %ICSAP, no mesmo porte" valor="ρ ≈ 0,00"
+               detalhe="entre −0,02 e +0,18 conforme o quartil de porte — sem relação" />
+          <Kpi rotulo="Co-ocorrência observada vs. esperada ao acaso" valor="0,94×"
+               detalhe="menos equipe + mais ICSAP juntos: não passa do que a coincidência prevê" />
+          <Kpi rotulo="%ICSAP por quartil de vulnerabilidade" valor="19–21%"
+               detalhe="praticamente constante — sem gradiente por vulnerabilidade" />
+        </div>
+
+        <p className="mt-4 max-w-3xl text-sm text-ink-700">
+          <strong>Resultado: o achado nulo sobrevive ao teste mais rigoroso.</strong> Mesmo comparando
+          apenas municípios do mesmo tamanho, e mesmo trocando a métrica de cobertura pela densidade
+          real de equipes, não há associação entre ter mais Estratégia Saúde da Família e internar
+          proporcionalmente menos por causas evitáveis. A leve diferença que aparece por
+          vulnerabilidade social é explicada pela <em>alocação</em> de equipes — municípios mais
+          vulneráveis têm, na mediana, mais ESF por habitante dentro do próprio porte, um sinal
+          positivo de direcionamento de recursos — e não por um efeito da atenção primária sobre o
+          ICSAP em si, que fica praticamente constante entre os quartis de vulnerabilidade.
+        </p>
+        <p className="mt-2 max-w-3xl text-xs text-ink-500">
+          Não publicamos isto como ranking ou lista de municípios prioritários: a razão
+          observado/esperado de 0,94 mostra que qualquer classificação individual de "município em
+          atenção" seria estatisticamente indistinguível de ruído. Reprodutível em{" "}
+          <code>scripts/analise_equidade_aps.py</code>; discussão completa no artigo{" "}
+          <a href="/artigos/o-que-os-indicadores-nao-comparam/" className="text-accent-700 underline">
+            "O que os indicadores não comparam"
+          </a>.
+        </p>
+      </div>
+
       <p className="mt-4 text-xs text-ink-500">
         Fonte: relatório público de Cobertura da APS (Ministério da Saúde / e-Gestor AB), competências
         de jan/2021 a mai/2026, cruzado com ICSAP (SIH/DataSUS, 2024) e o índice-proxy de

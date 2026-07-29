@@ -447,6 +447,25 @@ export default function Metodologia() {
         Reprodutível em <code>scripts/analise_cobertura_icsap.py</code>; discussão completa no
         artigo <a href="/artigos/o-que-os-indicadores-nao-comparam/">“O que os indicadores não comparam”</a>.
       </p>
+      <p>
+        <strong>Teste de robustez — comparando só pares do mesmo porte.</strong> Testamos a objeção
+        óbvia ao resultado acima: talvez a comparação só faça sentido dentro do mesmo porte
+        populacional. Refizemos a análise com o desenho mais rigoroso disponível: densidade real de
+        equipes (<strong>ESF por 10 mil habitantes</strong>, sem o teto de capacidade padronizada, em
+        vez do percentual saturado), cada município comparado apenas ao seu{" "}
+        <strong>quartil de população</strong>, e <strong>%ICSAP</strong> em vez de ICSAP por 100 mil
+        habitantes — porque testamos e o ICSAP por 100 mil cai em municípios vulneráveis apenas
+        porque o acesso hospitalar geral é menor lá (internações totais por mil habitantes também
+        caem com a vulnerabilidade), não porque a atenção primária seja melhor; %ICSAP normaliza
+        esse confundimento e fica praticamente constante entre quartis de vulnerabilidade (19–21%).
+        Resultado: a correlação entre densidade de equipes e %ICSAP dentro do mesmo porte é ρ entre
+        −0,02 e +0,18 conforme o quartil — sem relação prática. A co-ocorrência de baixa densidade
+        de equipe com alto %ICSAP (campo <code>atencao</code> do mart) é <strong>0,94×</strong> o que
+        a independência estatística preveria — abaixo do acaso, não acima. Por isso o mart{" "}
+        <code>mart_equidade_aps_municipio</code> é publicado como registro do teste, não como
+        ranking: qualquer classificação individual de município a partir dele seria estatisticamente
+        indistinguível de ruído. Reprodutível em <code>scripts/analise_equidade_aps.py</code>.
+      </p>
 
       <h2>16. Arquétipos de saúde municipal (k-means)</h2>
       <p>

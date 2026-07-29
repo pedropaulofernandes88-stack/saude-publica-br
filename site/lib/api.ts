@@ -198,6 +198,24 @@ export interface CoberturaApsMunicipio {
   cobertura_pct: number | null;
 }
 
+export interface EquidadeApsMunicipio {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  populacao: number | null;
+  porte_quartil: string | null;
+  esf_por_10k: number | null;
+  pct_esf_no_porte: number | null;
+  pct_icsap: number | null;
+  icsap_100k: number | null;
+  pct_icsap_no_porte: number | null;
+  ivs_score: number | null;
+  ivs_quartil: string | null;
+  atencao: boolean | null;
+}
+
 export interface HsmrHospital {
   cnes: string;
   municipio_cod: string;

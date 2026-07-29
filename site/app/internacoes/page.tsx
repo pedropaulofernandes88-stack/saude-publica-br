@@ -14,7 +14,17 @@ function fmtReais(v: number | null | undefined): string {
   return `R$ ${v.toLocaleString("pt-BR", { maximumFractionDigits: 0 })}`;
 }
 
-/** Limite inferior do IC95% (Wilson) da proporção x/n — evita sinalizar ruído de amostra pequena. */
+/**
+ * Limite inferior do IC95% (Wilson) da proporção x/n — evita sinalizar ruído de amostra pequena.
+ *
+ * Múltiplas comparações: diferente do HSMR (site/app/hospitalar), esta flag NÃO precisou de
+ * correção FDR. Motivo verificado, não assumido: ela só é aplicada às 30 linhas já pré-filtradas
+ * por maior %ICSAP (icsapRank), nunca ao universo completo de ~5.200 municípios elegíveis. Nesse
+ * recorte, os efeitos são enormes (60–72% vs. ~19,5% de média nacional) e o p-valor de cada um é
+ * computacionalmente zero — testado em jul/2026, os 30 sobrevivem integralmente à correção
+ * Benjamini-Hochberg. Se esta flag um dia for aplicada a um recorte maior (não apenas ao top 30),
+ * reavaliar — ver scripts/hsmr_intervalo_confianca.py para o padrão de correção já usado no projeto.
+ */
 function wilsonInf(x: number, n: number): number {
   if (!n) return 0;
   const z = 1.96, p = x / n;
