@@ -211,6 +211,8 @@ export interface HsmrHospital {
   estavel: boolean;
   hsmr_ic95_inf: number | null;
   hsmr_ic95_sup: number | null;
+  hsmr_pvalor: number | null;
+  hsmr_q_valor: number | null;
   significancia: "acima" | "abaixo" | "esperado" | "indeterminado" | null;
 }
 

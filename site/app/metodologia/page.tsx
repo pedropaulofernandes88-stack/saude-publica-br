@@ -341,13 +341,25 @@ export default function Metodologia() {
         constante conhecida, o intervalo é{" "}
         <code>[qgamma(0,025; O) / E ; qgamma(0,975; O+1) / E]</code> — o mesmo método
         gamma/Poisson exato já usado nas taxas brutas municipais (§5), e não uma segunda
-        convenção. Cada hospital-ano é classificado em <strong>acima</strong>,{" "}
-        <strong>abaixo</strong> ou <strong>dentro do esperado</strong> conforme o intervalo exclua
-        ou contenha 1; hospitais com esperado = 0 ficam como <strong>indeterminado</strong> — não
-        “dentro do esperado”, pois não há base para afirmar nada. Em 2024: 16,4% acima, 54,5%
-        abaixo, 26,8% dentro do esperado. O ganho é concreto: um hospital com HSMR 5,94 e
-        IC [0,13 – 27,86] deixa de parecer alarme e passa a ser lido como o que é — poucos casos,
-        nenhuma conclusão possível.
+        convenção. O ganho é concreto: um hospital com HSMR 5,94 e IC [0,13 – 27,86] deixa de
+        parecer alarme e passa a ser lido como o que é — poucos casos, nenhuma conclusão possível.
+      </p>
+      <p>
+        <strong>Correção para múltiplas comparações (FDR).</strong> Publicar ~4.600 hospitais por
+        ano significa testar ~4.600 hipóteses simultaneamente. Um teste isolado a 5% erra 5% das
+        vezes; 4.600 testes simultâneos a 5%, se nenhum hospital realmente diferisse do esperado,
+        ainda produziriam centenas de “achados” só por acaso. Por isso a classificação{" "}
+        <code>significancia</code> não usa o IC bruto isoladamente: calculamos o p-valor exato de
+        Poisson (bilateral) para cada hospital-ano e aplicamos a correção{" "}
+        <strong>Benjamini-Hochberg</strong> (controle da taxa de falsas descobertas), separadamente
+        para cada ano civil. Um hospital só é classificado <strong>acima</strong> ou{" "}
+        <strong>abaixo</strong> do esperado quando o q-valor (p ajustado) é menor que 0,05;
+        hospitais com esperado = 0 ficam <strong>indeterminado</strong> — não “dentro do
+        esperado”, pois não há teste possível. Em 2024: 16,0% acima, 53,2% abaixo, 28,6% dentro do
+        esperado. O efeito da correção é honesto, não dramático: de 10.046 hospitais-ano
+        significativos sem correção (nos três anos), 282 (2,8%) perdem a classificação após o FDR
+        — a maior parte do sinal bruto é real, mas nem todo. Reprodutível em{" "}
+        <code>scripts/hsmr_intervalo_confianca.py</code>.
       </p>
       <p>
         <strong>Viés conhecido: o ajuste por capítulo é grosseiro.</strong> A calibração é exata
@@ -355,8 +367,8 @@ export default function Metodologia() {
         residual. Um capítulo da CID-10 é uma categoria larga — o capítulo IX vai de hipertensão a
         cirurgia cardíaca complexa — e hospitais terciários concentram os casos graves{" "}
         <em>dentro</em> de cada capítulo. O efeito é mensurável: em 2024, os hospitais
-        classificados acima do esperado têm mediana de <strong>5.324 internações</strong> contra{" "}
-        <strong>1.098</strong> dos classificados abaixo, e concentram 59,7% de todos os óbitos
+        classificados acima do esperado têm mediana de <strong>5.350 internações</strong> contra{" "}
+        <strong>1.136</strong> dos classificados abaixo, e concentram 58,9% de todos os óbitos
         hospitalares. Ou seja, este HSMR <strong>penaliza sistematicamente hospitais grandes e
         complexos</strong>. Corrigir exigiria ajuste por procedimento, gravidade ou comorbidade —
         variáveis que a AIH pública não fornece. Use para levantar hipóteses, nunca para ranquear.

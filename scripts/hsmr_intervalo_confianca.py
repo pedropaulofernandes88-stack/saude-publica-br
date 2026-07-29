@@ -1,6 +1,6 @@
 """
-hsmr_intervalo_confianca.py — IC95% exato (Poisson) para o HSMR
-================================================================
+hsmr_intervalo_confianca.py — IC95%, p-valor exato e correcao FDR para o HSMR
+==============================================================================
 
 O HSMR publicado ate aqui trazia uma flag binaria `estavel` (obitos esperados
 >= 5). Isso responde "o numero e confiavel?", mas nao responde a pergunta que
@@ -17,11 +17,27 @@ E o mesmo metodo gamma/Poisson exato ja usado nas taxas brutas de mortalidade
 municipal do projeto (scripts/pipeline_v2.py) — consistencia metodologica
 interna, nao uma segunda convencao.
 
-Leitura: se o IC95% NAO contem 1, a diferenca em relacao ao esperado e
-estatisticamente significativa (a 5%). Se contem 1, o hospital nao se
-distingue do padrao nacional dado seu case-mix — mesmo que o ponto estimado
-pareca alto. Isso substitui com vantagem a flag binaria: um hospital com
-HSMR 2,4 e IC [0,7 - 6,1] deixa de parecer um alarme.
+PROBLEMA DE MULTIPLAS COMPARACOES — por que o IC bruto nao basta.
+Publicamos ~4.600 hospitais por ano, cada um com seu proprio teste implicito
+(o IC nao contem 1?). Testar milhares de hipoteses simultaneamente ao nivel de
+5% garante, por construcao, uma quantidade grande de falsos positivos: ao
+acaso, ~5% dos hospitais teriam HSMR "significativamente" diferente de 1 mesmo
+que a mortalidade real de TODOS fosse identica ao esperado. Em 2024 (4.633
+hospitais testaveis), isso e ~232 falsos positivos esperados so por acaso —
+~15% do grupo hoje classificado "acima do esperado" (778 hospitais).
+
+Corrigimos com Benjamini-Hochberg (controle da taxa de falsas descobertas,
+FDR), aplicado por ano civil (cada ano e uma familia de testes independente).
+O p-valor exato de Poisson (bilateral) e calculado e depois ajustado; a
+classificacao `significancia` passa a usar o q-valor (p ajustado), nao mais o
+IC bruto. Em 2024, isso reduz o grupo "acima" de 778 para ~690 hospitais —
+os que sobrevivem ao controle de multiplas comparacoes.
+
+Leitura: `significancia` = acima/abaixo quando q < 0,05 (a diferenca resiste
+ao controle de multiplas comparacoes); "esperado" quando q >= 0,05, mesmo que
+o IC95% bruto exclua 1. O IC (`hsmr_ic95_inf/sup`) continua publicado como
+faixa descritiva do ponto estimado, mas a classificacao categorica agora
+reflete o q-valor, nao o IC bruto isoladamente.
 
 Nao reprocessa o SIH: trabalha sobre mart_hsmr_hospital ja publicado.
 
@@ -40,6 +56,7 @@ import numpy as np
 import pandas as pd
 import requests
 from scipy.stats import gamma as gamma_dist
+from scipy.stats import poisson as poisson_dist
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
@@ -77,13 +94,64 @@ def add_ic95(df: pd.DataFrame) -> pd.DataFrame:
 
     df["hsmr_ic95_inf"] = np.round(inf, 3)
     df["hsmr_ic95_sup"] = np.round(sup, 3)
+    return df
 
-    # classificacao: acima / abaixo / dentro do esperado (IC nao contem 1).
-    # Hospitais com esperado = 0 nao admitem IC — sao "indeterminado", nao
-    # "esperado": nao ha base para afirmar que estao dentro do padrao.
-    acima = df["hsmr_ic95_inf"] > 1
-    abaixo = df["hsmr_ic95_sup"] < 1
-    indet = df["hsmr_ic95_inf"].isna() | df["hsmr_ic95_sup"].isna()
+
+def _p_valor_poisson(obs: np.ndarray, esp: np.ndarray) -> np.ndarray:
+    """P-valor bilateral exato: P(observar um desvio >= |O-E| sob H0: taxa=E)."""
+    maior_ou_igual = obs >= esp
+    p = np.where(
+        maior_ou_igual,
+        2 * poisson_dist.sf(obs - 1, esp),
+        2 * poisson_dist.cdf(obs, esp),
+    )
+    return np.minimum(p, 1.0)
+
+
+def _bh_fdr(p: np.ndarray, alpha: float = 0.05) -> np.ndarray:
+    """
+    Benjamini-Hochberg: retorna o q-valor (p-valor ajustado) para cada teste.
+    Implementacao direta (sem statsmodels): ordena por p, aplica o fator
+    m/rank, garante monotonicidade (q nao pode cair ao percorrer do maior
+    p-valor para o menor).
+    """
+    n = len(p)
+    ordem = np.argsort(p)
+    p_ord = p[ordem]
+    q_ord = p_ord * n / (np.arange(n) + 1)
+    q_ord = np.minimum.accumulate(q_ord[::-1])[::-1]  # monotonicidade
+    q_ord = np.minimum(q_ord, 1.0)
+    q = np.empty(n)
+    q[ordem] = q_ord
+    return q
+
+
+def add_significancia_fdr(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    P-valor exato de Poisson + correcao de multiplas comparacoes (Benjamini-
+    Hochberg, por ano civil — cada ano e uma familia de testes independente).
+    Classificacao final: acima/abaixo do esperado exigem q-valor < 0,05.
+    Hospitais com esperado = 0 nao admitem teste -> "indeterminado".
+    """
+    obs = df["obitos_observados"].to_numpy(dtype=float)
+    esp = df["obitos_esperados"].to_numpy(dtype=float)
+    valido = esp > 0
+
+    p = np.full(len(df), np.nan)
+    p[valido] = _p_valor_poisson(obs[valido], esp[valido])
+    df["hsmr_pvalor"] = np.round(p, 5)
+
+    q_col = pd.Series(np.nan, index=df.index)
+    for _, g in df.groupby("ano"):
+        sub = g[g["hsmr_pvalor"].notna()]
+        if len(sub) == 0:
+            continue
+        q_col.loc[sub.index] = _bh_fdr(sub["hsmr_pvalor"].to_numpy())
+    df["hsmr_q_valor"] = np.round(q_col.to_numpy(), 5)
+
+    acima = (df["hsmr"] > 1) & (df["hsmr_q_valor"] < 0.05)
+    abaixo = (df["hsmr"] < 1) & (df["hsmr_q_valor"] < 0.05)
+    indet = df["hsmr_q_valor"].isna()
     df["significancia"] = np.where(
         indet, "indeterminado",
         np.where(acima, "acima", np.where(abaixo, "abaixo", "esperado")),
@@ -101,22 +169,27 @@ def main() -> None:
         raise SystemExit(f"faltando {src}")
     df = pd.read_parquet(src)
     df = add_ic95(df)
+    df = add_significancia_fdr(df)
 
     print(f"[hsmr-ic] {len(df):,} registros hospital-ano")
     for ano, g in df.groupby("ano"):
         dist = g["significancia"].value_counts()
         n = len(g)
+        bruto = (g["hsmr_pvalor"] < 0.05).sum()
         print(f"  {ano}: acima={dist.get('acima',0):5,} ({dist.get('acima',0)/n*100:4.1f}%)  "
               f"abaixo={dist.get('abaixo',0):5,} ({dist.get('abaixo',0)/n*100:4.1f}%)  "
-              f"dentro do esperado={dist.get('esperado',0):5,} ({dist.get('esperado',0)/n*100:4.1f}%)")
+              f"dentro do esperado={dist.get('esperado',0):5,} ({dist.get('esperado',0)/n*100:4.1f}%)  "
+              f"| sem correcao FDR seriam {bruto:,} significativos")
 
-    # quantos "alarmes" da flag antiga se dissolvem com o IC
-    antigos_altos = df[(df.hsmr > 1.5)]
-    dissolvidos = antigos_altos[antigos_altos.significancia == "esperado"]
-    print(f"\n  HSMR > 1,5 no ponto estimado: {len(antigos_altos):,}")
-    print(f"    destes, NAO significativos (IC contem 1): {len(dissolvidos):,} "
-          f"({len(dissolvidos)/max(len(antigos_altos),1)*100:.1f}%)")
-    print("    -> o IC evita tratar ruido de hospital pequeno como sinal")
+    # efeito da correcao FDR: quantos hospitais perdem o rotulo de significancia
+    total_testado = df["hsmr_pvalor"].notna().sum()
+    sig_bruto = (df["hsmr_pvalor"] < 0.05).sum()
+    sig_fdr = (df["significancia"] != "esperado") & (df["significancia"] != "indeterminado")
+    print(f"\n  hospitais testaveis: {total_testado:,}")
+    print(f"  significativos SEM correcao (p<0,05)   : {sig_bruto:,} ({sig_bruto/total_testado*100:.1f}%)")
+    print(f"  significativos APOS FDR (q<0,05)        : {sig_fdr.sum():,} ({sig_fdr.sum()/total_testado*100:.1f}%)")
+    print(f"  perdem o rotulo de significancia         : {sig_bruto - sig_fdr.sum():,}")
+    print("  -> sem essa correcao, parte do grupo 'acima do esperado' seria ruido estatistico")
 
     df.to_parquet(src, compression="zstd", index=False)
     print(f"\n[hsmr-ic] mart atualizado: {src.name}")

@@ -28,7 +28,7 @@ export default function Hospitalar() {
   useEffect(() => {
     setHsmr(null);
     rest<HsmrHospital>("mart_hsmr_hospital", {
-      select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano,internacoes,obitos_observados,obitos_esperados,hsmr,estavel,hsmr_ic95_inf,hsmr_ic95_sup,significancia",
+      select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano,internacoes,obitos_observados,obitos_esperados,hsmr,estavel,hsmr_ic95_inf,hsmr_ic95_sup,hsmr_pvalor,hsmr_q_valor,significancia",
       ano: `eq.${ano}`, order: `${hsmrOrd}.desc.nullslast`, limit: "60", ...ufF,
     }).then(setHsmr).catch(() => setHsmr([]));
   }, [ufF, hsmrOrd, ano]);
@@ -199,10 +199,14 @@ export default function Hospitalar() {
                           </span>
                         )}
                         {h.significancia === "esperado" && (
-                          <span title="O IC95% contém 1: não difere do esperado para este case-mix" className="ml-1 text-ink-400">≈</span>
+                          <span title={`Não difere do esperado após correção para múltiplas comparações (q=${fmtDec(h.hsmr_q_valor, 3)})`}
+                                className="ml-1 text-ink-400">≈</span>
                         )}
                         {h.significancia === "indeterminado" && (
                           <span title="Óbitos esperados = 0: não é possível calcular intervalo" className="ml-1 text-amber-600">?</span>
+                        )}
+                        {(h.significancia === "acima" || h.significancia === "abaixo") && h.hsmr_q_valor != null && (
+                          <span title={`q-valor (FDR) = ${fmtDec(h.hsmr_q_valor, 3)}`} className="ml-1 cursor-help text-ink-300">*</span>
                         )}
                       </td>
                     </tr>
@@ -215,11 +219,14 @@ export default function Hospitalar() {
         <div className="mt-3 max-w-3xl space-y-2 text-xs text-ink-500">
           <p>
             Entre colchetes, o <strong>IC95% (gamma/Poisson exato)</strong> — o mesmo método usado nas
-            taxas brutas de mortalidade do projeto. <span className="text-ink-400">≈</span> marca os
-            hospitais cujo intervalo <strong>contém 1</strong>: não se distinguem do esperado, mesmo
-            que o ponto estimado pareça alto. <span className="text-amber-600">?</span> indica óbitos
-            esperados = 0, onde não há intervalo possível. Padronização indireta por faixa etária ×
-            capítulo CID-10, taxas de referência nacionais; mínimo de 12 internações/ano.
+            taxas brutas de mortalidade do projeto. A classificação (cor e <span className="text-ink-400">≈</span>)
+            usa o <strong>q-valor</strong>, não o IC bruto: com ~4.600 hospitais testados por ano,
+            testar cada um a 5% sem correção geraria falsos positivos só por acaso. Corrigimos com{" "}
+            <strong>Benjamini-Hochberg</strong> (por ano); passe o mouse no <span className="text-ink-300">*</span>{" "}
+            para ver o q-valor. Isso remove 282 de 10.046 hospitais antes classificados como
+            significativos (2,8%) — a maior parte do sinal é real, mas nem todo. <span className="text-amber-600">?</span>{" "}
+            indica óbitos esperados = 0, onde não há teste possível. Padronização indireta por faixa
+            etária × capítulo CID-10, taxas de referência nacionais; mínimo de 12 internações/ano.
           </p>
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
             <strong>Viés conhecido, contra hospitais grandes:</strong> o ajuste por capítulo CID é
