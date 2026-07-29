@@ -178,6 +178,26 @@ export interface InternacaoHospital {
   custo_medio: number | null;
 }
 
+export interface CoberturaApsMunicipio {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  mes: number;
+  mes_competencia: string;
+  populacao: number | null;
+  qt_esf: number | null;
+  qt_eap20: number | null;
+  qt_eap30: number | null;
+  qt_esfr: number | null;
+  qt_ecr: number | null;
+  qt_eapp20: number | null;
+  qt_eapp30: number | null;
+  capacidade_equipe: number | null;
+  cobertura_pct: number | null;
+}
+
 export interface HsmrHospital {
   cnes: string;
   municipio_cod: string;
