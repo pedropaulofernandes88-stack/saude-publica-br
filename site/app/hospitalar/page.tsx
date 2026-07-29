@@ -28,7 +28,7 @@ export default function Hospitalar() {
   useEffect(() => {
     setHsmr(null);
     rest<HsmrHospital>("mart_hsmr_hospital", {
-      select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano,internacoes,obitos_observados,obitos_esperados,hsmr,estavel",
+      select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano,internacoes,obitos_observados,obitos_esperados,hsmr,estavel,hsmr_ic95_inf,hsmr_ic95_sup,significancia",
       ano: `eq.${ano}`, order: `${hsmrOrd}.desc.nullslast`, limit: "60", ...ufF,
     }).then(setHsmr).catch(() => setHsmr([]));
   }, [ufF, hsmrOrd, ano]);
@@ -172,7 +172,7 @@ export default function Hospitalar() {
                   <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
                     <th className="px-3 py-2">#</th><th className="px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                     <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">Óbitos obs.</th>
-                    <th className="px-3 py-2 text-right">Óbitos esp.</th><th className="px-3 py-2 text-right">HSMR</th>
+                    <th className="px-3 py-2 text-right">Óbitos esp.</th><th className="px-3 py-2 text-right">HSMR (IC95%)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -186,10 +186,24 @@ export default function Hospitalar() {
                       <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(h.obitos_observados)}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(h.obitos_esperados, 1)}</td>
                       <td className="px-3 py-2 text-right tabular-nums">
-                        <span className={h.hsmr != null && h.hsmr > 1 ? "font-semibold text-red-700" : "font-semibold text-accent-800"}>
+                        <span className={
+                          h.significancia === "acima" ? "font-semibold text-red-700"
+                          : h.significancia === "abaixo" ? "font-semibold text-accent-800"
+                          : "font-semibold text-ink-500"
+                        }>
                           {fmtDec(h.hsmr, 2)}
                         </span>
-                        {!h.estavel && <span title="Óbitos esperados < 5 — razão instável, poucos casos" className="ml-1 text-amber-600">⚠</span>}
+                        {h.hsmr_ic95_inf != null && h.hsmr_ic95_sup != null && (
+                          <span className="ml-1 whitespace-nowrap text-xs text-ink-400">
+                            [{fmtDec(h.hsmr_ic95_inf, 2)}–{fmtDec(h.hsmr_ic95_sup, 2)}]
+                          </span>
+                        )}
+                        {h.significancia === "esperado" && (
+                          <span title="O IC95% contém 1: não difere do esperado para este case-mix" className="ml-1 text-ink-400">≈</span>
+                        )}
+                        {h.significancia === "indeterminado" && (
+                          <span title="Óbitos esperados = 0: não é possível calcular intervalo" className="ml-1 text-amber-600">?</span>
+                        )}
                       </td>
                     </tr>
                   ))}
@@ -198,12 +212,25 @@ export default function Hospitalar() {
             )
           ) : <Skeleton altura={320} />}
         </div>
-        <p className="mt-2 text-xs text-ink-400">
-          <span className="text-amber-600">⚠</span> óbitos esperados &lt; 5 — a razão fica hipersensível a
-          um único óbito a mais; interprete com cautela (regra geral de estabilidade para razões
-          padronizadas). Padronização por faixa etária × capítulo CID-10, com taxas de referência
-          nacionais. Mínimo de 12 internações/ano para entrar no ranking.
-        </p>
+        <div className="mt-3 max-w-3xl space-y-2 text-xs text-ink-500">
+          <p>
+            Entre colchetes, o <strong>IC95% (gamma/Poisson exato)</strong> — o mesmo método usado nas
+            taxas brutas de mortalidade do projeto. <span className="text-ink-400">≈</span> marca os
+            hospitais cujo intervalo <strong>contém 1</strong>: não se distinguem do esperado, mesmo
+            que o ponto estimado pareça alto. <span className="text-amber-600">?</span> indica óbitos
+            esperados = 0, onde não há intervalo possível. Padronização indireta por faixa etária ×
+            capítulo CID-10, taxas de referência nacionais; mínimo de 12 internações/ano.
+          </p>
+          <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+            <strong>Viés conhecido, contra hospitais grandes:</strong> o ajuste por capítulo CID é
+            grosseiro — dentro de um mesmo capítulo cabem casos leves e casos graves. Hospitais
+            terciários concentram os graves e, por isso, tendem sistematicamente a HSMR maior.
+            Nos dados de 2024, os hospitais classificados “acima do esperado” têm mediana de{" "}
+            <strong>5.324 internações</strong> contra <strong>1.098</strong> dos “abaixo” — quase 5×
+            maiores. Isto é <em>case-mix residual</em>, não necessariamente pior assistência: use o
+            HSMR para levantar hipóteses, nunca para ranquear.
+          </p>
+        </div>
       </div>
 
       {/* LOS esperado */}

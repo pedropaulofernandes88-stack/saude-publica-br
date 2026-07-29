@@ -11,10 +11,11 @@ const NAV: Entry[] = [
   { href: "/painel/", label: "Mortalidade", curto: "Mortal." },
   { href: "/dengue/", label: "Dengue", curto: "Dengue" },
   {
-    label: "Internações", curto: "Intern.",
+    label: "Assistência", curto: "Assist.",
     group: [
-      { href: "/internacoes/", label: "Por município", curto: "Município" },
+      { href: "/internacoes/", label: "Internações por município", curto: "Intern." },
       { href: "/hospitalar/", label: "Visão hospitalar", curto: "Hospital" },
+      { href: "/atencao-basica/", label: "Atenção primária", curto: "APS" },
     ],
   },
   {

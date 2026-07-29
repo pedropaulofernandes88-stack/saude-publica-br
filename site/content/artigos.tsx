@@ -681,6 +681,105 @@ export const ARTIGOS: Artigo[] = [
       "Saúde em Dado. Inteligência epidemiológica a custo zero: a arquitetura por trás da plataforma. saudeemdado.com/artigos.",
     ],
   },
+  {
+    slug: "o-que-os-indicadores-nao-comparam",
+    titulo: "O que os indicadores não comparam: quatro achados, um mesmo erro",
+    dek: "Excesso de mortalidade, ICSAP, cobertura da atenção primária e mortalidade hospitalar ajustada. Quatro indicadores, quatro fontes, quatro métodos — e, em todos, o ajuste aparente esconde o mesmo efeito estrutural.",
+    data: "2026-07-19",
+    leituraMin: 14,
+    tags: ["métodos", "denominador", "confundimento", "HSMR", "ICSAP", "atenção primária"],
+    resumo:
+      "Ao longo da construção desta plataforma, quatro indicadores independentes falharam pela mesma razão. O excesso de mortalidade padronizado por idade subestima o pico pandêmico em ~138 mil óbitos porque o denominador populacional está quebrado. O ICSAP mede apenas a rede SUS, num país onde a cobertura privada varia com a renda. A cobertura potencial da atenção primária satura acima de 100% em 86% dos municípios e correlaciona-se com o porte (ρ = −0,54), não com internações evitáveis (ρ = +0,004). E o HSMR, mesmo calibrado a 1,0000, penaliza hospitais grandes: os classificados acima do esperado são quase 5× maiores que os abaixo. O padrão comum não é o denominador em si — é a ilusão de que um indicador ajustado já é comparável.",
+    secoes: [
+      {
+        paragrafos: [
+          "Indicadores de saúde existem para permitir comparação. Sem eles, cada município e cada hospital é um caso isolado; com eles, é possível perguntar quem está melhor, quem piorou, onde intervir. Todo o esforço técnico da epidemiologia descritiva — padronizar por idade, calcular por 100 mil habitantes, ajustar por perfil de casos — serve a esse propósito: tornar comparável o que não é diretamente comparável.",
+          "Este artigo é sobre as vezes em que esse esforço falha silenciosamente. Não falha produzindo erro visível: falha produzindo um número plausível, bem-formatado, aparentemente ajustado — que mede outra coisa. Reunimos aqui quatro casos independentes encontrados na construção desta plataforma. Não foram procurados; apareceram quando cada indicador foi testado antes de publicar.",
+        ],
+      },
+      {
+        titulo: "Caso 1 — O excesso de mortalidade e a população que não existia",
+        paragrafos: [
+          "Para medir quantas pessoas morreram a mais na pandemia, a recomendação metodológica corrente é padronizar por idade: aplicar taxas por faixa etária à estrutura populacional de cada ano. É o método mais sofisticado disponível, e deveria ser o melhor.",
+          "No Brasil de 2020–2024, ele produz ~505 mil óbitos em excesso no pico pandêmico. O método simples — regressão de tendência sobre os óbitos observados, sem tocar em população — produz 643 mil, valor compatível com as estimativas internacionais independentes (~660–680 mil). O método sofisticado erra para menos em cerca de 138 mil mortes.",
+          "A causa não está no método, está no insumo. A projeção populacional do IBGE de 2018 superestimava a população brasileira; o Censo 2022 a revisou para baixo em milhões de pessoas, e a série pós-Censo introduz uma descontinuidade em 2022. Uma população idosa inflada infla o número esperado de óbitos e, portanto, apaga o excesso. Reconciliamos o denominador interpolando os Censos de 2010 e 2022 — o excesso subiu para ~530 mil, mas não convergiu. Parte do problema era o dado; parte era metodológica.",
+          "A lição: um método que depende de um denominador herda toda a fragilidade desse denominador — e não avisa quando ela está presente.",
+        ],
+      },
+      {
+        titulo: "Caso 2 — O ICSAP e o denominador que só enxerga metade do país",
+        paragrafos: [
+          "As Internações por Condições Sensíveis à Atenção Primária (ICSAP) medem internações que bom acesso à atenção básica poderia ter evitado. É um dos melhores indicadores-proxy de qualidade da porta de entrada do SUS, usado em pesquisa e em avaliação de política pública.",
+          "O problema é que ele é calculado sobre o SIH, que registra apenas internações pagas pelo SUS. Cerca de um quarto da população brasileira tem plano de saúde — e essa fração não é distribuída ao acaso: concentra-se em municípios mais ricos e urbanos. Um município com alta cobertura privada terá ICSAP baixo simplesmente porque parte de seus moradores se interna fora do SUS, sem que sua atenção básica seja melhor.",
+          "Aqui o denominador não está errado, está incompleto — e o viés não é aleatório, é correlacionado com renda. Comparar ICSAP entre municípios de perfis socioeconômicos diferentes sem levar isso em conta produz um ranking que mede, em parte, quem tem plano de saúde.",
+        ],
+      },
+      {
+        titulo: "Caso 3 — A cobertura da atenção primária que mede tamanho",
+        paragrafos: [
+          "Este é o caso mais recente e o mais surpreendente. O Ministério da Saúde publica mensalmente a cobertura potencial da Atenção Primária por município: capacidade instalada das equipes credenciadas dividida pela população. É um dado atual (jan/2021 a mai/2026), granular e oficialmente mantido.",
+          "A hipótese natural é que mais cobertura signifique menos internações evitáveis. Testamos. A correlação bruta entre cobertura potencial e ICSAP por 100 mil habitantes é ρ = +0,004 — indistinguível de zero, e no sinal contrário ao esperado. Controlando porte populacional e vulnerabilidade social, ρ parcial = +0,018. A associação simplesmente não existe.",
+          "O motivo aparece ao estratificar por porte. Como a capacidade de cada equipe é padronizada, um município pequeno satura o indicador com poucas equipes: a cobertura ultrapassa 100% em 86% dos municípios brasileiros e chega a 800%. Nos municípios com menos de 10 mil habitantes, a cobertura mediana é 167% e 97% deles estão saturados. Nos com mais de 200 mil, a cobertura mediana é 78,7% e apenas 13% saturam.",
+          "A correlação entre cobertura e população é ρ = −0,54. Ou seja: a maior parte da variação do indicador entre municípios não informa sobre a atenção primária — informa sobre quantos habitantes o município tem. E os municípios de maior cobertura são justamente os de maior ICSAP, o oposto da hipótese de política pública.",
+        ],
+        tabela: {
+          titulo: "Cobertura potencial da APS e ICSAP por porte municipal (2024)",
+          colunas: ["Porte", "Municípios", "Cobertura mediana", "Saturados (>100%)", "ICSAP/100 mil (mediana)"],
+          linhas: [
+            ["< 10 mil hab.", "2.466", "167,1%", "97%", "1.468"],
+            ["10–50 mil", "2.429", "142,0%", "88%", "1.546"],
+            ["50–200 mil", "517", "97,1%", "46%", "1.220"],
+            ["> 200 mil", "158", "78,7%", "13%", "960"],
+          ],
+          nota: "Se a cobertura potencial medisse força da atenção primária, o gradiente de ICSAP seria inverso ao de cobertura. Ele acompanha, na verdade, o porte. Fontes: e-Gestor AB (cobertura) e SIH/DataSUS (ICSAP). Reprodutível em scripts/analise_cobertura_icsap.py. Elaboração: Saúde em Dado.",
+        },
+      },
+      {
+        titulo: "Caso 4 — O HSMR calibrado que ainda penaliza hospital grande",
+        paragrafos: [
+          "A mortalidade hospitalar bruta é reconhecidamente injusta: um hospital terciário que recebe os casos mais graves morre mais que uma maternidade, sem que isso signifique pior assistência. A solução clássica é o HSMR — razão entre óbitos observados e esperados, ajustada pelo perfil de casos. Implementamos com padronização indireta por faixa etária × capítulo CID-10, e o resultado calibra perfeitamente: a razão agregada nacional é 1,0000 nos três anos publicados, exatamente como a construção do método exige.",
+          "Calibração, porém, não é o mesmo que ausência de viés. Ao classificar os hospitais pelo intervalo de confiança, os que ficam significativamente acima do esperado têm mediana de 5.324 internações; os significativamente abaixo, 1.098. Os hospitais “acima” são quase cinco vezes maiores e concentram 59,7% de todos os óbitos hospitalares do país.",
+          "A explicação é o que se chama case-mix residual. Um capítulo da CID-10 é uma categoria larga: o capítulo IX abrange desde hipertensão até cirurgia cardíaca complexa. Ajustar por capítulo remove a diferença entre um hospital de partos e um de cardiologia, mas não remove a diferença entre dois hospitais de cardiologia — um que faz consulta e outro que faz transplante. Os grandes centros concentram a gravidade dentro de cada capítulo, e o ajuste não a enxerga.",
+          "O indicador continua útil: um HSMR alto com intervalo estreito é uma hipótese que merece investigação. O que ele não suporta é ranking. E note que a solução — ajustar por procedimento, gravidade ou comorbidade — exigiria dados que a AIH pública não traz.",
+        ],
+      },
+      {
+        titulo: "O padrão comum",
+        paragrafos: [
+          "Os quatro casos não compartilham a mesma fonte, o mesmo método nem o mesmo tipo de erro. O que compartilham é a estrutura da falha: em cada um, uma variável estrutural — tamanho da população, tamanho do município, tamanho do hospital, cobertura privada — atravessa o indicador e sobrevive ao ajuste que deveria neutralizá-la.",
+          "Isso importa porque o ajuste produz confiança. Uma taxa padronizada por idade parece mais comparável que uma taxa bruta; um HSMR parece mais justo que a mortalidade bruta; uma cobertura percentual parece independente de escala justamente por ser percentual. Em todos esses casos, a aparência de ajuste é o que torna o erro difícil de detectar: o número passa no teste do olhar.",
+          "A implicação prática não é abandonar indicadores ajustados — é testá-los contra o confundidor estrutural óbvio antes de publicá-los. Nos quatro casos aqui, o teste custou poucas linhas de código: correlacionar o indicador com o tamanho. Quando essa correlação é forte, o indicador está medindo escala, não desempenho.",
+        ],
+        tabela: {
+          titulo: "Os quatro casos e a variável estrutural que sobrevive ao ajuste",
+          colunas: ["Indicador", "Ajuste aplicado", "Variável que sobrevive", "Efeito medido"],
+          linhas: [
+            ["Excesso de mortalidade", "Padronização por idade", "Erro do denominador populacional", "−138 mil óbitos no pico pandêmico"],
+            ["ICSAP", "Taxa por 100 mil hab.", "Cobertura privada (fora do SIH)", "Viés correlacionado com renda"],
+            ["Cobertura da APS", "Percentual da população", "Porte do município", "ρ = −0,54 com população; +0,004 com ICSAP"],
+            ["HSMR", "Padronização indireta (idade × capítulo)", "Tamanho e complexidade do hospital", "“Acima do esperado” são ~5× maiores"],
+          ],
+          nota: "Elaboração: Saúde em Dado, a partir dos marts públicos do projeto.",
+        },
+      },
+      {
+        titulo: "O que fizemos com isso",
+        paragrafos: [
+          "Nenhum dos quatro indicadores foi retirado da plataforma. Todos continuam publicados — com o teste, o número e a limitação no mesmo lugar em que está o resultado. O excesso de mortalidade usa o método de tendência, e a análise de sensibilidade que o justifica está publicada. O ICSAP traz o aviso de cobertura suplementar junto ao ranking. A cobertura da APS ganhou uma página que explica, antes de qualquer tabela, para que ela serve e para que não serve. E o HSMR passou a exibir intervalo de confiança em vez de uma flag binária: um hospital com HSMR 5,94 e intervalo [0,13 – 27,86] deixa de parecer um alarme e passa a ser o que é — um hospital pequeno demais para se afirmar qualquer coisa.",
+          "Há um argumento mais amplo aqui, sobre o que significa publicar um indicador. Um número acompanhado da sua limitação é mais útil que o mesmo número sozinho, mesmo quando a limitação enfraquece a conclusão — porque a alternativa não é uma conclusão mais forte, é uma conclusão errada que ninguém detectou.",
+        ],
+      },
+    ],
+    referencias: [
+      "Saúde em Dado. Análise de sensibilidade do excesso de mortalidade: scripts/sensibilidade_excesso_idade.py e scripts/reconciliacao_denominador.py.",
+      "Saúde em Dado. Cobertura da APS × ICSAP: scripts/analise_cobertura_icsap.py; marts mart_cobertura_aps_municipio e mart_cobertura_icsap_municipio.",
+      "Saúde em Dado. IC95% do HSMR (gamma/Poisson exato): scripts/hsmr_intervalo_confianca.py.",
+      "Brasil, Ministério da Saúde. Relatório público de Cobertura da Atenção Primária (e-Gestor AB). relatorioaps.saude.gov.br.",
+      "IBGE. Censo Demográfico 2022; Projeções da População (revisão 2018). SIDRA.",
+      "Jarman B. et al. Explaining differences in English hospital death rates using routinely collected data. BMJ, 1999.",
+      "Karlinsky A., Kobak D. Excess mortality during the COVID-19 pandemic: World Mortality Dataset. eLife, 2021.",
+    ],
+  },
 ];
 
 export function getArtigo(slug: string): Artigo | undefined {

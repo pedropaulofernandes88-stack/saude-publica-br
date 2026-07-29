@@ -335,6 +335,33 @@ export default function Metodologia() {
         do IC95% em municípios pequenos, §5).
       </p>
       <p>
+        <strong>Intervalo de confiança (IC95%) — desde julho de 2026.</strong> O HSMR passou a ser
+        publicado com intervalo de confiança exato, e não apenas com a sinalização binária acima.
+        Como os óbitos observados seguem distribuição de Poisson e o esperado é tratado como
+        constante conhecida, o intervalo é{" "}
+        <code>[qgamma(0,025; O) / E ; qgamma(0,975; O+1) / E]</code> — o mesmo método
+        gamma/Poisson exato já usado nas taxas brutas municipais (§5), e não uma segunda
+        convenção. Cada hospital-ano é classificado em <strong>acima</strong>,{" "}
+        <strong>abaixo</strong> ou <strong>dentro do esperado</strong> conforme o intervalo exclua
+        ou contenha 1; hospitais com esperado = 0 ficam como <strong>indeterminado</strong> — não
+        “dentro do esperado”, pois não há base para afirmar nada. Em 2024: 16,4% acima, 54,5%
+        abaixo, 26,8% dentro do esperado. O ganho é concreto: um hospital com HSMR 5,94 e
+        IC [0,13 – 27,86] deixa de parecer alarme e passa a ser lido como o que é — poucos casos,
+        nenhuma conclusão possível.
+      </p>
+      <p>
+        <strong>Viés conhecido: o ajuste por capítulo é grosseiro.</strong> A calibração é exata
+        (razão agregada nacional = 1,0000 nos três anos), mas calibração não elimina confundimento
+        residual. Um capítulo da CID-10 é uma categoria larga — o capítulo IX vai de hipertensão a
+        cirurgia cardíaca complexa — e hospitais terciários concentram os casos graves{" "}
+        <em>dentro</em> de cada capítulo. O efeito é mensurável: em 2024, os hospitais
+        classificados acima do esperado têm mediana de <strong>5.324 internações</strong> contra{" "}
+        <strong>1.098</strong> dos classificados abaixo, e concentram 59,7% de todos os óbitos
+        hospitalares. Ou seja, este HSMR <strong>penaliza sistematicamente hospitais grandes e
+        complexos</strong>. Corrigir exigiria ajuste por procedimento, gravidade ou comorbidade —
+        variáveis que a AIH pública não fornece. Use para levantar hipóteses, nunca para ranquear.
+      </p>
+      <p>
         <strong>Permanência esperada (LOS).</strong> Para cada diagnóstico (CID-10, 3 caracteres),
         calculamos a <strong>mediana nacional</strong> de dias de internação e comparamos à
         mediana do hospital para o mesmo diagnóstico. Por volume, não guardamos a duração
@@ -360,7 +387,56 @@ export default function Metodologia() {
         pareça precisa sem sustentação nos dados abertos.
       </p>
 
-      <h2>15. Arquétipos de saúde municipal (k-means)</h2>
+      <h2>15. Cobertura da Atenção Primária (e-Gestor AB)</h2>
+      <p>
+        Página <a href="/atencao-basica/">Atenção Primária</a>. Publicamos a{" "}
+        <strong>cobertura potencial da APS</strong> por município e mês, de janeiro de 2021 à
+        competência mais recente (65 competências, 5.571 municípios).
+      </p>
+      <ul>
+        <li>
+          <strong>Fonte:</strong> API pública que abastece o relatório oficial de Cobertura da APS
+          do Ministério da Saúde (<code>relatorioaps.saude.gov.br</code>), servida por{" "}
+          <code>relatorioaps-prd.saude.gov.br/cobertura/aps</code>. Retorna JSON por município e
+          competência, sem autenticação. Não é um endpoint formalmente documentado como API
+          pública — é o que o próprio relatório público consome.
+        </li>
+        <li>
+          <strong>Definição oficial:</strong> capacidade de atendimento estimada das equipes
+          credenciadas (ESF, EAP 20h e 30h, eSFR, eCR, EAPP) dividida pela população do município.
+          Como cada tipo de equipe tem capacidade padronizada, o indicador é essencialmente uma
+          contagem de equipes reescalada pela população.
+        </li>
+        <li>
+          <strong>Denominador:</strong> a população usada é a estimativa oficial adotada pelo
+          próprio relatório (campo de ano de referência e origem informados pela API), e{" "}
+          <em>não</em> a série populacional do projeto — para que o número publicado aqui seja
+          idêntico ao do relatório oficial.
+        </li>
+      </ul>
+      <p>
+        <strong>Limitação central — o indicador satura e vira proxy de porte.</strong> Como poucas
+        equipes já cobrem toda a população de um município pequeno, a cobertura potencial
+        ultrapassa 100% em <strong>86% dos municípios</strong> brasileiros, chegando a 800%. A
+        consequência é que a variação entre municípios reflete sobretudo o tamanho do município,
+        não a força da atenção primária: a correlação de postos entre cobertura e população é{" "}
+        <strong>ρ = −0,54</strong>.
+      </p>
+      <p>
+        <strong>Teste contra ICSAP.</strong> Testamos a hipótese de que maior cobertura implicaria
+        menos internações evitáveis (§12). A correlação bruta com ICSAP por 100 mil habitantes é{" "}
+        <strong>ρ = +0,004</strong> — nula, e no sinal contrário ao esperado. Controlando porte
+        populacional e vulnerabilidade social, ρ parcial = +0,018. Estratificando, os municípios de
+        menor porte têm simultaneamente a <em>maior</em> cobertura mediana (167%) e o{" "}
+        <em>maior</em> ICSAP. Conclusão: a cobertura potencial, como publicada, não sustenta
+        comparação entre municípios nem inferência sobre qualidade da atenção básica. Publicamos o
+        dado porque ele é válido e útil para <strong>acompanhar um município ao longo do tempo</strong>{" "}
+        e para contar equipes — e declaramos a limitação no topo da página, não em rodapé.
+        Reprodutível em <code>scripts/analise_cobertura_icsap.py</code>; discussão completa no
+        artigo <a href="/artigos/o-que-os-indicadores-nao-comparam/">“O que os indicadores não comparam”</a>.
+      </p>
+
+      <h2>16. Arquétipos de saúde municipal (k-means)</h2>
       <p>
         Agrupamos municípios (população ≥ 20 mil) em cinco perfis por <strong>k-means</strong>
         sobre três dimensões padronizadas por z-score: mortalidade padronizada por idade (2023),
@@ -376,7 +452,7 @@ export default function Metodologia() {
         levantar hipóteses, não para inferir risco individual.
       </p>
 
-      <h2>16. Distância até os pares em internações evitáveis (ICSAP)</h2>
+      <h2>17. Distância até os pares em internações evitáveis (ICSAP)</h2>
       <p>
         Traduz o indicador ICSAP na pergunta que um gestor de fato faz: <em>quanto
         estou acima de municípios comparáveis, e o que isso representa?</em>
@@ -439,7 +515,7 @@ export default function Metodologia() {
         municipal e na ferramenta MCP <code>icsap_distancia_dos_pares</code>.
       </p>
 
-      <h2>17. Privacidade e células de contagem pequena</h2>
+      <h2>18. Privacidade e células de contagem pequena</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas

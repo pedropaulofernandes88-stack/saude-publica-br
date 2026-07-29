@@ -209,6 +209,26 @@ export interface HsmrHospital {
   obitos_esperados: number;
   hsmr: number | null;
   estavel: boolean;
+  hsmr_ic95_inf: number | null;
+  hsmr_ic95_sup: number | null;
+  significancia: "acima" | "abaixo" | "esperado" | "indeterminado" | null;
+}
+
+export interface CoberturaIcsapMunicipio {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  populacao: number | null;
+  cobertura_pct: number | null;
+  cobertura_efetiva: number | null;
+  qt_esf: number | null;
+  internacoes_total: number;
+  internacoes_icsap: number;
+  pct_icsap: number | null;
+  icsap_100k: number | null;
+  ivs_score: number | null;
 }
 
 export interface LosHospital {

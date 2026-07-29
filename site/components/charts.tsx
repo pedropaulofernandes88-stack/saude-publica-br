@@ -7,6 +7,7 @@ import {
   Cell,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Scatter,
   ScatterChart,
@@ -107,6 +108,29 @@ export function SerieLinha({ data }: { data: { mes: string; obitos: number }[] }
           contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
         />
         <Line type="monotone" dataKey="obitos" stroke={ACCENT} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+      </LineChart>
+    </ResponsiveContainer>
+  );
+}
+
+/** Série mensal de cobertura da APS (%), com linha de referência em 100%. */
+export function SerieCobertura({ data }: { data: { mes: string; cobertura: number }[] }) {
+  return (
+    <ResponsiveContainer width="100%" height={300}>
+      <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+        <CartesianGrid stroke={GRID} vertical={false} />
+        <XAxis dataKey="mes" tick={AXIS} tickFormatter={mesPt} tickMargin={8} minTickGap={28} />
+        <YAxis tick={AXIS} width={52} tickFormatter={(v) => `${v}%`} />
+        <Tooltip
+          formatter={(v) => [`${fmtDec(v as number, 1)}%`, "Cobertura potencial"]}
+          labelFormatter={(l) =>
+            new Date(`${l}T00:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
+          }
+          contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
+        />
+        <ReferenceLine y={100} stroke="#8694ab" strokeDasharray="5 4"
+                      label={{ value: "100%", position: "right", fontSize: 11, fill: "#8694ab" }} />
+        <Line type="monotone" dataKey="cobertura" stroke={ACCENT} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
       </LineChart>
     </ResponsiveContainer>
   );

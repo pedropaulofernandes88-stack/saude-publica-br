@@ -71,7 +71,13 @@ export default function Sobre() {
 
       <h2>Pesquisa &amp; achados</h2>
       <p>
-        Além de agregar dado, este projeto produziu dois achados metodológicos próprios:
+        Além de agregar dado, este projeto produziu achados metodológicos próprios — todos
+        surgidos de testar cada indicador antes de publicá-lo. Quatro deles compartilham a mesma
+        estrutura de falha, consolidada no artigo{" "}
+        <a href="/artigos/o-que-os-indicadores-nao-comparam/" className="font-medium text-accent-700 hover:underline">
+          “O que os indicadores não comparam”
+        </a>: um ajuste que aparenta tornar o indicador comparável, mas deixa passar uma variável
+        estrutural (tamanho da população, do município ou do hospital).
       </p>
       <ul>
         <li>
@@ -84,12 +90,22 @@ export default function Sobre() {
           <a href="/artigos/643-mil-nao-702-mil-baseline-excesso-mortalidade/" className="font-medium text-accent-700 hover:underline">artigo</a>.
         </li>
         <li>
-          <strong>HSMR calibrado.</strong> A mortalidade hospitalar ajustada por case-mix
-          (padronização indireta por faixa etária × capítulo CID-10) converge, por
-          construção, a 1,0000 nos três anos publicados (2022–2024) — a verificação
-          estrutural de que o método está correto. Ver{" "}
+          <strong>HSMR calibrado — e o viés que a calibração não remove.</strong> A mortalidade
+          hospitalar ajustada por case-mix converge, por construção, a 1,0000 nos três anos
+          publicados (2022–2024). Mas ao classificar por intervalo de confiança, os hospitais
+          significativamente acima do esperado são <strong>~5× maiores</strong> que os abaixo:
+          o ajuste por capítulo CID é grosseiro e penaliza terciários. Calibração não é ausência
+          de viés. Ver{" "}
           <a href="/artigos/visao-hospitalar-hsmr-los-forecast/" className="font-medium text-accent-700 hover:underline">artigo</a>{" "}
           e <a href="/hospitalar/" className="font-medium text-accent-700 hover:underline">página</a>.
+        </li>
+        <li>
+          <strong>A cobertura da atenção primária mede porte, não atenção primária.</strong> A
+          cobertura potencial da APS satura acima de 100% em 86% dos municípios e correlaciona-se
+          com a população (ρ = −0,54), mas praticamente nada com internações evitáveis
+          (ρ = +0,004; +0,018 controlando porte e vulnerabilidade). Publicamos o dado com a
+          limitação no topo da página, não em rodapé. Ver{" "}
+          <a href="/atencao-basica/" className="font-medium text-accent-700 hover:underline">página</a>.
         </li>
       </ul>
 
