@@ -48,7 +48,11 @@ longitudinal 2021-2024 (5.568 municípios) testando efeito de equipes recém-
 implantadas, com efeito fixo duplo (município e ano) para remover uma tendência
 nacional comum de alta em ambas as variáveis no período, confirmou o achado
 nulo (|ρ| ≤ 0,032 em todos os desenhos: contemporâneo, diferença ano a ano e
-defasado em 1 ano). **Conclusão.** A
+defasado em 1 ano). Testando a limitação de que o ICSAP (restrito ao SUS)
+poderia estar subestimado onde a saúde suplementar é relevante (dados de
+beneficiários, ANS), encontramos um efeito real, porém concentrado nos
+municípios de maior porte (ρ = −0,29 no quartil superior, dentro do porte;
+desprezível nos demais três quartis). **Conclusão.** A
 cobertura potencial da APS, como calculada e publicada oficialmente, é
 estatisticamente mais um proxy do tamanho do município do que uma medida do
 desempenho da atenção primária, e não deve ser usada para ranquear municípios ou
@@ -93,6 +97,10 @@ delayed effect of newly implemented teams, using two-way fixed effects
 (municipality and year) to remove a shared national upward trend in both
 variables over the period, confirmed the null finding (|ρ| ≤ 0.032 across all
 specifications: contemporaneous, year-over-year difference, and 1-year lag).
+Testing the limitation that ACSC (SUS-restricted) may be underestimated where
+private health coverage is relevant (ANS beneficiary data), we found a real
+but size-concentrated effect (ρ = −0.29 in the top population quartile,
+within-quartile; negligible in the other three quartiles).
 **Conclusion.** Potential PHC coverage, as officially calculated and
 published, is statistically more a proxy for municipal size than a measure of
 primary care performance, and should not be used to rank municipalities or infer
@@ -191,6 +199,18 @@ testando a correlação contemporânea "dentro do município". Testamos também 
 primeira diferença ano a ano e uma versão defasada em 1 ano (densidade de ESF
 no ano *t* explicando %ICSAP no ano *t*+1), ambas as formas de aproximar o
 efeito de implantação recente de equipes.
+
+### 2.6 Teste da limitação de saúde suplementar
+
+O ICSAP, por depender do SIH/SUS, não captura internações da rede privada —
+uma limitação declarada na Seção 5, mas até então não testada. Trouxemos o
+percentual de beneficiários de plano de saúde médico-hospitalar por município
+(ANS, Dados Abertos, competência de dezembro de 2024, sem autenticação) e
+testamos se ele explica parte da variação do ICSAP: correlação bruta, parcial
+(controlando porte e vulnerabilidade) e — o teste decisivo — dentro de cada
+quartil de porte (mesmo desenho da Seção 2.4), já que uma correlação parcial
+por regressão linear sobre postos pode não remover completamente um efeito de
+porte não-linear.
 
 ## 3. Resultados
 
@@ -312,6 +332,44 @@ em vez de qualificar, o achado nulo transversal: não há associação
 mensurável entre densidade de ESF e %ICSAP, nem contemporânea nem defasada em
 1 ano, dentro do mesmo município ao longo de 2021-2024.
 
+### 3.7 A limitação de saúde suplementar é real, mas concentrada nos grandes municípios
+
+A cobertura de saúde suplementar mediana é baixa e quase invariante nos
+municípios menores (4,5% e 4,1% nos dois primeiros quartis de porte) e alta e
+heterogênea nos maiores (mediana 31,9% no quartil superior). Essa diferença de
+variância já antecipa onde um efeito, se existir, poderia aparecer.
+
+| Quartil de porte | n | ρ (%saúde suplementar × %ICSAP, dentro do porte) |
+|---|--:|--:|
+| Q1 (menores) | 1.393 | +0,05 |
+| Q2 | 1.392 | −0,00 |
+| Q3 | 1.392 | −0,08 |
+| Q4 (maiores) | 1.393 | **−0,29** |
+
+**Tabela 5.** Correlação entre %saúde suplementar e %ICSAP, dentro de cada
+quartil de porte populacional, 2024.
+
+O padrão não é ruído aleatório trocando de sinal — é um **gradiente
+monotônico por porte**, praticamente nulo nos municípios pequenos e moderado,
+na direção teoricamente esperada (mais saúde suplementar, menos ICSAP
+registrado no SUS), nos maiores. A correlação parcial pooled, controlando
+porte por regressão linear sobre postos (ρ = −0,102, Seção 2.6), subestimava
+essa estrutura ao tentar resumir um efeito não-linear-por-porte em um único
+coeficiente. A co-ocorrência de alta saúde suplementar com baixo %ICSAP,
+dentro do porte, é **1,00×** o esperado sob independência estatística — nula
+no agregado nacional, porque a maioria dos municípios brasileiros (Q1-Q3, ~75%
+da amostra) tem cobertura de saúde suplementar baixa demais e homogênea demais
+para gerar variação detectável.
+
+**Leitura:** a limitação declarada — ICSAP subestimado onde a saúde
+suplementar é relevante — é empiricamente real, mas **localizada**: relevante
+para interpretar o ICSAP de grandes municípios (Q4, tipicamente capitais e
+regiões metropolitanas), e irrelevante para a grande maioria dos municípios
+brasileiros, que é onde a discussão de cobertura da APS e equidade neste
+preprint se concentra. Isso não muda a conclusão principal (ausência de
+associação entre cobertura potencial da APS e ICSAP), mas qualifica onde o
+ICSAP como desfecho deve ser lido com mais cautela.
+
 ## 4. Discussão
 
 O achado central — ausência de associação entre cobertura potencial da APS e
@@ -347,23 +405,35 @@ O índice de vulnerabilidade é um proxy de duas dimensões (Censo 2022), não o
 IVS oficial do IPEA. O ICSAP é uma aproximação da Lista Brasileira no nível de
 CID-10 de 3 caracteres e cobre apenas a rede SUS — municípios com maior
 cobertura de saúde suplementar podem ter ICSAP subestimado por razões não
-relacionadas à atenção primária. A cobertura potencial reflete equipes
-credenciadas e sua capacidade nominal, não a qualidade do cuidado prestado por
-cada equipe. O painel longitudinal cobre 4 anos (2021-2024): não se pode
-excluir um efeito de equipes recém-implantadas com defasagem superior a 1 ano,
-embora o padrão observado (nenhum sinal em nenhuma defasagem testada) não
-sugira essa hipótese.
+relacionadas à atenção primária. Testamos essa limitação diretamente (Seção
+3.7): o efeito é real, mas concentrado nos municípios de maior porte (ρ =
+−0,29 no quartil superior, dentro do porte), sendo desprezível nos ~75% dos
+municípios brasileiros de menor porte, que concentram a discussão deste
+preprint. A cobertura potencial reflete equipes credenciadas e sua capacidade
+nominal, não a qualidade do cuidado prestado por cada equipe. O painel
+longitudinal cobre 4 anos (2021-2024): não se pode excluir um efeito de
+equipes recém-implantadas com defasagem superior a 1 ano, embora o padrão
+observado (nenhum sinal em nenhuma defasagem testada) não sugira essa
+hipótese. Ao vetar fontes de dado sobre saúde suplementar, descartamos o
+conjunto `taxa_de_cobertura_de_planos_de_saude` da ANS (indicador pronto por
+município): a amostra verificada trazia apenas o período corrente e taxas
+zeradas mesmo para São Paulo, sugerindo problema de qualidade nesse recorte
+específico; optamos pelo cadastro de beneficiários (`informacoes_consolidadas_
+de_beneficiarios`), mais granular mas com histórico íntegro desde 2021.
 
 ## 6. Disponibilidade de dados e código
 
 - **Plataforma:** https://saudeemdado.com/atencao-basica
 - **Código:** https://github.com/pedropaulofernandes88-stack/saude-publica-br
   (MIT) — `scripts/analise_cobertura_icsap.py`, `scripts/analise_equidade_aps.py`,
-  `scripts/analise_equidade_aps_longitudinal.py`
+  `scripts/analise_equidade_aps_longitudinal.py`,
+  `scripts/pipeline_ans_beneficiarios.py`, `scripts/analise_saude_suplementar_icsap.py`
 - **Dados agregados:** Parquet com checksum SHA-256 e API REST pública (CC BY 4.0)
   — `mart_cobertura_aps_municipio`, `mart_cobertura_icsap_municipio`,
-  `mart_equidade_aps_municipio`, `mart_equidade_aps_longitudinal`
-- **Dados originais:** domínio público (Ministério da Saúde/SAPS; DATASUS; IBGE)
+  `mart_equidade_aps_municipio`, `mart_equidade_aps_longitudinal`,
+  `mart_saude_suplementar_municipio`, `mart_saude_suplementar_icsap_municipio`
+- **Dados originais:** domínio público (Ministério da Saúde/SAPS; DATASUS; IBGE;
+  ANS Dados Abertos)
 
 ## Conflito de interesses
 

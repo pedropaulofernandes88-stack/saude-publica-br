@@ -211,6 +211,40 @@ seguida à consolidação inicial. Resumo:
   preview local, ambos OK. **Ainda não commitado/pushado** — aguardando
   confirmação do usuário.
 
+## Atualização 2 — saúde suplementar explica a limitação do ICSAP? (parcialmente)
+
+Testamos a limitação declarada "ICSAP subestimado onde a saúde suplementar é
+relevante", que antes só era mencionada, nunca medida.
+
+- Novo pipeline `scripts/pipeline_ans_beneficiarios.py`: baixa o cadastro de
+  beneficiários de plano médico-hospitalar por município (ANS Dados Abertos,
+  FTP público sem login, competência de dezembro de 2021-2024), filtra
+  `COBERTURA_ASSIST_PLAN == "Médico-hospitalar"` (exclui odontológico puro).
+  Novo mart `mart_saude_suplementar_municipio` (22.284 linhas).
+- **Achado ruim documentado (a pedido do usuário, para qualificar o trabalho):**
+  o dataset pronto `taxa_de_cobertura_de_planos_de_saude-047` da ANS foi
+  descartado — só tinha o período corrente (sem histórico) e as taxas vieram
+  zeradas mesmo para São Paulo na amostra verificada. Preferimos o cadastro
+  bruto de beneficiários, mais trabalhoso mas confiável e histórico desde 2021.
+- Novo script `scripts/analise_saude_suplementar_icsap.py`: cruza
+  %saude_suplementar com %ICSAP/ICSAP-100k. Correlação bruta fraca (ρ=+0,06 e
+  -0,09); parcial controlando porte+IVS por regressão linear sobre postos
+  (ρ=-0,10, %ICSAP) sugeria efeito fraco mas enganava por não capturar
+  não-linearidade.
+- **Teste decisivo (dentro do quartil de porte, mesmo método do teste de
+  robustez da Seção 2.4):** gradiente monotônico — ρ = +0,05 (Q1) → -0,00 (Q2)
+  → -0,08 (Q3) → **-0,29** (Q4, maiores municípios). Co-ocorrência
+  (alta saúde suplementar + baixo %ICSAP) = 1,00× o esperado ao acaso (nula no
+  agregado nacional).
+- **Conclusão:** a limitação é real, mas **localizada** nos municípios de
+  maior porte (tipicamente capitais/metrópoles), e irrelevante para os ~75%
+  dos municípios brasileiros menores que concentram a discussão do preprint.
+  Não muda o achado nulo principal (APS × ICSAP), mas qualifica onde o ICSAP
+  deve ser lido com mais cautela.
+- Atualizados: preprint (nova §2.6/3.7, tabela 5, resumo/abstract, limitações,
+  disponibilidade de dados) e metodologia (§15, novo parágrafo). Build OK,
+  verificado visualmente. **Ainda não commitado/pushado.**
+
 ## O que fica pendente (decisão do usuário, não da IA)
 
 1. **Revisar e submeter (ou não) o novo preprint** — `docs/preprint/preprint-cobertura-aps.html`.

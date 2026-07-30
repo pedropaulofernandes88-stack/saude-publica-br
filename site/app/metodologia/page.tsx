@@ -488,6 +488,25 @@ export default function Metodologia() {
           preprint
         </a>.
       </p>
+      <p>
+        <strong>A limitação de saúde suplementar é real, mas concentrada nos grandes municípios.</strong>{" "}
+        O ICSAP só enxerga internações do SUS — uma limitação que declarávamos sem testar. Trouxemos
+        o percentual de beneficiários de plano de saúde médico-hospitalar por município (ANS, Dados
+        Abertos, dez/2024, sem autenticação — <code>scripts/pipeline_ans_beneficiarios.py</code>) e
+        cruzamos com %ICSAP dentro de cada quartil de porte (mesmo desenho do teste de robustez
+        acima). O resultado é um <strong>gradiente monotônico por porte</strong>, não ruído: ρ =
+        +0,05 (Q1, menores) → −0,00 (Q2) → −0,08 (Q3) → <strong>−0,29</strong> (Q4, maiores) — quase
+        nulo nos municípios pequenos (onde a cobertura suplementar é baixa e homogênea, ~4-5%) e
+        moderado nos grandes (onde chega a 32% e varia bastante). A co-ocorrência de alta saúde
+        suplementar com baixo %ICSAP, dentro do porte, é 1,00× o esperado ao acaso — nula no
+        agregado nacional. Conclusão: a limitação é real, mas <strong>localizada</strong> em grandes
+        municípios/capitais, e não afeta a leitura do achado nulo APS × ICSAP para a maioria dos
+        municípios brasileiros. Descartamos antes um dataset pronto da ANS (
+        <code>taxa_de_cobertura_de_planos_de_saude</code>) por trazer só o período corrente e taxas
+        zeradas mesmo em São Paulo na amostra verificada — problema de qualidade daquele recorte
+        específico, não deste teste. Reprodutível em{" "}
+        <code>scripts/analise_saude_suplementar_icsap.py</code>.
+      </p>
 
       <h2>16. Arquétipos de saúde municipal (k-means)</h2>
       <p>
