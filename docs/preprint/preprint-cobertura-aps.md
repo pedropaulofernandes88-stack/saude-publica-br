@@ -43,7 +43,12 @@ ICSAP — o oposto da hipótese de política pública. O teste de robustez confi
 achado nulo com um desenho mais estrito: a correlação entre densidade de equipes e
 %ICSAP dentro do mesmo quartil de porte varia entre ρ = −0,02 e +0,18; a
 co-ocorrência de baixa densidade de equipes com alto %ICSAP é 0,94 vezes o que a
-independência estatística prevê — abaixo, não acima, do acaso. **Conclusão.** A
+independência estatística prevê — abaixo, não acima, do acaso. Um painel
+longitudinal 2021-2024 (5.568 municípios) testando efeito de equipes recém-
+implantadas, com efeito fixo duplo (município e ano) para remover uma tendência
+nacional comum de alta em ambas as variáveis no período, confirmou o achado
+nulo (|ρ| ≤ 0,032 em todos os desenhos: contemporâneo, diferença ano a ano e
+defasado em 1 ano). **Conclusão.** A
 cobertura potencial da APS, como calculada e publicada oficialmente, é
 estatisticamente mais um proxy do tamanho do município do que uma medida do
 desempenho da atenção primária, e não deve ser usada para ranquear municípios ou
@@ -83,7 +88,12 @@ hypothesis. The robustness test confirms the null finding under a stricter desig
 correlation between team density and %ACSC within the same population quartile
 ranges from ρ = −0.02 to +0.18; co-occurrence of low team density with high %ACSC
 is 0.94 times what statistical independence would predict — below, not above,
-chance. **Conclusion.** Potential PHC coverage, as officially calculated and
+chance. A 2021-2024 longitudinal panel (5,568 municipalities) testing for a
+delayed effect of newly implemented teams, using two-way fixed effects
+(municipality and year) to remove a shared national upward trend in both
+variables over the period, confirmed the null finding (|ρ| ≤ 0.032 across all
+specifications: contemporaneous, year-over-year difference, and 1-year lag).
+**Conclusion.** Potential PHC coverage, as officially calculated and
 published, is statistically more a proxy for municipal size than a measure of
 primary care performance, and should not be used to rank municipalities or infer
 assistance quality in this aggregate form.
@@ -167,6 +177,20 @@ quartil de porte** (não em relação ao Brasil inteiro). Testamos se a co-ocorr
 de baixa densidade de equipes (terço inferior) com alto %ICSAP (terço superior)
 excede o que a independência estatística entre as duas variáveis prediria
 (produto das taxas marginais).
+
+### 2.5 Teste longitudinal com efeito fixo municipal (2021-2024)
+
+Para testar diretamente a principal limitação do desenho transversal — a
+possibilidade de que equipes recém-implantadas ainda não tenham tido tempo de
+afetar o desfecho —, reprocessamos o ICSAP por município para 2021, 2022 e 2023
+(2024 já disponível a partir da análise principal), construindo um painel
+balanceado de 5.568 municípios ao longo de 4 anos (22.272 observações
+município-ano). Aplicamos efeito fixo municipal — subtraindo, para cada
+município, sua própria média no período — à densidade de ESF e ao %ICSAP,
+testando a correlação contemporânea "dentro do município". Testamos também a
+primeira diferença ano a ano e uma versão defasada em 1 ano (densidade de ESF
+no ano *t* explicando %ICSAP no ano *t*+1), ambas as formas de aproximar o
+efeito de implantação recente de equipes.
 
 ## 3. Resultados
 
@@ -252,15 +276,52 @@ quartil menos vulnerável a 64,5 no mais vulnerável) — um sinal de que a aloc
 de equipes responde à vulnerabilidade social, mesmo que essa alocação não se
 traduza, nestes dados transversais de um ano, em diferença mensurável de %ICSAP.
 
+### 3.6 Confirmação longitudinal — e um sexto caso do confundimento por tendência comum
+
+O primeiro teste longitudinal (efeito fixo municipal simples) produziu
+ρ = +0,132 — um sinal aparente, na direção oposta à hipótese de política
+pública, e crescente com o porte (de +0,046 no menor quartil a +0,213 no
+maior). A investigação da causa revelou outro confundimento: tanto a
+densidade de ESF quanto o %ICSAP cresceram nacionalmente no período 2021-2024
+(ESF: média 3,67 → 4,05 por 10 mil hab.; %ICSAP: média 17,9% → 21,2%),
+provavelmente por retomada pós-pandemia de atendimentos adiados — uma
+tendência de calendário comum às duas variáveis, sem relação causal entre si.
+
+| Desenho | ρ |
+|---|--:|
+| Efeito fixo municipal (uma via) | +0,132 |
+| Efeito fixo duplo (município + ano) | **+0,006** |
+| Primeira diferença ano a ano (demeada por ano) | entre −0,032 e +0,015 |
+| Efeito fixo duplo, defasado em 1 ano | +0,012 |
+
+**Tabela 4.** Densidade de ESF × %ICSAP, painel 2021-2024 (n = 22.272
+observações município-ano; 5.568 municípios).
+
+Ao remover também o efeito de ano (efeito fixo duplo), ρ caiu para +0,006. A
+primeira diferença ano a ano (demeada por ano, para não herdar o mesmo viés de
+tendência comum) e a versão defasada em 1 ano confirmaram: |ρ| ≤ 0,032 em
+todos os desenhos corretamente especificados.
+
+Esse episódio é, em si, uma instância do problema central deste programa de
+pesquisa: uma tendência temporal compartilhada produz associação espúria do
+mesmo modo que um confundidor transversal (porte municipal) produzia
+associação espúria na análise principal deste preprint. A correção — efeito
+fixo duplo, não apenas municipal — é o equivalente temporal do desenho pareado
+por porte da Seção 2.4. Com essa correção, o painel longitudinal **confirma**,
+em vez de qualificar, o achado nulo transversal: não há associação
+mensurável entre densidade de ESF e %ICSAP, nem contemporânea nem defasada em
+1 ano, dentro do mesmo município ao longo de 2021-2024.
+
 ## 4. Discussão
 
 O achado central — ausência de associação entre cobertura potencial da APS e
-ICSAP — sobreviveu a três tentativas progressivamente mais rigorosas de
+ICSAP — sobreviveu a quatro tentativas progressivamente mais rigorosas de
 encontrá-la: correlação bruta, correlação parcial controlando os confundidores
-óbvios, e um desenho pareado por porte com métricas que não saturam nem herdam o
-confundimento de acesso hospitalar geral. Isso reduz substancialmente a
+óbvios, um desenho pareado por porte com métricas que não saturam nem herdam o
+confundimento de acesso hospitalar geral, e um painel longitudinal 2021-2024
+com efeito fixo municipal e de ano. Isso reduz substancialmente a
 possibilidade de que o resultado nulo seja artefato de uma escolha metodológica
-específica.
+específica ou da janela temporal de um único ano.
 
 A explicação estrutural é direta: a cobertura potencial, por definição, é uma
 razão entre capacidade padronizada e população. Ela responde primariamente à
@@ -276,29 +337,32 @@ Seu uso válido — acompanhar a evolução de um mesmo município ao longo do t
 contar equipes credenciadas — permanece intacto. Segundo, para o desenho de
 indicadores: a alocação de recursos (equipes) parece responder à vulnerabilidade
 social de forma mais consistente do que o desfecho equivalente (ICSAP) reflete —
-uma divergência entre insumo e resultado que merece investigação com desenho
-longitudinal, capaz de capturar efeito de equipes novas ao longo de vários anos,
-o que este corte transversal de um ano não permite.
+uma divergência entre insumo e resultado que, mesmo testada com painel
+longitudinal 2021-2024 (Seção 3.6), permanece sem associação mensurável com
+%ICSAP nesse período de observação.
 
 ## 5. Limitações
 
-O desenho é transversal (ano de 2024): não captura o efeito de equipes recém-
-implantadas, que tipicamente levam tempo para impactar desfechos. O índice de
-vulnerabilidade é um proxy de duas dimensões (Censo 2022), não o IVS oficial do
-IPEA. O ICSAP é uma aproximação da Lista Brasileira no nível de CID-10 de 3
-caracteres e cobre apenas a rede SUS — municípios com maior cobertura de saúde
-suplementar podem ter ICSAP subestimado por razões não relacionadas à atenção
-primária. A cobertura potencial reflete equipes credenciadas e sua capacidade
-nominal, não a qualidade do cuidado prestado por cada equipe.
+O índice de vulnerabilidade é um proxy de duas dimensões (Censo 2022), não o
+IVS oficial do IPEA. O ICSAP é uma aproximação da Lista Brasileira no nível de
+CID-10 de 3 caracteres e cobre apenas a rede SUS — municípios com maior
+cobertura de saúde suplementar podem ter ICSAP subestimado por razões não
+relacionadas à atenção primária. A cobertura potencial reflete equipes
+credenciadas e sua capacidade nominal, não a qualidade do cuidado prestado por
+cada equipe. O painel longitudinal cobre 4 anos (2021-2024): não se pode
+excluir um efeito de equipes recém-implantadas com defasagem superior a 1 ano,
+embora o padrão observado (nenhum sinal em nenhuma defasagem testada) não
+sugira essa hipótese.
 
 ## 6. Disponibilidade de dados e código
 
 - **Plataforma:** https://saudeemdado.com/atencao-basica
 - **Código:** https://github.com/pedropaulofernandes88-stack/saude-publica-br
-  (MIT) — `scripts/analise_cobertura_icsap.py`, `scripts/analise_equidade_aps.py`
+  (MIT) — `scripts/analise_cobertura_icsap.py`, `scripts/analise_equidade_aps.py`,
+  `scripts/analise_equidade_aps_longitudinal.py`
 - **Dados agregados:** Parquet com checksum SHA-256 e API REST pública (CC BY 4.0)
   — `mart_cobertura_aps_municipio`, `mart_cobertura_icsap_municipio`,
-  `mart_equidade_aps_municipio`
+  `mart_equidade_aps_municipio`, `mart_equidade_aps_longitudinal`
 - **Dados originais:** domínio público (Ministério da Saúde/SAPS; DATASUS; IBGE)
 
 ## Conflito de interesses

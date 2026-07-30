@@ -294,6 +294,49 @@ export default function AtencaoBasica() {
         </p>
       </div>
 
+      {/* ── Teste longitudinal: e se o efeito só aparecer com o tempo? ────── */}
+      <div className="card mt-6">
+        <h2 className="font-serif text-xl font-semibold text-ink-900">
+          E equipes recém-implantadas? Um teste ao longo de 4 anos
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-500">
+          Uma objeção legítima ao teste acima: ele usa um único ano (2024), e o efeito de uma equipe
+          nova pode levar tempo para aparecer. Reprocessamos o ICSAP de 2021 a 2023 (2024 já
+          disponível) e comparamos cada município consigo mesmo ao longo do tempo — a única forma de
+          eliminar qualquer diferença fixa entre municípios (geografia, perfil de doenças, distância
+          de referência).
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-ink-500">
+          O primeiro teste pareceu mostrar um sinal — na direção errada. Descobrimos por quê: ESF e
+          %ICSAP subiram juntos no Brasil inteiro nesses 4 anos (provável retomada pós-pandemia),
+          então qualquer município "acompanhando a maré" nacional gerava correlação artificial. Ao
+          remover também essa tendência de calendário, o sinal desaparece.
+        </p>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Kpi rotulo="Correlação ingênua (só por município)" valor="ρ = +0,13"
+               detalhe="parecia sinal — mas era tendência nacional comum, não efeito real" />
+          <Kpi rotulo="Correlação correta (município + ano)" valor="ρ = +0,01"
+               detalhe="ao remover a tendência de calendário, o sinal desaparece" />
+          <Kpi rotulo="Maior |ρ| entre os 3 testes corretos" valor="0,03"
+               detalhe="contemporâneo, variação ano a ano, e defasagem de 1 ano" />
+        </div>
+
+        <p className="mt-4 max-w-3xl text-sm text-ink-700">
+          <strong>O achado nulo se confirma também no tempo.</strong> Nem no mesmo ano, nem olhando a
+          variação ano a ano, nem testando um efeito defasado em 1 ano, aparece associação entre
+          densidade de ESF e %ICSAP dentro do mesmo município. E o episódio virou, ele mesmo, mais um
+          exemplo do problema central deste projeto: uma tendência de calendário compartilhada pode
+          simular um "achado" do mesmo jeito que o porte municipal simulava um antes — a correção é
+          sempre a mesma, comparar cada unidade a si mesma ou a seus pares reais, nunca ao Brasil
+          inteiro de uma vez.
+        </p>
+        <p className="mt-2 max-w-3xl text-xs text-ink-500">
+          Painel balanceado de 5.568 municípios × 4 anos (22.272 observações). Reprodutível em{" "}
+          <code>scripts/analise_equidade_aps_longitudinal.py</code>.
+        </p>
+      </div>
+
       <p className="mt-4 text-xs text-ink-500">
         Fonte: relatório público de Cobertura da APS (Ministério da Saúde / e-Gestor AB), competências
         de jan/2021 a mai/2026, cruzado com ICSAP (SIH/DataSUS, 2024) e o índice-proxy de

@@ -466,6 +466,28 @@ export default function Metodologia() {
         ranking: qualquer classificação individual de município a partir dele seria estatisticamente
         indistinguível de ruído. Reprodutível em <code>scripts/analise_equidade_aps.py</code>.
       </p>
+      <p>
+        <strong>Teste longitudinal — e se o efeito de equipes novas demorar a aparecer?</strong> O
+        teste acima usa um único ano (2024) e não captura efeito defasado de equipes recém-
+        implantadas. Reprocessamos o ICSAP por município para 2021, 2022 e 2023 (2024 já disponível),
+        montando um painel balanceado de <strong>5.568 municípios × 4 anos</strong> (22.272
+        observações). O primeiro teste (efeito fixo só por município) deu ρ = +0,132 — sinal
+        aparente, na direção errada, crescente com o porte. Investigamos e encontramos outro
+        confundimento: ESF e %ICSAP subiram juntos no Brasil inteiro no período (ESF médio 3,67→4,05
+        por 10 mil hab.; %ICSAP médio 17,9%→21,2%), provável retomada pós-pandemia — uma tendência de
+        calendário comum às duas variáveis, não relação causal entre si. Ao remover também o efeito
+        de ano (<strong>efeito fixo duplo</strong>, município + ano), ρ cai para <strong>+0,006</strong>.
+        A primeira diferença ano a ano (demeada por ano) e a versão defasada em 1 ano confirmam:
+        |ρ| ≤ 0,032 em todos os desenhos corretamente especificados. O achado nulo se confirma também
+        no tempo — e o episódio é, ele mesmo, um sexto caso do problema central deste projeto: uma
+        tendência temporal compartilhada produz associação espúria do mesmo jeito que o porte
+        municipal produzia antes; a correção (efeito fixo duplo) é o equivalente temporal do desenho
+        pareado por porte. Reprodutível em{" "}
+        <code>scripts/analise_equidade_aps_longitudinal.py</code>; discussão completa no{" "}
+        <a href="https://github.com/pedropaulofernandes88-stack/saude-publica-br/blob/main/docs/preprint/preprint-cobertura-aps.md">
+          preprint
+        </a>.
+      </p>
 
       <h2>16. Arquétipos de saúde municipal (k-means)</h2>
       <p>
