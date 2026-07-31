@@ -18,7 +18,9 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 const ENVIO_SECRET = Deno.env.get("ALERTAS_ENVIO_SECRET");
-const REMETENTE = Deno.env.get("ALERTAS_REMETENTE") ?? "Saúde em Dado <alertas@saudeemdado.com>";
+// Mesmo padrão de alertas-assinatura: remetente de teste do Resend, que
+// dispensa domínio verificado. Ver comentário lá.
+const REMETENTE = Deno.env.get("ALERTAS_REMETENTE") ?? "Saúde em Dado <onboarding@resend.dev>";
 const FUNC_URL = `${SUPABASE_URL}/functions/v1/alertas-assinatura`;
 
 const db = createClient(SUPABASE_URL, SERVICE_KEY, { auth: { persistSession: false } });

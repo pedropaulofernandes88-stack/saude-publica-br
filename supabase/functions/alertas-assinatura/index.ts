@@ -21,7 +21,12 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
-const REMETENTE = Deno.env.get("ALERTAS_REMETENTE") ?? "Saúde em Dado <alertas@saudeemdado.com>";
+// Padrão é o remetente de teste do Resend, que funciona SEM domínio verificado
+// (só entrega ao e-mail da conta). Assim o sistema sai da caixa em vez de falhar
+// esperando propagação de DNS. Para usar o domínio próprio, defina o segredo
+// ALERTAS_REMETENTE como "Saúde em Dado <alertas@saudeemdado.com>" DEPOIS de
+// verificar saudeemdado.com em resend.com/domains.
+const REMETENTE = Deno.env.get("ALERTAS_REMETENTE") ?? "Saúde em Dado <onboarding@resend.dev>";
 const SITE = "https://saudeemdado.com";
 const FUNC_URL = `${SUPABASE_URL}/functions/v1/alertas-assinatura`;
 
@@ -108,10 +113,34 @@ Deno.serve(async (req) => {
     // campo que não pode funcionar. Quando a chave for configurada, o
     // formulário passa a aparecer sozinho — sem redeploy do site.
     if (rota === "status" && req.method === "GET") {
+      // Checar só a PRESENÇA da chave dá confiança falsa: uma chave revogada ou
+      // copiada pela metade responde "configurado" e o formulário aparece, mas
+      // toda inscrição falha. Aqui a chave é de fato validada contra o provedor.
+      // Se o provedor estiver inacessível, assume-se configurado (falha
+      // transitória não deve esconder o formulário).
+      let configurado = !!RESEND_API_KEY;
+      let motivo: string | undefined;
+      if (RESEND_API_KEY) {
+        try {
+          const r = await fetch("https://api.resend.com/domains", {
+            headers: { Authorization: `Bearer ${RESEND_API_KEY}` },
+            signal: AbortSignal.timeout(5000),
+          });
+          if (r.status === 401 || r.status === 400 || r.status === 403) {
+            configurado = false;
+            motivo = "chave do provedor recusada";
+            console.error("[alertas-assinatura] chave do provedor recusada:", r.status);
+          }
+        } catch {
+          /* provedor inacessível: mantém o formulário no ar */
+        }
+      } else {
+        motivo = "chave do provedor ausente";
+      }
       return json(
-        { email_configurado: !!RESEND_API_KEY },
+        { email_configurado: configurado, motivo },
         200,
-        { "cache-control": "public, max-age=300" },
+        { "cache-control": "public, max-age=120" },
       );
     }
 
