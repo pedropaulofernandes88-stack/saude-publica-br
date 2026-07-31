@@ -1,7 +1,26 @@
 # Alerta por assinatura — arquitetura e ativação
 
-Avisa por e-mail quando um município **entra em alerta** de arbovirose ou quando um
-alerta **se agrava**. Não é newsletter: em semana sem mudança, ninguém recebe nada.
+Avisa quando um município **entra em alerta** de arbovirose ou quando um alerta
+**se agrava**. Não é newsletter: em semana sem mudança, ninguém recebe nada.
+
+Há **dois canais**, e o segundo não depende de configuração nenhuma:
+
+| Canal | Depende de | Estado |
+|---|---|---|
+| E-mail (opt-in duplo) | conta em provedor, domínio verificado, secrets | exige ativação |
+| [Feed Atom](https://saudeemdado.com/alertas.xml) | nada | **sempre no ar** |
+
+O e-mail é o elo mais frágil da entrega: exige conta em provedor, verificação de
+domínio, SPF/DKIM, reputação de IP, e ainda pode cair em spam. O feed é arquivo
+estático no mesmo GitHub Pages — sem credencial, sem cadastro e sem base de dados
+pessoais. Gerado por [`build-feed.mjs`](../site/scripts/build-feed.mjs):
+
+- `/alertas.xml` — só semanas com entrada ou agravamento (equivale ao e-mail)
+- `/boletim.xml` — todas as edições
+
+Também serve de matéria-prima para automação: qualquer leitor, IFTTT, Zapier, n8n
+ou bot de Telegram consome Atom nativamente, então quem quiser outro canal monta o
+próprio caminho sem depender do projeto.
 
 ## Por que só mudança
 
@@ -66,17 +85,29 @@ Tudo está implantado e testado, menos o provedor de e-mail. São dois segredos:
 
 ### 1. Provedor de e-mail (Resend)
 
-O domínio `saudeemdado.com` já é seu, o que resolve a parte difícil da entrega.
-
-1. Crie conta em <https://resend.com> e verifique o domínio `saudeemdado.com`
-   (adicionar registros SPF/DKIM no DNS da HostGator).
-2. Gere uma API key.
-3. Configure nos **secrets do Supabase** (Dashboard → Edge Functions → Secrets):
+1. Crie conta em <https://resend.com> e gere uma API key.
+2. Configure nos **secrets do Supabase** (Dashboard → Edge Functions → Secrets):
 
 ```
 RESEND_API_KEY=re_xxxxxxxxxxxx
 ALERTAS_REMETENTE=Saúde em Dado <alertas@saudeemdado.com>
 ```
+
+**Atalho para destravar sem mexer em DNS.** Verificar domínio exige adicionar
+SPF/DKIM no DNS e esperar propagação. Enquanto isso não acontece, use o
+remetente de teste do próprio Resend:
+
+```
+ALERTAS_REMETENTE=Saúde em Dado <onboarding@resend.dev>
+```
+
+Funciona sem domínio verificado, com a limitação de **entregar apenas ao e-mail
+da conta do Resend** — suficiente para validar a cadeia inteira. Trocar de volta
+para o domínio próprio depois é alterar só este campo.
+
+Sem domínio verificado e usando `@saudeemdado.com`, o Resend recusa o envio: a
+função responde **502**, desfaz a inscrição pendente e registra o motivo em
+Edge Functions → `alertas-assinatura` → Logs.
 
 Sem `RESEND_API_KEY`, o formulário responde 503 com mensagem clara e **não**
 grava inscrição inconfirmável.
