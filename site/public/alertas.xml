@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Saúde em Dado — Alertas epidemiológicos</title>
+  <subtitle>Só quando um município entra em alerta ou um alerta se agrava. Semana sem mudança não gera entrada.</subtitle>
+  <link href="https://saudeemdado.com/alertas.xml" rel="self"/>
+  <link href="https://saudeemdado.com/boletim-semanal/"/>
+  <id>tag:saudeemdado.com,2026:alertas</id>
+  <updated>2026-07-31T14:01:05.517Z</updated>
+  <author><name>Saúde em Dado</name><uri>https://saudeemdado.com</uri></author>
+  <rights>Dados públicos (DataSUS/MS, IBGE) e InfoDengue (Fiocruz/FGV). Agregados sob CC BY 4.0.</rights>
+
+</feed>

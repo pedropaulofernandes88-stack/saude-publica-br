@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Saúde em Dado — Boletim epidemiológico semanal</title>
+  <subtitle>Vigilância de arboviroses e indicadores do SUS. Uma entrada por edição.</subtitle>
+  <link href="https://saudeemdado.com/boletim.xml" rel="self"/>
+  <link href="https://saudeemdado.com/boletim-semanal/"/>
+  <id>tag:saudeemdado.com,2026:boletim</id>
+  <updated>2026-07-27T17:47:50.659Z</updated>
+  <author><name>Saúde em Dado</name><uri>https://saudeemdado.com</uri></author>
+  <rights>Dados públicos (DataSUS/MS, IBGE) e InfoDengue (Fiocruz/FGV). Agregados sob CC BY 4.0.</rights>
+  <entry>
+    <title>SE 30/2026 — 13 município(s) em alerta, sem mudança na semana</title>
+    <link href="https://saudeemdado.com/boletim-semanal/?e=2026-se30"/>
+    <id>tag:saudeemdado.com,2026:2026-se30</id>
+    <updated>2026-07-27T17:47:50.659Z</updated>
+    <content type="html">&lt;ul&gt;&lt;li&gt;SE 28/2026 — dengue: 13 municípios em alerta (nível laranja ou vermelho) em 9 UFs, de 451 monitorados. Maiores: Sobral/CE, Mossoró/RN, Teixeira de Freitas/BA, Campina Grande/PB e outros. Fonte: InfoDengue (Fiocruz/FGV).&lt;/li&gt;&lt;li&gt;Na rede sentinela (451 municípios, 60% da população), 3.187 casos de dengue já notificados na semana, mas 13.202 estimados após correção do atraso de digitação (nowcasting) — a contagem crua da semana corrente sempre subestima.&lt;/li&gt;&lt;li&gt;Chikungunya: 4 municípios em alerta — Salvador/BA, Dourados/MS, Campina Grande/PB e outros.&lt;/li&gt;&lt;li&gt;Dengue 2024: 6.564.924 casos prováveis e 6.337 óbitos — casos acima da faixa esperada (P75 do canal endêmico 2015–2023) em 52 das 52 semanas.&lt;/li&gt;&lt;li&gt;20 UFs passaram um trimestre ou mais acima do canal endêmico em 2024 — maiores volumes: SP, MG, PR.&lt;/li&gt;&lt;li&gt;Mortalidade geral em novembro de 2024: 102.412 óbitos, -8,2% vs. esperado (baseline 2015–2019) — 1 mês(es) mais recente(s) excluído(s) por registro incompleto.&lt;/li&gt;&lt;li&gt;Internações SUS 2024: 14.171.364 AIH, mortalidade intra-hospitalar de 4,4% e R$ 23,7 bi aprovados.&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;small&gt;Vigilância: SE 28/2026, rede de 451 municípios. Fonte: InfoDengue (Fiocruz/FGV).&lt;/small&gt;&lt;/p&gt;</content>
+  </entry>
+  <entry>
+    <title>SE 29/2026 — boletim epidemiológico</title>
+    <link href="https://saudeemdado.com/boletim-semanal/?e=2026-se29"/>
+    <id>tag:saudeemdado.com,2026:2026-se29</id>
+    <updated>2026-07-23T19:43:07.367Z</updated>
+    <content type="html">&lt;ul&gt;&lt;li&gt;Dengue 2024: 6.564.924 casos prováveis e 6.337 óbitos — casos acima da faixa esperada (P75 do canal endêmico 2015–2023) em 52 das 52 semanas.&lt;/li&gt;&lt;li&gt;20 UFs passaram um trimestre ou mais acima do canal endêmico em 2024 — maiores volumes: SP, MG, PR.&lt;/li&gt;&lt;li&gt;Mortalidade geral em novembro de 2024: 102.412 óbitos, -8,2% vs. esperado (baseline 2015–2019) — 1 mês(es) mais recente(s) excluído(s) por registro incompleto.&lt;/li&gt;&lt;li&gt;Internações SUS 2024: 14.171.364 AIH, mortalidade intra-hospitalar de 4,4% e R$ 23,7 bi aprovados.&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;small&gt;Esta edição saiu sem dados de vigilância corrente.&lt;/small&gt;&lt;/p&gt;</content>
+  </entry>
+</feed>

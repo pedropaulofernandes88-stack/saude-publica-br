@@ -53,12 +53,17 @@ jobs:
       - name: Apurar o que mudou desde a edição anterior
         run: node site/scripts/build-alertas.mjs
 
+      # Canal de entrega que não depende de provedor de e-mail: arquivo estático,
+      # sem credencial e sem base de dados pessoais.
+      - name: Publicar feeds Atom
+        run: node site/scripts/build-feed.mjs
+
       - name: Commit e push (se houver edição nova)
         id: commit
         run: |
           git config user.name "boletim-bot"
           git config user.email "actions@github.com"
-          git add site/public/sdata/boletins/
+          git add site/public/sdata/boletins/ site/public/boletim.xml site/public/alertas.xml
           if git diff --cached --quiet; then
             echo "Nenhuma mudança — edição já publicada."
             echo "changed=false" >> "$GITHUB_OUTPUT"

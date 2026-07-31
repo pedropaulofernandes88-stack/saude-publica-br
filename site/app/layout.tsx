@@ -20,7 +20,16 @@ export const metadata: Metadata = {
     "epidemiologia", "dados abertos", "saúde pública", "CID-10", "Brasil",
     "excesso de mortalidade", "taxa padronizada",
   ],
-  alternates: { canonical: "/" },
+  alternates: {
+    canonical: "/",
+    // Feeds Atom: entrega que não depende de provedor de e-mail nem de cadastro.
+    types: {
+      "application/atom+xml": [
+        { url: "/alertas.xml", title: "Alertas epidemiológicos — só quando algo muda" },
+        { url: "/boletim.xml", title: "Boletim epidemiológico semanal — todas as edições" },
+      ],
+    },
+  },
   openGraph: {
     type: "website",
     locale: "pt_BR",

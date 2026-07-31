@@ -7,6 +7,40 @@ const BASE = `${SUPABASE_URL}/functions/v1/alertas-assinatura`;
 
 type Estado = "ocioso" | "enviando" | "ok" | "erro";
 
+/** Convite ao feed: entrega sem provedor de e-mail, sem cadastro, sem dado pessoal. */
+function LinhaFeed() {
+  return (
+    <p className="mt-3 border-t border-ink-100 pt-3 text-sm text-ink-600">
+      Prefere não deixar e-mail? Assine o{" "}
+      <a href="/alertas.xml" className="font-medium text-accent-700 underline">feed de alertas</a>{" "}
+      em qualquer leitor de RSS — só recebe entrada quando algum município muda de situação.
+      Há também o{" "}
+      <a href="/boletim.xml" className="font-medium text-accent-700 underline">feed de todas as edições</a>.
+    </p>
+  );
+}
+
+/** Quando o envio por e-mail não está operante, o feed segue disponível. */
+function SomenteFeed() {
+  return (
+    <div className="card mt-6 no-print">
+      <h2 className="font-serif text-xl font-semibold text-ink-900">
+        Acompanhe os alertas por feed
+      </h2>
+      <p className="mt-1.5 text-sm leading-relaxed text-ink-600">
+        A rede sentinela detecta surtos toda semana. Assine o{" "}
+        <a href="/alertas.xml" className="font-medium text-accent-700 underline">feed de alertas</a>{" "}
+        em qualquer leitor de RSS e receba uma entrada <strong>só quando houver mudança</strong> —
+        um município entrando em alerta ou um alerta se agravando. Sem cadastro e sem e-mail.
+      </p>
+      <p className="mt-2 text-sm text-ink-600">
+        Para acompanhar todas as edições, inclusive as semanas sem novidade, use o{" "}
+        <a href="/boletim.xml" className="font-medium text-accent-700 underline">feed do boletim</a>.
+      </p>
+    </div>
+  );
+}
+
 /**
  * Assinatura do alerta epidemiológico.
  *
@@ -62,9 +96,10 @@ export function AssinarAlertas() {
     }
   }
 
-  // Enquanto verifica, ou quando o envio não está operante, não renderiza nada:
-  // um formulário quebrado é pior do que formulário nenhum.
-  if (disponivel !== true) return null;
+  // Enquanto verifica, não renderiza nada. Se o envio não está operante, ainda
+  // assim oferece o feed — que não depende de provedor de e-mail nem cadastro.
+  if (disponivel === null) return null;
+  if (disponivel === false) return <SomenteFeed />;
 
   if (estado === "ok") {
     return (
@@ -158,6 +193,7 @@ export function AssinarAlertas() {
           fale com o mantenedor
         </a>.
       </p>
+      <LinhaFeed />
     </div>
   );
 }
