@@ -577,9 +577,14 @@ export default function Metodologia() {
           agregado — não risco individual, não relação causal.
         </li>
         <li>
-          <strong>Proporção alta pode ser efeito de acesso restrito.</strong> Onde faltam
-          leitos, a internação eletiva desaparece e a fatia de ICSAP sobe mecanicamente.
-          Cruze com oferta hospitalar antes de concluir que a atenção primária falha.
+          <strong>O ICSAP responde à oferta hospitalar local — medimos, e o efeito é
+          grande.</strong> Esta advertência já existia aqui como hipótese ("onde faltam
+          leitos, a internação eletiva desaparece e a fatia de ICSAP sobe mecanicamente").
+          Com os dados de leitos (§18) testamos, e o resultado foi na{" "}
+          <em>direção oposta</em> e por outro mecanismo: ter leito local{" "}
+          <strong>quase dobra</strong> a internação por ICSAP (+85% no 3º quartil de porte)
+          sem alterar as demais. Não é a eletiva que some — é a internação sensível que
+          <em> aparece</em> quando existe leito na cidade. Detalhes na seção 19.
         </li>
       </ul>
       <p>
@@ -672,7 +677,73 @@ export default function Metodologia() {
         Reprodutível em <code>scripts/pipeline_cnes_leitos.py</code>.
       </p>
 
-      <h2>19. Privacidade e células de contagem pequena</h2>
+      <h2>19. Leitos × ICSAP: o indicador responde à oferta hospitalar</h2>
+      <p>
+        Com a camada de leitos (§18) foi possível testar uma advertência que esta
+        metodologia carregava desde o início <em>sem nunca ter sido medida</em>: a de que
+        o %ICSAP poderia estar inflado onde falta leito, porque "a internação eletiva
+        desaparece e a fatia de ICSAP sobe mecanicamente". Cruzamos as duas bases para os{" "}
+        <strong>5.570 municípios</strong> (2024). O resultado contradiz a hipótese na
+        direção <em>e</em> no mecanismo.
+      </p>
+      <p>
+        <strong>Direção oposta.</strong> A correlação entre leitos SUS por mil habitantes e
+        %ICSAP é <strong>positiva</strong>: ρ = +0,32 bruta, +0,34 controlando porte e
+        vulnerabilidade, e entre +0,15 e +0,47 dentro de cada quartil de porte (positiva nos
+        quatro). Municípios <em>sem</em> leito local têm %ICSAP <em>menor</em> (mediana
+        17,7%), não maior, que os municípios com leito (21,4%).
+      </p>
+      <p>
+        <strong>Mecanismo: é o numerador, não o denominador.</strong> Decompondo as
+        internações em ICSAP e não-ICSAP por habitante, dentro de cada quartil de porte,
+        o efeito da presença de leito local aparece quase inteiramente sobre o ICSAP:
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Porte</th><th>Oferta local</th><th>ICSAP /100 mil</th>
+            <th>Não-ICSAP /100 mil</th><th>%ICSAP</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Q2</td><td>sem leito</td><td>1.156</td><td>5.483</td><td>17,3%</td></tr>
+          <tr><td>Q2</td><td>com leito</td><td><strong>1.745</strong> (+51%)</td><td>5.887 (+7%)</td><td>22,8%</td></tr>
+          <tr><td>Q3</td><td>sem leito</td><td>961</td><td>5.145</td><td>15,4%</td></tr>
+          <tr><td>Q3</td><td>com leito</td><td><strong>1.782</strong> (+85%)</td><td>5.728 (+11%)</td><td>23,5%</td></tr>
+          <tr><td>Q4</td><td>sem leito</td><td>877</td><td>5.604</td><td>14,6%</td></tr>
+          <tr><td>Q4</td><td>com leito</td><td><strong>1.343</strong> (+53%)</td><td>5.571 (−1%)</td><td>19,4%</td></tr>
+        </tbody>
+      </table>
+      <p>
+        Não é a internação eletiva que some por falta de leito — é a internação sensível à
+        atenção primária que <strong>aparece</strong> quando existe leito na cidade.
+        Pneumonia, desidratação e descompensação de insuficiência cardíaca são exatamente o
+        que um hospital pequeno interna. Sem leito local, esses casos são resolvidos em
+        ambulatório ou simplesmente não viajam; só o caso complexo viaja. É oferta induzindo
+        demanda, concentrada nas internações discricionárias que o ICSAP mede.
+      </p>
+      <p>
+        <strong>Consequência para o uso do indicador.</strong> Um município que abre um
+        hospital pequeno verá seu %ICSAP <em>subir</em> — e, pela leitura convencional
+        ("ICSAP alto = atenção primária fraca"), seria classificado como tendo{" "}
+        <em>piorado</em> a atenção básica, quando o que mudou foi a oferta hospitalar. Assim
+        como a cobertura potencial da APS mede porte municipal (§15), o %ICSAP mede, em
+        parte relevante, <strong>a existência de leito na cidade</strong>. Comparações de
+        ICSAP entre municípios devem considerar a oferta hospitalar local; a comparação
+        pareada da §17 já vai nessa direção, mas o par ideal também controlaria leitos.
+      </p>
+      <p>
+        <strong>Ressalva semântica declarada.</strong> O ICSAP é medido por município de{" "}
+        <em>residência</em> do paciente; os leitos, por município do{" "}
+        <em>estabelecimento</em>. "Sem leito" significa sem oferta <em>local</em>, não sem
+        acesso: o morador se interna em outro município e a internação conta para a
+        residência dele. O efeito medido, portanto, opera por barreira de deslocamento — não
+        por ausência absoluta de leito. Reprodutível em{" "}
+        <code>scripts/analise_leitos_icsap.py</code>; mart público{" "}
+        <code>mart_leitos_icsap_municipio</code>.
+      </p>
+
+      <h2>20. Privacidade e células de contagem pequena</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas

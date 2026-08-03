@@ -48,7 +48,11 @@ longitudinal 2021-2024 (5.568 municípios) testando efeito de equipes recém-
 implantadas, com efeito fixo duplo (município e ano) para remover uma tendência
 nacional comum de alta em ambas as variáveis no período, confirmou o achado
 nulo (|ρ| ≤ 0,032 em todos os desenhos: contemporâneo, diferença ano a ano e
-defasado em 1 ano). Testando a limitação de que o ICSAP (restrito ao SUS)
+defasado em 1 ano). O cruzamento com leitos hospitalares (CNES) mostrou que o
+próprio desfecho responde à oferta local: ter leito no município quase dobra a
+internação por ICSAP (+85% no 3º quartil de porte) sem alterar as demais —
+oferta induzindo demanda nas internações que o indicador mede. Testando a
+limitação de que o ICSAP (restrito ao SUS)
 poderia estar subestimado onde a saúde suplementar é relevante (dados de
 beneficiários, ANS), encontramos um efeito real, porém concentrado nos
 municípios de maior porte (ρ = −0,29 no quartil superior, dentro do porte;
@@ -97,6 +101,11 @@ delayed effect of newly implemented teams, using two-way fixed effects
 (municipality and year) to remove a shared national upward trend in both
 variables over the period, confirmed the null finding (|ρ| ≤ 0.032 across all
 specifications: contemporaneous, year-over-year difference, and 1-year lag).
+Cross-referencing with hospital beds (CNES) showed that the outcome itself
+responds strongly to local supply: having a hospital bed in the municipality
+nearly doubles ACSC admissions (+85% in the 3rd population quartile) while
+leaving other admissions unchanged — supply inducing demand precisely in the
+admissions the indicator measures.
 Testing the limitation that ACSC (SUS-restricted) may be underestimated where
 private health coverage is relevant (ANS beneficiary data), we found a real
 but size-concentrated effect (ρ = −0.29 in the top population quartile,
@@ -211,6 +220,19 @@ testamos se ele explica parte da variação do ICSAP: correlação bruta, parcia
 quartil de porte (mesmo desenho da Seção 2.4), já que uma correlação parcial
 por regressão linear sobre postos pode não remover completamente um efeito de
 porte não-linear.
+
+### 2.7 Teste da influência da oferta hospitalar sobre o desfecho
+
+Para verificar se o próprio ICSAP responde à disponibilidade de leitos,
+processamos o grupo LT do CNES (FTP do DataSUS, competência de dezembro de
+2024), que traz leitos por estabelecimento, tipo e vínculo SUS. Agregamos por
+município e cruzamos com o ICSAP. Além das correlações (bruta, parcial e por
+quartil de porte), decompusemos as internações em ICSAP e não-ICSAP por
+habitante, comparando municípios com e sem leito hospitalar próprio dentro de
+cada quartil — essa decomposição distingue um efeito sobre o numerador
+(mais internações sensíveis) de um efeito sobre o denominador (menos
+internações de outros tipos), que é a diferença entre as duas explicações
+concorrentes.
 
 ## 3. Resultados
 
@@ -370,11 +392,68 @@ preprint se concentra. Isso não muda a conclusão principal (ausência de
 associação entre cobertura potencial da APS e ICSAP), mas qualifica onde o
 ICSAP como desfecho deve ser lido com mais cautela.
 
+### 3.8 O ICSAP responde à oferta hospitalar local — e o efeito é grande
+
+Uma objeção recorrente ao uso do ICSAP diz que a proporção estaria inflada
+onde falta leito, porque a internação eletiva desapareceria e a fatia de ICSAP
+subiria mecanicamente. Testamos essa hipótese cruzando o ICSAP com os leitos
+hospitalares por município (CNES grupo LT, dezembro de 2024, 5.570
+municípios). O resultado contradiz a hipótese na direção **e** no mecanismo.
+
+A correlação entre leitos SUS por mil habitantes e %ICSAP é **positiva**:
+ρ = +0,32 bruta, +0,34 controlando porte populacional e vulnerabilidade, e
+entre +0,15 e +0,47 dentro de cada quartil de porte (positiva nos quatro).
+Municípios sem leito local têm %ICSAP **menor** (mediana 17,7%), não maior,
+que os municípios com leito (21,4%).
+
+A decomposição das internações identifica o mecanismo:
+
+| Porte | Oferta local | ICSAP /100 mil | Não-ICSAP /100 mil | %ICSAP |
+|---|---|--:|--:|--:|
+| Q2 | sem leito | 1.156 | 5.483 | 17,3% |
+| Q2 | com leito | **1.745** (+51%) | 5.887 (+7%) | 22,8% |
+| Q3 | sem leito | 961 | 5.145 | 15,4% |
+| Q3 | com leito | **1.782** (+85%) | 5.728 (+11%) | 23,5% |
+| Q4 | sem leito | 877 | 5.604 | 14,6% |
+| Q4 | com leito | **1.343** (+53%) | 5.571 (−1%) | 19,4% |
+
+**Tabela 6.** Internações por 100 mil habitantes segundo a existência de leito
+hospitalar no próprio município, dentro de cada quartil de porte, 2024.
+
+O efeito da presença de leito local incide quase inteiramente sobre o
+numerador: a internação por condições sensíveis à atenção primária praticamente
+dobra, enquanto as demais internações mal se alteram. Não é a internação
+eletiva que desaparece por falta de leito — é a internação sensível que
+**aparece** quando existe leito na cidade. Pneumonia, desidratação e
+descompensação de insuficiência cardíaca são exatamente o perfil que um
+hospital de pequeno porte interna; sem leito local, esses casos são manejados
+ambulatorialmente ou não motivam deslocamento, enquanto o caso complexo se
+desloca de todo modo. Trata-se de oferta induzindo demanda, concentrada nas
+internações discricionárias que o ICSAP mede.
+
+A implicação é direta e simétrica ao achado central deste preprint: assim como
+a cobertura potencial da APS mede porte municipal, o %ICSAP mede, em parte
+relevante, **a existência de leito hospitalar no município**. Um município que
+inaugura um hospital de pequeno porte verá seu %ICSAP subir e, pela leitura
+convencional do indicador, seria classificado como tendo piorado sua atenção
+primária — quando o que mudou foi a oferta hospitalar.
+
+Ressalva semântica: o ICSAP é medido por município de *residência* do paciente
+e os leitos por município do *estabelecimento*. "Sem leito" significa ausência
+de oferta **local**, não ausência de acesso — o residente interna-se em outro
+município e a internação é contabilizada em sua residência. O efeito medido
+opera, portanto, por barreira de deslocamento.
+
 ## 4. Discussão
 
 O achado central — ausência de associação entre cobertura potencial da APS e
 ICSAP — sobreviveu a quatro tentativas progressivamente mais rigorosas de
-encontrá-la: correlação bruta, correlação parcial controlando os confundidores
+encontrá-la — e um teste adicional revelou que o próprio desfecho responde
+fortemente à oferta hospitalar local (Seção 3.8), reforçando o argumento
+central por outra via: tanto o indicador de insumo (cobertura) quanto o de
+desfecho (%ICSAP) medem, em boa parte, características estruturais do
+município e não desempenho assistencial. As quatro tentativas foram:
+correlação bruta, correlação parcial controlando os confundidores
 óbvios, um desenho pareado por porte com métricas que não saturam nem herdam o
 confundimento de acesso hospitalar geral, e um painel longitudinal 2021-2024
 com efeito fixo municipal e de ano. Isso reduz substancialmente a
@@ -427,11 +506,13 @@ de_beneficiarios`), mais granular mas com histórico íntegro desde 2021.
 - **Código:** https://github.com/pedropaulofernandes88-stack/saude-publica-br
   (MIT) — `scripts/analise_cobertura_icsap.py`, `scripts/analise_equidade_aps.py`,
   `scripts/analise_equidade_aps_longitudinal.py`,
-  `scripts/pipeline_ans_beneficiarios.py`, `scripts/analise_saude_suplementar_icsap.py`
+  `scripts/pipeline_ans_beneficiarios.py`, `scripts/analise_saude_suplementar_icsap.py`,
+  `scripts/pipeline_cnes_leitos.py`, `scripts/analise_leitos_icsap.py`
 - **Dados agregados:** Parquet com checksum SHA-256 e API REST pública (CC BY 4.0)
   — `mart_cobertura_aps_municipio`, `mart_cobertura_icsap_municipio`,
   `mart_equidade_aps_municipio`, `mart_equidade_aps_longitudinal`,
-  `mart_saude_suplementar_municipio`, `mart_saude_suplementar_icsap_municipio`
+  `mart_saude_suplementar_municipio`, `mart_saude_suplementar_icsap_municipio`,
+  `mart_leitos_municipio`, `mart_leitos_icsap_municipio`
 - **Dados originais:** domínio público (Ministério da Saúde/SAPS; DATASUS; IBGE;
   ANS Dados Abertos)
 

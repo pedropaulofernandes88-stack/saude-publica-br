@@ -309,6 +309,55 @@ período ou série mensal preservada — nunca soma.
 Commits: `d47abf7` (estabelecimentos + KPI no mapa), `d0cd844` (metodologia
 §18), `071ddc5` (leitos + `/hospitalar` + metodologia). Todos no ar.
 
+## Atualização 4 — leitos × ICSAP: o achado mais forte da sequência
+
+O cruzamento previsto na pendência 5 foi feito, e o resultado **derrubou uma
+afirmação que a própria metodologia carregava desde o início sem nunca ter
+sido testada**.
+
+**A hipótese antiga (declarada, nunca medida).** A §17 advertia: "onde faltam
+leitos, a internação eletiva desaparece e a fatia de ICSAP sobe
+mecanicamente". Isso prevê *menos leitos → mais %ICSAP*.
+
+**O que os dados mostram: o contrário, e por outro mecanismo.** Correlação
+leitos SUS/mil × %ICSAP = **+0,32** bruta, **+0,34** controlando porte e IVS,
+e **+0,15 a +0,47** dentro de cada quartil de porte (positiva nos quatro).
+Municípios sem leito local têm %ICSAP *menor* (17,7%) que os com leito (21,4%).
+
+**O teste decisivo — numerador ou denominador?** Decompondo as internações
+por habitante, dentro de cada quartil de porte:
+
+| Porte | Oferta local | ICSAP/100k | não-ICSAP/100k |
+|---|---|--:|--:|
+| Q2 | sem leito → com leito | 1.156 → **1.745** (+51%) | 5.483 → 5.887 (+7%) |
+| Q3 | sem leito → com leito | 961 → **1.782** (+85%) | 5.145 → 5.728 (+11%) |
+| Q4 | sem leito → com leito | 877 → **1.343** (+53%) | 5.604 → 5.571 (−1%) |
+
+O efeito está quase todo no **numerador**. Não é a eletiva que some por falta
+de leito — é a internação sensível que **aparece** quando há leito na cidade.
+Pneumonia, desidratação e descompensação de IC são exatamente o que um
+hospital pequeno interna; sem leito local, esses casos são resolvidos em
+ambulatório ou não viajam, enquanto o caso complexo viaja de todo jeito.
+Oferta induzindo demanda, concentrada justamente nas internações
+discricionárias que o ICSAP mede.
+
+**Implicação séria.** Um município que abre um hospital pequeno vê seu %ICSAP
+subir e, pela leitura convencional ("ICSAP alto = APS fraca"), seria
+classificado como tendo *piorado* a atenção básica. Assim como a cobertura
+potencial da APS mede porte, o %ICSAP mede em parte relevante **a existência
+de leito na cidade**. É o mesmo erro estrutural nos dois lados da equação:
+insumo e desfecho medem característica do município, não desempenho.
+
+**Ressalva semântica declarada em toda a saída.** ICSAP é por município de
+*residência*; leitos, por município do *estabelecimento*. "Sem leito" = sem
+oferta **local**, não sem acesso — o morador interna em outro município e a
+internação conta para a residência dele. O efeito opera por barreira de
+deslocamento, não por ausência absoluta.
+
+Publicado em: metodologia §19 (nova) + §17 corrigida, preprint (nova §2.7/§3.8,
+tabela 6, resumo/abstract, discussão), mart `mart_leitos_icsap_municipio`.
+Reprodutível em `scripts/analise_leitos_icsap.py`.
+
 ## Bug de renderização do mapa (corrigido)
 
 Fora da linha metodológica, mas vale registrar porque custou tempo e o
@@ -340,10 +389,8 @@ RR 526×608. Commits `25decf3` e `d46c7cf`.
 
 ### Oportunidades abertas pelo CNES (nenhuma iniciada)
 
-5. **Cruzar leitos com ICSAP** — o preprint da APS já registra que "proporção
-   alta de ICSAP pode ser efeito de acesso restrito: onde faltam leitos, a
-   internação eletiva desaparece e a fatia de ICSAP sobe mecanicamente". Agora
-   existe o dado para testar isso, que hoje é só uma hipótese declarada.
+5. ~~Cruzar leitos com ICSAP~~ — **feito, e derrubou a hipótese** (ver
+   Atualização 4). Efeito grande e na direção oposta à prevista.
 6. **Cruzar leitos com HSMR** — mortalidade hospitalar estratificada por porte
    (faixa de leitos) do estabelecimento. O HSMR já declara viés de case-mix
    residual por porte; leitos dariam a medida direta de porte.
