@@ -587,7 +587,62 @@ export default function Metodologia() {
         municipal e na ferramenta MCP <code>icsap_distancia_dos_pares</code>.
       </p>
 
-      <h2>18. Privacidade e células de contagem pequena</h2>
+      <h2>18. Estabelecimentos de saúde (CNES)</h2>
+      <p>
+        Exibido como KPI no <a href="/mapa/">mapa</a>. É a primeira camada de{" "}
+        <strong>oferta</strong> da plataforma: até aqui todos os indicadores contavam{" "}
+        <em>eventos</em> (óbitos, casos, internações), nunca capacidade instalada. Sem
+        denominador de oferta não dá para perguntar se um município tem estrutura para
+        atender sua população.
+      </p>
+      <ul>
+        <li>
+          <strong>Fonte:</strong> API pública de dados abertos do Ministério da Saúde
+          (<code>apidadosabertos.saude.gov.br/cnes/estabelecimentos</code>), sem
+          autenticação. É o <em>cadastro corrente</em> — não tem série histórica.
+        </li>
+        <li>
+          <strong>Cobertura:</strong> 629.987 estabelecimentos cadastrados no Brasil, dos
+          quais <strong>492.200 ativos</strong> nos 5.571 municípios. Publicamos apenas os
+          ativos.
+        </li>
+        <li>
+          <strong>Perfil hospitalar:</strong> estabelecimento com atendimento hospitalar
+          declarado ou tipo de unidade com internação (tabela de domínio do CNES).
+        </li>
+      </ul>
+      <p>
+        <strong>Armadilha 1 — cadastros desabilitados não são sinalizados como tal.</strong>{" "}
+        Não existe campo de status óbvio: o que marca a desabilitação é o preenchimento de{" "}
+        <code>codigo_motivo_desabilitacao_estabelecimento</code>. Contar sem filtrar infla a
+        oferta com cadastros mortos — no Brasil inteiro são <strong>137.787 registros
+        desabilitados</strong> (22% da base) misturados aos ativos.
+      </p>
+      <p>
+        <strong>Armadilha 2 — "esfera administrativa" não significa propriedade pública.</strong>{" "}
+        O campo <code>descricao_esfera_administrativa</code> indica qual ente{" "}
+        <em>gere/contratualiza</em> o estabelecimento, não quem é o dono. Em Alta Floresta
+        d'Oeste/RO, 67 dos 67 estabelecimentos aparecem como "MUNICIPAL" — mas só{" "}
+        <strong>32 (48%) são de fato públicos</strong> pela natureza jurídica; os demais são
+        clínicas LTDA e consultórios de pessoa física. Ler esse campo como propriedade{" "}
+        <em>mais que dobra</em> a rede pública aparente. Usamos o primeiro dígito de{" "}
+        <code>descricao_natureza_juridica_estabelecimento</code> (tabela CONCLA: 1=público,
+        2=privado com fins lucrativos, 3=sem fins lucrativos, 4=pessoa física,
+        5=internacional).
+      </p>
+      <p>
+        <strong>Limitações declaradas.</strong> (a) Não há <strong>leitos</strong>: a API não
+        expõe esse endpoint, e o dado só existe no FTP do DataSUS (grupo <code>LT</code>) —
+        fase futura, ainda não implementada. Capacidade de internação de verdade se mede em
+        leitos, não em contagem de unidades, então o KPI atual é um proxy grosseiro. (b) Sem
+        série histórica: o cadastro é uma foto do presente, e comparações ao longo do tempo
+        exigiriam o FTP. (c) Contagem de estabelecimentos não pondera porte — um hospital de
+        800 leitos e um posto pequeno contam igual. Reprodutível em{" "}
+        <code>scripts/pipeline_cnes.py</code>; mart público{" "}
+        <code>mart_cnes_municipio</code>.
+      </p>
+
+      <h2>19. Privacidade e células de contagem pequena</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas
