@@ -178,8 +178,15 @@ robustez pareado) e é submissível de forma independente à SciELO Preprints �
 1. `a572ed0` — fix(hsmr): corrige múltiplas comparações com FDR
 2. `6bce70a` — feat: teste de robustez da equidade APS + confirma que ICSAP não tem o problema
 3. `c0bd4a8` — docs(preprint): novo preprint — cobertura potencial da APS mede porte, não desempenho
+4. `2e875c0` — feat(aps): painel longitudinal 2021-2024 confirma achado nulo
+5. `f6072ec` — feat(aps): testa saúde suplementar como explicação do ICSAP residual
+6. `25decf3` — fix(mapa): retângulo de moldura do d3-geo escondia o choropleth
+7. `d47abf7` — feat(mapa): KPI de estabelecimentos hospitalares (CNES)
+8. `d46c7cf` — fix(mapa): enquadramento também precisa evitar o pipeline do geoPath
+9. `d0cd844` — docs(metodologia): seção 18 documenta o CNES e suas duas armadilhas
+10. `071ddc5` — feat(hospitalar): leitos por município (CNES-LT, 2015-2024)
 
-Todos com deploy confirmado com sucesso (exceto o último, docs-only, sem deploy).
+Todos no ar, com deploy confirmado (os docs-only não disparam deploy).
 
 ## Atualização — painel longitudinal 2021-2024 (resolvido)
 
@@ -208,8 +215,7 @@ seguida à consolidação inicial. Resumo:
   tabela 4 + resumo/abstract + limitações), `site/app/metodologia/page.tsx`
   (§15), `site/app/atencao-basica/page.tsx` (nova seção "E equipes
   recém-implantadas?"). Build (`npm run build`) e verificação visual via
-  preview local, ambos OK. **Ainda não commitado/pushado** — aguardando
-  confirmação do usuário.
+  preview local, ambos OK. Commit `2e875c0`, no ar.
 
 ## Atualização 2 — saúde suplementar explica a limitação do ICSAP? (parcialmente)
 
@@ -243,17 +249,111 @@ relevante", que antes só era mencionada, nunca medida.
   deve ser lido com mais cautela.
 - Atualizados: preprint (nova §2.6/3.7, tabela 5, resumo/abstract, limitações,
   disponibilidade de dados) e metodologia (§15, novo parágrafo). Build OK,
-  verificado visualmente. **Ainda não commitado/pushado.**
+  verificado visualmente. Commit `f6072ec`, no ar.
+
+## Atualização 3 — CNES: a camada de oferta que faltava
+
+Até aqui a plataforma só contava **eventos** (óbitos, casos, internações),
+nunca **capacidade instalada**. Sem denominador de oferta não dá para
+distinguir "assistência pior" de "falta de estrutura". Duas etapas:
+
+### 3.1 Estabelecimentos (API de dados abertos)
+
+- `scripts/pipeline_cnes.py` — API pública do MS, cadastro corrente, sem
+  autenticação. 629.987 estabelecimentos, **492.200 ativos** nos 5.571
+  municípios. Mart `mart_cnes_municipio`. KPI publicado em `/mapa`.
+- **Armadilha 1 (medida):** desabilitados não têm campo de status — o que
+  marca é `codigo_motivo_desabilitacao_estabelecimento` preenchido. São
+  137.787 registros (22% da base) que inflariam a oferta se contados.
+- **Armadilha 2 (medida):** `descricao_esfera_administrativa` é **gestão, não
+  propriedade**. Em Alta Floresta d'Oeste/RO os 67 estabelecimentos vêm como
+  "MUNICIPAL", mas só **32 (48%)** são públicos pela natureza jurídica — ler o
+  campo errado mais que dobra a rede pública aparente. Correto: primeiro
+  dígito de `descricao_natureza_juridica_estabelecimento` (CONCLA).
+
+### 3.2 Leitos (FTP DataSUS, grupo LT, 2015-2024)
+
+A API não expõe leitos; só o FTP tem. `scripts/pipeline_cnes_leitos.py`,
+competência de **dezembro de cada ano** (270 arquivos, ~6 MB, zero falhas).
+Mart `mart_leitos_municipio` (55.710 linhas município-ano). Publicado em
+`/hospitalar`.
+
+**Achado 1 — vazio assistencial.** Em 2024: 535.566 leitos totais, 357.084 SUS
+(66,7%), 63.837 de UTI. E **1.971 municípios (35,4%) sem nenhum leito
+hospitalar** — algo que a contagem de estabelecimentos não revelava, porque um
+posto de saúde conta como estabelecimento mas não interna ninguém.
+
+**Achado 2 — a lista de códigos de UTI não pode ser um intervalo.** A tabela
+oficial de domínios (`SCNES_DOMINIOS`, aba "LEITOS") põe os códigos de UTI na
+faixa 74-86, **mas o código 84 no meio dela é "acolhimento noturno"**. Usar
+`74 <= cod <= 86` contaria leito de acolhimento como terapia intensiva, em
+silêncio. Só foi detectado porque busquei a tabela oficial em vez de inferir a
+faixa. Enumeramos os códigos um a um.
+
+**Achado 3 — a série de UTI 2020-2022 não é comparável ano a ano.** O salto de
+50.873 (2021) para 61.037 (2022) parecia expansão de +20%. Investigando a
+composição: os leitos "complementares" vão de 59,8 mil (2019) → 99,4 mil
+(2021) → 76,9 mil (2022), e a fração deles sob códigos de UTI faz
+**77% → 51% → 79%**. Leitura: leito emergencial da pandemia foi cadastrado
+fora dos códigos de UTI e depois desmobilizado. O salto de 2022 é em parte
+**reclassificação**, não expansão real. A tendência de dez anos (40.448 →
+63.837, +58%) se sustenta; a variação anual nessa janela, não. Publicado como
+descontinuidade visível (caixa de alerta em `/hospitalar` + metodologia), não
+suavizado — é o mesmo princípio dos casos anteriores.
+
+**Regra dura registrada:** CNES é cadastro fotografado mensalmente, não fluxo
+de eventos. Somar 12 competências multiplicaria a capacidade por 12. Cada
+linha do mart é um snapshot de dezembro. Operações válidas: snapshot, média do
+período ou série mensal preservada — nunca soma.
+
+Commits: `d47abf7` (estabelecimentos + KPI no mapa), `d0cd844` (metodologia
+§18), `071ddc5` (leitos + `/hospitalar` + metodologia). Todos no ar.
+
+## Bug de renderização do mapa (corrigido)
+
+Fora da linha metodológica, mas vale registrar porque custou tempo e o
+diagnóstico é reaproveitável: o `/mapa` ficou **invisível** para os usuários.
+Duas causas encadeadas, ambas no `geoPath()` do d3-geo, cujo pipeline de
+clip/resampling esférico produz um **retângulo de moldura espúrio** com a
+malha auto-hospedada do projeto:
+
+1. A moldura era desenhada em cada um dos 853+ paths; o último do DOM
+   (pintado por cima) escondia o mapa atrás de um bloco de cor sólida.
+2. Corrigido isso, o mapa continuou invisível: o `fitSize()` mede os limites
+   pelo **mesmo pipeline** e vinha ajustando a *moldura* (`[[90,0],[710,620]]`)
+   ao viewBox — escala 98,7 e o estado inteiro comprimido em ~19×16 num canvas
+   de 800×620.
+
+Correção: projetar ponto a ponto (`proj([lon,lat])`) **e** calcular o
+enquadramento na mão, sem tocar no `geoPath`. Municípios nunca cruzam o
+antimeridiano, então nada se perde. Validado no DOM: MG 742×608, SP 784×525,
+RR 526×608. Commits `25decf3` e `d46c7cf`.
 
 ## O que fica pendente (decisão do usuário, não da IA)
 
 1. **Revisar e submeter (ou não) o novo preprint** — `docs/preprint/preprint-cobertura-aps.html`.
-2. ~~Considerar dado longitudinal para o teste de equidade~~ — resolvido, ver acima.
+2. ~~Considerar dado longitudinal para o teste de equidade~~ — resolvido.
 3. **Estender a correção FDR a outros indicadores do projeto** se algum dia
    publicar um ranking amplo (não top-N) baseado em teste estatístico por
    município — o padrão já está estabelecido em `scripts/hsmr_intervalo_confianca.py`.
-4. **Aprovar commit/push** das mudanças do painel longitudinal (scripts,
-   preprint, metodologia, `/atencao-basica`).
+4. ~~Aprovar commit/push do painel longitudinal~~ — feito e no ar.
+
+### Oportunidades abertas pelo CNES (nenhuma iniciada)
+
+5. **Cruzar leitos com ICSAP** — o preprint da APS já registra que "proporção
+   alta de ICSAP pode ser efeito de acesso restrito: onde faltam leitos, a
+   internação eletiva desaparece e a fatia de ICSAP sobe mecanicamente". Agora
+   existe o dado para testar isso, que hoje é só uma hipótese declarada.
+6. **Cruzar leitos com HSMR** — mortalidade hospitalar estratificada por porte
+   (faixa de leitos) do estabelecimento. O HSMR já declara viés de case-mix
+   residual por porte; leitos dariam a medida direta de porte.
+7. **Vazio assistencial × mortalidade** — os 1.971 municípios sem leito
+   cruzados com mortalidade por causas sensíveis à atenção hospitalar.
+8. **Leitos por tipo no site** — o mart já tem cirúrgico/clínico/obstétrico/
+   pediátrico/UTI separados, mas `/hospitalar` só exibe total, SUS e UTI.
+9. **Série mensal de leitos** (em vez de snapshot anual) se algum dia
+   interessar sazonalidade ou a curva mês a mês da pandemia — são ~3.240
+   arquivos, ~72 MB, 1,5-2h de download. Custo zero, só tempo.
 
 ## Princípio geral que emergiu desta sessão
 
