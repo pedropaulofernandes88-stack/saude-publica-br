@@ -235,6 +235,28 @@ export interface CnesMunicipio {
   ano_referencia: number;
 }
 
+export interface LeitosMunicipio {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  ano: number;
+  leitos_total: number;
+  leitos_sus: number;
+  leitos_nao_sus: number;
+  leitos_uti: number;
+  leitos_uti_sus: number;
+  leitos_cirurgico: number;
+  leitos_clinico: number;
+  leitos_obstetrico: number;
+  leitos_pediatrico: number;
+  populacao: number | null;
+  leitos_por_mil: number | null;
+  leitos_sus_por_mil: number | null;
+  leitos_uti_por_100k: number | null;
+  pct_leitos_sus: number | null;
+}
+
 export interface HsmrHospital {
   cnes: string;
   municipio_cod: string;

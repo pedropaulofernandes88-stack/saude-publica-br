@@ -4,7 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { Kpi, Skeleton } from "@/components/kpi";
 import {
   UFS, fmtDec, fmtInt, rest,
-  type ForecastDemandaHospital, type HsmrHospital, type InternacaoHospital, type LosHospital,
+  type ForecastDemandaHospital, type HsmrHospital, type InternacaoHospital,
+  type LeitosMunicipio, type LosHospital,
 } from "@/lib/api";
 
 /** minúsculas + sem acentos, para busca tolerante ("Penapolis" casa com "Penápolis"). */
@@ -51,6 +52,41 @@ export default function Hospitalar() {
     }).then((r) => setInstaveisTotal(r.length)).catch(() => setInstaveisTotal(null));
   }, [ufF, ano]);
   const hsmrNacional = hsmrAgg && hsmrAgg.esp ? hsmrAgg.obs / hsmrAgg.esp : null;
+
+  // ── Leitos (CNES-LT) — a camada de OFERTA ────────────────────────────────
+  // Série anual completa do recorte; agregação é feita no cliente porque o
+  // volume é pequeno (5,5 mil municípios × 10 anos) e permite montar a série
+  // temporal e o recorte por UF sem ida extra ao servidor.
+  const [leitos, setLeitos] = useState<LeitosMunicipio[] | null>(null);
+  useEffect(() => {
+    setLeitos(null);
+    rest<LeitosMunicipio>("mart_leitos_municipio", {
+      select: "municipio_cod,municipio_nome,uf_sigla,ano,leitos_total,leitos_sus,leitos_uti,leitos_uti_sus,populacao,leitos_sus_por_mil,pct_leitos_sus",
+      ...ufF,
+    }).then(setLeitos).catch(() => setLeitos([]));
+  }, [ufF]);
+
+  const serieLeitos = useMemo(() => {
+    if (!leitos?.length) return null;
+    const porAno = new Map<number, { leitos: number; sus: number; uti: number; pop: number; semLeito: number; n: number }>();
+    for (const l of leitos) {
+      const a = porAno.get(l.ano) ?? { leitos: 0, sus: 0, uti: 0, pop: 0, semLeito: 0, n: 0 };
+      a.leitos += l.leitos_total; a.sus += l.leitos_sus; a.uti += l.leitos_uti;
+      a.pop += l.populacao ?? 0; a.n += 1;
+      if (l.leitos_total === 0) a.semLeito += 1;
+      porAno.set(l.ano, a);
+    }
+    return [...porAno.entries()].sort((x, y) => x[0] - y[0]).map(([ano, v]) => ({
+      ano,
+      ...v,
+      susPorMil: v.pop ? (v.sus / v.pop) * 1000 : null,
+      utiPor100k: v.pop ? (v.uti / v.pop) * 100_000 : null,
+      pctSemLeito: v.n ? (v.semLeito / v.n) * 100 : null,
+    }));
+  }, [leitos]);
+
+  const ultimoLeitos = serieLeitos?.[serieLeitos.length - 1] ?? null;
+  const primeiroLeitos = serieLeitos?.[0] ?? null;
 
   // ── LOS esperado — mediana do hospital vs. mediana nacional ──────────────
   const [los, setLos] = useState<LosHospital[] | null>(null);
@@ -125,6 +161,100 @@ export default function Hospitalar() {
         A projeção de demanda (mais abaixo) sempre usa o histórico mensal completo disponível,
         independente do ano selecionado aqui.
       </p>
+
+      {/* Leitos — camada de oferta */}
+      <div className="card mt-6">
+        <h2 className="font-serif text-xl font-semibold text-ink-900">
+          Leitos hospitalares: a capacidade instalada
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-500">
+          Todo o resto desta página mede <strong>uso</strong> (quem internou, quanto tempo ficou, quem
+          morreu). Leito é a medida de <strong>oferta</strong> — e sem ela não dá para saber se um
+          resultado ruim reflete assistência pior ou simplesmente falta de estrutura. Fonte: CNES grupo
+          LT (FTP do DataSUS), competência de dezembro de cada ano.
+        </p>
+
+        {serieLeitos && ultimoLeitos ? (
+          <>
+            <div className="mt-4 grid gap-4 sm:grid-cols-4">
+              <Kpi
+                rotulo={`Leitos SUS /mil hab. (${ultimoLeitos.ano})`}
+                valor={ultimoLeitos.susPorMil != null ? fmtDec(ultimoLeitos.susPorMil) : "—"}
+                detalhe={`${fmtInt(ultimoLeitos.sus)} leitos SUS de ${fmtInt(ultimoLeitos.leitos)} totais`}
+              />
+              <Kpi
+                rotulo={`Leitos de UTI /100 mil hab. (${ultimoLeitos.ano})`}
+                valor={ultimoLeitos.utiPor100k != null ? fmtDec(ultimoLeitos.utiPor100k) : "—"}
+                detalhe={`${fmtInt(ultimoLeitos.uti)} leitos de terapia intensiva`}
+              />
+              <Kpi
+                rotulo="Municípios sem nenhum leito"
+                valor={ultimoLeitos.pctSemLeito != null ? `${fmtDec(ultimoLeitos.pctSemLeito, 1)}%` : "—"}
+                detalhe={`${fmtInt(ultimoLeitos.semLeito)} de ${fmtInt(ultimoLeitos.n)} no recorte`}
+              />
+              <Kpi
+                rotulo="Parcela SUS do total"
+                valor={ultimoLeitos.leitos ? `${fmtDec((ultimoLeitos.sus / ultimoLeitos.leitos) * 100, 1)}%` : "—"}
+                detalhe={
+                  primeiroLeitos && primeiroLeitos.leitos
+                    ? `era ${fmtDec((primeiroLeitos.sus / primeiroLeitos.leitos) * 100, 1)}% em ${primeiroLeitos.ano}`
+                    : undefined
+                }
+              />
+            </div>
+
+            <div className="mt-5 overflow-x-auto">
+              <table className="w-full min-w-[640px] text-sm">
+                <thead>
+                  <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+                    <th className="py-2 pr-3">Ano</th>
+                    <th className="py-2 pr-3 text-right">Leitos totais</th>
+                    <th className="py-2 pr-3 text-right">Leitos SUS</th>
+                    <th className="py-2 pr-3 text-right">% SUS</th>
+                    <th className="py-2 pr-3 text-right">UTI</th>
+                    <th className="py-2 pr-3 text-right">SUS /mil hab.</th>
+                    <th className="py-2 text-right">Municípios sem leito</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {serieLeitos.map((r) => (
+                    <tr key={r.ano} className="border-b border-ink-100 tabular-nums">
+                      <td className="py-1.5 pr-3 font-medium text-ink-900">{r.ano}</td>
+                      <td className="py-1.5 pr-3 text-right">{fmtInt(r.leitos)}</td>
+                      <td className="py-1.5 pr-3 text-right">{fmtInt(r.sus)}</td>
+                      <td className="py-1.5 pr-3 text-right">{r.leitos ? fmtDec((r.sus / r.leitos) * 100, 1) : "—"}</td>
+                      <td className="py-1.5 pr-3 text-right">{fmtInt(r.uti)}</td>
+                      <td className="py-1.5 pr-3 text-right">{r.susPorMil != null ? fmtDec(r.susPorMil) : "—"}</td>
+                      <td className="py-1.5 text-right">{fmtInt(r.semLeito)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="mt-4 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+              <strong>Cuidado ao ler a série de UTI entre 2020 e 2022.</strong> No Brasil, os leitos
+              classificados como "complementares" saltam de 59,8 mil (2019) para 99,4 mil (2021) e caem
+              para 76,9 mil em 2022 — e a fração deles registrada sob códigos de UTI vai de 77% para 51%
+              e volta a 79%. Isso indica que muito leito emergencial da pandemia foi cadastrado fora dos
+              códigos de UTI e depois desmobilizado. O salto de UTI em 2022 é, em parte,{" "}
+              <em>reclassificação</em>, não só expansão real. A tendência de 10 anos (40,4 mil → 63,8 mil)
+              é consistente; a variação ano a ano nessa janela, não.
+            </div>
+
+            <p className="mt-3 max-w-3xl text-xs text-ink-500">
+              O CNES é um cadastro fotografado mensalmente, não um fluxo de eventos: cada linha é um{" "}
+              <strong>snapshot</strong> de dezembro, nunca soma de competências (somar 12 meses
+              multiplicaria a capacidade por 12). UTI identificada por lista explícita de códigos da
+              tabela oficial de domínios — o código 84, no meio da faixa de UTI, é "acolhimento noturno"
+              e fica de fora. Reprodutível em <code>scripts/pipeline_cnes_leitos.py</code>; ver{" "}
+              <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
+            </p>
+          </>
+        ) : (
+          <Skeleton altura={320} />
+        )}
+      </div>
 
       {/* HSMR */}
       <div className="card mt-6 overflow-x-auto">

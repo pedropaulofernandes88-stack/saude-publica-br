@@ -631,15 +631,45 @@ export default function Metodologia() {
         5=internacional).
       </p>
       <p>
-        <strong>Limitações declaradas.</strong> (a) Não há <strong>leitos</strong>: a API não
-        expõe esse endpoint, e o dado só existe no FTP do DataSUS (grupo <code>LT</code>) —
-        fase futura, ainda não implementada. Capacidade de internação de verdade se mede em
-        leitos, não em contagem de unidades, então o KPI atual é um proxy grosseiro. (b) Sem
-        série histórica: o cadastro é uma foto do presente, e comparações ao longo do tempo
-        exigiriam o FTP. (c) Contagem de estabelecimentos não pondera porte — um hospital de
-        800 leitos e um posto pequeno contam igual. Reprodutível em{" "}
+        <strong>Limitações declaradas.</strong> (a) Sem série histórica: o cadastro é uma foto
+        do presente, e comparações ao longo do tempo exigem o FTP (ver leitos, abaixo).
+        (b) Contagem de estabelecimentos não pondera porte — um hospital de 800 leitos e um
+        posto pequeno contam igual; por isso a camada de leitos existe. Reprodutível em{" "}
         <code>scripts/pipeline_cnes.py</code>; mart público{" "}
         <code>mart_cnes_municipio</code>.
+      </p>
+      <p>
+        <strong>Leitos hospitalares (grupo LT, 2015–2024).</strong> A API de dados abertos não
+        expõe leitos; o dado vem do FTP do DataSUS (arquivos <code>LT{"{UF}{AAMM}"}.dbc</code>),
+        na competência de <strong>dezembro de cada ano</strong>. Exibido na{" "}
+        <a href="/hospitalar/">visão hospitalar</a>; mart público{" "}
+        <code>mart_leitos_municipio</code> (55.710 linhas município-ano). Em 2024: 535.566
+        leitos totais, 357.084 SUS (66,7%) e 63.837 de UTI — e{" "}
+        <strong>1.971 municípios (35,4%) sem nenhum leito</strong>.
+      </p>
+      <p>
+        <strong>Cadastro não se soma no tempo.</strong> O CNES fotografa o mesmo
+        estabelecimento todo mês; somar as 12 competências de um ano multiplicaria a
+        capacidade por 12. Cada linha do mart é um <em>snapshot</em> de dezembro. As operações
+        válidas são snapshot, média do período ou série mensal preservada — nunca soma.
+      </p>
+      <p>
+        <strong>UTI: por que a lista de códigos é explícita.</strong> A tabela oficial de
+        domínios (<code>SCNES_DOMINIOS</code>, aba "LEITOS") coloca os códigos de UTI na faixa
+        74–86, mas o <strong>código 84 no meio dela é "acolhimento noturno"</strong>, que não é
+        terapia intensiva. Usar o intervalo <code>74 ≤ código ≤ 86</code> contaria leito de
+        acolhimento como UTI, silenciosamente. Enumeramos os códigos um a um.
+      </p>
+      <p>
+        <strong>Descontinuidade declarada — a série de UTI entre 2020 e 2022.</strong> Os leitos
+        do tipo "complementar" saltam de 59,8 mil (2019) para 99,4 mil (2021) e caem a 76,9 mil
+        (2022), enquanto a fração deles sob códigos de UTI vai de 77% → 51% → 79%. A leitura
+        mais provável é que leito emergencial da pandemia foi cadastrado fora dos códigos de
+        UTI e depois desmobilizado. Consequência: o salto de UTI em 2022 (+20% em um ano) é em
+        parte <em>reclassificação</em>, não expansão real. A tendência de dez anos (40,4 mil →
+        63,8 mil) é consistente; a variação ano a ano nessa janela não é comparável. Optamos por
+        exibir a descontinuidade em vez de suavizá-la — quebra visível é informação, não defeito.
+        Reprodutível em <code>scripts/pipeline_cnes_leitos.py</code>.
       </p>
 
       <h2>19. Privacidade e células de contagem pequena</h2>
