@@ -773,7 +773,49 @@ export default function Metodologia() {
         <code>mart_leitos_icsap_municipio</code>.
       </p>
 
-      <h2>20. Privacidade e células de contagem pequena</h2>
+      <h2>20. Vazio assistencial e mortalidade: um achado nulo, testado a fundo</h2>
+      <p>
+        1.994 municípios (35,8% em 2023) não têm nenhum leito hospitalar local. A pergunta
+        óbvia — isso mata mais gente? — exige separar duas hipóteses com implicações opostas:
+        (a) <strong>sobrevida</strong>, o caso grave morre por falta de leito perto (assinatura:
+        taxa <em>padronizada</em> por idade maior); ou (b) <strong>local da morte</strong>, a
+        mesma morte ocorre em casa em vez do hospital, sem mudar a taxa total. Cruzamos leitos
+        (CNES-LT) com mortalidade (SIM), ano de 2023 (consolidado), para os 5.570 municípios.
+      </p>
+      <p>
+        <strong>Nenhuma das duas se confirma.</strong> A taxa padronizada é praticamente igual
+        entre municípios com e sem leito local, dentro de cada quartil de porte, e a diferença
+        que existe favorece levemente o grupo sem leito (−8,6 a −4,6 por 100 mil). O efeito bruto
+        sobre o local da morte (+1,9 p.p. de óbitos domiciliares) também colapsa dentro do porte
+        (+0,7 a −0,3 p.p.) — era majoritariamente confundimento de porte, o mesmo padrão já
+        visto em cobertura da APS e ICSAP.
+      </p>
+      <p>
+        <strong>Teste de robustez decisivo — a região Norte.</strong> Se a falta de leito local
+        matasse por barreira de deslocamento, o efeito deveria aparecer onde as distâncias até um
+        hospital de referência são maiores. Na região Norte, a taxa padronizada mediana é{" "}
+        <strong>627,3</strong> sem leito local contra <strong>662,5</strong> com — mesma direção
+        nula, sem inversão. Checamos também sub-registro (municípios pequenos podem notificar
+        menos óbitos, o que enviesaria a taxa bruta para baixo): a taxa <em>bruta</em> por
+        habitante é de fato menor sem leito, mas a padronizada — que corrige composição etária —
+        não é, indicando que a diferença bruta é população mais jovem, não subnotificação.
+      </p>
+      <p>
+        <strong>Coerência com o achado de ICSAP (§19).</strong> Leito local quase dobra a
+        internação por causas sensíveis à atenção primária, mas não muda a mortalidade
+        padronizada — dois achados independentes sugerindo que o hospital pequeno interna muito
+        caso de baixa complexidade sem alterar desfecho de sobrevida.
+      </p>
+      <p>
+        <strong>Limitação declarada, não resolvida.</strong> "Sem leito local" não mede{" "}
+        <em>distância</em> até o leito mais próximo — um município a 20 km de um hospital
+        regional e outro a 300 km entram no mesmo grupo. O teste regional atenua essa
+        preocupação, mas não a substitui; medir distância exigiria geocodificação não realizada.
+        Reprodutível em <code>scripts/analise_vazio_assistencial.py</code>; mart público{" "}
+        <code>mart_vazio_assistencial_municipio</code>.
+      </p>
+
+      <h2>21. Privacidade e células de contagem pequena</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas

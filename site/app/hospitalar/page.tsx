@@ -259,6 +259,82 @@ export default function Hospitalar() {
         )}
       </div>
 
+      {/* Vazio assistencial x mortalidade */}
+      <div className="card mt-6">
+        <h2 className="font-serif text-xl font-semibold text-ink-900">
+          Vazio assistencial e mortalidade: não achamos efeito
+        </h2>
+        <p className="mt-1 max-w-3xl text-sm text-ink-500">
+          1.994 municípios (35,8% em 2023) não têm nenhum leito hospitalar. A pergunta óbvia é se isso
+          mata mais gente. Duas hipóteses distintas, com implicações opostas: (a) <strong>sobrevida</strong> —
+          sem leito perto, o caso grave morre; a assinatura seria taxa <em>padronizada</em> por idade
+          maior; ou (b) <strong>local da morte</strong> — a mesma morte ocorre em casa em vez do
+          hospital, sem mudar a taxa total.
+        </p>
+
+        <div className="mt-4 grid gap-4 sm:grid-cols-3">
+          <Kpi rotulo="Municípios sem nenhum leito (2023)" valor="35,8%"
+               detalhe="1.994 de 5.570 — grupo comparado ao resto, dentro do mesmo porte" />
+          <Kpi rotulo="Diferença de taxa padronizada, dentro do porte" valor="≤ 8,6 /100 mil"
+               detalhe="sem leito vs. com leito, em todos os quartis — favorável ao grupo sem leito" />
+          <Kpi rotulo="Diferença de óbito domiciliar, dentro do porte" valor="≤ 0,9 p.p."
+               detalhe="o efeito bruto (+1,9 p.p.) era quase todo porte" />
+        </div>
+
+        <div className="mt-5 overflow-x-auto">
+          <table className="w-full min-w-[560px] text-sm">
+            <thead>
+              <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
+                <th className="py-2 pr-3">Porte</th>
+                <th className="py-2 pr-3 text-right">Taxa padr. — sem leito</th>
+                <th className="py-2 pr-3 text-right">Taxa padr. — com leito</th>
+                <th className="py-2 pr-3 text-right">Diferença</th>
+                <th className="py-2 text-right">% óbito domiciliar (sem × com)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {[
+                { p: "Q1 (menores)", ts: 667.9, tc: 676.5, ds: 23.8, dc: 23.1 },
+                { p: "Q2", ts: 683.7, tc: 688.4, ds: 25.4, dc: 24.5 },
+                { p: "Q3", ts: 696.6, tc: 701.3, ds: 24.6, dc: 24.5 },
+                { p: "Q4 (maiores)", ts: 709.9, tc: 716.1, ds: 20.3, dc: 20.6 },
+              ].map((r) => (
+                <tr key={r.p} className="border-b border-ink-100 tabular-nums">
+                  <td className="py-1.5 pr-3 font-medium text-ink-900">{r.p}</td>
+                  <td className="py-1.5 pr-3 text-right">{fmtDec(r.ts, 1)}</td>
+                  <td className="py-1.5 pr-3 text-right">{fmtDec(r.tc, 1)}</td>
+                  <td className="py-1.5 pr-3 text-right">{fmtDec(r.ts - r.tc, 1)}</td>
+                  <td className="py-1.5 text-right">{fmtDec(r.ds, 1)}% × {fmtDec(r.dc, 1)}%</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        <p className="mt-4 max-w-3xl text-sm text-ink-700">
+          <strong>Nenhuma das duas hipóteses se confirma.</strong> A taxa padronizada por idade é
+          praticamente igual entre municípios com e sem leito local, dentro de cada quartil de
+          porte — e a diferença que existe favorece levemente o grupo <em>sem</em> leito. O teste mais
+          exigente — comparar só na região Norte, onde as distâncias até um hospital de referência são
+          maiores — não muda o quadro (taxa padronizada 627,3 sem leito vs. 662,5 com leito). Se faltar
+          leito matasse, seria ali que apareceria.
+        </p>
+        <p className="mt-2 max-w-3xl text-sm text-ink-700">
+          Isso conversa com o achado da seção de ICSAP: leito local quase <strong>dobra</strong> a
+          internação por causas sensíveis à atenção primária, mas <strong>não muda</strong> a
+          mortalidade padronizada. Hospital pequeno parece internar muito caso de baixa complexidade
+          que não altera desfecho de sobrevida — dois achados independentes contando a mesma história.
+        </p>
+        <p className="mt-2 max-w-3xl text-xs text-ink-500">
+          <strong>Limitação declarada:</strong> "sem leito local" não mede distância até o leito mais
+          próximo — um município a 20 km de um hospital regional e outro a 300 km entram no mesmo
+          grupo. O teste regional atenua essa preocupação, mas não substitui medida de distância, que
+          exigiria geocodificação não realizada. Reprodutível em{" "}
+          <code>scripts/analise_vazio_assistencial.py</code>; mart público{" "}
+          <code>mart_vazio_assistencial_municipio</code>.
+        </p>
+      </div>
+
       {/* HSMR */}
       <div className="card mt-6 overflow-x-auto">
         <div className="flex flex-wrap items-end justify-between gap-4">

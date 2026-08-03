@@ -415,6 +415,44 @@ leitos e UTI, HSMR estratificado, aviso do residual), `mart_hsmr_hospital` com
 as colunas novas. Reprodutível em `scripts/hsmr_estratos_uti.py`,
 `scripts/analise_leitos_hsmr.py` e `scripts/hsmr_intervalo_confianca.py`.
 
+## Atualização 6 — vazio assistencial × mortalidade: achado nulo, testado a fundo
+
+Terceiro cruzamento com leitos. Diferente dos dois anteriores, este deu
+**nulo** — e um nulo bem testado é tão válido quanto um achado positivo.
+
+**A pergunta, com duas hipóteses de implicação oposta.** 1.994 municípios
+(35,8% em 2023) não têm leito local. (a) *Sobrevida*: falta de leito mata —
+assinatura seria taxa padronizada maior. (b) *Local da morte*: a mesma morte
+ocorre em casa em vez do hospital — assinatura seria mais óbito domiciliar,
+mesma taxa total.
+
+**Nenhuma das duas se confirma.** Taxa padronizada praticamente igual entre
+com/sem leito, dentro de cada quartil de porte, e a diferença que existe
+favorece levemente o grupo *sem* leito (−8,6 a −4,6/100 mil). O efeito bruto
+sobre local da morte (+1,9 p.p.) colapsa dentro do porte (+0,7 a −0,3 p.p.) —
+era confundimento de porte, o mesmo padrão de sempre.
+
+**Teste de robustez que poderia ter derrubado o nulo, e não derrubou.** Se
+faltar leito matasse por barreira de deslocamento, apareceria mais na região
+Norte (maiores distâncias). Lá: 627,3 sem leito vs. 662,5 com leito — mesma
+direção nula. Checamos também sub-registro (município pequeno notifica menos
+óbito?): a taxa *bruta* por habitante é menor sem leito, mas a *padronizada*
+não é — a diferença bruta é composição etária, não subnotificação.
+
+**Coerência com o achado de ICSAP (Atualização 4).** Leito local quase dobra
+a internação por ICSAP mas não muda a mortalidade padronizada — dois achados
+independentes convergindo: hospital pequeno interna muito caso de baixa
+complexidade sem alterar desfecho de sobrevida.
+
+**Limitação declarada, não resolvida:** "sem leito local" não mede distância
+até o leito mais próximo. O teste regional atenua, não substitui medida real
+de distância (exigiria geocodificação não feita).
+
+Publicado em: `/hospitalar` (nova seção com KPIs, tabela por porte, teste
+regional), metodologia §20 (nova, com §21 Privacidade renumerada),
+`mart_vazio_assistencial_municipio`. Reprodutível em
+`scripts/analise_vazio_assistencial.py`.
+
 ## Bug de renderização do mapa (corrigido)
 
 Fora da linha metodológica, mas vale registrar porque custou tempo e o
@@ -450,8 +488,9 @@ RR 526×608. Commits `25decf3` e `d46c7cf`.
    Atualização 4). Efeito grande e na direção oposta à prevista.
 6. ~~Cruzar leitos com HSMR~~ — **feito** (ver Atualização 5). A flag marcava
    "tem UTI"; corrigida por estratificação, com o residual declarado.
-7. **Vazio assistencial × mortalidade** — os 1.971 municípios sem leito
-   cruzados com mortalidade por causas sensíveis à atenção hospitalar.
+7. ~~Vazio assistencial × mortalidade~~ — **feito** (ver Atualização 6).
+   Achado nulo, robusto ao teste regional (Norte) e a checagem de
+   sub-registro.
 8. **Leitos por tipo no site** — o mart já tem cirúrgico/clínico/obstétrico/
    pediátrico/UTI separados, mas `/hospitalar` só exibe total, SUS e UTI.
 9. **Série mensal de leitos** (em vez de snapshot anual) se algum dia
