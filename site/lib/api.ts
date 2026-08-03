@@ -216,6 +216,25 @@ export interface EquidadeApsMunicipio {
   atencao: boolean | null;
 }
 
+export interface CnesMunicipio {
+  municipio_cod: string;
+  municipio_nome: string | null;
+  uf_sigla: string;
+  regiao: string | null;
+  estabelecimentos_total: number;
+  estabelecimentos_hospitalares: number;
+  publico: number;
+  privado_lucrativo: number;
+  sem_fins_lucrativos: number;
+  pessoa_fisica: number;
+  internacional: number;
+  populacao: number | null;
+  estab_por_10k: number | null;
+  estab_hosp_por_10k: number | null;
+  pct_publico: number | null;
+  ano_referencia: number;
+}
+
 export interface HsmrHospital {
   cnes: string;
   municipio_cod: string;

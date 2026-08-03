@@ -2,8 +2,15 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { geoMercator, type GeoProjection } from "d3-geo";
-import { Skeleton } from "@/components/kpi";
-import { ANOS, UFS, fmtDec, fmtInt, rest, type LinhaMunicipio } from "@/lib/api";
+import { Kpi, Skeleton } from "@/components/kpi";
+import { ANOS, UFS, fmtDec, fmtInt, rest, type CnesMunicipio, type LinhaMunicipio } from "@/lib/api";
+
+function mediana(vs: number[]): number | null {
+  if (!vs.length) return null;
+  const s = [...vs].sort((a, b) => a - b);
+  const mid = Math.floor(s.length / 2);
+  return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
+}
 
 // Projeta cada ponto diretamente (sem o pipeline de clip/resampling esférico do
 // geoPath) — para polígonos pequenos, o clip antimeridiano do geoPath produz um
@@ -57,7 +64,33 @@ export default function Mapa() {
   const [dados, setDados] = useState<Map<string, LinhaMunicipio> | null>(null);
   const [hover, setHover] = useState<{ x: number; y: number; m: LinhaMunicipio | null; nome: string } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [cnes, setCnes] = useState<CnesMunicipio[] | null>(null);
   const geoCache = useRef(new Map<string, { features: Feature[] }>());
+
+  // Estabelecimentos de saúde (CNES) — cadastro corrente, sem dimensão de ano;
+  // busca única para o Brasil inteiro (5.571 linhas, poucas centenas de KB).
+  useEffect(() => {
+    rest<CnesMunicipio>("mart_cnes_municipio", {
+      select: "municipio_cod,uf_sigla,estabelecimentos_hospitalares,populacao,estab_hosp_por_10k,pct_publico",
+    })
+      .then(setCnes)
+      .catch(() => setCnes(null));
+  }, []);
+
+  const cnesResumo = useMemo(() => {
+    if (!cnes) return null;
+    const nacional = mediana(cnes.map((m) => m.estab_hosp_por_10k).filter((v): v is number => v != null));
+    const doEstado = cnes.filter((m) => m.uf_sigla === uf);
+    const hospTotal = doEstado.reduce((s, m) => s + (m.estabelecimentos_hospitalares || 0), 0);
+    const popTotal = doEstado.reduce((s, m) => s + (m.populacao || 0), 0);
+    const pctPublicoMedio = mediana(doEstado.map((m) => m.pct_publico).filter((v): v is number => v != null));
+    return {
+      nacionalMediana: nacional,
+      estadoPor10k: popTotal > 0 ? (hospTotal / popTotal) * 10_000 : null,
+      estadoPctPublico: pctPublicoMedio,
+      municipiosNoEstado: doEstado.length,
+    };
+  }, [cnes, uf]);
 
   useEffect(() => {
     setGeo(null);
@@ -168,6 +201,30 @@ export default function Mapa() {
         </div>
       </div>
       <p className="mt-2 text-xs text-ink-500">{metricaInfo.nota}</p>
+
+      <div className="mt-4 grid gap-4 sm:grid-cols-3">
+        <Kpi
+          rotulo={`Estab. hospitalares /10 mil hab. em ${uf}`}
+          valor={cnesResumo?.estadoPor10k != null ? fmtDec(cnesResumo.estadoPor10k) : "—"}
+          detalhe={cnesResumo ? `${cnesResumo.municipiosNoEstado} municípios com dado` : "carregando…"}
+        />
+        <Kpi
+          rotulo="Mediana Brasil /10 mil hab."
+          valor={cnesResumo?.nacionalMediana != null ? fmtDec(cnesResumo.nacionalMediana) : "—"}
+          detalhe="entre os 5.571 municípios"
+        />
+        <Kpi
+          rotulo={`% de natureza pública em ${uf}`}
+          valor={cnesResumo?.estadoPctPublico != null ? `${fmtDec(cnesResumo.estadoPctPublico)}%` : "—"}
+          detalhe="mediana municipal, por natureza jurídica"
+        />
+      </div>
+      <p className="mt-2 text-xs text-ink-500">
+        Estabelecimentos de saúde ativos com perfil hospitalar (CNES, cadastro corrente, API de dados
+        abertos do Ministério da Saúde) — não inclui leitos (exigem o FTP do DataSUS, não coberto ainda).
+        "Público" vem da natureza jurídica do estabelecimento, não da esfera de gestão — ver{" "}
+        <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
+      </p>
 
       {erro && <div className="card mt-4 border-red-200 bg-red-50 text-sm text-red-800">Falha: {erro}</div>}
 
