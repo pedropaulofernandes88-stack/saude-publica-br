@@ -250,6 +250,9 @@ export interface LeitosMunicipio {
   leitos_clinico: number;
   leitos_obstetrico: number;
   leitos_pediatrico: number;
+  leitos_complementar: number;
+  leitos_outras_especialidades: number;
+  leitos_hospital_dia: number;
   populacao: number | null;
   leitos_por_mil: number | null;
   leitos_sus_por_mil: number | null;

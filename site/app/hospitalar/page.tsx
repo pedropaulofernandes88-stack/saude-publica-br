@@ -64,18 +64,30 @@ export default function Hospitalar() {
   useEffect(() => {
     setLeitos(null);
     rest<LeitosMunicipio>("mart_leitos_municipio", {
-      select: "municipio_cod,municipio_nome,uf_sigla,ano,leitos_total,leitos_sus,leitos_uti,leitos_uti_sus,populacao,leitos_sus_por_mil,pct_leitos_sus",
+      select: "municipio_cod,municipio_nome,uf_sigla,ano,leitos_total,leitos_sus,leitos_uti,leitos_uti_sus,leitos_cirurgico,leitos_clinico,leitos_obstetrico,leitos_pediatrico,leitos_complementar,leitos_outras_especialidades,leitos_hospital_dia,populacao,leitos_sus_por_mil,pct_leitos_sus",
       ...ufF,
     }).then(setLeitos).catch(() => setLeitos([]));
   }, [ufF]);
 
   const serieLeitos = useMemo(() => {
     if (!leitos?.length) return null;
-    const porAno = new Map<number, { leitos: number; sus: number; uti: number; pop: number; semLeito: number; n: number }>();
+    const porAno = new Map<number, {
+      leitos: number; sus: number; uti: number; pop: number; semLeito: number; n: number;
+      cirurgico: number; clinico: number; obstetrico: number; pediatrico: number;
+      complementar: number; outras: number; hospitalDia: number;
+    }>();
     for (const l of leitos) {
-      const a = porAno.get(l.ano) ?? { leitos: 0, sus: 0, uti: 0, pop: 0, semLeito: 0, n: 0 };
+      const a = porAno.get(l.ano) ?? {
+        leitos: 0, sus: 0, uti: 0, pop: 0, semLeito: 0, n: 0,
+        cirurgico: 0, clinico: 0, obstetrico: 0, pediatrico: 0,
+        complementar: 0, outras: 0, hospitalDia: 0,
+      };
       a.leitos += l.leitos_total; a.sus += l.leitos_sus; a.uti += l.leitos_uti;
       a.pop += l.populacao ?? 0; a.n += 1;
+      a.cirurgico += l.leitos_cirurgico ?? 0; a.clinico += l.leitos_clinico ?? 0;
+      a.obstetrico += l.leitos_obstetrico ?? 0; a.pediatrico += l.leitos_pediatrico ?? 0;
+      a.complementar += l.leitos_complementar ?? 0; a.outras += l.leitos_outras_especialidades ?? 0;
+      a.hospitalDia += l.leitos_hospital_dia ?? 0;
       if (l.leitos_total === 0) a.semLeito += 1;
       porAno.set(l.ano, a);
     }
@@ -90,6 +102,16 @@ export default function Hospitalar() {
 
   const ultimoLeitos = serieLeitos?.[serieLeitos.length - 1] ?? null;
   const primeiroLeitos = serieLeitos?.[0] ?? null;
+
+  const tiposLeito = ultimoLeitos ? [
+    { rotulo: "Clínico", qt: ultimoLeitos.clinico },
+    { rotulo: "Cirúrgico", qt: ultimoLeitos.cirurgico },
+    { rotulo: "Complementar (inclui UTI)", qt: ultimoLeitos.complementar },
+    { rotulo: "Obstétrico", qt: ultimoLeitos.obstetrico },
+    { rotulo: "Pediátrico", qt: ultimoLeitos.pediatrico },
+    { rotulo: "Outras especialidades", qt: ultimoLeitos.outras },
+    { rotulo: "Hospital-dia", qt: ultimoLeitos.hospitalDia },
+  ].filter((t) => t.qt > 0).sort((a, b) => b.qt - a.qt) : [];
 
   // ── LOS esperado — mediana do hospital vs. mediana nacional ──────────────
   const [los, setLos] = useState<LosHospital[] | null>(null);
@@ -234,6 +256,34 @@ export default function Hospitalar() {
                 </tbody>
               </table>
             </div>
+
+            {tiposLeito.length > 0 && (
+              <div className="mt-5">
+                <h3 className="text-sm font-semibold text-ink-700">
+                  Leitos por tipo — {uf === "Brasil" ? "Brasil" : uf}, {ultimoLeitos!.ano}
+                </h3>
+                <div className="mt-2 space-y-1.5">
+                  {tiposLeito.map((t) => {
+                    const pct = ultimoLeitos!.leitos ? (t.qt / ultimoLeitos!.leitos) * 100 : 0;
+                    return (
+                      <div key={t.rotulo} className="flex items-center gap-3 text-sm">
+                        <span className="w-48 shrink-0 text-ink-600">{t.rotulo}</span>
+                        <div className="h-2 flex-1 overflow-hidden rounded-full bg-ink-100">
+                          <div className="h-full rounded-full bg-accent-600" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="w-28 shrink-0 text-right tabular-nums text-ink-500">
+                          {fmtInt(t.qt)} ({fmtDec(pct, 1)}%)
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+                <p className="mt-2 text-xs text-ink-500">
+                  "Complementar" é a categoria que inclui UTI (ver detalhamento de UTI acima) — não é
+                  um tipo residual, é uma classificação própria da tabela de domínios do CNES.
+                </p>
+              </div>
+            )}
 
             <div className="mt-4 max-w-3xl rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
               <strong>Cuidado ao ler a série de UTI entre 2020 e 2022.</strong> No Brasil, os leitos
