@@ -358,6 +358,63 @@ Publicado em: metodologia §19 (nova) + §17 corrigida, preprint (nova §2.7/§3
 tabela 6, resumo/abstract, discussão), mart `mart_leitos_icsap_municipio`.
 Reprodutível em `scripts/analise_leitos_icsap.py`.
 
+## Atualização 5 — leitos × HSMR: a flag marcava "tem UTI"
+
+Segundo cruzamento com leitos, agora por estabelecimento (CNES), sem a
+armadilha residência-x-estabelecimento: HSMR e o grupo LT usam a mesma chave.
+
+**O diagnóstico.** O HSMR está calibrado em 1,000 nacionalmente por
+construção, mas **não estava em 1 dentro de nenhum tipo de hospital**:
+
+| Estrato (2024) | n | O/E agregado |
+|---|--:|--:|
+| Com UTI | 1.499 | **1,163** |
+| Sem UTI | 3.231 | **0,542** |
+
+Ter UTI elevava o HSMR mediano em todos os quartis de porte (+0,32, +0,51,
++0,82) — o ajuste por capítulo CID enxerga diagnóstico, não gravidade, e o
+hospital com UTI recebe o caso crítico do mesmo capítulo. Consequência na flag
+publicada: **86,1% dos marcados "acima" tinham UTI**, e a marcação ia de 1,7%
+(menores) a **43,4%** (maiores). A flag sinalizava "hospital grande com UTI".
+
+Bônus metodológico: leitos preveem HSMR melhor que o proxy usado antes
+(ρ=+0,550 contra +0,471 de internações).
+
+**A correção — e seu limite, medido.** Passamos a comparar cada hospital ao
+próprio estrato (com/sem UTI), recalibrando o esperado pela razão O/E do grupo,
+com p-valor e FDR calculados dentro de cada família (ano × estrato) e IC95% na
+mesma régua. Resultado:
+
+- marcados "acima" com UTI: 86,1% → **48,2%**
+- gradiente por porte: 1,7%→43,4% para **5,6%→32,1%** (razão Q4/Q1 de 25× para 5,7×)
+
+**Mas o teste decisivo reprovou.** Se a estimativa estivesse corrigida, o HSMR
+mediano seria plano entre portes. Não é: **0,39 → 0,70 → 0,91 → 0,93**, e o
+gradiente persiste *dentro* de cada estrato de UTI. Tentamos estratificação
+2D (UTI × quartil de leitos) e continua não achatando (0,54 → 0,91), com
+estratos degenerados nas pontas (4 hospitais com UTI no menor quartil, fator
+0,049).
+
+**Lição registrada:** recalibração pós-hoc **não conserta ajuste de risco
+inadequado** — ela desloca o centro, não recupera a informação de gravidade
+que o ajuste por capítulo nunca capturou. Corrigir de fato exigiria
+procedimento, gravidade ou comorbidade, que a AIH pública não traz.
+
+Decisão: publicar a versão estratificada (melhora real e mensurável) **com o
+residual declarado com o mesmo destaque**, em vez de apresentá-la como
+correção completa.
+
+Dois bugs de exibição corrigidos no caminho: a tabela ordenava por `hsmr`
+(régua antiga) enquanto exibia `hsmr_estrato`, e caía de volta no HSMR não
+calibrado quando o estratificado era nulo — mostrando 22,38 para um hospital
+com esperado zero. Agora ordena e exibe pela mesma coluna, e mostra "—" quando
+não há valor na régua correta.
+
+Publicado em: metodologia §14 (reescrita), `/hospitalar` (tabela com colunas de
+leitos e UTI, HSMR estratificado, aviso do residual), `mart_hsmr_hospital` com
+as colunas novas. Reprodutível em `scripts/hsmr_estratos_uti.py`,
+`scripts/analise_leitos_hsmr.py` e `scripts/hsmr_intervalo_confianca.py`.
+
 ## Bug de renderização do mapa (corrigido)
 
 Fora da linha metodológica, mas vale registrar porque custou tempo e o
@@ -391,9 +448,8 @@ RR 526×608. Commits `25decf3` e `d46c7cf`.
 
 5. ~~Cruzar leitos com ICSAP~~ — **feito, e derrubou a hipótese** (ver
    Atualização 4). Efeito grande e na direção oposta à prevista.
-6. **Cruzar leitos com HSMR** — mortalidade hospitalar estratificada por porte
-   (faixa de leitos) do estabelecimento. O HSMR já declara viés de case-mix
-   residual por porte; leitos dariam a medida direta de porte.
+6. ~~Cruzar leitos com HSMR~~ — **feito** (ver Atualização 5). A flag marcava
+   "tem UTI"; corrigida por estratificação, com o residual declarado.
 7. **Vazio assistencial × mortalidade** — os 1.971 municípios sem leito
    cruzados com mortalidade por causas sensíveis à atenção hospitalar.
 8. **Leitos por tipo no site** — o mart já tem cirúrgico/clínico/obstétrico/

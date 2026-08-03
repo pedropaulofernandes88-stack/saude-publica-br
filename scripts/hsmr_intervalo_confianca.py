@@ -75,10 +75,16 @@ def load_env() -> dict[str, str]:
     return env
 
 
-def add_ic95(df: pd.DataFrame) -> pd.DataFrame:
-    """IC95% gamma (Poisson exato) do HSMR, a partir de observado e esperado."""
+def add_ic95(df: pd.DataFrame, col_esperado: str = "obitos_esperados") -> pd.DataFrame:
+    """
+    IC95% gamma (Poisson exato) do HSMR, a partir de observado e esperado.
+
+    `col_esperado` permite calcular o intervalo sobre o esperado recalibrado
+    por estrato — necessario para que a faixa publicada corresponda a mesma
+    regua da classificacao (do contrario o IC diria uma coisa e a flag outra).
+    """
     obs = df["obitos_observados"].to_numpy(dtype=float)
-    esp = df["obitos_esperados"].to_numpy(dtype=float)
+    esp = df[col_esperado].to_numpy(dtype=float)
 
     valido = esp > 0
     inf = np.full(len(df), np.nan)
@@ -126,15 +132,84 @@ def _bh_fdr(p: np.ndarray, alpha: float = 0.05) -> np.ndarray:
     return q
 
 
+def add_estrato_uti(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Anexa o estrato de complexidade (com/sem UTI) por hospital-ano, a partir de
+    data/refs/hsmr_estratos_uti.parquet (ver scripts/hsmr_estratos_uti.py).
+
+    Hospitais sem correspondencia no cadastro de leitos daquela competencia
+    ficam com estrato "indefinido" e sao tratados como uma familia propria: nao
+    da para recalibra-los sem saber a que grupo pertencem.
+    """
+    ref = ROOT / "data" / "refs" / "hsmr_estratos_uti.parquet"
+    if not ref.exists():
+        raise SystemExit(
+            f"faltando {ref}. Rode antes: scripts/hsmr_estratos_uti.py --anos 2022 2023 2024"
+        )
+    # O script roda sobre o proprio mart, entao precisa ser idempotente: colunas
+    # derivadas de uma execucao anterior sao descartadas antes de recalcular
+    # (do contrario o merge geraria tem_uti_x / tem_uti_y).
+    derivadas = ["tem_uti", "leitos_total", "leitos_uti", "estrato",
+                 "fator_estrato", "obitos_esperados_estrato", "hsmr_estrato"]
+    df = df.drop(columns=[c for c in derivadas if c in df.columns])
+
+    est = pd.read_parquet(ref)[["cnes", "ano", "tem_uti", "leitos_total", "leitos_uti"]]
+    est["ano"] = est["ano"].astype(df["ano"].dtype)
+    df = df.merge(est, on=["cnes", "ano"], how="left")
+    df["estrato"] = np.where(df["tem_uti"].isna(), "indefinido",
+                             np.where(df["tem_uti"].fillna(False), "com_uti", "sem_uti"))
+    # o merge com how="left" promove as contagens a float (NaN nos sem
+    # correspondencia); o destino no Postgres e integer.
+    for c in ["leitos_total", "leitos_uti"]:
+        df[c] = df[c].round().astype("Int64")
+    return df
+
+
+def recalibrar_por_estrato(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Recalibra o esperado DENTRO de cada estrato (ano x com/sem UTI).
+
+    Por que: a padronizacao indireta usa taxas nacionais por faixa etaria x
+    capitulo CID-10, um ajuste que enxerga diagnostico e nao gravidade. Como
+    hospital com UTI recebe sistematicamente o caso critico do mesmo capitulo,
+    o O/E agregado dos dois grupos nao e 1 — medimos 1,163 (com UTI) e 0,542
+    (sem UTI) em 2024, contra 1,000 nacional por construcao. Comparar os dois
+    grupos na mesma regua faz o indicador sinalizar "tem UTI", nao "assiste
+    pior".
+
+    A recalibracao multiplica o esperado pelo O/E agregado do proprio estrato,
+    de modo que cada grupo passe a somar exatamente 1. O HSMR resultante
+    responde "este hospital difere dos hospitais COMO ELE?" — mesma logica do
+    desenho pareado ja usado em ICSAP e cobertura da APS.
+    """
+    fatores = (df[df["obitos_esperados"] > 0]
+               .groupby(["ano", "estrato"])
+               .apply(lambda g: g["obitos_observados"].sum() / g["obitos_esperados"].sum(),
+                      include_groups=False)
+               .rename("fator_estrato").reset_index())
+    df = df.merge(fatores, on=["ano", "estrato"], how="left")
+    df["fator_estrato"] = df["fator_estrato"].fillna(1.0)
+    df["obitos_esperados_estrato"] = df["obitos_esperados"] * df["fator_estrato"]
+    df["hsmr_estrato"] = np.where(
+        df["obitos_esperados_estrato"] > 0,
+        (df["obitos_observados"] / df["obitos_esperados_estrato"]).round(3),
+        np.nan,
+    )
+    return df
+
+
 def add_significancia_fdr(df: pd.DataFrame) -> pd.DataFrame:
     """
     P-valor exato de Poisson + correcao de multiplas comparacoes (Benjamini-
-    Hochberg, por ano civil — cada ano e uma familia de testes independente).
+    Hochberg), calculados sobre o esperado RECALIBRADO POR ESTRATO e com a
+    familia de testes definida por (ano, estrato) — cada grupo de hospitais
+    comparaveis e uma familia independente.
+
     Classificacao final: acima/abaixo do esperado exigem q-valor < 0,05.
     Hospitais com esperado = 0 nao admitem teste -> "indeterminado".
     """
     obs = df["obitos_observados"].to_numpy(dtype=float)
-    esp = df["obitos_esperados"].to_numpy(dtype=float)
+    esp = df["obitos_esperados_estrato"].to_numpy(dtype=float)
     valido = esp > 0
 
     p = np.full(len(df), np.nan)
@@ -142,15 +217,15 @@ def add_significancia_fdr(df: pd.DataFrame) -> pd.DataFrame:
     df["hsmr_pvalor"] = np.round(p, 5)
 
     q_col = pd.Series(np.nan, index=df.index)
-    for _, g in df.groupby("ano"):
+    for _, g in df.groupby(["ano", "estrato"]):
         sub = g[g["hsmr_pvalor"].notna()]
         if len(sub) == 0:
             continue
         q_col.loc[sub.index] = _bh_fdr(sub["hsmr_pvalor"].to_numpy())
     df["hsmr_q_valor"] = np.round(q_col.to_numpy(), 5)
 
-    acima = (df["hsmr"] > 1) & (df["hsmr_q_valor"] < 0.05)
-    abaixo = (df["hsmr"] < 1) & (df["hsmr_q_valor"] < 0.05)
+    acima = (df["hsmr_estrato"] > 1) & (df["hsmr_q_valor"] < 0.05)
+    abaixo = (df["hsmr_estrato"] < 1) & (df["hsmr_q_valor"] < 0.05)
     indet = df["hsmr_q_valor"].isna()
     df["significancia"] = np.where(
         indet, "indeterminado",
@@ -168,10 +243,19 @@ def main() -> None:
     if not src.exists():
         raise SystemExit(f"faltando {src}")
     df = pd.read_parquet(src)
-    df = add_ic95(df)
+    df = add_estrato_uti(df)
+    df = recalibrar_por_estrato(df)
+    df = add_ic95(df, col_esperado="obitos_esperados_estrato")
     df = add_significancia_fdr(df)
 
-    print(f"[hsmr-ic] {len(df):,} registros hospital-ano")
+    print("[hsmr-ic] calibracao por estrato (O/E agregado ANTES da recalibracao):")
+    for (ano, estrato), g in df[df.obitos_esperados > 0].groupby(["ano", "estrato"]):
+        oe = g.obitos_observados.sum() / g.obitos_esperados.sum()
+        print(f"  {ano} {estrato:11s} n={len(g):5,}  O/E = {oe:.3f}"
+              f"{'   <- referencia nacional e 1,000 por construcao' if estrato == 'com_uti' else ''}")
+    print("  (nenhum grupo estava em 1: o ajuste por capitulo CID nao captura gravidade)")
+
+    print(f"\n[hsmr-ic] {len(df):,} registros hospital-ano")
     for ano, g in df.groupby("ano"):
         dist = g["significancia"].value_counts()
         n = len(g)

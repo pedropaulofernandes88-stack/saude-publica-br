@@ -273,6 +273,13 @@ export interface HsmrHospital {
   hsmr_pvalor: number | null;
   hsmr_q_valor: number | null;
   significancia: "acima" | "abaixo" | "esperado" | "indeterminado" | null;
+  /** HSMR recalibrado dentro do estrato de complexidade (com/sem UTI) —
+   *  é a régua usada pela classificação. Ver metodologia §14. */
+  hsmr_estrato: number | null;
+  estrato: "com_uti" | "sem_uti" | "indefinido" | null;
+  tem_uti: boolean | null;
+  leitos_total: number | null;
+  leitos_uti: number | null;
 }
 
 export interface CoberturaIcsapMunicipio {

@@ -25,11 +25,14 @@ export default function Hospitalar() {
 
   // ── HSMR — mortalidade hospitalar ajustada por case-mix ──────────────────
   const [hsmr, setHsmr] = useState<HsmrHospital[] | null>(null);
-  const [hsmrOrd, setHsmrOrd] = useState<"hsmr" | "internacoes" | "obitos_observados">("hsmr");
+  // Ordena pela mesma régua que é exibida (hsmr_estrato), não pelo HSMR bruto:
+  // ordenar por uma coluna e mostrar outra colocaria no topo hospitais que não
+  // são os maiores da lista exibida.
+  const [hsmrOrd, setHsmrOrd] = useState<"hsmr_estrato" | "internacoes" | "obitos_observados">("hsmr_estrato");
   useEffect(() => {
     setHsmr(null);
     rest<HsmrHospital>("mart_hsmr_hospital", {
-      select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano,internacoes,obitos_observados,obitos_esperados,hsmr,estavel,hsmr_ic95_inf,hsmr_ic95_sup,hsmr_pvalor,hsmr_q_valor,significancia",
+      select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano,internacoes,obitos_observados,obitos_esperados,hsmr,estavel,hsmr_ic95_inf,hsmr_ic95_sup,hsmr_pvalor,hsmr_q_valor,significancia,hsmr_estrato,estrato,tem_uti,leitos_total,leitos_uti",
       ano: `eq.${ano}`, order: `${hsmrOrd}.desc.nullslast`, limit: "60", ...ufF,
     }).then(setHsmr).catch(() => setHsmr([]));
   }, [ufF, hsmrOrd, ano]);
@@ -273,7 +276,7 @@ export default function Hospitalar() {
           <div>
             <label className="label" htmlFor="h-ord">Ordenar por</label>
             <select id="h-ord" className="select" value={hsmrOrd} onChange={(e) => setHsmrOrd(e.target.value as typeof hsmrOrd)}>
-              <option value="hsmr">HSMR (maior primeiro)</option>
+              <option value="hsmr_estrato">HSMR no estrato (maior primeiro)</option>
               <option value="internacoes">Internações</option>
               <option value="obitos_observados">Óbitos observados</option>
             </select>
@@ -302,7 +305,8 @@ export default function Hospitalar() {
                   <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
                     <th className="px-3 py-2">#</th><th className="px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                     <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">Óbitos obs.</th>
-                    <th className="px-3 py-2 text-right">Óbitos esp.</th><th className="px-3 py-2 text-right">HSMR (IC95%)</th>
+                    <th className="px-3 py-2 text-right">Leitos</th><th className="px-3 py-2 text-center">UTI</th>
+                    <th className="px-3 py-2 text-right">HSMR no estrato (IC95%)</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -314,14 +318,27 @@ export default function Hospitalar() {
                       <td className="px-3 py-2 text-ink-600">{h.uf_sigla}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtInt(h.internacoes)}</td>
                       <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(h.obitos_observados)}</td>
-                      <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(h.obitos_esperados, 1)}</td>
+                      <td className="px-3 py-2 text-right tabular-nums text-ink-600">
+                        {h.leitos_total != null ? fmtInt(h.leitos_total) : "—"}
+                      </td>
+                      <td className="px-3 py-2 text-center text-ink-600">
+                        {h.estrato === "com_uti" ? (
+                          <span title={`${fmtInt(h.leitos_uti)} leitos de UTI — comparado apenas a hospitais com UTI`}
+                                className="cursor-help">sim</span>
+                        ) : h.estrato === "sem_uti" ? (
+                          <span title="Sem UTI — comparado apenas a hospitais sem UTI" className="cursor-help text-ink-400">não</span>
+                        ) : <span className="text-ink-300">—</span>}
+                      </td>
                       <td className="px-3 py-2 text-right tabular-nums">
                         <span className={
                           h.significancia === "acima" ? "font-semibold text-red-700"
                           : h.significancia === "abaixo" ? "font-semibold text-accent-800"
                           : "font-semibold text-ink-500"
                         }>
-                          {fmtDec(h.hsmr, 2)}
+                          {/* sem fallback para h.hsmr: aquele valor está em outra
+                              régua (nacional) e misturá-lo aqui seria comparar
+                              coisas diferentes na mesma coluna. */}
+                          {h.hsmr_estrato != null ? fmtDec(h.hsmr_estrato, 2) : "—"}
                         </span>
                         {h.hsmr_ic95_inf != null && h.hsmr_ic95_sup != null && (
                           <span className="ml-1 whitespace-nowrap text-xs text-ink-400">
@@ -348,24 +365,36 @@ export default function Hospitalar() {
         </div>
         <div className="mt-3 max-w-3xl space-y-2 text-xs text-ink-500">
           <p>
-            Entre colchetes, o <strong>IC95% (gamma/Poisson exato)</strong> — o mesmo método usado nas
-            taxas brutas de mortalidade do projeto. A classificação (cor e <span className="text-ink-400">≈</span>)
-            usa o <strong>q-valor</strong>, não o IC bruto: com ~4.600 hospitais testados por ano,
+            <strong>Cada hospital é comparado ao seu estrato, não ao Brasil inteiro.</strong> O
+            ajuste por capítulo CID-10 enxerga diagnóstico, não gravidade — e hospital com UTI
+            recebe o caso crítico do mesmo capítulo. Medimos: em 2024 o O/E agregado era{" "}
+            <strong>1,163</strong> nos hospitais com UTI e <strong>0,542</strong> nos sem UTI (o
+            nacional é 1,000 por construção, mas nenhum dos dois grupos estava em 1). Por isso o
+            HSMR exibido é recalibrado <em>dentro</em> do estrato: responde “este hospital difere
+            dos hospitais como ele?”. Entre colchetes, o <strong>IC95% (gamma/Poisson exato)</strong>,
+            calculado sobre a mesma régua.
+          </p>
+          <p>
+            A classificação (cor e <span className="text-ink-400">≈</span>) usa o{" "}
+            <strong>q-valor</strong>, não o IC bruto: com milhares de hospitais testados por ano,
             testar cada um a 5% sem correção geraria falsos positivos só por acaso. Corrigimos com{" "}
-            <strong>Benjamini-Hochberg</strong> (por ano); passe o mouse no <span className="text-ink-300">*</span>{" "}
-            para ver o q-valor. Isso remove 282 de 10.046 hospitais antes classificados como
-            significativos (2,8%) — a maior parte do sinal é real, mas nem todo. <span className="text-amber-600">?</span>{" "}
-            indica óbitos esperados = 0, onde não há teste possível. Padronização indireta por faixa
-            etária × capítulo CID-10, taxas de referência nacionais; mínimo de 12 internações/ano.
+            <strong>Benjamini-Hochberg</strong> aplicado dentro de cada estrato-ano; passe o mouse
+            no <span className="text-ink-300">*</span> para ver o q-valor.{" "}
+            <span className="text-amber-600">?</span> indica óbitos esperados = 0, onde não há teste
+            possível. Mínimo de 12 internações/ano.
           </p>
           <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-            <strong>Viés conhecido, contra hospitais grandes:</strong> o ajuste por capítulo CID é
-            grosseiro — dentro de um mesmo capítulo cabem casos leves e casos graves. Hospitais
-            terciários concentram os graves e, por isso, tendem sistematicamente a HSMR maior.
-            Nos dados de 2024, os hospitais classificados “acima do esperado” têm mediana de{" "}
-            <strong>5.324 internações</strong> contra <strong>1.098</strong> dos “abaixo” — quase 5×
-            maiores. Isto é <em>case-mix residual</em>, não necessariamente pior assistência: use o
-            HSMR para levantar hipóteses, nunca para ranquear.
+            <strong>Viés residual declarado — a estratificação melhora, mas não elimina.</strong>{" "}
+            Antes da correção, 86,1% dos hospitais marcados “acima do esperado” tinham UTI, e a
+            marcação ia de 1,7% (menores) a 43,4% (maiores): a flag sinalizava sobretudo{" "}
+            <em>“este hospital é grande e tem UTI”</em>. Com a estratificação isso cai para{" "}
+            <strong>48,2%</strong> com UTI e o gradiente por porte achata para 5,6%→32,1%. Mas o
+            viés não some: mesmo dentro do estrato, o HSMR mediano ainda cresce com o tamanho
+            (0,39 nos menores a 0,93 nos maiores). Recalibração posterior não recupera a
+            informação de gravidade que o ajuste por capítulo nunca capturou. Conclusão prática:
+            compare apenas hospitais de porte e complexidade semelhantes, e use o HSMR para
+            levantar hipóteses — <strong>nunca para ranquear</strong>. Detalhes na{" "}
+            <a className="underline" href="/metodologia/">metodologia §14</a>.
           </p>
         </div>
       </div>

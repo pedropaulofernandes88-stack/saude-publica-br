@@ -362,16 +362,46 @@ export default function Metodologia() {
         <code>scripts/hsmr_intervalo_confianca.py</code>.
       </p>
       <p>
-        <strong>Viés conhecido: o ajuste por capítulo é grosseiro.</strong> A calibração é exata
-        (razão agregada nacional = 1,0000 nos três anos), mas calibração não elimina confundimento
+        <strong>Viés conhecido: o ajuste por capítulo é grosseiro.</strong> A calibração nacional é
+        exata (razão agregada = 1,0000 nos três anos), mas calibração não elimina confundimento
         residual. Um capítulo da CID-10 é uma categoria larga — o capítulo IX vai de hipertensão a
         cirurgia cardíaca complexa — e hospitais terciários concentram os casos graves{" "}
-        <em>dentro</em> de cada capítulo. O efeito é mensurável: em 2024, os hospitais
-        classificados acima do esperado têm mediana de <strong>5.350 internações</strong> contra{" "}
-        <strong>1.136</strong> dos classificados abaixo, e concentram 58,9% de todos os óbitos
-        hospitalares. Ou seja, este HSMR <strong>penaliza sistematicamente hospitais grandes e
-        complexos</strong>. Corrigir exigiria ajuste por procedimento, gravidade ou comorbidade —
-        variáveis que a AIH pública não fornece. Use para levantar hipóteses, nunca para ranquear.
+        <em>dentro</em> de cada capítulo. O ajuste enxerga <strong>diagnóstico, não gravidade</strong>.
+      </p>
+      <p>
+        <strong>Quanto isso pesava — medido com os leitos do CNES (§18).</strong> Cruzando o HSMR
+        com a existência de UTI no estabelecimento, o desequilíbrio ficou explícito: em 2024 a razão
+        observado/esperado agregada era <strong>1,163</strong> nos hospitais com UTI e{" "}
+        <strong>0,542</strong> nos sem UTI. Nenhum dos dois grupos estava em 1 — só o total nacional
+        estava, por construção. A consequência para a classificação era grave: <strong>86,1%</strong>{" "}
+        dos hospitais marcados “acima do esperado” tinham UTI, e a taxa de marcação ia de{" "}
+        <strong>1,7%</strong> no menor quartil de porte a <strong>43,4%</strong> no maior. Na
+        prática, a flag sinalizava “este hospital é grande e tem UTI”.
+      </p>
+      <p>
+        <strong>Correção adotada: comparação dentro do estrato.</strong> Cada hospital passa a ser
+        comparado apenas aos hospitais do próprio estrato de complexidade (com UTI / sem UTI),
+        recalibrando o esperado pela razão O/E agregada do grupo — mesmo princípio de “comparar
+        pares reais” já usado no ICSAP (§17) e na cobertura da APS (§15). O p-valor de Poisson e a
+        correção de Benjamini-Hochberg passam a ser calculados <em>dentro</em> de cada família
+        (ano × estrato), e o IC95% publicado usa a mesma régua da classificação. O estrato é
+        reavaliado ano a ano: um hospital que abre UTI muda de grupo no ano em que abre.
+      </p>
+      <p className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2">
+        <strong>Viés residual declarado — a correção melhora, mas não elimina.</strong> Após a
+        estratificação, os marcados “acima” com UTI caem de 86,1% para <strong>48,2%</strong> e o
+        gradiente por porte achata de 1,7%→43,4% para 5,6%→32,1%. Mas testamos se a estimativa
+        ficou <em>livre</em> de viés, e não ficou: o HSMR mediano ainda cresce com o tamanho mesmo
+        dentro do estrato (<strong>0,39</strong> no menor quartil de leitos a <strong>0,93</strong>{" "}
+        no maior). Tentamos estratificar também por porte (UTI × quartil de leitos) e o gradiente
+        persiste (0,54 → 0,91), com estratos degenerados nas pontas. A conclusão honesta é que{" "}
+        <strong>recalibração posterior não recupera a informação de gravidade que o ajuste por
+        capítulo nunca capturou</strong> — ela desloca o centro, não corrige a medida. Corrigir de
+        fato exigiria ajuste por procedimento, gravidade ou comorbidade, variáveis que a AIH
+        pública não fornece. Compare apenas hospitais de porte e complexidade semelhantes; use para
+        levantar hipóteses, <strong>nunca para ranquear</strong>. Reprodutível em{" "}
+        <code>scripts/hsmr_estratos_uti.py</code> e{" "}
+        <code>scripts/analise_leitos_hsmr.py</code>.
       </p>
       <p>
         <strong>Permanência esperada (LOS).</strong> Para cada diagnóstico (CID-10, 3 caracteres),
