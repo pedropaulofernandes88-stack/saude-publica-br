@@ -1,9 +1,28 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { geoMercator, geoPath } from "d3-geo";
+import { geoMercator, type GeoProjection } from "d3-geo";
 import { Skeleton } from "@/components/kpi";
 import { ANOS, UFS, fmtDec, fmtInt, rest, type LinhaMunicipio } from "@/lib/api";
+
+// Projeta cada ponto diretamente (sem o pipeline de clip/resampling esférico do
+// geoPath) — para polígonos pequenos, o clip antimeridiano do geoPath produz um
+// retângulo de moldura espúrio colado ao path real (bug observado com a malha
+// auto-hospedada). Municípios nunca cruzam o antimeridiano, então a projeção
+// ponto-a-ponto é equivalente e evita o pipeline com problema.
+function pathDeGeometria(geom: GeoJSON.Geometry, proj: GeoProjection): string {
+  const aneis: number[][][] =
+    geom.type === "Polygon" ? (geom.coordinates as number[][][])
+    : geom.type === "MultiPolygon" ? (geom.coordinates as number[][][][]).flat()
+    : [];
+  return aneis
+    .map((anel) => {
+      const pts = anel.map((pt) => proj(pt as [number, number]));
+      if (pts.some((p) => !p)) return "";
+      return "M" + pts.map((p) => `${p![0].toFixed(3)},${p![1].toFixed(3)}`).join("L") + "Z";
+    })
+    .join("");
+}
 
 type Metrica = "taxa_padronizada_100k" | "taxa_obitos_100k" | "obitos";
 
@@ -89,7 +108,6 @@ export default function Mapa() {
   const { paths, escala } = useMemo(() => {
     if (!geo || !dados) return { paths: null, escala: null };
     const proj = geoMercator().fitSize([800, 620], geo as never);
-    const gen = geoPath(proj);
 
     const valores = [...dados.values()]
       .map((m) => m[metrica])
@@ -108,7 +126,7 @@ export default function Mapa() {
       const cod6 = String(f.properties.codarea).slice(0, 6);
       const m = dados.get(cod6) ?? null;
       return {
-        d: gen(f as never) ?? "",
+        d: pathDeGeometria(f.geometry, proj),
         cod6,
         m,
         fill: cor(m?.[metrica] as number | null),
