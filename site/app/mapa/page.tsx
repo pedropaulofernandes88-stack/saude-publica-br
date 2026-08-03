@@ -12,17 +12,47 @@ function mediana(vs: number[]): number | null {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-// Projeta cada ponto diretamente (sem o pipeline de clip/resampling esférico do
-// geoPath) — para polígonos pequenos, o clip antimeridiano do geoPath produz um
-// retângulo de moldura espúrio colado ao path real (bug observado com a malha
-// auto-hospedada). Municípios nunca cruzam o antimeridiano, então a projeção
-// ponto-a-ponto é equivalente e evita o pipeline com problema.
-function pathDeGeometria(geom: GeoJSON.Geometry, proj: GeoProjection): string {
-  const aneis: number[][][] =
-    geom.type === "Polygon" ? (geom.coordinates as number[][][])
+// O pipeline de clip/resampling esférico do geoPath produz um retângulo de
+// moldura espúrio com esta malha auto-hospedada. Isso quebrava DUAS coisas:
+// o path desenhado (a moldura cobria o mapa) e o fitSize (que mede os limites
+// por esse mesmo pipeline e acabava ajustando a MOLDURA ao viewBox, deixando o
+// estado num aglomerado de ~19x16 unidades num canvas de 800x620).
+// Como municípios nunca cruzam o antimeridiano, projetamos ponto a ponto e
+// calculamos o enquadramento na mão — equivalente e sem o pipeline defeituoso.
+
+function aneisDe(geom: GeoJSON.Geometry): number[][][] {
+  return geom.type === "Polygon" ? (geom.coordinates as number[][][])
     : geom.type === "MultiPolygon" ? (geom.coordinates as number[][][][]).flat()
     : [];
-  return aneis
+}
+
+function ajustarProjecao(
+  proj: GeoProjection,
+  geo: { features: { geometry: GeoJSON.Geometry }[] },
+  largura: number,
+  altura: number,
+): GeoProjection {
+  proj.scale(1).translate([0, 0]);
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  for (const f of geo.features) {
+    for (const anel of aneisDe(f.geometry)) {
+      for (const pt of anel) {
+        const p = proj(pt as [number, number]);
+        if (!p) continue;
+        if (p[0] < x0) x0 = p[0];
+        if (p[0] > x1) x1 = p[0];
+        if (p[1] < y0) y0 = p[1];
+        if (p[1] > y1) y1 = p[1];
+      }
+    }
+  }
+  if (!isFinite(x0) || x1 === x0 || y1 === y0) return proj;
+  const s = 0.98 / Math.max((x1 - x0) / largura, (y1 - y0) / altura);
+  return proj.scale(s).translate([(largura - s * (x1 + x0)) / 2, (altura - s * (y1 + y0)) / 2]);
+}
+
+function pathDeGeometria(geom: GeoJSON.Geometry, proj: GeoProjection): string {
+  return aneisDe(geom)
     .map((anel) => {
       const pts = anel.map((pt) => proj(pt as [number, number]));
       if (pts.some((p) => !p)) return "";
@@ -140,7 +170,7 @@ export default function Mapa() {
 
   const { paths, escala } = useMemo(() => {
     if (!geo || !dados) return { paths: null, escala: null };
-    const proj = geoMercator().fitSize([800, 620], geo as never);
+    const proj = ajustarProjecao(geoMercator(), geo, 800, 620);
 
     const valores = [...dados.values()]
       .map((m) => m[metrica])
