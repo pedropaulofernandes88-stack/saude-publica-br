@@ -887,7 +887,63 @@ export default function Metodologia() {
         <code>mart_vazio_assistencial_municipio</code>.
       </p>
 
-      <h2>21. Privacidade e células de contagem pequena</h2>
+      <h2>21. Gasto público em saúde (SIOPS) × ICSAP: o quarto achado nulo</h2>
+      <p>
+        Até aqui a plataforma media <em>desfecho</em> (mortalidade, ICSAP, HSMR) e{" "}
+        <em>oferta física</em> (leitos), nunca o <strong>insumo financeiro</strong>. O{" "}
+        <strong>SIOPS</strong> é a única base nacional com orçamento público de saúde por
+        município, e permite testar a hipótese mais intuitiva de todas: gastar mais está
+        associado a internar menos por condição evitável?
+      </p>
+      <p>
+        <strong>De onde vem.</strong> O SIOPS não está no FTP do DataSUS, não está na API de
+        dados abertos do Ministério (85 rotas, nenhuma financeira) e não está no SICONFI — o
+        Anexo 12 do RREO, que é o demonstrativo de saúde, é transmitido pelo próprio SIOPS e
+        não aparece na API do Tesouro. A via pública é o TABNET da série histórica de
+        indicadores municipais, um arquivo de definição por UF. Extraímos gasto próprio por
+        habitante, percentual da receita própria aplicado em ASPS (o piso de 15% da EC 29 /
+        LC 141), despesa total e transferências do SUS, para 2021–2024:{" "}
+        <strong>22.276 linhas, 5.569 municípios</strong>.
+      </p>
+      <p>
+        <strong>O confundidor mais forte que já medimos.</strong> População × gasto próprio
+        por habitante dá ρ = <strong>−0,578</strong>. Município pequeno gasta muito mais por
+        habitante — mediana de R$ 1.544 no quartil dos menores contra R$ 633 no dos maiores —
+        porque custo fixo se dilui em menos gente. Qualquer correlação bruta entre gasto e
+        desfecho carrega isso dentro.
+      </p>
+      <p>
+        <strong>Resultado.</strong> Dentro de cada quartil de porte, ρ entre gasto próprio e
+        %ICSAP é −0,00 (Q1), +0,03 (Q2), −0,02 (Q3) e −0,14 (Q4). O sinal troca de direção e
+        só o quartil superior mostra algo — padrão de resíduo de porte, não de efeito estável.
+        A co-ocorrência de alto gasto com baixo %ICSAP, dentro do porte, é{" "}
+        <strong>1,01×</strong> o esperado ao acaso. Somando aos anteriores, é o{" "}
+        <strong>quarto achado nulo</strong> sobre o %ICSAP: nem cobertura da APS, nem saúde
+        suplementar, nem vazio assistencial, nem gasto explicam sua variação entre municípios
+        comparáveis. O que move o indicador segue sendo porte e{" "}
+        <a href="#">oferta hospitalar local</a> (§19).
+      </p>
+      <p>
+        <strong>Limitações declaradas.</strong> O dado é <strong>autodeclarado</strong> pelo
+        ente e homologado pelo gestor — não há verificação externa das transações. É despesa{" "}
+        <strong>empenhada</strong>, que difere de liquidada e paga. Per capita em município
+        pequeno oscila muito: uma obra desloca o indicador sem mudança estrutural. E{" "}
+        <strong>gasto não é acesso nem qualidade</strong> — um município pode gastar muito e
+        mal; o SIOPS não mede produção assistencial nem necessidade. Os indicadores de
+        subfunção (atenção básica, assistência hospitalar), que seriam os mais interessantes
+        para este cruzamento, existem no sistema mas <strong>vêm vazios de 2016 em diante</strong>{" "}
+        — medimos: 22 de 23 municípios do Acre preenchidos em 2015, zero em 2020 e em 2024.
+        Reprodutível em <code>scripts/pipeline_siops.py</code> e{" "}
+        <code>scripts/analise_siops_icsap.py</code>; marts públicos{" "}
+        <code>mart_siops_municipio</code> e <code>mart_siops_icsap_municipio</code>.
+        Fundamentação da leitura do sistema: R. F. Saldanha,{" "}
+        <a href="https://rfsaldanha.github.io/sis/siops.html">
+          Sistemas de Informação em Saúde no Brasil
+        </a>
+        , cap. SIOPS.
+      </p>
+
+      <h2>22. Privacidade e células de contagem pequena</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas
