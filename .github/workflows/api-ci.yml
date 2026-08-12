@@ -22,7 +22,6 @@ on:
       - "tests/api/**"
       - "tests/test_api_anomalias.py"
       - "tests/conftest.py"
-      - "ml/**"
       - ".github/workflows/api-ci.yml"
   pull_request:
     paths:
@@ -30,7 +29,6 @@ on:
       - "tests/api/**"
       - "tests/test_api_anomalias.py"
       - "tests/conftest.py"
-      - "ml/**"
       - ".github/workflows/api-ci.yml"
 
 jobs:
@@ -59,15 +57,19 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: |
-            requirements.txt
-            api/requirements*.txt
+          cache-dependency-path: api/requirements*.txt
 
-      # requirements.txt da raiz traz pandas e httpx, que tests/conftest.py importa.
+      # SO os requirements da API. Puxar o requirements.txt da raiz junto torna o
+      # conjunto insatisfazivel: ele traz pysus, cujas versoes exigem ou
+      # pydantic>=2.12.5 (e a API fixa pydantic==2.10.3) ou tqdm==4.64.0 (e a
+      # raiz pede tqdm>=4.66.0). Nenhuma combinacao serve as duas.
+      # O unico pacote da raiz que os testes precisavam era pandas, usado pelas
+      # fixtures de tests/conftest.py -- ele foi para api/requirements-dev.txt.
+      # De quebra, sao 48 pacotes em vez de 195.
       - name: Install dependencies
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt -r api/requirements.txt -r api/requirements-dev.txt
+          pip install -r api/requirements.txt -r api/requirements-dev.txt
 
       - name: Ruff lint
         working-directory: api

@@ -53,15 +53,19 @@ jobs:
         working-directory: dbt
         env:
           DBT_PROFILES_DIR: ${{ github.workspace }}/dbt
-          # Supabase connection (secrets registrados no repo)
+          # Os nomes abaixo sao os que dbt/profiles.yml realmente le no target
+          # `dev`. Antes o passo exportava SUPABASE_DB/USER/PASSWORD e chamava
+          # `--target prod`, que le PROD_DB_HOST, PROD_DB_USER e PROD_DB_PASSWORD:
+          # nenhuma das variaveis fornecidas era consultada, e o dbt abortaria em
+          # env_var mesmo com as dependencias instaladas.
+          #
+          # `dev` monta o host como db.<SUPABASE_HOST>, que e o endereco de
+          # conexao direta do Supabase, e usa o schema public.
           SUPABASE_HOST: ${{ secrets.SUPABASE_HOST }}
-          SUPABASE_PORT: "5432"
-          SUPABASE_DB: ${{ secrets.SUPABASE_DB }}
-          SUPABASE_USER: ${{ secrets.SUPABASE_USER }}
-          SUPABASE_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_PASSWORD }}
         run: |
           dbt deps
-          dbt docs generate --profiles-dir . --target prod
+          dbt docs generate --profiles-dir . --target dev
 
       - name: Move docs to publish dir
         run: |

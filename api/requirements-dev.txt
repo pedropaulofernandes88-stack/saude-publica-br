@@ -14,3 +14,8 @@ pytest==8.3.4
 pytest-asyncio==0.24.0
 pytest-cov==6.0.0
 httpx==0.28.1          # async test client for FastAPI (TestClient)
+
+# tests/conftest.py monta DataFrames sinteticos para as fixtures compartilhadas
+# da suite. A API em si nao usa pandas -- por isso ele fica aqui, e nao no
+# requirements.txt de producao, que vai para a imagem do Railway.
+pandas>=2.1.0

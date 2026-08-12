@@ -1,0 +1,18 @@
+# ── Ambiente do dbt ──────────────────────────────────────────────────────────
+# Este arquivo era REFERENCIADO por .github/workflows/dbt-docs.yml e nao existia:
+# o passo "Install dbt" falhava com "No such file or directory", e o
+# cache-dependency-path do setup-python apontava para o mesmo caminho vazio.
+# Ficou invisivel enquanto o workflow esteve desligado.
+#
+# Separado do requirements.txt da raiz de proposito: la o dbt convive com pysus,
+# prefect, streamlit e great-expectations, e a resolucao daquele conjunto e
+# pesada e fragil. O dbt so precisa do core e do adaptador.
+#
+# O adaptador tem de casar com o `type:` de dbt/profiles.yml — hoje `postgres`
+# nos targets dev/prod e `duckdb` no alternativo local.
+
+dbt-core>=1.7.0,<2.0.0
+dbt-postgres>=1.7.0,<2.0.0
+
+# Target local `duckdb` de profiles.yml, para gerar catalogo sem tocar o Supabase.
+dbt-duckdb>=1.7.0,<2.0.0
