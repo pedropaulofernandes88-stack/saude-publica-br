@@ -72,6 +72,7 @@ import requests
 
 from _metricas_aih import CID10_CAPITULOS, capitulo as _capitulo
 
+from _varredura import varrer_orfaos
 from _supabase_key import chave_escrita
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -396,6 +397,13 @@ def main() -> None:
     up("mart_hsmr_hospital", hsmr)
     up("mart_los_hospital", los)
     up("mart_demanda_mensal_hospital", demanda)
+    # Upsert nao remove o que saiu do calculo. E o mart_los_hospital foi onde o
+    # residuo apareceu: 1.829 pares hospital x CID que deixaram de alcancar o
+    # minimo de internacoes depois de excluir a AIH de continuacao.
+    varrer_orfaos(url, key, "mart_hsmr_hospital", hsmr,
+                  chaves=["cnes", "ano"], escopo={"ano": f"eq.{ano}"})
+    varrer_orfaos(url, key, "mart_los_hospital", los,
+                  chaves=["cnes", "cid3", "ano"], escopo={"ano": f"eq.{ano}"})
     print("[done] HSMR + LOS + demanda mensal concluído.", flush=True)
 
 

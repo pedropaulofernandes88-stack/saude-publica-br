@@ -44,6 +44,7 @@ import requests
 from _metricas_aih import (CID10_CAPITULOS, aplica_metricas_por_episodio,
                            capitulo as _capitulo)
 
+from _varredura import varrer_orfaos
 from _supabase_key import chave_escrita
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -319,6 +320,11 @@ def main() -> None:
 
     up("mart_internacoes_agravo", agravo)
     up("mart_internacoes_hospital", hosp)
+    # Upsert nao remove o que saiu do calculo; a varredura fecha essa lacuna.
+    varrer_orfaos(url, key, "mart_internacoes_agravo", agravo,
+                  chaves=["municipio_cod", "agravo", "ano"], escopo={"ano": f"eq.{ano}"})
+    varrer_orfaos(url, key, "mart_internacoes_hospital", hosp,
+                  chaves=["cnes", "ano"], escopo={"ano": f"eq.{ano}"})
     print("[done] agravo + hospital concluído.", flush=True)
 
 

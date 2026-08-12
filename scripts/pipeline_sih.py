@@ -68,6 +68,7 @@ import requests
 from _metricas_aih import (CID10_CAPITULOS, MEDIDAS, aplica_metricas_por_episodio,
                            capitulo as _capitulo)
 
+from _varredura import varrer_orfaos
 from _supabase_key import chave_escrita
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -295,6 +296,10 @@ def main() -> None:
         sys.exit("Defina SUPABASE_URL e SUPABASE_ANON_KEY no .env")
     loader = SupabaseLoader(url, key)
     loader.load_df("mart_internacoes_municipio", mart)
+    # Upsert nao remove o que saiu do calculo; a varredura fecha essa lacuna.
+    varrer_orfaos(url, key, "mart_internacoes_municipio", mart,
+                  chaves=["municipio_cod", "ano", "capitulo_cid"],
+                  escopo={"ano": f"in.({','.join(str(a) for a in anos)})"})
 
     meta = pd.DataFrame([
         ("fonte_sih", "SIH/DataSUS — AIH (RD), FTP SIHSUS/200801_"),

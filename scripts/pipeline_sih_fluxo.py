@@ -36,6 +36,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _varredura import varrer_orfaos
 from _supabase_key import chave_escrita
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -259,6 +260,11 @@ def main() -> None:
 
     up("mart_fluxo_intermunicipal", fluxo)
     up("mart_icsap_municipio", icsap)
+    # Upsert nao remove o que saiu do calculo; a varredura fecha essa lacuna.
+    varrer_orfaos(url, key, "mart_fluxo_intermunicipal", fluxo,
+                  chaves=["ano", "municipio_res", "municipio_mov"], escopo={"ano": f"eq.{ano}"})
+    varrer_orfaos(url, key, "mart_icsap_municipio", icsap,
+                  chaves=["municipio_cod", "ano"], escopo={"ano": f"eq.{ano}"})
     meta = [{"chave": "fonte_fluxo_icsap", "valor": f"SIH/SUS {ano}: fluxo intermunicipal (MUNIC_RES→MUNIC_MOV, ≥5 internações) e ICSAP (aproximação Lista Brasileira, CID-10 3 caracteres). Ideia de fluxo inspirada no LabSUS (UFT)."},
             {"chave": "gerado_em", "valor": datetime.now().isoformat(timespec="seconds")}]
     requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
