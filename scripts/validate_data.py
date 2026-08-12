@@ -112,16 +112,32 @@ def main() -> None:
     except Exception as exc:  # tabela pode não existir ainda
         print(f"[skip] dengue: {exc}")
 
-    # 8. Internações: presença e sanidade (permanência média plausível)
+    # 8. Internações: sanidade da permanência e coerência dos contadores por tipo de AIH.
+    #    A permanência é POR EPISÓDIO, então o denominador é aih_normal — usar
+    #    `internacoes` aqui reintroduziria a definição que fracionava internação longa
+    #    em várias AIHs. Ver §10 da metodologia.
     try:
         intern = agg("mart_internacoes_municipio", {
-            "select": "internacoes,dias_permanencia",
+            "select": "internacoes,dias_permanencia,aih_continuacao,aih_normal,"
+                      "dias_permanencia_normal,valor_total,valor_normal",
             "capitulo_cid": "eq.TOTAL", "ano": "eq.2023", "populacao": "gte.500000", "limit": "30"})
         if intern:
             tot_i = sum(x["internacoes"] for x in intern)
-            tot_d = sum(x["dias_permanencia"] for x in intern)
-            pm = tot_d / tot_i if tot_i else 0
+            tot_n = sum(x["aih_normal"] or 0 for x in intern)
+            tot_dn = sum(x["dias_permanencia_normal"] or 0 for x in intern)
+            pm = tot_dn / tot_n if tot_n else 0
             check("internações: permanência média 2–12 dias (capitais 2023)", 2 <= pm <= 12, f"pm={pm:.1f}")
+            check("internações: aih_normal = internacoes − aih_continuacao",
+                  all((x["aih_normal"] or 0) == x["internacoes"] - (x["aih_continuacao"] or 0)
+                      for x in intern), "identidade dos contadores por tipo de AIH")
+            check("internações: contadores da AIH normal são subconjunto do total",
+                  all((x["aih_continuacao"] or 0) <= x["internacoes"]
+                      and (x["dias_permanencia_normal"] or 0) <= x["dias_permanencia"]
+                      and (x["valor_normal"] or 0) <= x["valor_total"] + 1e-6
+                      for x in intern), "dias/valor normais ≤ totais")
+            frac = sum(x["aih_continuacao"] or 0 for x in intern) / tot_i if tot_i else 0
+            check("internações: continuação entre 0,1% e 5% do total (capitais)",
+                  0.001 <= frac <= 0.05, f"fração={frac:.3%}")
     except Exception as exc:
         print(f"[skip] internações: {exc}")
 

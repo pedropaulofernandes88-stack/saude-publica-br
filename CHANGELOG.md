@@ -7,6 +7,60 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [3.2.0] — 2026-08-12 — Tipo de AIH, unidade da ANS e escrita fechada
+
+> Três correções que mudam número publicado, e a régua que faltava para pegá-las
+> antes da produção. Motivadas pela leitura de *Sistemas de Informação em Saúde no
+> Brasil* (R. F. Saldanha, rfsaldanha.github.io/sis).
+
+### Corrigido
+
+- **SIH — AIH de continuação (IDENT=5) era contada como internação separada.** Uma
+  internação que se prolonga emite várias AIHs; o mart tratava cada uma como um
+  episódio. Efeito concentrado: capítulo V (transtornos mentais) 25,2% de continuação,
+  permanência 14,71 → 11,92 dias; capítulo VI (sistema nervoso) 10,2%, 8,78 → 6,40
+  dias; nos outros 17 capítulos, ≤ 1,8%. Novas colunas `aih_continuacao`,
+  `aih_normal`, `dias_permanencia_normal`, `valor_normal`; `permanencia_media` e
+  `custo_medio` passam a ser por episódio. HSMR e LOS passam a ser calculados só
+  sobre AIH normal — o HSMR quase não se move (0,6479 → 0,6499 em 2024, 19 hospitais
+  em 4.739 mudando de classificação). %ICSAP sobe 0,15pp.
+- **ANS — `pct_saude_suplementar` afirmava proporção de pessoas.** O SIB conta
+  vínculos e localiza pelo endereço do contrato, não da residência; a razão pode
+  passar de 100, e passa (Belém/AL, 115,9 em 2021). Renomeada para
+  `vinculos_plano_por_100_hab`, com flag `razao_implausivel`. Não muda nenhuma
+  conclusão: os testes são de posto e o gradiente por porte fica igual.
+- **Linhas órfãs.** Upsert nunca removia o que saía do cálculo; 1.830 linhas
+  publicadas não correspondiam a nenhum cálculo vigente. Removidas, e os pipelines
+  ganharam varredura com trava de segurança.
+- **Windows.** Os pipelines morriam ao ter a saída redirecionada para arquivo (cp1252
+  vs. UTF-8 nos logs).
+
+### Segurança
+
+- **`anon` podia escrever e apagar.** A chave pública tinha INSERT/UPDATE/DELETE em 18
+  tabelas e TRUNCATE em outras 17 — qualquer pessoa com o repositório aberto podia
+  sobrescrever ou zerar os dados publicados. Os pipelines passam a escrever com
+  `service_role` (`SUPABASE_SERVICE_ROLE_KEY` no `.env`) e as migrations V022/V023
+  revogam escrita de `anon` e `authenticated` em todo o schema, views inclusive.
+  Leitura pública não muda.
+
+### Adicionado
+
+- Primeiros testes dos pipelines: 90 casos cobrindo a matemática de agregação, as
+  faixas de LOS, a faixa etária, a lista ICSAP, a seleção de chave e a varredura de
+  órfãs. Antes, nenhum teste tocava o código que produz os números publicados.
+- `scripts/_metricas_aih.py` (regras compartilhadas, antes triplicadas),
+  `scripts/_supabase_key.py`, `scripts/_varredura.py`, `scripts/_subir_mart.py`.
+- MCP e client Python expõem as colunas por tipo de AIH; nova regra anti-alucinação
+  proibindo chamar AIH de paciente.
+
+### Mudado
+
+- `data/marts/` deixa de ser versionado — é saída regenerável, e versioná-la fazia
+  um commit de mudança de definição carregar dados da definição anterior.
+
+---
+
 ## [3.1.0] — 2026-06-29 — Internações, agravos, fluxo e excesso corrigido
 
 > Linha atual da plataforma (site estático + Supabase). As entradas de versão
