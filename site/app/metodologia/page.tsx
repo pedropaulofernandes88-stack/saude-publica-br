@@ -193,10 +193,60 @@ export default function Metodologia() {
           inclui rede privada/suplementar;
         </li>
         <li>Município de <strong>residência</strong> (<code>MUNIC_RES</code>); causa pelo <strong>diagnóstico principal</strong> (<code>DIAG_PRINC</code>), agrupado em capítulos CID-10;</li>
-        <li><strong>Permanência média</strong> = soma de <code>DIAS_PERM</code> / nº de internações;</li>
+        <li><strong>Permanência média</strong> = <code>dias_permanencia_normal</code> / <code>aih_normal</code> (ver tipo de AIH abaixo);</li>
         <li><strong>Mortalidade intra-hospitalar</strong> = <code>MORTE</code> / internações;</li>
-        <li><strong>Custo</strong> = valor total aprovado (<code>VAL_TOT</code>); custo médio = valor / internações;</li>
+        <li><strong>Custo</strong> = valor total aprovado (<code>VAL_TOT</code>); custo médio = <code>valor_normal</code> / <code>aih_normal</code>;</li>
         <li>2024 preliminar; meses podem estar incompletos no processamento mais recente.</li>
+        <li>
+          <strong>Tipo de AIH — a AIH de continuação (importante):</strong> o arquivo RD
+          mistura a AIH normal (<code>IDENT=1</code>) com a AIH de{" "}
+          <strong>continuação</strong> (<code>IDENT=5</code>), emitida quando a internação
+          se prolonga além do período coberto pela AIH anterior. Uma mesma internação longa
+          vira, portanto, <em>várias linhas</em>. Contar linhas é a aproximação correta para{" "}
+          <em>produção aprovada</em> — e é o que <code>internacoes</code> mede — mas distorce
+          qualquer média por episódio. Numa amostra de 808.470 AIHs (SP, MG, BA, PA e RS,
+          2024), a continuação é 1,26% das linhas e <strong>6,57% dos dias</strong> de
+          permanência, concentrada em dois capítulos:
+          <table className="my-3 w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left">Capítulo</th>
+                <th className="text-right">Internações</th>
+                <th className="text-right">Permanência média</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>VI — sistema nervoso</td>
+                <td className="text-right">−19,9%</td>
+                <td className="text-right">10,98 → 6,21 dias</td>
+              </tr>
+              <tr>
+                <td>V — transtornos mentais</td>
+                <td className="text-right">−23,7%</td>
+                <td className="text-right">14,43 → 11,72 dias</td>
+              </tr>
+              <tr>
+                <td>demais 17 capítulos</td>
+                <td className="text-right">≤ 0,8%</td>
+                <td className="text-right">≤ 2,1%</td>
+              </tr>
+            </tbody>
+          </table>
+          Publicamos os dois: <code>internacoes</code> (produção, todas as AIHs) e{" "}
+          <code>aih_normal</code>, <code>dias_permanencia_normal</code>,{" "}
+          <code>valor_normal</code> (base por episódio). As médias por episódio usam a
+          segunda. O <strong>HSMR</strong> (§14) e a <strong>permanência esperada</strong>{" "}
+          também passam a ser calculados só sobre AIH normal, porque são métricas por
+          episódio — a continuação carrega 0,21% dos óbitos para 1,26% das linhas e diluiria
+          o estrato de <em>case-mix</em>. O <strong>%ICSAP</strong> quase não muda (+0,93%
+          relativo): só I69 e G40 da Lista Brasileira geram continuação em volume.
+          Fundamentação: R. F. Saldanha,{" "}
+          <a href="https://rfsaldanha.github.io/sis/sih.html">
+            Sistemas de Informação em Saúde no Brasil
+          </a>
+          , cap. SIH.
+        </li>
         <li>
           <strong>Confundimento por cobertura suplementar (importante):</strong> a base só
           enxerga internações pagas pelo SUS. Cerca de um quarto da população tem plano de
@@ -521,8 +571,9 @@ export default function Metodologia() {
       <p>
         <strong>A limitação de saúde suplementar é real, mas concentrada nos grandes municípios.</strong>{" "}
         O ICSAP só enxerga internações do SUS — uma limitação que declarávamos sem testar. Trouxemos
-        o percentual de beneficiários de plano de saúde médico-hospitalar por município (ANS, Dados
-        Abertos, dez/2024, sem autenticação — <code>scripts/pipeline_ans_beneficiarios.py</code>) e
+        os <strong>vínculos ativos a plano médico-hospitalar por 100 habitantes</strong> por município
+        (ANS, Dados Abertos, dez/2024, sem autenticação —{" "}
+        <code>scripts/pipeline_ans_beneficiarios.py</code>) e
         cruzamos com %ICSAP dentro de cada quartil de porte (mesmo desenho do teste de robustez
         acima). O resultado é um <strong>gradiente monotônico por porte</strong>, não ruído: ρ =
         +0,05 (Q1, menores) → −0,00 (Q2) → −0,08 (Q3) → <strong>−0,29</strong> (Q4, maiores) — quase
@@ -536,6 +587,27 @@ export default function Metodologia() {
         zeradas mesmo em São Paulo na amostra verificada — problema de qualidade daquele recorte
         específico, não deste teste. Reprodutível em{" "}
         <code>scripts/analise_saude_suplementar_icsap.py</code>.
+      </p>
+      <p>
+        <strong>Por que "vínculos por 100 hab." e não "% da população com plano".</strong> O SIB/ANS
+        tem como unidade o <em>vínculo</em> (beneficiário × produto × operadora), não a pessoa, e
+        localiza o registro pelo <strong>endereço do contrato</strong>, não pela residência. Uma
+        pessoa com dois produtos conta duas vezes, e um contrato coletivo empresarial pode alocar
+        vínculos ao município da sede da empresa. A razão vínculos/população, portanto,{" "}
+        <em>não é uma proporção de pessoas e pode legitimamente passar de 100</em> — e passa: Belém/AL
+        (4.226 hab.) marcou 115,9 vínculos/100 hab. em 2021. Por isso a coluna se chama{" "}
+        <code>vinculos_plano_por_100_hab</code>, e não <code>pct_saude_suplementar</code> como na
+        versão anterior deste mart; municípios com razão &gt; 100 recebem a flag{" "}
+        <code>razao_implausivel</code>.{" "}
+        <strong>Isso não altera nenhum resultado acima</strong>: como os testes usam Spearman (só a
+        ordem importa), excluir o caso implausível e os 33 municípios com menos de 20 mil hab. e mais
+        de 40 vínculos/100 hab. — candidatos a artefato de endereço de contrato — move ρ de +0,054
+        para +0,061 (Q1) e deixa Q4 em −0,286, inalterado. A distinção é de rigor na
+        <em> leitura</em> do indicador, não de correção de viés. Fundamentação: R. F. Saldanha,{" "}
+        <a href="https://rfsaldanha.github.io/sis/ans.html">
+          Sistemas de Informação em Saúde no Brasil
+        </a>
+        , cap. ANS.
       </p>
 
       <h2>16. Arquétipos de saúde municipal (k-means)</h2>

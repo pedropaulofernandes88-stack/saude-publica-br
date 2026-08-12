@@ -2,8 +2,9 @@
 
 import { fmtDec, fmtInt, type IcsapPares } from "@/lib/api";
 
-const fmtReais = (v: number) =>
-  v >= 1e6 ? `R$ ${fmtDec(v / 1e6, 1)} mi`
+const fmtReais = (v: number | null | undefined) =>
+  v == null ? "—"
+  : v >= 1e6 ? `R$ ${fmtDec(v / 1e6, 1)} mi`
   : v >= 1e3 ? `R$ ${fmtDec(v / 1e3, 0)} mil`
   : `R$ ${fmtInt(v)}`;
 
@@ -89,6 +90,14 @@ export function IcsapPares({ dados }: { dados: IcsapPares }) {
                 <p className="text-xs text-amber-800">em internações não realizadas</p>
               </div>
             </div>
+            {dados.leitos_equivalentes_ano == null && (
+              <p className="mt-3 border-t border-amber-200 pt-3 text-sm text-amber-900">
+                A tradução em leitos e em reais está <strong>temporariamente suspensa</strong>: o
+                custo e a permanência por internação passaram a ser calculados sobre a AIH normal,
+                sem a AIH de continuação, e o SIH está sendo reprocessado. A comparação com os
+                pares acima não depende desse ajuste. Ver §10 da metodologia.
+              </p>
+            )}
             {dados.internacoes_acima_p25 > dados.internacoes_acima_pares && (
               <p className="mt-3 border-t border-amber-200 pt-3 text-sm text-amber-900">
                 Contra os <strong>25% melhores</strong> do grupo ({fmtDec(dados.p25_pares_pct, 1)}%), a

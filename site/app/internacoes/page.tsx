@@ -156,11 +156,15 @@ export default function Internacoes() {
   // Custo unitário proxy das condições ICSAP (nacional) → estimativa de gasto evitável.
   const [custoIcsapUnit, setCustoIcsapUnit] = useState<number | null>(null);
   useEffect(() => {
-    rest<{ valor_total: number; internacoes: number }>("mart_internacoes_agravo", {
-      select: "valor_total:valor_total.sum(),internacoes:internacoes.sum()",
+    rest<{ valor_normal: number | null; aih_normal: number | null }>("mart_internacoes_agravo", {
+      select: "valor_normal:valor_normal.sum(),aih_normal:aih_normal.sum()",
       agravo: "in.(pneumonia,icc,dpoc,asma,diabetes)",
     }).then((r) => {
-      if (r[0]?.internacoes) setCustoIcsapUnit(r[0].valor_total / r[0].internacoes);
+      // Base de AIH normal, como as demais médias por episódio. Estes cinco agravos são
+      // dos capítulos IV/IX/X, onde a AIH de continuação pesa <1% — a diferença é mínima,
+      // mas manter uma definição só evita que dois números do site discordem entre si.
+      const a = r[0];
+      if (a?.aih_normal && a.valor_normal != null) setCustoIcsapUnit(a.valor_normal / a.aih_normal);
     }).catch(() => {});
   }, []);
   const [agravoPanorama, setAgravoPanorama] = useState<InternacaoAgravo[] | null>(null);
@@ -171,7 +175,9 @@ export default function Internacoes() {
     setAgravoPanorama(null);
     const ufF: Record<string, string> = uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` };
     rest<InternacaoAgravo>("mart_internacoes_agravo", {
-      select: "agravo,agravo_label,grupo,internacoes:internacoes.sum(),obitos:obitos.sum(),dias_permanencia:dias_permanencia.sum(),valor_total:valor_total.sum()",
+      // Médias por episódio somam a base de AIH normal (sem a AIH de continuação,
+      // que fraciona uma internação longa em várias linhas) — ver §10 da metodologia.
+      select: "agravo,agravo_label,grupo,internacoes:internacoes.sum(),obitos:obitos.sum(),dias_permanencia:dias_permanencia.sum(),valor_total:valor_total.sum(),aih_normal:aih_normal.sum(),dias_permanencia_normal:dias_permanencia_normal.sum(),valor_normal:valor_normal.sum()",
       ano: "eq.2024", order: "agravo", ...ufF,
     }).then(setAgravoPanorama).catch(() => setAgravoPanorama([]));
   }, [uf]);
@@ -191,9 +197,11 @@ export default function Internacoes() {
     return [...agravoPanorama]
       .map((a) => ({
         ...a,
-        permanencia_media: a.internacoes ? a.dias_permanencia / a.internacoes : null,
+        permanencia_media: a.aih_normal && a.dias_permanencia_normal != null
+          ? a.dias_permanencia_normal / a.aih_normal : null,
         mortalidade_pct: a.internacoes ? (a.obitos / a.internacoes) * 100 : null,
-        custo_medio: a.internacoes ? a.valor_total / a.internacoes : null,
+        custo_medio: a.aih_normal && a.valor_normal != null
+          ? a.valor_normal / a.aih_normal : null,
       }))
       .sort((x, y) => y.internacoes - x.internacoes);
   }, [agravoPanorama]);

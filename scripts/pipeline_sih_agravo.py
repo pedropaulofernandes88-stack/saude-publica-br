@@ -10,6 +10,12 @@ Gera:
   - mart_internacoes_agravo   : (município, agravo) internações, óbitos, permanência, custo
   - mart_internacoes_hospital : (CNES) internações, óbitos, permanência, custo, capítulo principal
 
+TIPO DE AIH (IDENT): `internacoes` conta AIHs aprovadas (produção, inclui a AIH de
+continuação IDENT=5); `permanencia_media` e `custo_medio` são calculados sobre
+`aih_normal`, porque a continuação fraciona uma internação longa em várias linhas.
+Importa sobretudo nos agravos de saúde mental (capítulo V). Ver a nota completa em
+pipeline_sih.py e https://rfsaldanha.github.io/sis/sih.html
+
 Agravos traçadores (mutuamente exclusivos por prefixo CID-3): diabetes, AVC, IAM,
 insuficiência cardíaca, asma, DPOC, pneumonia, depressão, esquizofrenia/psicoses,
 transtornos por álcool/drogas, acidentes de transporte, TCE.
@@ -23,6 +29,7 @@ import argparse
 import io
 import json
 import os
+import sys
 import tempfile
 import time
 from collections import defaultdict
@@ -33,6 +40,14 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
+
+# Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
+# unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
+# no meio do processamento. Forca UTF-8 na saida.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
@@ -138,8 +153,9 @@ def _process_file(uf: str, ano: int, mes: int):
     tmp = Path(tempfile.gettempdir())
     dbc = tmp / f"{nome}.dbc"; dbf = tmp / f"{nome}.dbf"
     dbc.write_bytes(buf.getvalue())
-    agravo: dict = defaultdict(lambda: [0, 0, 0, 0.0])   # (mun_res, agravo) -> [n, obitos, dias, valor]
-    hosp: dict = defaultdict(lambda: [0, 0, 0, 0.0])     # (cnes, mun_mov, cap) -> [n, obitos, dias, valor]
+    # [n, obitos, dias, valor, n_continuacao, dias_normal, valor_normal] — ver nota IDENT
+    agravo: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])   # (mun_res, agravo)
+    hosp: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])     # (cnes, mun_mov, cap)
     try:
         datasus_dbc.decompress(str(dbc), str(dbf))
         for rec in dbfread.DBF(str(dbf), encoding="latin-1", char_decode_errors="replace", load=False):
@@ -155,6 +171,7 @@ def _process_file(uf: str, ano: int, mes: int):
             except (ValueError, TypeError):
                 val = 0.0
             morte = 1 if str(rec.get("MORTE") or "0").strip() == "1" else 0
+            cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
 
             # --- agravo (por residência) ---
             ag = CID2AGRAVO.get(cid)
@@ -163,6 +180,9 @@ def _process_file(uf: str, ano: int, mes: int):
                 if len(res) == 6:
                     c = agravo[(res, ag)]
                     c[0] += 1; c[1] += morte; c[2] += dias; c[3] += val
+                    c[4] += cont
+                    if not cont:
+                        c[5] += dias; c[6] += val
 
             # --- hospital (por CNES / atendimento) ---
             cnes = (str(rec.get("CNES") or "")).strip()
@@ -171,6 +191,9 @@ def _process_file(uf: str, ano: int, mes: int):
                 cap = _capitulo(cid)
                 h = hosp[(cnes, mov, cap)]
                 h[0] += 1; h[1] += morte; h[2] += dias; h[3] += val
+                h[4] += cont
+                if not cont:
+                    h[5] += dias; h[6] += val
         return dict(agravo), dict(hosp)
     except Exception:
         return None
@@ -180,12 +203,13 @@ def _process_file(uf: str, ano: int, mes: int):
 
 def _process_uf(uf: str, ano: int, workers: int):
     CKPT.mkdir(parents=True, exist_ok=True)
-    ack = CKPT / f"agravo_{uf}_{ano}.parquet"
-    hck = CKPT / f"hosp_{uf}_{ano}.parquet"
+    # sufixo _v2: checkpoints antigos nao tem os contadores por IDENT
+    ack = CKPT / f"agravo_{uf}_{ano}_v2.parquet"
+    hck = CKPT / f"hosp_{uf}_{ano}_v2.parquet"
     if ack.exists() and hck.exists():
         return pd.read_parquet(ack), pd.read_parquet(hck)
-    agravo: dict = defaultdict(lambda: [0, 0, 0, 0.0])
-    hosp: dict = defaultdict(lambda: [0, 0, 0, 0.0])
+    agravo: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
+    hosp: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
     with ThreadPoolExecutor(max_workers=workers) as ex:
         futs = {ex.submit(_process_file, uf, ano, m): m for m in range(1, 13)}
         for fut in as_completed(futs):
@@ -194,13 +218,22 @@ def _process_uf(uf: str, ano: int, workers: int):
                 continue
             ag, hs = res
             for k, v in ag.items():
-                t = agravo[k]; t[0] += v[0]; t[1] += v[1]; t[2] += v[2]; t[3] += v[3]
+                t = agravo[k]
+                for i in range(7):
+                    t[i] += v[i]
             for k, v in hs.items():
-                t = hosp[k]; t[0] += v[0]; t[1] += v[1]; t[2] += v[2]; t[3] += v[3]
-    adf = pd.DataFrame([(r, ag, c[0], c[1], c[2], round(c[3], 2)) for (r, ag), c in agravo.items()],
-                       columns=["municipio_cod", "agravo", "internacoes", "obitos", "dias_permanencia", "valor_total"])
-    hdf = pd.DataFrame([(cn, mv, cap, c[0], c[1], c[2], round(c[3], 2)) for (cn, mv, cap), c in hosp.items()],
-                       columns=["cnes", "municipio_cod", "capitulo_cid", "internacoes", "obitos", "dias_permanencia", "valor_total"])
+                t = hosp[k]
+                for i in range(7):
+                    t[i] += v[i]
+    adf = pd.DataFrame([(r, ag, c[0], c[1], c[2], round(c[3], 2), c[4], c[5], round(c[6], 2))
+                        for (r, ag), c in agravo.items()],
+                       columns=["municipio_cod", "agravo", "internacoes", "obitos", "dias_permanencia",
+                                "valor_total", "aih_continuacao", "dias_permanencia_normal", "valor_normal"])
+    hdf = pd.DataFrame([(cn, mv, cap, c[0], c[1], c[2], round(c[3], 2), c[4], c[5], round(c[6], 2))
+                        for (cn, mv, cap), c in hosp.items()],
+                       columns=["cnes", "municipio_cod", "capitulo_cid", "internacoes", "obitos",
+                                "dias_permanencia", "valor_total", "aih_continuacao",
+                                "dias_permanencia_normal", "valor_normal"])
     adf.to_parquet(ack, compression="zstd", index=False)
     hdf.to_parquet(hck, compression="zstd", index=False)
     print(f"[agravo] {uf} {ano}: {int(adf['internacoes'].sum()):,} intern. em agravos | {hdf['cnes'].nunique():,} hospitais", flush=True)
@@ -229,29 +262,40 @@ def main() -> None:
     # --- agravo (por município de residência) ---
     agravo = pd.concat(aparts, ignore_index=True).groupby(
         ["municipio_cod", "agravo"], as_index=False)[
-        ["internacoes", "obitos", "dias_permanencia", "valor_total"]].sum()
+        ["internacoes", "obitos", "dias_permanencia", "valor_total",
+         "aih_continuacao", "dias_permanencia_normal", "valor_normal"]].sum()
     agravo["ano"] = ano
     agravo["agravo_label"] = agravo["agravo"].map(AGRAVO_LABEL)
     agravo["grupo"] = agravo["agravo"].map(AGRAVO_GRUPO)
     agravo = agravo.merge(mref, on="municipio_cod", how="left").merge(pop, on="municipio_cod", how="left")
     agravo["uf_sigla"] = agravo["uf_sigla"].fillna("ND")
-    agravo["permanencia_media"] = (agravo.dias_permanencia / agravo.internacoes).round(1)
+    # Médias por episódio sobre a AIH normal (ver nota IDENT no cabeçalho). Os agravos
+    # de saúde mental (depressão, esquizofrenia, álcool/drogas) são capítulo V — os mais
+    # atingidos pelo fracionamento da internação longa em várias AIHs.
+    agravo["aih_normal"] = (agravo.internacoes - agravo.aih_continuacao).astype("int64")
+    # .where sem `other` zera para NaN e sobe para float64; .replace(0, pd.NA) daria
+    # dtype object com NAType e quebraria o .round() adiante.
+    _an = agravo["aih_normal"].where(agravo["aih_normal"] > 0)
+    agravo["permanencia_media"] = (agravo.dias_permanencia_normal / _an).round(1)
     agravo["mortalidade_pct"] = (agravo.obitos / agravo.internacoes * 100).round(2)
-    agravo["custo_medio"] = (agravo.valor_total / agravo.internacoes).round(2)
+    agravo["custo_medio"] = (agravo.valor_normal / _an).round(2)
     agravo["internacoes_100k"] = (agravo.internacoes / agravo.populacao * 100000).round(1)
     agravo["populacao"] = agravo["populacao"].astype("Int64")
     agravo = agravo[["municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
                      "agravo", "agravo_label", "grupo", "internacoes", "obitos",
-                     "dias_permanencia", "valor_total", "permanencia_media",
+                     "dias_permanencia", "valor_total", "aih_continuacao", "aih_normal",
+                     "dias_permanencia_normal", "valor_normal", "permanencia_media",
                      "mortalidade_pct", "custo_medio", "populacao", "internacoes_100k"]]
 
     # --- hospital (por CNES) ---
     hraw = pd.concat(hparts, ignore_index=True).groupby(
         ["cnes", "municipio_cod", "capitulo_cid"], as_index=False)[
-        ["internacoes", "obitos", "dias_permanencia", "valor_total"]].sum()
+        ["internacoes", "obitos", "dias_permanencia", "valor_total",
+         "aih_continuacao", "dias_permanencia_normal", "valor_normal"]].sum()
     # totais por hospital
     htot = hraw.groupby(["cnes", "municipio_cod"], as_index=False)[
-        ["internacoes", "obitos", "dias_permanencia", "valor_total"]].sum()
+        ["internacoes", "obitos", "dias_permanencia", "valor_total",
+         "aih_continuacao", "dias_permanencia_normal", "valor_normal"]].sum()
     # capítulo principal (argmax de internações por hospital)
     cap_principal = (hraw.sort_values("internacoes", ascending=False)
                      .drop_duplicates("cnes")[["cnes", "capitulo_cid"]]
@@ -261,12 +305,15 @@ def main() -> None:
     hosp["ano"] = ano
     hosp = hosp.merge(mref, on="municipio_cod", how="left")
     hosp["uf_sigla"] = hosp["uf_sigla"].fillna("ND")
-    hosp["permanencia_media"] = (hosp.dias_permanencia / hosp.internacoes).round(1)
+    hosp["aih_normal"] = (hosp.internacoes - hosp.aih_continuacao).astype("int64")
+    _hn = hosp["aih_normal"].where(hosp["aih_normal"] > 0)
+    hosp["permanencia_media"] = (hosp.dias_permanencia_normal / _hn).round(1)
     hosp["mortalidade_pct"] = (hosp.obitos / hosp.internacoes * 100).round(2)
-    hosp["custo_medio"] = (hosp.valor_total / hosp.internacoes).round(2)
+    hosp["custo_medio"] = (hosp.valor_normal / _hn).round(2)
     hosp = hosp[["cnes", "municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
                  "capitulo_principal", "internacoes", "obitos", "dias_permanencia",
-                 "valor_total", "permanencia_media", "mortalidade_pct", "custo_medio"]]
+                 "valor_total", "aih_continuacao", "aih_normal", "dias_permanencia_normal",
+                 "valor_normal", "permanencia_media", "mortalidade_pct", "custo_medio"]]
 
     MARTS.mkdir(exist_ok=True)
     agravo.to_parquet(MARTS / "mart_internacoes_agravo.parquet", compression="zstd", index=False)
@@ -275,7 +322,7 @@ def main() -> None:
 
     if args.no_upload:
         return
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
 

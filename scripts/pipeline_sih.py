@@ -19,6 +19,30 @@ Convenções:
   - Capítulo CID-10 pelo diagnóstico principal (DIAG_PRINC).
   - Valores = VAL_TOT (valor total aprovado da AIH).
 
+TIPO DE AIH (IDENT) — volume total vs. média por episódio
+----------------------------------------------------------
+O RD mistura AIH normal (IDENT=1) com AIH de CONTINUAÇÃO (IDENT=5), emitida
+quando uma internação se prolonga além do período da AIH anterior. Uma mesma
+internação longa gera, portanto, várias linhas. Contar linhas como "internações"
+é a aproximação operacional correta para PRODUÇÃO aprovada, mas distorce
+qualquer MÉDIA POR EPISÓDIO.
+
+Medido em amostra de 808.470 AIHs (SP, MG, BA, PA, RS; 2024): IDENT=5 é 1,26%
+das linhas mas 6,57% dos dias de permanência, e concentra-se em dois capítulos:
+
+  cap. VI (sistema nervoso)   internações -19,9%, permanência 10,98 -> 6,21 dias
+  cap. V  (transtornos ment.) internações -23,7%, permanência 14,43 -> 11,72
+  outros 17 capítulos         |Δ| <= 0,8% e <= 2,1%
+
+Regra adotada: manter o volume total (todas as AIHs aprovadas) E publicar os
+contadores restritos à AIH normal, para que a média por episódio seja calculável
+sem perder a produção. Colunas `aih_continuacao`, `dias_permanencia_normal` e
+`valor_normal`; `permanencia_media` e `custo_medio` passam a usar a base normal.
+
+Fundamentação: R. F. Saldanha, "Sistemas de Informação em Saúde no Brasil",
+cap. SIH — "estadias prolongadas podem exigir regras de continuidade para evitar
+fracionamento artificial". https://rfsaldanha.github.io/sis/sih.html
+
 Uso:
   .venv311/Scripts/python scripts/pipeline_sih.py --anos 2023 2024 --workers 8
 """
@@ -40,6 +64,14 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
+
+# Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
+# unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
+# no meio do processamento. Forca UTF-8 na saida.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
@@ -82,7 +114,11 @@ def load_env() -> dict[str, str]:
 
 
 def _process_file(uf: str, ano: int, mes: int) -> dict | None:
-    """Baixa e agrega um RD mensal. Retorna dict[(mun6, cap)] = [n, obitos, dias, valor].
+    """Baixa e agrega um RD mensal.
+
+    Retorna dict[(mun6, cap)] = [n, obitos, dias, valor, n_cont, dias_norm, valor_norm],
+    onde `n_cont` conta AIH de continuação (IDENT=5) e os campos `_norm` somam apenas
+    AIH normal — ver a nota sobre IDENT no cabeçalho do módulo.
     None em erro/ausência (meses futuros)."""
     import datasus_dbc
     import dbfread
@@ -109,7 +145,7 @@ def _process_file(uf: str, ano: int, mes: int) -> dict | None:
     dbc.write_bytes(buf.getvalue())
     try:
         datasus_dbc.decompress(str(dbc), str(dbf))
-        agg: dict = defaultdict(lambda: [0, 0, 0, 0.0])
+        agg: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
         for rec in dbfread.DBF(str(dbf), encoding="latin-1", char_decode_errors="replace", load=False):
             mun = (str(rec.get("MUNIC_RES") or "")).strip()[:6]
             if len(mun) < 6:
@@ -125,8 +161,12 @@ def _process_file(uf: str, ano: int, mes: int) -> dict | None:
             except (ValueError, TypeError):
                 val = 0.0
             morte = 1 if str(rec.get("MORTE") or "0").strip() in ("1",) else 0
+            cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
             c = agg[(mun, cap)]
             c[0] += 1; c[1] += morte; c[2] += dias; c[3] += val
+            c[4] += cont
+            if not cont:
+                c[5] += dias; c[6] += val
         return dict(agg)
     finally:
         dbc.unlink(missing_ok=True)
@@ -139,11 +179,13 @@ CKPT = ROOT / "data" / "raw" / "SIH" / "ckpt"
 def _process_uf_ano(uf: str, ano: int, workers: int) -> pd.DataFrame:
     """Processa os 12 meses de uma UF/ano (paralelo) → df agregado. Checkpoint resumível."""
     CKPT.mkdir(parents=True, exist_ok=True)
-    ckpt = CKPT / f"sih_{uf}_{ano}.parquet"
+    # sufixo _v2: os checkpoints anteriores nao tinham os contadores por IDENT e
+    # seriam reaproveitados em silencio, produzindo um mart sem as colunas novas.
+    ckpt = CKPT / f"sih_{uf}_{ano}_v2.parquet"
     if ckpt.exists():
         return pd.read_parquet(ckpt)
 
-    agg: dict = defaultdict(lambda: [0, 0, 0, 0.0])  # (mun, cap) -> [...]
+    agg: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])  # (mun, cap) -> [...]
     with ThreadPoolExecutor(max_workers=workers) as ex:
         futs = {ex.submit(_process_file, uf, ano, m): m for m in range(1, 13)}
         for fut in as_completed(futs):
@@ -151,12 +193,17 @@ def _process_uf_ano(uf: str, ano: int, workers: int) -> pd.DataFrame:
             if res:
                 for (mun, cap), c in res.items():
                     t = agg[(mun, cap)]
-                    t[0] += c[0]; t[1] += c[1]; t[2] += c[2]; t[3] += c[3]
+                    for i in range(7):
+                        t[i] += c[i]
     df = pd.DataFrame(
-        [(mun, ano, cap, c[0], c[1], c[2], round(c[3], 2)) for (mun, cap), c in agg.items()],
-        columns=["municipio_cod", "ano", "capitulo_cid", "internacoes", "obitos", "dias_permanencia", "valor_total"])
+        [(mun, ano, cap, c[0], c[1], c[2], round(c[3], 2), c[4], c[5], round(c[6], 2))
+         for (mun, cap), c in agg.items()],
+        columns=["municipio_cod", "ano", "capitulo_cid", "internacoes", "obitos",
+                 "dias_permanencia", "valor_total", "aih_continuacao",
+                 "dias_permanencia_normal", "valor_normal"])
     df.to_parquet(ckpt, compression="zstd", index=False)
-    print(f"[sih] {uf} {ano}: {int(df['internacoes'].sum()):,} internações → checkpoint", flush=True)
+    print(f"[sih] {uf} {ano}: {int(df['internacoes'].sum()):,} internações "
+          f"({int(df['aih_continuacao'].sum()):,} de continuação) → checkpoint", flush=True)
     return df
 
 
@@ -165,13 +212,14 @@ def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     for a in anos:
         for uf in UFS:
             partes.append(_process_uf_ano(uf, a, workers))
+    MEDIDAS = ["internacoes", "obitos", "dias_permanencia", "valor_total",
+               "aih_continuacao", "dias_permanencia_normal", "valor_normal"]
     det = pd.concat(partes, ignore_index=True)
     det = (det.groupby(["municipio_cod", "ano", "capitulo_cid"], as_index=False)
-           [["internacoes", "obitos", "dias_permanencia", "valor_total"]].sum())
+           [MEDIDAS].sum())
 
     # linha TOTAL (todos os capítulos) por município/ano
-    tot = (det.groupby(["municipio_cod", "ano"], as_index=False)[
-        ["internacoes", "obitos", "dias_permanencia", "valor_total"]].sum())
+    tot = (det.groupby(["municipio_cod", "ano"], as_index=False)[MEDIDAS].sum())
     tot["capitulo_cid"] = "TOTAL"
     mart = pd.concat([det, tot], ignore_index=True)
 
@@ -183,9 +231,17 @@ def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     mart["uf_sigla"] = mart["uf_sigla"].fillna("ND")
     mart = mart.merge(pop, on=["municipio_cod", "ano"], how="left")
 
-    mart["permanencia_media"] = (mart["dias_permanencia"] / mart["internacoes"]).round(2)
+    # Médias POR EPISÓDIO usam a base de AIH normal: incluir a AIH de continuação
+    # fraciona uma internação longa em varias linhas e infla a média (cap. VI:
+    # 10,98 vs. 6,21 dias). O volume (`internacoes`) segue sendo toda a produção
+    # aprovada. Ver a nota sobre IDENT no cabeçalho do módulo.
+    mart["aih_normal"] = (mart["internacoes"] - mart["aih_continuacao"]).astype("int64")
+    # .where sem `other` zera para NaN e sobe para float64. Usar .replace(0, pd.NA)
+    # aqui devolveria dtype object com NAType, que quebra o .round() adiante.
+    denom = mart["aih_normal"].where(mart["aih_normal"] > 0)
+    mart["permanencia_media"] = (mart["dias_permanencia_normal"] / denom).round(2)
     mart["mortalidade_pct"] = (mart["obitos"] / mart["internacoes"] * 100).round(2)
-    mart["custo_medio"] = (mart["valor_total"] / mart["internacoes"]).round(2)
+    mart["custo_medio"] = (mart["valor_normal"] / denom).round(2)
     mart["internacoes_100k"] = None
     m_tot = mart["capitulo_cid"] == "TOTAL"
     mart.loc[m_tot, "internacoes_100k"] = (
@@ -195,8 +251,13 @@ def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
 
     mart = mart.sort_values(["municipio_cod", "ano", "capitulo_cid"]).reset_index(drop=True)
     print(f"[sih] mart_internacoes: {len(mart):,} linhas")
-    print(f"[sih] internações {min(anos)}–{max(anos)}: {int(det['internacoes'].sum()):,} | "
+    n_tot, n_cont = int(det["internacoes"].sum()), int(det["aih_continuacao"].sum())
+    d_tot, d_norm = int(det["dias_permanencia"].sum()), int(det["dias_permanencia_normal"].sum())
+    pct_dias = (1 - d_norm / d_tot) * 100 if d_tot else 0.0
+    print(f"[sih] internações {min(anos)}–{max(anos)}: {n_tot:,} | "
           f"valor total R$ {det['valor_total'].sum()/1e9:.1f} bi")
+    print(f"[sih] AIH de continuação (IDENT=5): {n_cont:,} "
+          f"({n_cont/n_tot*100:.2f}% das linhas, {pct_dias:.2f}% dos dias)")
     return mart, municipios
 
 
@@ -250,7 +311,7 @@ def main() -> None:
     if args.no_upload:
         return
 
-    url, key = env.get("SUPABASE_URL"), env.get("SUPABASE_ANON_KEY")
+    url, key = env.get("SUPABASE_URL"), chave_escrita(env)
     if not url or not key:
         sys.exit("Defina SUPABASE_URL e SUPABASE_ANON_KEY no .env")
     loader = SupabaseLoader(url, key)
@@ -259,7 +320,7 @@ def main() -> None:
     meta = pd.DataFrame([
         ("fonte_sih", "SIH/DataSUS — AIH (RD), FTP SIHSUS/200801_"),
         ("sih_cobertura", f"{min(anos)}–{max(anos)}"),
-        ("sih_definicoes", "Internações por residência (MUNIC_RES) e capítulo CID-10 do diagnóstico principal; valor=VAL_TOT aprovado; mortalidade intra-hospitalar=MORTE/internações"),
+        ("sih_definicoes", "Internações por residência (MUNIC_RES) e capítulo CID-10 do diagnóstico principal; valor=VAL_TOT aprovado; mortalidade intra-hospitalar=MORTE/internações. `internacoes` conta AIHs aprovadas (produção), incluindo AIH de continuação (IDENT=5); `permanencia_media` e `custo_medio` são calculados sobre a AIH normal (`aih_normal`), porque a continuação fraciona uma internação longa em várias linhas — efeito relevante só nos capítulos V e VI."),
         ("gerado_em", datetime.now().isoformat(timespec="seconds")),
     ], columns=["chave", "valor"])
     loader.load_df("meta_dataset", meta)

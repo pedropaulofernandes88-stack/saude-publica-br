@@ -134,6 +134,10 @@ export interface Internacao {
   obitos: number;
   dias_permanencia: number;
   valor_total: number;
+  aih_continuacao: number | null;
+  aih_normal: number | null;
+  dias_permanencia_normal: number | null;
+  valor_normal: number | null;
   permanencia_media: number | null;
   mortalidade_pct: number | null;
   custo_medio: number | null;
@@ -154,6 +158,10 @@ export interface InternacaoAgravo {
   obitos: number;
   dias_permanencia: number;
   valor_total: number;
+  aih_continuacao: number | null;
+  aih_normal: number | null;
+  dias_permanencia_normal: number | null;
+  valor_normal: number | null;
   permanencia_media: number | null;
   mortalidade_pct: number | null;
   custo_medio: number | null;
@@ -173,6 +181,10 @@ export interface InternacaoHospital {
   obitos: number;
   dias_permanencia: number;
   valor_total: number;
+  aih_continuacao: number | null;
+  aih_normal: number | null;
+  dias_permanencia_normal: number | null;
+  valor_normal: number | null;
   permanencia_media: number | null;
   mortalidade_pct: number | null;
   custo_medio: number | null;
@@ -389,11 +401,13 @@ export interface IcsapPares {
   diferenca_pp: number;
   internacoes_acima_pares: number;
   internacoes_acima_p25: number;
-  custo_associado_reais: number;
-  leitos_dia_associados: number;
-  leitos_equivalentes_ano: number;
-  custo_medio_icsap_ref: number;
-  permanencia_media_icsap_ref: number;
+  // Derivados do custo/permanência por internação: nulos enquanto o SIH não estiver
+  // reprocessado com separação por tipo de AIH (ver §10 da metodologia).
+  custo_associado_reais: number | null;
+  leitos_dia_associados: number | null;
+  leitos_equivalentes_ano: number | null;
+  custo_medio_icsap_ref: number | null;
+  permanencia_media_icsap_ref: number | null;
   amostra_pequena: boolean;
 }
 
