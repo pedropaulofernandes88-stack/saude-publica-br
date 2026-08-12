@@ -185,11 +185,15 @@ def internacoes(
     as_df: bool = False,
 ):
     """Internações SUS (SIH/AIH) por município: volume, permanência média,
-    mortalidade intra-hospitalar e custo médio. capitulo: I–XXII ou TOTAL."""
+    mortalidade intra-hospitalar e custo médio. capitulo: I–XXII ou TOTAL.
+
+    AIH != internacao != paciente: `internacoes` conta AIHs APROVADAS (producao), incluindo a AIH de continuacao emitida quando a internacao se prolonga. `permanencia_media` e `custo_medio` sao por EPISODIO, calculados sobre `aih_normal` (= internacoes - aih_continuacao). Nos capitulos V (transtornos mentais, 25% de continuacao) e VI (sistema nervoso, 10%) os dois numeros divergem muito; nos outros, quase nada.
+    """
     params = {
         "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,capitulo_cid,"
-                  "internacoes,obitos,dias_permanencia,valor_total,permanencia_media,"
-                  "mortalidade_pct,custo_medio,internacoes_100k,populacao",
+                  "internacoes,obitos,dias_permanencia,valor_total,"
+                  "aih_continuacao,aih_normal,dias_permanencia_normal,valor_normal,"
+                  "permanencia_media,mortalidade_pct,custo_medio,internacoes_100k,populacao",
         "ano": f"eq.{ano}",
         "capitulo_cid": f"eq.{capitulo}",
         "order": "municipio_cod",
