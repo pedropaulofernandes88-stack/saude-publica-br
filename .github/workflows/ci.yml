@@ -81,10 +81,15 @@ jobs:
           cache: pip
           cache-dependency-path: requirements*.txt
 
+      # requirements-test.txt, não requirements.txt: a suíte não importa dbt,
+      # prefect, streamlit nem pysus, e arrastá-los custou uma quebra real --
+      # dbt-core puxou um beta sem wheel (dbt-core-experimental-parser 2.0.0b1)
+      # cuja metadata não compila, derrubando os testes em 3.11 por um motivo
+      # sem relação com o código testado. São 68 pacotes em vez de 195.
       - name: Instalar dependências
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
+          pip install -r requirements-test.txt
 
       # Fora daqui só o que exige a app FastAPI (fastapi, redis): tests/api/ e
       # tests/test_api_anomalias.py rodam no api-ci.yml, com as deps de api/.

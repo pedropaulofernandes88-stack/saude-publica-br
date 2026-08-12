@@ -8,8 +8,7 @@ from __future__ import annotations
 import hashlib
 import os
 from datetime import datetime, timedelta, timezone
-from typing import Optional
-from uuid import UUID, uuid4
+from uuid import UUID
 
 from asyncpg import Connection
 from fastapi import APIRouter, Depends, HTTPException, Request, status
@@ -19,7 +18,6 @@ from api.middleware.auth import (
     criar_access_token,
     criar_refresh_token_raw,
     get_current_user,
-    set_pg_user_id,
 )
 from api.models.user import (
     AlterarSenhaRequest,

@@ -8,7 +8,6 @@ nem sempre são completos para todos os municípios/períodos).
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Annotated, Any
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 

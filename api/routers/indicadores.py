@@ -16,7 +16,6 @@ from typing import Annotated, Literal
 import asyncpg
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from api.cache import TTL_ANOMALIAS, TTL_COMPLEXIDADE, TTL_INDICADORES
 from api.database import fetch_paginated, get_db
 from api.schemas import (
     AcessoCoberturaItem,

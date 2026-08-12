@@ -1,0 +1,45 @@
+# ── Dependencias para RODAR A SUITE (tests/, menos tests/api) ────────────────
+# Instalar com:  pip install -r requirements-test.txt
+#
+# POR QUE ESTE ARQUIVO EXISTE
+# O CI instalava o requirements.txt inteiro para rodar os testes. Isso arrastava
+# dbt, prefect, streamlit e pysus -- nada disso e importado pela suite -- e a
+# fragilidade cobrou: `dbt-core` puxou `dbt-core-experimental-parser 2.0.0b1`,
+# um beta publicado sem wheel cuja metadata nao compila, e o job quebrou em
+# Python 3.11 por um motivo sem nenhuma relacao com o codigo testado.
+#
+# A lista abaixo saiu de varredura por AST dos imports de tests/, validation/,
+# ingestion/, ml/ e dos scripts que os testes importam. Ficaram de fora os
+# imports LAZY (psycopg2 em validation/loader.py, datasus_dbc e dbfread em
+# pipeline_sih_hospitalar.py), que so acontecem dentro de funcoes que a suite
+# nao chama, e o prophet, cujos testes ja se marcam como skip quando falta.
+#
+# O QUE SE PERDE: o CI deixa de provar que requirements.txt instala. Esse teste
+# tinha valor -- foi ele que revelou o conflito loguru x pysus -- mas ele estava
+# preso ao job errado, derrubando os testes por causa da arvore de deploy.
+#
+# Versoes acompanham requirements.txt de proposito. O teto de loguru vem de la
+# (pysus fixa <0.7.0): se a suite rodasse em 0.7 e a producao em 0.6, um teste
+# poderia passar usando API que nao existe onde o codigo roda.
+
+pandas>=2.1.0
+numpy>=1.26.0
+pyarrow>=14.0.0
+psycopg[binary]>=3.1.0
+asyncpg>=0.29.0
+great-expectations>=0.18.0
+loguru>=0.6.0,<0.7.0
+requests>=2.28
+tenacity>=8.2.0
+click>=8.1.0
+httpx>=0.26.0
+
+# Ferramentas
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+ruff==0.8.4
+
+# Import do servidor MCP conferido pelo CI (teto <2: a 2.0.0 removeu
+# mcp.server.fastmcp).
+mcp>=1.2,<2

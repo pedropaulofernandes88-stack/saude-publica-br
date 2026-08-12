@@ -14,8 +14,7 @@ from typing import Annotated, Literal
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from api.cache import TTL_MAPA, TTL_PRODUCAO, cached
-from api.database import fetch_paginated, get_db, records_to_list
+from api.database import fetch_paginated, get_db
 from api.schemas import (
     MapaMunicipioFeature,
     MapaResponse,

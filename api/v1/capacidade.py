@@ -86,7 +86,7 @@ async def listar_estabelecimentos(
             "SELECT max(competencia) FROM marts.capacidade_estabelecimentos"
         ) or "2024-03"
 
-    filtros = [f"competencia = $1"]
+    filtros = ["competencia = $1"]
     params: list[object] = [competencia]
     idx = 2
 

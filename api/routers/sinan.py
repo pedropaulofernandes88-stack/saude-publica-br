@@ -23,7 +23,6 @@ from typing import Annotated
 import asyncpg
 from fastapi import APIRouter, Depends, Query
 
-from api.cache import TTL_EPI
 from api.database import fetch_paginated, get_db
 from api.schemas import (
     DoencasNotificaveisItem,

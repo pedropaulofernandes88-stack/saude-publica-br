@@ -7,7 +7,7 @@ from __future__ import annotations
 
 import json
 from typing import List, Optional
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from asyncpg import Connection
 from fastapi import APIRouter, Depends, HTTPException, Query, status
@@ -20,7 +20,6 @@ from api.models.user import (
     DashboardResponse,
     UserPublic,
     WidgetCreate,
-    WidgetType,
 )
 
 router = APIRouter(prefix="/dashboards", tags=["Dashboards"])

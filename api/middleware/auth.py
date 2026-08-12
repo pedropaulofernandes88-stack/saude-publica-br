@@ -6,7 +6,6 @@ JWT validation + FastAPI dependencies + PostgreSQL RLS integration.
 from __future__ import annotations
 
 import os
-from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
 
@@ -31,7 +30,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login", auto_error=False)
 
 def criar_access_token(user_id: UUID, role: UserRole, email: str) -> str:
     """Gera JWT de acesso com exp = agora + ACCESS_TOKEN_EXP minutos."""
-    from datetime import timedelta
     import time
 
     now = int(time.time())
