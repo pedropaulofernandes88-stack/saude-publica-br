@@ -19,8 +19,10 @@ on:
     paths:
       - "api/**"
       - "frontend/**"
-      - "ml/**"
       - ".github/workflows/deploy.yml"
+      # ml/** NAO entra: e biblioteca consumida pela API, nao artefato de deploy.
+      # Mexer no detector de anomalias nao e motivo para publicar no Railway e no
+      # Vercel. Quem cobre mudanca em ml/ e o api-ci.yml, que roda os testes.
   workflow_dispatch:   # permite trigger manual no GitHub
 
 jobs:
