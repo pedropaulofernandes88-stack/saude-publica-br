@@ -48,6 +48,8 @@ import duckdb
 import pandas as pd
 import requests
 
+from _supabase_key import chave_escrita
+
 ROOT = Path(__file__).resolve().parents[1]
 RAW_DIR = ROOT / "data" / "raw" / "SIM"
 MARTS_DIR = ROOT / "data" / "marts"
@@ -457,9 +459,9 @@ def main() -> None:
         return
 
     url = env.get("SUPABASE_URL")
-    key = env.get("SUPABASE_ANON_KEY")
-    if not url or not key:
-        sys.exit("Defina SUPABASE_URL e SUPABASE_ANON_KEY no .env")
+    key = chave_escrita(env)
+    if not url:
+        sys.exit("Defina SUPABASE_URL no .env")
 
     loader = SupabaseLoader(url, key)
 

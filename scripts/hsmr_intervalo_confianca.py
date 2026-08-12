@@ -55,6 +55,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
 from scipy.stats import gamma as gamma_dist
 from scipy.stats import poisson as poisson_dist
 
@@ -281,7 +283,7 @@ def main() -> None:
     if args.no_upload:
         return
     env = load_env()
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
     recs = df.astype(object).where(pd.notna(df), None).to_dict("records")

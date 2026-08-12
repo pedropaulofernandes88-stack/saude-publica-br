@@ -32,6 +32,8 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _supabase_key import chave_escrita
+
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
 MARTS_DIR = ROOT / "data" / "marts"
@@ -110,7 +112,7 @@ def main() -> None:
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
     out.to_parquet(MARTS_DIR / "dim_ivs.parquet", compression="zstd", index=False)
 
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}",
          "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}

@@ -44,6 +44,8 @@ import duckdb
 import numpy as np
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
 from scipy.stats import gamma as gamma_dist
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -756,7 +758,7 @@ def main() -> None:
     if args.no_upload:
         return
 
-    url, key = env.get("SUPABASE_URL"), env.get("SUPABASE_ANON_KEY")
+    url, key = env.get("SUPABASE_URL"), chave_escrita(env)
     if not url or not key:
         sys.exit("Defina SUPABASE_URL e SUPABASE_ANON_KEY no .env")
     loader = SupabaseLoader(url, key)

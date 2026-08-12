@@ -42,6 +42,8 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _supabase_key import chave_escrita
+
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw" / "SINAN"
 REFS = ROOT / "data" / "refs"
@@ -260,7 +262,7 @@ def main() -> None:
     if args.no_upload:
         return
 
-    url, key = env.get("SUPABASE_URL"), env.get("SUPABASE_ANON_KEY")
+    url, key = env.get("SUPABASE_URL"), chave_escrita(env)
     if not url or not key:
         sys.exit("Defina SUPABASE_URL e SUPABASE_ANON_KEY no .env")
     loader = SupabaseLoader(url, key)

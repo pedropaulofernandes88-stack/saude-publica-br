@@ -37,6 +37,8 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _supabase_key import chave_escrita
+
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
 MARTS_DIR = ROOT / "data" / "marts"
@@ -240,7 +242,7 @@ def main():
     if args.no_upload:
         return
 
-    ld = Loader(env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"])
+    ld = Loader(env["SUPABASE_URL"], chave_escrita(env))
     ld.load("mart_natalidade_municipio", nat)
     ld.load("mart_mortalidade_infantil_uf", tmi)
     meta = pd.DataFrame([
