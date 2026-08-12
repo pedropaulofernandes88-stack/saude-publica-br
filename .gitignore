@@ -13,6 +13,10 @@ build/
 data/raw/
 data/parquet/
 data/logs/
+# marts sao SAIDA regeneravel dos pipelines; a distribuicao canonica e
+# o Storage do Supabase (Parquet + SHA-256 na pagina Dados & API).
+# Para reconstruir localmente: scripts/_baixar_mart_completo.py <tabela>
+data/marts/
 *.dbc
 *.dbc.gz
 
