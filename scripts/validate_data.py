@@ -16,6 +16,12 @@ import sys
 
 import requests
 
+# O console do Windows usa cp1252: sem isto, o primeiro '≥' de um nome de checagem
+# derruba a validação inteira com UnicodeEncodeError — e o CI passa a falhar por
+# codificação, não por dado errado.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 URL = os.environ.get("SUPABASE_URL", "https://zekjhmxjamatlxpkykde.supabase.co").rstrip("/")
 KEY = os.environ.get(
     "SUPABASE_ANON_KEY",
