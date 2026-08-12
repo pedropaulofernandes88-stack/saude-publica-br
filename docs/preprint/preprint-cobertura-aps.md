@@ -213,13 +213,23 @@ efeito de implantação recente de equipes.
 
 O ICSAP, por depender do SIH/SUS, não captura internações da rede privada —
 uma limitação declarada na Seção 5, mas até então não testada. Trouxemos o
-percentual de beneficiários de plano de saúde médico-hospitalar por município
-(ANS, Dados Abertos, competência de dezembro de 2024, sem autenticação) e
-testamos se ele explica parte da variação do ICSAP: correlação bruta, parcial
-(controlando porte e vulnerabilidade) e — o teste decisivo — dentro de cada
-quartil de porte (mesmo desenho da Seção 2.4), já que uma correlação parcial
-por regressão linear sobre postos pode não remover completamente um efeito de
-porte não-linear.
+número de **vínculos ativos a plano de saúde médico-hospitalar por 100
+habitantes** por município (ANS, Dados Abertos, competência de dezembro de
+2024, sem autenticação) e testamos se ele explica parte da variação do ICSAP:
+correlação bruta, parcial (controlando porte e vulnerabilidade) e — o teste
+decisivo — dentro de cada quartil de porte (mesmo desenho da Seção 2.4), já
+que uma correlação parcial por regressão linear sobre postos pode não remover
+completamente um efeito de porte não-linear.
+
+A unidade importa e é declarada aqui em vez de assumida: o SIB/ANS registra
+*vínculos* (beneficiário × produto × operadora), não pessoas únicas, e
+localiza cada registro pelo **endereço do contrato**, não pela residência
+[Saldanha, cap. ANS]. A razão vínculos/população não é, portanto, uma
+proporção de pessoas cobertas e pode ultrapassar 100 — ocorre em 1 dos 22.284
+município-ano da série (Belém/AL, 2021: 115,9 vínculos/100 hab. para 4.226
+habitantes). Como os testes desta seção são de posto (Spearman), a distorção
+só importaria se reordenasse municípios, e não apenas inflasse valores;
+verificamos isso na análise de sensibilidade da Seção 3.7 em vez de supor.
 
 ### 2.7 Teste da influência da oferta hospitalar sobre o desfecho
 
@@ -356,20 +366,25 @@ mensurável entre densidade de ESF e %ICSAP, nem contemporânea nem defasada em
 
 ### 3.7 A limitação de saúde suplementar é real, mas concentrada nos grandes municípios
 
-A cobertura de saúde suplementar mediana é baixa e quase invariante nos
-municípios menores (4,5% e 4,1% nos dois primeiros quartis de porte) e alta e
-heterogênea nos maiores (mediana 31,9% no quartil superior). Essa diferença de
-variância já antecipa onde um efeito, se existir, poderia aparecer.
+A densidade mediana de vínculos a plano é baixa e quase invariante nos
+municípios menores (4,5 e 4,1 por 100 hab. nos dois primeiros quartis de
+porte) e alta e heterogênea nos maiores (mediana 31,9 no quartil superior).
+Essa diferença de variância já antecipa onde um efeito, se existir, poderia
+aparecer.
 
-| Quartil de porte | n | ρ (%saúde suplementar × %ICSAP, dentro do porte) |
-|---|--:|--:|
-| Q1 (menores) | 1.393 | +0,05 |
-| Q2 | 1.392 | −0,00 |
-| Q3 | 1.392 | −0,08 |
-| Q4 (maiores) | 1.393 | **−0,29** |
+| Quartil de porte | n | ρ (vínculos/100 hab. × %ICSAP, dentro do porte) | ρ excluindo suspeitos |
+|---|--:|--:|--:|
+| Q1 (menores) | 1.393 | +0,05 | +0,06 |
+| Q2 | 1.392 | −0,00 | +0,01 |
+| Q3 | 1.392 | −0,08 | −0,08 |
+| Q4 (maiores) | 1.393 | **−0,29** | **−0,29** |
 
-**Tabela 5.** Correlação entre %saúde suplementar e %ICSAP, dentro de cada
-quartil de porte populacional, 2024.
+**Tabela 5.** Correlação entre densidade de vínculos a plano e %ICSAP, dentro
+de cada quartil de porte populacional, 2024. A última coluna repete o teste
+excluindo os municípios em que o indicador da ANS é suspeito de artefato de
+endereço de contrato (razão > 100, e municípios com menos de 20 mil habitantes
+e mais de 40 vínculos/100 hab.; 33 exclusões, 0,6% da amostra). O gradiente é
+insensível à exclusão.
 
 O padrão não é ruído aleatório trocando de sinal — é um **gradiente
 monotônico por porte**, praticamente nulo nos municípios pequenos e moderado,
@@ -537,5 +552,7 @@ setores público, privado ou sem fins lucrativos.
 4. Brasil, Ministério da Saúde, Secretaria de Atenção Primária à Saúde. Relatório
    de Cobertura da Atenção Primária. relatorioaps.saude.gov.br.
 5. IBGE. Censo Demográfico 2022. SIDRA.
-6. Saúde em Dado. mart_cobertura_aps_municipio, mart_cobertura_icsap_municipio,
+6. Saldanha R.F. Sistemas de Informação em Saúde no Brasil.
+   rfsaldanha.github.io/sis (cap. ANS, cap. SIH).
+7. Saúde em Dado. mart_cobertura_aps_municipio, mart_cobertura_icsap_municipio,
    mart_equidade_aps_municipio. saudeemdado.com/atencao-basica.
