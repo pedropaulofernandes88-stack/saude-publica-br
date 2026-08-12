@@ -48,10 +48,10 @@ pytest-cache-files-*/
 .claude/
 *.pyc
 
-# Site Next.js
-site/node_modules/
-site/.next/
+# Apps Next.js (site/ é o publicado; frontend/ é o legado)
+node_modules/
+.next/
 site/out/
-site/tsconfig.tsbuildinfo
+tsconfig.tsbuildinfo
 scripts/supabase_keepalive.log
 .claude/launch.json

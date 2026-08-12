@@ -1,13 +1,36 @@
+# =============================================================================
+# API CI — lint, tipos e testes da API FastAPI (api/)
+# =============================================================================
+# Os testes vivem em tests/api/ NA RAIZ, não em api/tests/. Rodar com
+# `working-directory: api` apontava para um diretório inexistente; o passo nunca
+# executou teste nenhum. Aqui o pytest roda da raiz, que é onde tests/conftest.py
+# está — e é dele que vêm os mocks de asyncpg e Redis.
+#
+# NÃO há serviço Postgres: tests/api/ mocka o pool e o Redis por fixture, então
+# nenhum teste toca banco. O passo antigo subia postgres:15-alpine e aplicava as
+# migrations sem ON_ERROR_STOP, o que escondia falhas — várias migrations usam
+# papéis (anon, authenticated, service_role) e objetos (storage.objects) que só
+# existem no Supabase e quebram no Postgres puro. Um check de migrations é útil,
+# mas precisa do andaime do Supabase; não cabe carona neste workflow.
+# =============================================================================
 name: API CI
 
 on:
   push:
     paths:
       - "api/**"
+      - "tests/api/**"
+      - "tests/test_api_anomalias.py"
+      - "tests/conftest.py"
+      - "ml/**"
       - ".github/workflows/api-ci.yml"
   pull_request:
     paths:
       - "api/**"
+      - "tests/api/**"
+      - "tests/test_api_anomalias.py"
+      - "tests/conftest.py"
+      - "ml/**"
       - ".github/workflows/api-ci.yml"
 
 jobs:
@@ -19,23 +42,12 @@ jobs:
       matrix:
         python-version: ["3.11", "3.12"]
 
-    services:
-      postgres:
-        image: postgres:15-alpine
-        env:
-          POSTGRES_USER: saude
-          POSTGRES_PASSWORD: saude
-          POSTGRES_DB: saude_publica
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U saude"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     env:
-      DATABASE_URL: postgresql+asyncpg://saude:saude@localhost:5432/saude_publica
+      # A API lê estas variáveis na importação; os testes não abrem conexão.
+      DATABASE_URL: "postgresql+asyncpg://mock:mock@localhost:5432/mock"
+      REDIS_URL: "redis://localhost:6379/0"
+      API_SECRET_KEY: "test-secret-key-32-chars-minimum!!"
+      JWT_SECRET_KEY: "test-jwt-key-32-chars-minimum!!!!"
       PYTHONDONTWRITEBYTECODE: "1"
       PYTHONUNBUFFERED: "1"
 
@@ -47,13 +59,15 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           cache: pip
-          cache-dependency-path: api/requirements*.txt
+          cache-dependency-path: |
+            requirements.txt
+            api/requirements*.txt
 
+      # requirements.txt da raiz traz pandas e httpx, que tests/conftest.py importa.
       - name: Install dependencies
-        working-directory: api
         run: |
           pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
+          pip install -r requirements.txt -r api/requirements.txt -r api/requirements-dev.txt
 
       - name: Ruff lint
         working-directory: api
@@ -67,30 +81,21 @@ jobs:
         working-directory: api
         run: mypy . --ignore-missing-imports --no-error-summary
 
-      - name: Apply SQL migrations
-        env:
-          PGPASSWORD: saude
-        run: |
-          for f in $(ls migrations/V*.sql | sort); do
-            echo "Applying $f …"
-            psql -h localhost -U saude -d saude_publica -f "$f"
-          done
-
+      # test_api_anomalias.py importa a app FastAPI, então só roda com as deps
+      # de api/ instaladas — por isso vive aqui e não no ci.yml.
       - name: Pytest
-        working-directory: api
         run: |
-          pytest tests/ \
+          pytest tests/api/ tests/test_api_anomalias.py \
             -v \
             --tb=short \
-            --cov=. \
+            --cov=api \
             --cov-report=term-missing \
-            --cov-report=xml:coverage.xml \
-            -x
+            --cov-report=xml:coverage.xml
 
       - name: Upload coverage
         if: matrix.python-version == '3.12'
         uses: codecov/codecov-action@v4
         with:
-          files: api/coverage.xml
+          files: coverage.xml
           flags: api
           fail_ci_if_error: false
