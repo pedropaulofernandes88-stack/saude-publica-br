@@ -34,14 +34,13 @@ import tempfile
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from datetime import datetime
 from ftplib import FTP
 from pathlib import Path
 
 import pandas as pd
 import requests
 
-from _metricas_aih import (CID10_CAPITULOS, aplica_metricas_por_episodio,
+from _metricas_aih import (aplica_metricas_por_episodio,
                            capitulo as _capitulo)
 
 from _varredura import varrer_orfaos

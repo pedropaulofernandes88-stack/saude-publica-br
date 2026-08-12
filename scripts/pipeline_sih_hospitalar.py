@@ -70,7 +70,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from _metricas_aih import CID10_CAPITULOS, capitulo as _capitulo
+from _metricas_aih import capitulo as _capitulo
 
 from _varredura import varrer_orfaos
 from _supabase_key import chave_escrita
@@ -303,7 +303,6 @@ def main() -> None:
         for k in parts:
             parts[k].append(r[k])
 
-    municipios = pd.read_parquet(REFS / "municipios.parquet")
     # precisamos de município/UF do hospital: reaproveita mart_internacoes_hospital já publicado
     hosp_ref_path = MARTS / "mart_internacoes_hospital.parquet"
     hosp_ref = (pd.read_parquet(hosp_ref_path)[["cnes", "municipio_cod", "municipio_nome", "uf_sigla"]]

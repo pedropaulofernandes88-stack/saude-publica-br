@@ -32,7 +32,6 @@ from __future__ import annotations
 
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -70,7 +69,7 @@ def main() -> None:
     contagem = painel.groupby("municipio_cod")["ano"].nunique()
     balanceados = contagem[contagem == len(ANOS)].index
     painel_bal = painel[painel.municipio_cod.isin(balanceados)].copy()
-    print(f"=== Painel 2021-2024 ===")
+    print("=== Painel 2021-2024 ===")
     print(f"municipios com os 4 anos completos: {len(balanceados):,} de {painel.municipio_cod.nunique():,} "
           f"({len(balanceados)/painel.municipio_cod.nunique()*100:.1f}%)")
     print(f"observacoes municipio-ano no painel balanceado: {len(painel_bal):,}")
@@ -166,8 +165,8 @@ def main() -> None:
         achados_corretos[f"diferenca {ano_t-1}->{ano_t}"] = r_t
     maior = max(abs(v) for v in achados_corretos.values())
     print(f"  ATENCAO 1 (FE municipal simples, rho={r:+.3f}) era confundida por tendencia nacional comum:")
-    print(f"    esf_10k medio subiu 3.67->4.05 e %ICSAP medio subiu 17.9%->21.2% entre 2021-2024,")
-    print(f"    ambos por razoes nao-relacionadas a atencao primaria (provavel retomada pos-pandemia).")
+    print("    esf_10k medio subiu 3.67->4.05 e %ICSAP medio subiu 17.9%->21.2% entre 2021-2024,")
+    print("    ambos por razoes nao-relacionadas a atencao primaria (provavel retomada pos-pandemia).")
     print(f"    Ao remover tambem o efeito de ano (FE duplo), rho cai para {r2:+.3f}.")
     print(f"  maior |rho| entre os desenhos corretos (FE duplo, diferencas por ano, defasagem): {maior:.3f}")
     if maior < 0.10:

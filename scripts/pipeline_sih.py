@@ -65,7 +65,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from _metricas_aih import (CID10_CAPITULOS, MEDIDAS, aplica_metricas_por_episodio,
+from _metricas_aih import (MEDIDAS, aplica_metricas_por_episodio,
                            capitulo as _capitulo)
 
 from _varredura import varrer_orfaos

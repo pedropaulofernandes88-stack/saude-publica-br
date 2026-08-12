@@ -37,7 +37,6 @@ from collections import defaultdict
 from ftplib import FTP
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import requests
 
@@ -169,13 +168,13 @@ def main() -> None:
     d["tem_uti"] = d.leitos_uti > 0
     d["hsmr"] = pd.to_numeric(d.hsmr, errors="coerce")
 
-    print(f"\n=== 1. HIPOTESE (a) — HSMR sobe com o PORTE (leitos)? ===")
+    print("\n=== 1. HIPOTESE (a) — HSMR sobe com o PORTE (leitos)? ===")
     r1, n1 = spearman(d["leitos_total"], d["hsmr"])
     print(f"  leitos totais x HSMR: rho = {r1:+.3f}  (n={n1:,})")
     r2, _ = spearman(d["internacoes"], d["hsmr"])
     print(f"  internacoes x HSMR  : rho = {r2:+.3f}  (proxy antigo, para comparar)")
 
-    print(f"\n=== 2. HIPOTESE (b) — ter UTI eleva o HSMR? ===")
+    print("\n=== 2. HIPOTESE (b) — ter UTI eleva o HSMR? ===")
     com_uti, sem_uti = d[d.tem_uti], d[~d.tem_uti]
     print(f"  hospitais COM UTI: {len(com_uti):,} | SEM UTI: {len(sem_uti):,}")
     print(f"  HSMR mediano -- COM UTI: {com_uti.hsmr.median():.3f} | "
@@ -183,7 +182,7 @@ def main() -> None:
     r3, n3 = spearman(d["leitos_uti"], d["hsmr"])
     print(f"  leitos de UTI x HSMR: rho = {r3:+.3f}  (n={n3:,})")
 
-    print(f"\n=== 3. O teste decisivo: UTI importa DENTRO do mesmo porte? ===")
+    print("\n=== 3. O teste decisivo: UTI importa DENTRO do mesmo porte? ===")
     print("  (se ter UTI eleva o HSMR mesmo entre hospitais de tamanho parecido,")
     print("   o sinal e complexidade do caso, nao porte nem qualidade)")
     d["porte_quartil"] = pd.qcut(d["leitos_total"], 4,
@@ -199,7 +198,7 @@ def main() -> None:
               f"sem UTI={su.hsmr.median():.3f} (n={len(su):4,})  "
               f"dif={cu.hsmr.median()-su.hsmr.median():+.3f}")
 
-    print(f"\n=== 4. A flag 'acima do esperado' se concentra onde? ===")
+    print("\n=== 4. A flag 'acima do esperado' se concentra onde? ===")
     sig = d[d.significancia.isin(["acima", "abaixo", "esperado"])]
     if len(sig):
         for _, g in sig.groupby("porte_quartil", observed=True):
@@ -215,14 +214,14 @@ def main() -> None:
         if len(cu) >= 10 and len(su) >= 10:
             dif_medias.append(cu.hsmr.median() - su.hsmr.median())
     if dif_medias and all(x > 0 for x in dif_medias):
-        print(f"  => ter UTI eleva o HSMR em TODOS os quartis de porte testados")
+        print("  => ter UTI eleva o HSMR em TODOS os quartis de porte testados")
         print(f"     (diferencas: {', '.join(f'{x:+.3f}' for x in dif_medias)}).")
         print("     Isso e case-mix nao capturado pelo ajuste por capitulo CID: o ajuste")
         print("     enxerga diagnostico, nao gravidade. Hospital com UTI recebe o caso")
         print("     grave do MESMO capitulo. Reforca a ressalva ja publicada de que HSMR")
         print("     alto nao deve ser lido como assistencia pior.")
     else:
-        print(f"  => o efeito da UTI nao e consistente entre os quartis de porte")
+        print("  => o efeito da UTI nao e consistente entre os quartis de porte")
         print(f"     (diferencas: {[f'{x:+.3f}' for x in dif_medias]}) — nao generalizar.")
 
     out = d[["cnes", "municipio_nome", "uf_sigla", "internacoes", "obitos_observados",
