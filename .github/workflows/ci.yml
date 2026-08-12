@@ -15,9 +15,13 @@
 # =============================================================================
 name: CI
 
+# Dispara em QUALQUER branch, não só em main. O repositório trabalha direto na
+# main e nunca abriu um pull request; um CI preso ao gatilho `pull_request`
+# simplesmente não rodaria — que é o mesmo defeito dos workflows que este aqui
+# veio substituir. Em branch de trabalho ele roda a cada push, e continua
+# valendo em PR se o fluxo mudar.
 on:
   push:
-    branches: [main]
     paths:
       - "site/**"
       - "scripts/**"
@@ -39,6 +43,9 @@ on:
       - "requirements*.txt"
       - "pytest.ini"
       - ".github/workflows/ci.yml"
+  # Permite rodar sob demanda pela aba Actions, sem precisar de commit.
+  # Só aparece na interface depois que o arquivo chega na branch padrão.
+  workflow_dispatch:
 
 concurrency:
   group: ci-${{ github.ref }}
