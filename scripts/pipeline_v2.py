@@ -33,6 +33,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -53,6 +54,24 @@ RAW = ROOT / "data" / "raw" / "SIM"
 RAW_DBC = RAW / "dbc"
 REFS = ROOT / "data" / "refs"
 MARTS_DIR = ROOT / "data" / "marts"
+
+
+def versao_dataset() -> str:
+    """Versão publicada em meta_dataset, lida do CHANGELOG.
+
+    Estava fixa em "2.0.0" enquanto o banco já servia 3.1.0 e o CHANGELOG
+    anunciava 3.2.0 — rodar o pipeline REGREDIRIA o campo em duas versões, e
+    quem consome a API não teria como saber qual definição de AIH recebeu.
+    O CHANGELOG é a fonte única; aqui só se lê a primeira entrada dele.
+    """
+    try:
+        for linha in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").splitlines():
+            m = re.match(r"^##\s*\[(\d+\.\d+\.\d+)\]", linha)
+            if m:
+                return m.group(1)
+    except OSError:
+        pass
+    return "0.0.0"  # sem CHANGELOG legível: melhor um valor obviamente inválido
 
 S3_SIM = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SIM"
 FTP_HOST = "ftp.datasus.gov.br"
@@ -790,7 +809,7 @@ def main() -> None:
         ("licenca", "Dados públicos — DATASUS/MS e IBGE; uso livre com citação das fontes"),
         ("gerado_em", datetime.now().isoformat(timespec="seconds")),
         ("pipeline", "scripts/pipeline_v2.py"),
-        ("versao_dataset", "2.0.0"),
+        ("versao_dataset", versao_dataset()),
     ], columns=["chave", "valor"])
     loader.load_df("meta_dataset", meta)
     print("[done] pipeline v2 concluído.")
