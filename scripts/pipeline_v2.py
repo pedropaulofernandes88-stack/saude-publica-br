@@ -17,8 +17,9 @@ Metodologia (documentada em saudeemdado.com/metodologia):
   - IC95% da taxa bruta: método gamma (Poisson exato)
   - População por faixa nos anos ≠2022: estrutura do Censo 2022 escalada pelo
     total municipal do ano (aproximação documentada)
-  - Excesso de mortalidade: esperado = média 2015–2019 do mesmo mês civil ×
-    (pop do ano / pop média 2015–2019), por UF e Brasil, a partir de 2020
+  - Excesso de mortalidade: esperado = tendência linear por mês civil ajustada a
+    2015–2019 (mínimos quadrados, 5 pontos) e projetada para o ano-alvo, por UF
+    e Brasil, a partir de 2020. Excesso = observado − esperado
   - Detalhe demográfico completo a partir de 2022; 2015–2021 em grão reduzido
     (totais e marginais) para caber no free tier
 
@@ -33,6 +34,7 @@ import argparse
 import json
 import math
 import os
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -44,13 +46,37 @@ import duckdb
 import numpy as np
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
 from scipy.stats import gamma as gamma_dist
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw" / "SIM"
 RAW_DBC = RAW / "dbc"
 REFS = ROOT / "data" / "refs"
 MARTS_DIR = ROOT / "data" / "marts"
+
+
+def versao_dataset() -> str:
+    """Versão publicada em meta_dataset, lida do CHANGELOG.
+
+    Estava fixa em "2.0.0" enquanto o banco já servia 3.1.0 e o CHANGELOG
+    anunciava 3.2.0 — rodar o pipeline REGREDIRIA o campo em duas versões, e
+    quem consome a API não teria como saber qual definição de AIH recebeu.
+    O CHANGELOG é a fonte única; aqui só se lê a primeira entrada dele.
+    """
+    try:
+        for linha in (ROOT / "CHANGELOG.md").read_text(encoding="utf-8").splitlines():
+            m = re.match(r"^##\s*\[(\d+\.\d+\.\d+)\]", linha)
+            if m:
+                return m.group(1)
+    except OSError:
+        pass
+    return "0.0.0"  # sem CHANGELOG legível: melhor um valor obviamente inválido
+
 
 S3_SIM = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SIM"
 FTP_HOST = "ftp.datasus.gov.br"
@@ -605,36 +631,48 @@ def build(con: duckdb.DuckDBPyConnection, anos: list[int]) -> None:
     con.execute(f"""
         CREATE OR REPLACE TABLE mart_excesso AS
         WITH serie AS (
+            -- 'ND' = obito sem UF de residencia identificada. Excesso "da UF
+            -- desconhecida" nao e uma serie interpretavel, e a tabela publicada
+            -- nunca o teve; sem este filtro o pipeline criaria uma 28a serie
+            -- espuria. Os obitos ND seguem contando no total do Brasil abaixo,
+            -- que agrega tudo -- eles existiram, so nao se sabe onde.
             SELECT uf_sigla, ano, mes, mes_competencia, obitos
             FROM mart_uf_mes
             WHERE capitulo_cid='TOTAL' AND sexo='TOTAL' AND faixa_etaria='TOTAL'
+              AND uf_sigla <> 'ND'
             UNION ALL
             SELECT 'BR', ano, mes, make_date(ano, mes, 1), sum(obitos)::INT
             FROM mart_uf_mes
             WHERE capitulo_cid='TOTAL' AND sexo='TOTAL' AND faixa_etaria='TOTAL'
             GROUP BY 2, 3
         ),
-        pop_uf AS (
-            SELECT COALESCE(m.uf_sigla,'ND') uf_sigla, p.ano, sum(p.populacao)::DOUBLE pop
-            FROM dim_populacao p JOIN dim_municipio m USING (municipio_cod)
-            GROUP BY 1, 2
-            UNION ALL
-            SELECT 'BR', ano, sum(populacao)::DOUBLE FROM dim_populacao GROUP BY 2
-        ),
-        base AS (
-            SELECT s.uf_sigla, s.mes, avg(s.obitos)::DOUBLE ob_base, avg(p.pop) pop_base
-            FROM serie s JOIN pop_uf p ON p.uf_sigla = s.uf_sigla AND p.ano = s.ano
+        -- Tendencia linear por MES CIVIL: regride os obitos daquele mes contra o
+        -- ano em {BASELINE[0]}-{BASELINE[1]} (minimos quadrados, 5 pontos) e projeta para o
+        -- ano-alvo. Captura crescimento populacional E envelhecimento, que elevam
+        -- o esperado ano a ano.
+        --
+        -- O metodo ANTERIOR era media do baseline x razao populacional. Ele
+        -- ignorava a tendencia secular e por isso superestimava o excesso nos
+        -- anos recentes: o "excesso persistente" de 2022-2023 era em boa parte
+        -- artefato disso. A troca foi anunciada no CHANGELOG 3.1.0 e esta descrita
+        -- em site/app/metodologia (secao 6), nos artigos e no preprint -- mas
+        -- nunca chegou a ESTE script, que continuou com a media. Quem rodasse o
+        -- pipeline reverteria silenciosamente os numeros publicados.
+        tend AS (
+            SELECT s.uf_sigla, s.mes,
+                   regr_intercept(s.obitos, s.ano) AS a,
+                   regr_slope(s.obitos, s.ano)     AS b
+            FROM serie s
             WHERE s.ano BETWEEN {BASELINE[0]} AND {BASELINE[1]}
             GROUP BY 1, 2
         )
         SELECT s.uf_sigla, s.ano, s.mes, s.mes_competencia,
                s.obitos,
-               round(b.ob_base * (p.pop / NULLIF(b.pop_base,0)), 1)              AS esperado,
-               round(s.obitos - b.ob_base * (p.pop / NULLIF(b.pop_base,0)), 1)   AS excesso,
-               round((s.obitos / NULLIF(b.ob_base * (p.pop / NULLIF(b.pop_base,0)),0) - 1) * 100, 2) AS pct_excesso
+               round(t.a + t.b * s.ano, 1)                                    AS esperado,
+               round(s.obitos - (t.a + t.b * s.ano), 1)                       AS excesso,
+               round((s.obitos / NULLIF(t.a + t.b * s.ano, 0) - 1) * 100, 2)  AS pct_excesso
         FROM serie s
-        JOIN base   b ON b.uf_sigla = s.uf_sigla AND b.mes = s.mes
-        JOIN pop_uf p ON p.uf_sigla = s.uf_sigla AND p.ano = s.ano
+        JOIN tend t ON t.uf_sigla = s.uf_sigla AND t.mes = s.mes
         WHERE s.ano >= 2020
     """)
 
@@ -756,7 +794,7 @@ def main() -> None:
     if args.no_upload:
         return
 
-    url, key = env.get("SUPABASE_URL"), env.get("SUPABASE_ANON_KEY")
+    url, key = env.get("SUPABASE_URL"), chave_escrita(env)
     if not url or not key:
         sys.exit("Defina SUPABASE_URL e SUPABASE_ANON_KEY no .env")
     loader = SupabaseLoader(url, key)
@@ -783,12 +821,14 @@ def main() -> None:
         ("exclusoes", "Óbitos fetais (TIPOBITO=1) excluídos de todos os marts"),
         ("padronizacao", "Taxa padronizada por idade: método direto, padrão Brasil Censo 2022, 9 faixas; idade ignorada redistribuída pro-rata"),
         ("ic95", "IC95% da taxa bruta: método gamma (Poisson exato)"),
-        ("excesso_baseline", f"Esperado = média {BASELINE[0]}–{BASELINE[1]} do mesmo mês × ajuste populacional"),
+        ("excesso_baseline", f"Esperado = tendência linear por mês civil ajustada a {BASELINE[0]}–{BASELINE[1]} "
+                             "(capta crescimento e envelhecimento), projetada para o ano-alvo. "
+                             "Excesso = observado − esperado."),
         ("nota_preliminar", "Dados do ano mais recente podem ser preliminares (sujeitos a revisão pelo MS)"),
         ("licenca", "Dados públicos — DATASUS/MS e IBGE; uso livre com citação das fontes"),
         ("gerado_em", datetime.now().isoformat(timespec="seconds")),
         ("pipeline", "scripts/pipeline_v2.py"),
-        ("versao_dataset", "2.0.0"),
+        ("versao_dataset", versao_dataset()),
     ], columns=["chave", "valor"])
     loader.load_df("meta_dataset", meta)
     print("[done] pipeline v2 concluído.")

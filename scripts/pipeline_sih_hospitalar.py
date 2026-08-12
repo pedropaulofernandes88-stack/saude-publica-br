@@ -40,6 +40,15 @@ Metodologia (ver docs/metodologia hospitalar):
   - Faixas etárias (9): <1, 1-4, 5-14, 15-29, 30-44, 45-59, 60-69, 70-79, 80+.
     IDADE só é válida quando COD_IDADE=4 (anos); demais códigos (dias/meses)
     são tratados como <1 ano.
+  - TIPO DE AIH: HSMR e LOS são calculados APENAS sobre a AIH normal (IDENT=1).
+    A AIH de continuação (IDENT=5) é emitida quando a internação se prolonga
+    além do período da AIH anterior — a mesma internação vira várias linhas, com
+    mortalidade quase nula (0,21% dos óbitos para 1,26% das linhas) e permanência
+    fracionada. Incluí-la dilui o estrato de case-mix e distorce a mediana de
+    permanência: no capítulo VI a permanência média cai de 10,98 para 6,21 dias
+    quando se restringe à AIH normal. `mart_demanda_mensal_hospital` continua
+    contando todas as AIHs aprovadas, porque ali a pergunta é de produção.
+    Ver https://rfsaldanha.github.io/sis/sih.html (cap. SIH).
 
 Checkpoint por UF (resumível). Uso:
   .venv311/Scripts/python scripts/pipeline_sih_hospitalar.py --ano 2024 --workers 6
@@ -50,6 +59,7 @@ import argparse
 import io
 import json
 import os
+import sys
 import tempfile
 import time
 from collections import defaultdict
@@ -60,6 +70,17 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _metricas_aih import capitulo as _capitulo
+
+from _varredura import varrer_orfaos
+from _supabase_key import chave_escrita
+
+# Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
+# unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
+# no meio do processamento. Forca UTF-8 na saida.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
 MARTS = ROOT / "data" / "marts"
@@ -69,14 +90,6 @@ FTP_DIR = "/dissemin/publicos/SIHSUS/200801_/Dados"
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
 
-CID10_CAPITULOS = [
-    ("I","A00","B99"),("II","C00","D48"),("III","D50","D89"),("IV","E00","E90"),
-    ("V","F00","F99"),("VI","G00","G99"),("VII","H00","H59"),("VIII","H60","H95"),
-    ("IX","I00","I99"),("X","J00","J99"),("XI","K00","K93"),("XII","L00","L99"),
-    ("XIII","M00","M99"),("XIV","N00","N99"),("XV","O00","O99"),("XVI","P00","P96"),
-    ("XVII","Q00","Q99"),("XVIII","R00","R99"),("XIX","S00","T98"),("XX","V01","Y98"),
-    ("XXI","Z00","Z99"),("XXII","U00","U99"),
-]
 
 # faixa etária: (label, idade_min_anos, idade_max_anos_inclusive)
 FAIXAS = [
@@ -92,13 +105,6 @@ LOS_BINS = [
     (7, "61+", 61, None),
 ]
 LOS_MID = [0.5, 2.5, 5.5, 11, 18, 26, 45, 75]  # ponto médio p/ mediana aproximada
-
-
-def _capitulo(cid3: str) -> str:
-    for cap, ini, fim in CID10_CAPITULOS:
-        if ini <= cid3 <= fim:
-            return cap
-    return "N/D"
 
 
 def _faixa_etaria(idade_raw, cod_idade) -> int:
@@ -183,17 +189,23 @@ def _process_file(uf: str, ano: int, mes: int):
             morte = 1 if str(rec.get("MORTE") or "0").strip() == "1" else 0
             faixa = _faixa_etaria(rec.get("IDADE"), rec.get("COD_IDADE"))
             cap = _capitulo(cid)
+            # AIH de continuação (IDENT=5): a mesma internação prolongada emite várias
+            # linhas. HSMR e LOS são métricas POR EPISÓDIO — contar as continuações
+            # infla o denominador com linhas de mortalidade quase nula e fraciona a
+            # permanência. A demanda mensal, que mede produção, segue com todas as AIHs.
+            cont = str(rec.get("IDENT") or "").strip() == "5"
 
-            # --- HSMR: nacional + por hospital ---
-            n = hsmr_nac[(faixa, cap)]; n[0] += 1; n[1] += morte
-            h = hsmr_hosp[(cnes, faixa, cap)]; h[0] += 1; h[1] += morte
+            if not cont:
+                # --- HSMR: nacional + por hospital ---
+                n = hsmr_nac[(faixa, cap)]; n[0] += 1; n[1] += morte
+                h = hsmr_hosp[(cnes, faixa, cap)]; h[0] += 1; h[1] += morte
 
-            # --- LOS: nacional + por hospital, por diagnóstico (CID-3) ---
-            b = _los_bin(max(dias, 0))
-            los_nac[cid][b] += 1
-            los_hosp[(cnes, cid)][b] += 1
+                # --- LOS: nacional + por hospital, por diagnóstico (CID-3) ---
+                b = _los_bin(max(dias, 0))
+                los_nac[cid][b] += 1
+                los_hosp[(cnes, cid)][b] += 1
 
-            # --- demanda mensal ---
+            # --- demanda mensal (produção: todas as AIHs aprovadas) ---
             ano_mes = f"{ano}-{mes:02d}"
             d = demanda[(cnes, ano_mes)]
             d[0] += 1; d[1] += morte; d[2] += val
@@ -207,7 +219,8 @@ def _process_file(uf: str, ano: int, mes: int):
 
 def _process_uf(uf: str, ano: int, workers: int):
     CKPT.mkdir(parents=True, exist_ok=True)
-    paths = {k: CKPT / f"{k}_{uf}_{ano}.parquet" for k in
+    # sufixo _v2: checkpoints antigos incluíam a AIH de continuação em HSMR/LOS
+    paths = {k: CKPT / f"{k}_{uf}_{ano}_v2.parquet" for k in
              ("hsmr_nac", "hsmr_hosp", "los_nac", "los_hosp", "demanda")}
     if all(p.exists() for p in paths.values()):
         return {k: pd.read_parquet(p) for k, p in paths.items()}
@@ -290,7 +303,6 @@ def main() -> None:
         for k in parts:
             parts[k].append(r[k])
 
-    municipios = pd.read_parquet(REFS / "municipios.parquet")
     # precisamos de município/UF do hospital: reaproveita mart_internacoes_hospital já publicado
     hosp_ref_path = MARTS / "mart_internacoes_hospital.parquet"
     hosp_ref = (pd.read_parquet(hosp_ref_path)[["cnes", "municipio_cod", "municipio_nome", "uf_sigla"]]
@@ -364,7 +376,7 @@ def main() -> None:
 
     if args.no_upload:
         return
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
 
@@ -384,6 +396,13 @@ def main() -> None:
     up("mart_hsmr_hospital", hsmr)
     up("mart_los_hospital", los)
     up("mart_demanda_mensal_hospital", demanda)
+    # Upsert nao remove o que saiu do calculo. E o mart_los_hospital foi onde o
+    # residuo apareceu: 1.829 pares hospital x CID que deixaram de alcancar o
+    # minimo de internacoes depois de excluir a AIH de continuacao.
+    varrer_orfaos(url, key, "mart_hsmr_hospital", hsmr,
+                  chaves=["cnes", "ano"], escopo={"ano": f"eq.{ano}"})
+    varrer_orfaos(url, key, "mart_los_hospital", los,
+                  chaves=["cnes", "cid3", "ano"], escopo={"ano": f"eq.{ano}"})
     print("[done] HSMR + LOS + demanda mensal concluído.", flush=True)
 
 

@@ -1,0 +1,22 @@
+# ── Dependências de desenvolvimento e CI (raiz) ──────────────────────────────
+# Instalar junto com requirements.txt:
+#   pip install -r requirements.txt -r requirements-dev.txt
+#
+# Este arquivo estava VAZIO, e por isso não havia como rodar a suíte da raiz sem
+# saber de cor que o pytest morava em api/requirements-dev.txt. As dependências
+# de execução dos testes (pandas, psycopg, great-expectations, httpx) já vêm do
+# requirements.txt — aqui ficam só as ferramentas.
+
+# Testes
+pytest==8.3.4
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+
+# Lint
+ruff==0.8.4
+
+# Dependencia do servidor MCP. Nao entra no requirements.txt porque nenhum
+# pipeline precisa dela — mas sem ela o passo do CI que confere se
+# saudeemdado_mcp ainda importa nao roda. O teto <2 acompanha o pyproject do
+# pacote: a mcp 2.0.0 removeu mcp.server.fastmcp.
+mcp>=1.2,<2

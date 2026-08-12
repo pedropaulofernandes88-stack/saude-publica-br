@@ -27,6 +27,7 @@ Uso:
 """
 from __future__ import annotations
 
+import sys
 import argparse
 import json
 import os
@@ -36,6 +37,11 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
@@ -157,7 +163,7 @@ def main() -> None:
 
     if args.no_upload:
         return
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
 

@@ -1,0 +1,150 @@
+# =============================================================================
+# CI — o código que está no ar: site/, scripts/, tests/, mcp_server/, clients/
+# =============================================================================
+# Este workflow não existia. api-ci.yml cobria api/ e frontend-ci.yml cobria
+# frontend/ — os dois legados — enquanto o que roda em produção (o site estático
+# de saudeemdado.com e os pipelines que alimentam o Supabase) não tinha nenhuma
+# verificação automática. Os testes da raiz, incluindo os 112 de tests/pipelines,
+# nunca eram executados em lugar nenhum.
+#
+# Divisão de responsabilidade:
+#   ci.yml           → site/, scripts/, tests/ (menos tests/api), mcp_server/, clients/
+#   api-ci.yml       → api/ e tests/api/
+#   frontend-ci.yml  → frontend/
+#   deploy-site.yml  → publica site/ no GitHub Pages, só em main
+# =============================================================================
+name: CI
+
+# Dispara em QUALQUER branch, não só em main. O repositório trabalha direto na
+# main e nunca abriu um pull request; um CI preso ao gatilho `pull_request`
+# simplesmente não rodaria — que é o mesmo defeito dos workflows que este aqui
+# veio substituir. Em branch de trabalho ele roda a cada push, e continua
+# valendo em PR se o fluxo mudar.
+on:
+  push:
+    paths:
+      - "site/**"
+      - "scripts/**"
+      - "tests/**"
+      - "validation/**"
+      - "mcp_server/**"
+      - "clients/**"
+      - "requirements*.txt"
+      - "pytest.ini"
+      - ".github/workflows/ci.yml"
+  pull_request:
+    paths:
+      - "site/**"
+      - "scripts/**"
+      - "tests/**"
+      - "validation/**"
+      - "mcp_server/**"
+      - "clients/**"
+      - "requirements*.txt"
+      - "pytest.ini"
+      - ".github/workflows/ci.yml"
+  # Permite rodar sob demanda pela aba Actions, sem precisar de commit.
+  # Só aparece na interface depois que o arquivo chega na branch padrão.
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ── Pipelines, validação e clientes ────────────────────────────────────────
+  python:
+    name: Testes Python (${{ matrix.python-version }})
+    runs-on: ubuntu-22.04
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12"]
+
+    env:
+      PYTHONDONTWRITEBYTECODE: "1"
+      PYTHONUNBUFFERED: "1"
+      # Os pipelines abortam se acharem que estão publicando com chave pública.
+      # Nenhum teste desta suíte faz rede; a variável só evita leitura de ambiente.
+      SUPABASE_URL: "https://exemplo.invalid"
+      SUPABASE_ANON_KEY: "chave-de-teste-sem-valor"
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: Instalar dependências
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt -r requirements-dev.txt
+
+      # Fora daqui só o que exige a app FastAPI (fastapi, redis): tests/api/ e
+      # tests/test_api_anomalias.py rodam no api-ci.yml, com as deps de api/.
+      # Todo o resto entra — pipelines, validação, ingestão e ml: 458 testes.
+      - name: Pytest
+        run: |
+          pytest tests/ \
+            --ignore=tests/api \
+            --ignore=tests/test_api_anomalias.py \
+            -v --tb=short
+
+      # Só as regras F (pyflakes): import não usado, variável morta, nome
+      # indefinido — coisas que indicam bug. O ruleset completo do pyproject
+      # (E/I/N/UP/B/SIM) acusa 153 ocorrências de ESTILO em scripts/, quase
+      # todas deliberadas: ponto-e-vírgula nos scripts de análise (83) e nomes
+      # maiúsculos de matriz em código numérico (16). Travar o CI nisso seria
+      # exigir uma reescrita de estilo que ninguém pediu. Para subir a régua,
+      # limpe um grupo de regras por vez e acrescente aqui.
+      - name: Ruff — regras de bug (F)
+        run: ruff check scripts mcp_server clients --select F --output-format=github
+
+      # Garante que o pacote publicado no PyPI ainda importa com as deps do projeto.
+      - name: Importar servidor MCP e client Python
+        run: |
+          python -c "import saudeemdado_mcp; print('mcp ok')"
+          python -c "import saudeemdado; print('client ok')"
+        env:
+          PYTHONPATH: mcp_server:clients/python
+
+  # ── Site publicado ─────────────────────────────────────────────────────────
+  site:
+    name: Site (type-check & build)
+    runs-on: ubuntu-22.04
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Instalar dependências
+        working-directory: site
+        run: npm ci
+
+      - name: TypeScript type-check
+        working-directory: site
+        run: npx tsc --noEmit
+
+      - name: Build estático
+        working-directory: site
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+        run: npm run build
+
+      # O build gera site/out; se ele sumir, o deploy-site.yml publicaria vazio.
+      - name: Conferir que o export saiu
+        working-directory: site
+        run: |
+          test -d out || { echo "::error::site/out não foi gerado pelo build"; exit 1; }
+          PAGINAS=$(find out -name "*.html" | wc -l)
+          echo "páginas geradas: $PAGINAS"
+          test "$PAGINAS" -ge 20 || { echo "::error::só $PAGINAS páginas; esperado ≥20"; exit 1; }

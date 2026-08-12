@@ -100,9 +100,10 @@ O Claude vai chamar as ferramentas e responder com os números e a fonte.
 | `descricao_cid10` | descrição oficial de códigos CID-10 |
 | `excesso_mortalidade` | excesso mensal (2020+), baseline por tendência |
 | **`qualidade_registro`** | **confiabilidade do registro de óbitos** (Bom/Regular/Ruim) |
-| `internacoes_municipios` | internações SUS: volume, permanência, mortalidade, custo |
+| `internacoes_municipios` | internações SUS: volume (AIHs aprovadas), permanência e custo **por episódio**, mortalidade |
 | `internacoes_evitaveis_icsap` | ICSAP (internações evitáveis) por município |
 | `internacoes_por_agravo` | internações por agravo traçador (diabetes, AVC, DPOC…) |
+
 | `hospitais` | visão por estabelecimento (CNES) |
 | `fluxo_pacientes` | para onde os moradores viajam para se internar |
 | `dengue_municipios` / `dengue_semanal` | dengue (SINAN) anual e por semana epidemiológica |

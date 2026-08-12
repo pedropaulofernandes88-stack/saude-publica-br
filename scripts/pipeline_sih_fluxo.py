@@ -22,7 +22,6 @@ from __future__ import annotations
 import argparse
 import io
 import json
-import math
 import os
 import sys
 import tempfile
@@ -35,6 +34,15 @@ from pathlib import Path
 
 import pandas as pd
 import requests
+
+from _varredura import varrer_orfaos
+from _supabase_key import chave_escrita
+
+# Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
+# unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
+# no meio do processamento. Forca UTF-8 na saida.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
@@ -120,7 +128,7 @@ def _process_file(uf: str, ano: int, mes: int):
     dbc = tmp / f"{nome}.dbc"; dbf = tmp / f"{nome}.dbf"
     dbc.write_bytes(buf.getvalue())
     fluxo: dict = defaultdict(int)
-    icsap: dict = defaultdict(lambda: [0, 0])  # mun_res -> [total, icsap]
+    icsap: dict = defaultdict(lambda: [0, 0, 0, 0])  # mun_res -> [total, icsap, cont, icsap_cont]
     try:
         datasus_dbc.decompress(str(dbc), str(dbf))
         for rec in dbfread.DBF(str(dbf), encoding="latin-1", char_decode_errors="replace", load=False):
@@ -129,9 +137,13 @@ def _process_file(uf: str, ano: int, mes: int):
             if len(res) < 6:
                 continue
             cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
-            c = icsap[res]; c[0] += 1
+            # AIH de continuação (IDENT=5): contada no total (produção), mas registrada
+            # à parte para auditoria. Impacto medido no %ICSAP: +0,93% relativo — pequeno,
+            # porque só I69 e G40 da lista brasileira geram continuação em volume.
+            cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
+            c = icsap[res]; c[0] += 1; c[2] += cont
             if cid in ICSAP3:
-                c[1] += 1
+                c[1] += 1; c[3] += cont
             if len(mov) == 6 and mov != res:
                 fluxo[(res, mov)] += 1
         return dict(fluxo), dict(icsap)
@@ -143,12 +155,13 @@ def _process_file(uf: str, ano: int, mes: int):
 
 def _process_uf(uf: str, ano: int, workers: int):
     CKPT.mkdir(parents=True, exist_ok=True)
-    fck = CKPT / f"fluxo_{uf}_{ano}.parquet"
-    ick = CKPT / f"icsap_{uf}_{ano}.parquet"
+    # sufixo _v2: checkpoints antigos nao tinham a contagem de AIH de continuacao
+    fck = CKPT / f"fluxo_{uf}_{ano}_v2.parquet"
+    ick = CKPT / f"icsap_{uf}_{ano}_v2.parquet"
     if fck.exists() and ick.exists():
         return pd.read_parquet(fck), pd.read_parquet(ick)
     fluxo: dict = defaultdict(int)
-    icsap: dict = defaultdict(lambda: [0, 0])
+    icsap: dict = defaultdict(lambda: [0, 0, 0, 0])
     with ThreadPoolExecutor(max_workers=workers) as ex:
         futs = {ex.submit(_process_file, uf, ano, m): m for m in range(1, 13)}
         for fut in as_completed(futs):
@@ -159,11 +172,14 @@ def _process_uf(uf: str, ano: int, workers: int):
             for k, v in fl.items():
                 fluxo[k] += v
             for mun, c in ic.items():
-                t = icsap[mun]; t[0] += c[0]; t[1] += c[1]
+                t = icsap[mun]
+                for i in range(4):
+                    t[i] += c[i]
     fdf = pd.DataFrame([(ano, r, m, n) for (r, m), n in fluxo.items()],
                        columns=["ano", "municipio_res", "municipio_mov", "internacoes"])
-    idf = pd.DataFrame([(mun, ano, c[0], c[1]) for mun, c in icsap.items()],
-                       columns=["municipio_cod", "ano", "internacoes_total", "internacoes_icsap"])
+    idf = pd.DataFrame([(mun, ano, c[0], c[1], c[2], c[3]) for mun, c in icsap.items()],
+                       columns=["municipio_cod", "ano", "internacoes_total", "internacoes_icsap",
+                                "aih_continuacao", "aih_continuacao_icsap"])
     fdf.to_parquet(fck, compression="zstd", index=False)
     idf.to_parquet(ick, compression="zstd", index=False)
     print(f"[fluxo] {uf} {ano}: {len(fdf):,} pares de fluxo, {int(idf['internacoes_total'].sum()):,} internações", flush=True)
@@ -204,14 +220,17 @@ def main() -> None:
 
     # --- ICSAP ---
     icsap = pd.concat(iparts, ignore_index=True).groupby(
-        ["municipio_cod", "ano"], as_index=False)[["internacoes_total", "internacoes_icsap"]].sum()
+        ["municipio_cod", "ano"], as_index=False)[
+        ["internacoes_total", "internacoes_icsap", "aih_continuacao",
+         "aih_continuacao_icsap"]].sum()
     icsap = icsap.merge(mref, on="municipio_cod", how="left").merge(pop, on="municipio_cod", how="left")
     icsap["uf_sigla"] = icsap["uf_sigla"].fillna("ND")
     icsap["pct_icsap"] = (icsap.internacoes_icsap / icsap.internacoes_total * 100).round(2)
     icsap["icsap_100k"] = (icsap.internacoes_icsap / icsap.populacao * 100000).round(1)
     icsap["populacao"] = icsap["populacao"].astype("Int64")
     icsap = icsap[["municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
-                   "internacoes_total", "internacoes_icsap", "pct_icsap", "populacao", "icsap_100k"]]
+                   "internacoes_total", "internacoes_icsap", "aih_continuacao",
+                   "aih_continuacao_icsap", "pct_icsap", "populacao", "icsap_100k"]]
 
     MARTS.mkdir(exist_ok=True)
     fluxo.to_parquet(MARTS / "mart_fluxo_intermunicipal.parquet", compression="zstd", index=False)
@@ -221,7 +240,7 @@ def main() -> None:
 
     if args.no_upload:
         return
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
 
@@ -240,6 +259,11 @@ def main() -> None:
 
     up("mart_fluxo_intermunicipal", fluxo)
     up("mart_icsap_municipio", icsap)
+    # Upsert nao remove o que saiu do calculo; a varredura fecha essa lacuna.
+    varrer_orfaos(url, key, "mart_fluxo_intermunicipal", fluxo,
+                  chaves=["ano", "municipio_res", "municipio_mov"], escopo={"ano": f"eq.{ano}"})
+    varrer_orfaos(url, key, "mart_icsap_municipio", icsap,
+                  chaves=["municipio_cod", "ano"], escopo={"ano": f"eq.{ano}"})
     meta = [{"chave": "fonte_fluxo_icsap", "valor": f"SIH/SUS {ano}: fluxo intermunicipal (MUNIC_RES→MUNIC_MOV, ≥5 internações) e ICSAP (aproximação Lista Brasileira, CID-10 3 caracteres). Ideia de fluxo inspirada no LabSUS (UFT)."},
             {"chave": "gerado_em", "valor": datetime.now().isoformat(timespec="seconds")}]
     requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)

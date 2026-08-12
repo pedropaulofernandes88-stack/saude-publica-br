@@ -193,10 +193,60 @@ export default function Metodologia() {
           inclui rede privada/suplementar;
         </li>
         <li>Município de <strong>residência</strong> (<code>MUNIC_RES</code>); causa pelo <strong>diagnóstico principal</strong> (<code>DIAG_PRINC</code>), agrupado em capítulos CID-10;</li>
-        <li><strong>Permanência média</strong> = soma de <code>DIAS_PERM</code> / nº de internações;</li>
+        <li><strong>Permanência média</strong> = <code>dias_permanencia_normal</code> / <code>aih_normal</code> (ver tipo de AIH abaixo);</li>
         <li><strong>Mortalidade intra-hospitalar</strong> = <code>MORTE</code> / internações;</li>
-        <li><strong>Custo</strong> = valor total aprovado (<code>VAL_TOT</code>); custo médio = valor / internações;</li>
+        <li><strong>Custo</strong> = valor total aprovado (<code>VAL_TOT</code>); custo médio = <code>valor_normal</code> / <code>aih_normal</code>;</li>
         <li>2024 preliminar; meses podem estar incompletos no processamento mais recente.</li>
+        <li>
+          <strong>Tipo de AIH — a AIH de continuação (importante):</strong> o arquivo RD
+          mistura a AIH normal (<code>IDENT=1</code>) com a AIH de{" "}
+          <strong>continuação</strong> (<code>IDENT=5</code>), emitida quando a internação
+          se prolonga além do período coberto pela AIH anterior. Uma mesma internação longa
+          vira, portanto, <em>várias linhas</em>. Contar linhas é a aproximação correta para{" "}
+          <em>produção aprovada</em> — e é o que <code>internacoes</code> mede — mas distorce
+          qualquer média por episódio. Numa amostra de 808.470 AIHs (SP, MG, BA, PA e RS,
+          2024), a continuação é 1,26% das linhas e <strong>6,57% dos dias</strong> de
+          permanência, concentrada em dois capítulos:
+          <table className="my-3 w-full text-sm">
+            <thead>
+              <tr>
+                <th className="text-left">Capítulo</th>
+                <th className="text-right">Internações</th>
+                <th className="text-right">Permanência média</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>VI — sistema nervoso</td>
+                <td className="text-right">−19,9%</td>
+                <td className="text-right">10,98 → 6,21 dias</td>
+              </tr>
+              <tr>
+                <td>V — transtornos mentais</td>
+                <td className="text-right">−23,7%</td>
+                <td className="text-right">14,43 → 11,72 dias</td>
+              </tr>
+              <tr>
+                <td>demais 17 capítulos</td>
+                <td className="text-right">≤ 0,8%</td>
+                <td className="text-right">≤ 2,1%</td>
+              </tr>
+            </tbody>
+          </table>
+          Publicamos os dois: <code>internacoes</code> (produção, todas as AIHs) e{" "}
+          <code>aih_normal</code>, <code>dias_permanencia_normal</code>,{" "}
+          <code>valor_normal</code> (base por episódio). As médias por episódio usam a
+          segunda. O <strong>HSMR</strong> (§14) e a <strong>permanência esperada</strong>{" "}
+          também passam a ser calculados só sobre AIH normal, porque são métricas por
+          episódio — a continuação carrega 0,21% dos óbitos para 1,26% das linhas e diluiria
+          o estrato de <em>case-mix</em>. O <strong>%ICSAP</strong> quase não muda (+0,93%
+          relativo): só I69 e G40 da Lista Brasileira geram continuação em volume.
+          Fundamentação: R. F. Saldanha,{" "}
+          <a href="https://rfsaldanha.github.io/sis/sih.html">
+            Sistemas de Informação em Saúde no Brasil
+          </a>
+          , cap. SIH.
+        </li>
         <li>
           <strong>Confundimento por cobertura suplementar (importante):</strong> a base só
           enxerga internações pagas pelo SUS. Cerca de um quarto da população tem plano de
@@ -521,8 +571,9 @@ export default function Metodologia() {
       <p>
         <strong>A limitação de saúde suplementar é real, mas concentrada nos grandes municípios.</strong>{" "}
         O ICSAP só enxerga internações do SUS — uma limitação que declarávamos sem testar. Trouxemos
-        o percentual de beneficiários de plano de saúde médico-hospitalar por município (ANS, Dados
-        Abertos, dez/2024, sem autenticação — <code>scripts/pipeline_ans_beneficiarios.py</code>) e
+        os <strong>vínculos ativos a plano médico-hospitalar por 100 habitantes</strong> por município
+        (ANS, Dados Abertos, dez/2024, sem autenticação —{" "}
+        <code>scripts/pipeline_ans_beneficiarios.py</code>) e
         cruzamos com %ICSAP dentro de cada quartil de porte (mesmo desenho do teste de robustez
         acima). O resultado é um <strong>gradiente monotônico por porte</strong>, não ruído: ρ =
         +0,05 (Q1, menores) → −0,00 (Q2) → −0,08 (Q3) → <strong>−0,29</strong> (Q4, maiores) — quase
@@ -536,6 +587,27 @@ export default function Metodologia() {
         zeradas mesmo em São Paulo na amostra verificada — problema de qualidade daquele recorte
         específico, não deste teste. Reprodutível em{" "}
         <code>scripts/analise_saude_suplementar_icsap.py</code>.
+      </p>
+      <p>
+        <strong>Por que "vínculos por 100 hab." e não "% da população com plano".</strong> O SIB/ANS
+        tem como unidade o <em>vínculo</em> (beneficiário × produto × operadora), não a pessoa, e
+        localiza o registro pelo <strong>endereço do contrato</strong>, não pela residência. Uma
+        pessoa com dois produtos conta duas vezes, e um contrato coletivo empresarial pode alocar
+        vínculos ao município da sede da empresa. A razão vínculos/população, portanto,{" "}
+        <em>não é uma proporção de pessoas e pode legitimamente passar de 100</em> — e passa: Belém/AL
+        (4.226 hab.) marcou 115,9 vínculos/100 hab. em 2021. Por isso a coluna se chama{" "}
+        <code>vinculos_plano_por_100_hab</code>, e não <code>pct_saude_suplementar</code> como na
+        versão anterior deste mart; municípios com razão &gt; 100 recebem a flag{" "}
+        <code>razao_implausivel</code>.{" "}
+        <strong>Isso não altera nenhum resultado acima</strong>: como os testes usam Spearman (só a
+        ordem importa), excluir o caso implausível e os 33 municípios com menos de 20 mil hab. e mais
+        de 40 vínculos/100 hab. — candidatos a artefato de endereço de contrato — move ρ de +0,054
+        para +0,061 (Q1) e deixa Q4 em −0,286, inalterado. A distinção é de rigor na
+        <em> leitura</em> do indicador, não de correção de viés. Fundamentação: R. F. Saldanha,{" "}
+        <a href="https://rfsaldanha.github.io/sis/ans.html">
+          Sistemas de Informação em Saúde no Brasil
+        </a>
+        , cap. ANS.
       </p>
 
       <h2>16. Arquétipos de saúde municipal (k-means)</h2>
@@ -815,7 +887,63 @@ export default function Metodologia() {
         <code>mart_vazio_assistencial_municipio</code>.
       </p>
 
-      <h2>21. Privacidade e células de contagem pequena</h2>
+      <h2>21. Gasto público em saúde (SIOPS) × ICSAP: o quarto achado nulo</h2>
+      <p>
+        Até aqui a plataforma media <em>desfecho</em> (mortalidade, ICSAP, HSMR) e{" "}
+        <em>oferta física</em> (leitos), nunca o <strong>insumo financeiro</strong>. O{" "}
+        <strong>SIOPS</strong> é a única base nacional com orçamento público de saúde por
+        município, e permite testar a hipótese mais intuitiva de todas: gastar mais está
+        associado a internar menos por condição evitável?
+      </p>
+      <p>
+        <strong>De onde vem.</strong> O SIOPS não está no FTP do DataSUS, não está na API de
+        dados abertos do Ministério (85 rotas, nenhuma financeira) e não está no SICONFI — o
+        Anexo 12 do RREO, que é o demonstrativo de saúde, é transmitido pelo próprio SIOPS e
+        não aparece na API do Tesouro. A via pública é o TABNET da série histórica de
+        indicadores municipais, um arquivo de definição por UF. Extraímos gasto próprio por
+        habitante, percentual da receita própria aplicado em ASPS (o piso de 15% da EC 29 /
+        LC 141), despesa total e transferências do SUS, para 2021–2024:{" "}
+        <strong>22.276 linhas, 5.569 municípios</strong>.
+      </p>
+      <p>
+        <strong>O confundidor mais forte que já medimos.</strong> População × gasto próprio
+        por habitante dá ρ = <strong>−0,578</strong>. Município pequeno gasta muito mais por
+        habitante — mediana de R$ 1.544 no quartil dos menores contra R$ 633 no dos maiores —
+        porque custo fixo se dilui em menos gente. Qualquer correlação bruta entre gasto e
+        desfecho carrega isso dentro.
+      </p>
+      <p>
+        <strong>Resultado.</strong> Dentro de cada quartil de porte, ρ entre gasto próprio e
+        %ICSAP é −0,00 (Q1), +0,03 (Q2), −0,02 (Q3) e −0,14 (Q4). O sinal troca de direção e
+        só o quartil superior mostra algo — padrão de resíduo de porte, não de efeito estável.
+        A co-ocorrência de alto gasto com baixo %ICSAP, dentro do porte, é{" "}
+        <strong>1,01×</strong> o esperado ao acaso. Somando aos anteriores, é o{" "}
+        <strong>quarto achado nulo</strong> sobre o %ICSAP: nem cobertura da APS, nem saúde
+        suplementar, nem vazio assistencial, nem gasto explicam sua variação entre municípios
+        comparáveis. O que move o indicador segue sendo porte e{" "}
+        <a href="#">oferta hospitalar local</a> (§19).
+      </p>
+      <p>
+        <strong>Limitações declaradas.</strong> O dado é <strong>autodeclarado</strong> pelo
+        ente e homologado pelo gestor — não há verificação externa das transações. É despesa{" "}
+        <strong>empenhada</strong>, que difere de liquidada e paga. Per capita em município
+        pequeno oscila muito: uma obra desloca o indicador sem mudança estrutural. E{" "}
+        <strong>gasto não é acesso nem qualidade</strong> — um município pode gastar muito e
+        mal; o SIOPS não mede produção assistencial nem necessidade. Os indicadores de
+        subfunção (atenção básica, assistência hospitalar), que seriam os mais interessantes
+        para este cruzamento, existem no sistema mas <strong>vêm vazios de 2016 em diante</strong>{" "}
+        — medimos: 22 de 23 municípios do Acre preenchidos em 2015, zero em 2020 e em 2024.
+        Reprodutível em <code>scripts/pipeline_siops.py</code> e{" "}
+        <code>scripts/analise_siops_icsap.py</code>; marts públicos{" "}
+        <code>mart_siops_municipio</code> e <code>mart_siops_icsap_municipio</code>.
+        Fundamentação da leitura do sistema: R. F. Saldanha,{" "}
+        <a href="https://rfsaldanha.github.io/sis/siops.html">
+          Sistemas de Informação em Saúde no Brasil
+        </a>
+        , cap. SIOPS.
+      </p>
+
+      <h2>22. Privacidade e células de contagem pequena</h2>
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas

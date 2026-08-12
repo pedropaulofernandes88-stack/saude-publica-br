@@ -26,7 +26,7 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server.fastmcp import FastMCP
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 mcp = FastMCP(
     "saudeemdado",
@@ -42,7 +42,14 @@ mcp = FastMCP(
         "qualidade_registro; se a classe for 'Ruim', avise que a causa é pouco confiável.\n"
         "5. Excesso de mortalidade usa baseline por TENDÊNCIA 2015–2019 (não média). "
         "Dengue: caso provável = notificação não descartada; 2024 foi epidemia recorde.\n"
-        "6. NÃO faça inferência causal, extrapolação além do dado, nem recomendação "
+        "6. INTERNAÇÕES: `internacoes` conta AIHs APROVADAS, não pacientes e nem episódios. "
+        "Uma internação longa emite várias AIHs (continuação), e a AIH pública não tem "
+        "identificador de paciente. NUNCA escreva 'pacientes' para esse número — escreva "
+        "'internações registradas' ou 'AIHs aprovadas'. Médias por episódio "
+        "(permanencia_media, custo_medio) já vêm calculadas sobre `aih_normal`; não as "
+        "recalcule dividindo por `internacoes`. Nos capítulos V (transtornos mentais) e VI "
+        "(sistema nervoso) a diferença é grande — 25% e 10% das AIHs são de continuação.\n"
+        "7. NÃO faça inferência causal, extrapolação além do dado, nem recomendação "
         "clínica individual. Estes dados são agregados/ecológicos e retrospectivos.\n"
         "Metodologia: https://saudeemdado.com/metodologia/"
     ),
@@ -110,7 +117,9 @@ def qualidade_registro(municipio_cod: str = "", uf: str = "") -> list[dict]:
 @mcp.tool()
 def internacoes_municipios(uf: str = "", ano: int = 2024, capitulo_cid: str = "TOTAL") -> list[dict]:
     """Internações SUS (SIH/AIH) por município: volume, permanência média, mortalidade
-    intra-hospitalar (%) e custo médio (R$). Cobre só a rede SUS."""
+    intra-hospitalar (%) e custo médio (R$). Cobre só a rede SUS.
+
+    AIH != internacao != paciente: `internacoes` conta AIHs APROVADAS (producao), incluindo a AIH de continuacao emitida quando a internacao se prolonga. `permanencia_media` e `custo_medio` sao por EPISODIO, calculados sobre `aih_normal` (= internacoes - aih_continuacao). Nos capitulos V (transtornos mentais, 25% de continuacao) e VI (sistema nervoso, 10%) os dois numeros divergem muito; nos outros, quase nada."""
     return sd.internacoes(uf=uf or None, ano=ano, capitulo=capitulo_cid)
 
 
@@ -121,7 +130,8 @@ def internacoes_evitaveis_icsap(uf: str = "") -> list[dict]:
     é indicador de sistema, não de 'má gestão' local."""
     params = {
         "select": "municipio_cod,municipio_nome,uf_sigla,internacoes_total,"
-                  "internacoes_icsap,pct_icsap,icsap_100k,populacao",
+                  "internacoes_icsap,aih_continuacao,aih_continuacao_icsap,"
+                  "pct_icsap,icsap_100k,populacao",
         "ano": "eq.2024", "order": "municipio_cod",
     }
     if uf:
@@ -133,10 +143,16 @@ def internacoes_evitaveis_icsap(uf: str = "") -> list[dict]:
 def internacoes_por_agravo(uf: str = "", agravo: str = "") -> list[dict]:
     """Internações por agravo traçador (CID-3), por município (2024): diabetes, avc, iam,
     icc, asma, dpoc, pneumonia, depressao, esquizofrenia, alcool_drogas, tce. agravo vazio =
-    todos. Traz permanência, mortalidade e custo por agravo."""
+    todos. Traz permanência, mortalidade e custo por agravo.
+
+    ATENÇÃO nos agravos de saúde mental (depressao, esquizofrenia, alcool_drogas): são do
+    capítulo V, onde 25% das AIHs são de CONTINUAÇÃO de uma internação longa. `internacoes`
+    conta AIHs aprovadas; `permanencia_media` e `custo_medio` usam `aih_normal`. Não
+    apresente `internacoes` como número de pacientes nem como número de episódios."""
     params = {
         "select": "municipio_cod,municipio_nome,uf_sigla,agravo,agravo_label,grupo,"
-                  "internacoes,obitos,permanencia_media,mortalidade_pct,custo_medio,internacoes_100k",
+                  "internacoes,obitos,aih_continuacao,aih_normal,permanencia_media,"
+                  "mortalidade_pct,custo_medio,internacoes_100k",
         "order": "municipio_cod",
     }
     if uf:
@@ -154,7 +170,7 @@ def hospitais(uf: str = "", ordenar_por: str = "internacoes", top: int = 50) -> 
     qualidade. Sem nome do estabelecimento (só CNES)."""
     params = {
         "select": "cnes,municipio_nome,uf_sigla,capitulo_principal,internacoes,"
-                  "permanencia_media,mortalidade_pct,custo_medio",
+                  "aih_continuacao,aih_normal,permanencia_media,mortalidade_pct,custo_medio",
         "ano": "eq.2024", "internacoes": "gte.50",
         "order": f"{ordenar_por}.desc", "limit": str(top),
     }

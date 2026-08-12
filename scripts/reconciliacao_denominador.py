@@ -19,9 +19,13 @@ pendente. Aqui usa-se a estrutura da projeção como aproximação declarada.
 Uso: .venv311/Scripts/python scripts/reconciliacao_denominador.py
 """
 from __future__ import annotations
+import sys
 import os
 from pathlib import Path
 import numpy as np, pandas as pd, requests
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]; REFS = ROOT/"data"/"refs"
 UFCOD={11:'RO',12:'AC',13:'AM',14:'RR',15:'PA',16:'AP',17:'TO',21:'MA',22:'PI',23:'CE',24:'RN',25:'PB',26:'PE',27:'AL',28:'SE',29:'BA',31:'MG',32:'ES',33:'RJ',35:'SP',41:'PR',42:'SC',43:'RS',50:'MS',51:'MT',52:'GO',53:'DF'}

@@ -20,6 +20,9 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
 PAGE = 1000

@@ -75,7 +75,7 @@ export default function Internacoes() {
     setLinhas(null); setErro(null);
     const ufF: Record<string, string> = uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` };
     rest<Internacao>("mart_internacoes_municipio", {
-      select: "municipio_cod,municipio_nome,uf_sigla,regiao,ano,capitulo_cid,internacoes,obitos,dias_permanencia,valor_total,permanencia_media,mortalidade_pct,custo_medio,internacoes_100k,populacao",
+      select: "municipio_cod,municipio_nome,uf_sigla,regiao,ano,capitulo_cid,internacoes,obitos,dias_permanencia,valor_total,aih_normal,dias_permanencia_normal,valor_normal,permanencia_media,mortalidade_pct,custo_medio,internacoes_100k,populacao",
       ano: `eq.${ano}`,
       capitulo_cid: `eq.${capitulo}`,
       order: "municipio_cod",
@@ -85,16 +85,22 @@ export default function Internacoes() {
       .catch((e) => setErro(String(e)));
   }, [uf, ano, capitulo]);
 
+  // Médias POR EPISÓDIO usam a base de AIH normal (IDENT=1). A AIH de continuação
+  // é a mesma internação faturada de novo: somá-la aos dias e ao valor sem somá-la
+  // ao denominador certo inflava a permanência em até 23% (cap. V) e o custo em 34%.
+  // `internacoes`/`obitos` seguem no volume TOTAL de AIH, que é o que a fonte conta.
   const agregado = useMemo(() => {
     if (!linhas) return null;
     return linhas.reduce(
       (a, m) => ({
         internacoes: a.internacoes + m.internacoes,
         obitos: a.obitos + m.obitos,
-        dias: a.dias + m.dias_permanencia,
-        valor: a.valor + m.valor_total,
+        aihNormal: a.aihNormal + (m.aih_normal ?? 0),
+        dias: a.dias + (m.dias_permanencia_normal ?? 0),
+        valor: a.valor + (m.valor_normal ?? 0),
+        valorTotal: a.valorTotal + m.valor_total,
       }),
-      { internacoes: 0, obitos: 0, dias: 0, valor: 0 },
+      { internacoes: 0, obitos: 0, aihNormal: 0, dias: 0, valor: 0, valorTotal: 0 },
     );
   }, [linhas]);
 
@@ -156,11 +162,15 @@ export default function Internacoes() {
   // Custo unitário proxy das condições ICSAP (nacional) → estimativa de gasto evitável.
   const [custoIcsapUnit, setCustoIcsapUnit] = useState<number | null>(null);
   useEffect(() => {
-    rest<{ valor_total: number; internacoes: number }>("mart_internacoes_agravo", {
-      select: "valor_total:valor_total.sum(),internacoes:internacoes.sum()",
+    rest<{ valor_normal: number | null; aih_normal: number | null }>("mart_internacoes_agravo", {
+      select: "valor_normal:valor_normal.sum(),aih_normal:aih_normal.sum()",
       agravo: "in.(pneumonia,icc,dpoc,asma,diabetes)",
     }).then((r) => {
-      if (r[0]?.internacoes) setCustoIcsapUnit(r[0].valor_total / r[0].internacoes);
+      // Base de AIH normal, como as demais médias por episódio. Estes cinco agravos são
+      // dos capítulos IV/IX/X, onde a AIH de continuação pesa <1% — a diferença é mínima,
+      // mas manter uma definição só evita que dois números do site discordem entre si.
+      const a = r[0];
+      if (a?.aih_normal && a.valor_normal != null) setCustoIcsapUnit(a.valor_normal / a.aih_normal);
     }).catch(() => {});
   }, []);
   const [agravoPanorama, setAgravoPanorama] = useState<InternacaoAgravo[] | null>(null);
@@ -171,7 +181,9 @@ export default function Internacoes() {
     setAgravoPanorama(null);
     const ufF: Record<string, string> = uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` };
     rest<InternacaoAgravo>("mart_internacoes_agravo", {
-      select: "agravo,agravo_label,grupo,internacoes:internacoes.sum(),obitos:obitos.sum(),dias_permanencia:dias_permanencia.sum(),valor_total:valor_total.sum()",
+      // Médias por episódio somam a base de AIH normal (sem a AIH de continuação,
+      // que fraciona uma internação longa em várias linhas) — ver §10 da metodologia.
+      select: "agravo,agravo_label,grupo,internacoes:internacoes.sum(),obitos:obitos.sum(),dias_permanencia:dias_permanencia.sum(),valor_total:valor_total.sum(),aih_normal:aih_normal.sum(),dias_permanencia_normal:dias_permanencia_normal.sum(),valor_normal:valor_normal.sum()",
       ano: "eq.2024", order: "agravo", ...ufF,
     }).then(setAgravoPanorama).catch(() => setAgravoPanorama([]));
   }, [uf]);
@@ -191,9 +203,11 @@ export default function Internacoes() {
     return [...agravoPanorama]
       .map((a) => ({
         ...a,
-        permanencia_media: a.internacoes ? a.dias_permanencia / a.internacoes : null,
+        permanencia_media: a.aih_normal && a.dias_permanencia_normal != null
+          ? a.dias_permanencia_normal / a.aih_normal : null,
         mortalidade_pct: a.internacoes ? (a.obitos / a.internacoes) * 100 : null,
-        custo_medio: a.internacoes ? a.valor_total / a.internacoes : null,
+        custo_medio: a.aih_normal && a.valor_normal != null
+          ? a.valor_normal / a.aih_normal : null,
       }))
       .sort((x, y) => y.internacoes - x.internacoes);
   }, [agravoPanorama]);
@@ -257,11 +271,15 @@ export default function Internacoes() {
       {agregado && (
         <div className="mt-6 grid gap-4 sm:grid-cols-4">
           <Kpi rotulo={`Internações ${ano}`} valor={fmtInt(agregado.internacoes)} detalhe={capDesc} />
-          <Kpi rotulo="Permanência média" valor={`${fmtDec(agregado.dias / agregado.internacoes)} dias`} detalhe="dias por internação" />
+          <Kpi rotulo="Permanência média"
+               valor={agregado.aihNormal > 0 ? `${fmtDec(agregado.dias / agregado.aihNormal)} dias` : "—"}
+               detalhe="dias por episódio (AIH normal)" />
           <Kpi rotulo="Mortalidade hospitalar" valor={`${fmtDec((agregado.obitos / agregado.internacoes) * 100, 2)}%`}
                detalhe={`${fmtInt(agregado.obitos)} óbitos`} />
-          <Kpi rotulo="Valor aprovado" valor={fmtReais(agregado.valor)}
-               detalhe={`custo médio ${fmtReais(agregado.valor / agregado.internacoes)}`} />
+          <Kpi rotulo="Valor aprovado" valor={fmtReais(agregado.valorTotal)}
+               detalhe={agregado.aihNormal > 0
+                 ? `custo médio ${fmtReais(agregado.valor / agregado.aihNormal)} por episódio`
+                 : "custo médio indisponível"} />
         </div>
       )}
 

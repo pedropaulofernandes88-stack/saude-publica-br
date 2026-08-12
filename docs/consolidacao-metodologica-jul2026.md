@@ -227,13 +227,22 @@ relevante", que antes só era mencionada, nunca medida.
   FTP público sem login, competência de dezembro de 2021-2024), filtra
   `COBERTURA_ASSIST_PLAN == "Médico-hospitalar"` (exclui odontológico puro).
   Novo mart `mart_saude_suplementar_municipio` (22.284 linhas).
+- **Correção de unidade (ago/2026):** a coluna `pct_saude_suplementar` foi
+  renomeada para `vinculos_plano_por_100_hab` e `beneficiarios_medico_hospitalar`
+  para `vinculos_medico_hospitalar`. O SIB/ANS conta vínculos (beneficiário ×
+  produto × operadora), não pessoas, e localiza pelo endereço do contrato, não
+  pela residência — a razão não é uma proporção de pessoas e pode passar de 100
+  (ocorre em 1 de 22.284 município-ano: Belém/AL 2021, 115,9). Nova flag
+  `razao_implausivel`. Sensibilidade na Seção 6 do script: excluir os 33
+  municípios suspeitos não move o gradiente (Q4 permanece −0,286). Fonte da
+  distinção: R. F. Saldanha, *Sistemas de Informação em Saúde no Brasil*, cap. ANS.
 - **Achado ruim documentado (a pedido do usuário, para qualificar o trabalho):**
   o dataset pronto `taxa_de_cobertura_de_planos_de_saude-047` da ANS foi
   descartado — só tinha o período corrente (sem histórico) e as taxas vieram
   zeradas mesmo para São Paulo na amostra verificada. Preferimos o cadastro
   bruto de beneficiários, mais trabalhoso mas confiável e histórico desde 2021.
 - Novo script `scripts/analise_saude_suplementar_icsap.py`: cruza
-  %saude_suplementar com %ICSAP/ICSAP-100k. Correlação bruta fraca (ρ=+0,06 e
+  `vinculos_plano_por_100_hab` com %ICSAP/ICSAP-100k. Correlação bruta fraca (ρ=+0,06 e
   -0,09); parcial controlando porte+IVS por regressão linear sobre postos
   (ρ=-0,10, %ICSAP) sugeria efeito fraco mas enganava por não capturar
   não-linearidade.

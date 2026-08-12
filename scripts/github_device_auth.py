@@ -11,6 +11,9 @@ from pathlib import Path
 
 import requests
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 CLIENT_ID = "178c6fc778ccc68e1d6a"  # GitHub CLI (público)
 
 r = requests.post(

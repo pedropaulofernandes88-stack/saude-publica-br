@@ -21,16 +21,20 @@ Uso: .venv311/Scripts/python scripts/pipeline_ivs.py
 """
 from __future__ import annotations
 
-import json
-import math
-import os
 import sys
+import json
+import os
 import time
 from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
@@ -110,7 +114,7 @@ def main() -> None:
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
     out.to_parquet(MARTS_DIR / "dim_ivs.parquet", compression="zstd", index=False)
 
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}",
          "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}

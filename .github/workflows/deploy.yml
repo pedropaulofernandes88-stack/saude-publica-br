@@ -1,12 +1,28 @@
 # ============================================================
-# deploy.yml — CI/CD unificado: testa, depois deploia
-# API → Railway  |  Frontend → Vercel
+# deploy.yml — CI/CD do stack legado: testa, depois deploia
+# API → Railway  |  Frontend (frontend/) → Vercel
 # ============================================================
-name: 🚀 Deploy — saudeemdado.com
+# NÃO é isto que publica saudeemdado.com. O site em produção é o estático de
+# site/, publicado no GitHub Pages por deploy-site.yml. Este workflow cuida do
+# par api/ + frontend/, que continua no repositório.
+#
+# Só dispara quando api/ ou frontend/ mudam. Antes rodava a CADA push em main,
+# inclusive nos que só tocavam site/ ou scripts/ — gastando duas execuções de
+# deploy e podendo falhar por causa de código que não tem relação com o que
+# está sendo publicado.
+# ============================================================
+name: 🚀 Deploy — API e frontend legado
 
 on:
   push:
     branches: [main]
+    paths:
+      - "api/**"
+      - "frontend/**"
+      - ".github/workflows/deploy.yml"
+      # ml/** NAO entra: e biblioteca consumida pela API, nao artefato de deploy.
+      # Mexer no detector de anomalias nao e motivo para publicar no Railway e no
+      # Vercel. Quem cobre mudanca em ml/ e o api-ci.yml, que roda os testes.
   workflow_dispatch:   # permite trigger manual no GitHub
 
 jobs:
@@ -22,12 +38,18 @@ jobs:
         with:
           python-version: "3.12"
           cache: pip
+          cache-dependency-path: |
+            requirements.txt
+            api/requirements*.txt
 
+      # api/requirements.txt faltava aqui: as versões fixadas da API (asyncpg,
+      # redis, instrumentator) só existem nele. Sem ele, o teste roda contra um
+      # conjunto de dependências diferente do que vai para o Railway.
       - name: Instalar dependências
-        run: pip install -r requirements.txt -r api/requirements-dev.txt
+        run: pip install -r requirements.txt -r api/requirements.txt -r api/requirements-dev.txt
 
       - name: Rodar testes da API
-        run: PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/api/ -q --tb=short
+        run: PYTHONDONTWRITEBYTECODE=1 python -m pytest tests/api/ tests/test_api_anomalias.py -q --tb=short
         env:
           DATABASE_URL: "postgresql://mock:mock@localhost:5432/mock"
           REDIS_URL: "redis://localhost:6379/0"
@@ -58,12 +80,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Sem `cache: npm`: ele exige um lockfile, e não existe frontend/package-lock.json.
+      # O passo falhava antes mesmo de chegar ao Vercel.
       - name: Node 20
         uses: actions/setup-node@v4
         with:
           node-version: "20"
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
 
       - name: Instalar Vercel CLI
         run: npm install -g vercel

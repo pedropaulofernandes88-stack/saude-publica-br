@@ -15,6 +15,7 @@ Uso: .venv311/Scripts/python scripts/pipeline_clusters.py
 """
 from __future__ import annotations
 
+import sys
 import json
 import os
 from datetime import datetime
@@ -23,7 +24,12 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
 from scipy.cluster.vq import kmeans2, whiten  # noqa: F401
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
@@ -95,7 +101,7 @@ def main() -> None:
         print(f"  cluster {c} (n={len(sub)}): {sub.perfil.iloc[0]}")
 
     # upload
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
     recs = out.astype(object).where(pd.notna(out), None).to_dict("records")

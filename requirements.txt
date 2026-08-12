@@ -39,7 +39,12 @@ great-expectations>=0.18.0
 
 # --- Utilitários ---
 python-dotenv>=1.0.0
-loguru>=0.7.0
+# O teto vem do pysus, que fixa loguru<0.7.0 em TODAS as versoes, ate a 2.7.0.
+# Com `loguru>=0.7.0` este arquivo era insatisfazivel e `pip install -r
+# requirements.txt` nunca completava — por isso o ambiente local sempre foi
+# montado pacote a pacote. A API usada (add, remove, info, success, warning)
+# e a mesma nas duas linhas. Para voltar ao 0.7, o caminho e sair do pysus.
+loguru>=0.6.0,<0.7.0
 tenacity>=8.2.0
 click>=8.1.0
 rich>=13.7.0

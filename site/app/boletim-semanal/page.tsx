@@ -116,7 +116,8 @@ interface Boletim {
     internacoes: number;
     obitos: number;
     valor_total: number;
-    permanencia_media: number;
+    /** Base: AIH normal (IDENT=1). Null quando o mart ainda não traz a separação. */
+    permanencia_media: number | null;
     mortalidade_pct: number;
   };
 }

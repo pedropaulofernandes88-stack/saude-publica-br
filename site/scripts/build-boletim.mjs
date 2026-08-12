@@ -418,16 +418,20 @@ console.log("[boletim] internações SIH…");
 const anoSih = (await rest("mart_internacoes_municipio", { select: "ano", order: "ano.desc", limit: "1" }))[0].ano;
 const [sih] = await rest("mart_internacoes_municipio", {
   select:
-    "internacoes:internacoes.sum(),obitos:obitos.sum(),valor:valor_total.sum(),dias:dias_permanencia.sum()",
+    "internacoes:internacoes.sum(),obitos:obitos.sum(),valor:valor_total.sum(),dias:dias_permanencia.sum()," +
+    "aihNormal:aih_normal.sum(),diasNormal:dias_permanencia_normal.sum()",
   ano: `eq.${anoSih}`,
   capitulo_cid: "eq.TOTAL",
 });
+// Permanência é média POR EPISÓDIO: divide dias de AIH normal por AIH normal.
+// A AIH de continuação refatura a mesma internação — no denominador total ela
+// inflava o indicador (ver migrations/V020 e scripts/_metricas_aih.py).
 const internacoes = {
   ano_ref: anoSih,
   internacoes: sih.internacoes,
   obitos: sih.obitos,
   valor_total: sih.valor,
-  permanencia_media: sih.dias / sih.internacoes,
+  permanencia_media: sih.aihNormal > 0 ? sih.diasNormal / sih.aihNormal : null,
   mortalidade_pct: (sih.obitos / sih.internacoes) * 100,
 };
 

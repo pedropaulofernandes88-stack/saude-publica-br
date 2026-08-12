@@ -30,7 +30,7 @@ O **Saúde em Dado** elimina essa barreira. Ele transforma os microdados oficiai
 navegáveis** e **downloads abertos** — com pipeline 100% reproduzível e **custo de manutenção zero**.
 
 > Mais de **14,4 milhões de óbitos** (2015–2024), **6,56 milhões de casos de dengue** (recorde de 2024),
-> **39,9 milhões de internações** (R$ 63,2 bi) e **5,2 milhões de nascimentos** — em uma consulta.
+> **40,0 milhões de AIHs aprovadas** (R$ 63,4 bi) e **5,2 milhões de nascimentos** — em uma consulta.
 
 ---
 
@@ -40,7 +40,7 @@ navegáveis** e **downloads abertos** — com pipeline 100% reproduzível e **cu
 |---|---|---|---|
 | **SIM** | Mortalidade (óbitos) | 2015–2024 | Taxa bruta + **IC95%**, **taxa padronizada por idade**, **excesso de mortalidade** |
 | **SINAN** | Dengue (notificações) | 2015–2024 | Incidência, gravidade, letalidade, **canal endêmico** |
-| **SIH** | Internações hospitalares (AIH) | 2022–2024 | Permanência média, mortalidade intra-hospitalar, custo |
+| **SIH** | Internações hospitalares (AIH) | 2022–2024 | Permanência média e custo **por episódio** (AIH normal), mortalidade intra-hospitalar |
 | **SINASC** | Nascidos vivos | 2021–2022 | Baixo peso, prematuridade, pré-natal, **mortalidade infantil** |
 | **IBGE** | População (Censo 2022, Estimativas) e malhas | — | Denominadores, padronização, mapas |
 | **IPEA / IBGE** | Vulnerabilidade social (proxy Censo 2022) | 2022 | Cruzamento desigualdade × saúde |
@@ -58,6 +58,11 @@ individual sai da máquina de processamento (privacidade por desenho).
 - **Canal endêmico de dengue** (diagrama de controle) — faixa esperada P25–P75 de 2015–2023 vs. ano observado.
 - **Taxa de Mortalidade Infantil** — óbitos &lt; 1 ano (SIM) ÷ nascidos vivos (SINASC).
 - **Índice de vulnerabilidade social (proxy)** — z-score de analfabetismo + falta de água (Censo 2022).
+- **Tipo de AIH (SIH)** — o arquivo do SIH mistura AIH normal com AIH de *continuação*, emitida quando
+  a internação se prolonga: uma internação longa vira várias linhas. `internacoes` conta AIHs aprovadas
+  (produção); permanência e custo médios são **por episódio**, sobre a AIH normal. Nos capítulos V
+  (transtornos mentais) e VI (sistema nervoso) os dois números divergem muito — 25% e 10% das AIHs são
+  de continuação. AIH não é internação nem paciente.
 
 Documentação completa, fórmulas e **limitações declaradas**: **[saudeemdado.com/metodologia](https://saudeemdado.com/metodologia/)**.
 

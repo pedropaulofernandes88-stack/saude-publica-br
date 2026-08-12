@@ -46,6 +46,7 @@ Uso:
 """
 from __future__ import annotations
 
+import sys
 import argparse
 import json
 import os
@@ -55,8 +56,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import requests
+
+from _supabase_key import chave_escrita
 from scipy.stats import gamma as gamma_dist
 from scipy.stats import poisson as poisson_dist
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
@@ -281,7 +287,7 @@ def main() -> None:
     if args.no_upload:
         return
     env = load_env()
-    url, key = env["SUPABASE_URL"], env["SUPABASE_ANON_KEY"]
+    url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
     recs = df.astype(object).where(pd.notna(df), None).to_dict("records")
