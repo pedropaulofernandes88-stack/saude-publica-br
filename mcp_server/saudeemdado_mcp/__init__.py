@@ -26,7 +26,7 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server.fastmcp import FastMCP
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 mcp = FastMCP(
     "saudeemdado",
