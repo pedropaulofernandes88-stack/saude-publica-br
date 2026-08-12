@@ -10,7 +10,11 @@ readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Pedro Paulo Fernandes", email = "pedropaulofernandes88@gmail.com" }]
 requires-python = ">=3.10"
-dependencies = ["mcp>=1.2", "requests>=2.28", "saudeemdado>=2.0"]
+# mcp fica preso na linha 1.x: a 2.0.0 removeu mcp.server.fastmcp, de onde este
+# servidor importa FastMCP. Com o teto aberto, `pip install saudeemdado-mcp`
+# num ambiente limpo resolve para 2.0 e quebra no import — o pacote publicado
+# esta nessa situacao. Subir para a 2.x exige migrar a API, nao so soltar o pino.
+dependencies = ["mcp>=1.2,<2", "requests>=2.28", "saudeemdado>=2.0"]
 keywords = ["mcp", "datasus", "sus", "epidemiologia", "dados abertos", "brasil", "ia"]
 classifiers = [
   "Intended Audience :: Science/Research",
