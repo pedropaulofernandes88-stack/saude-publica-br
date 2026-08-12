@@ -351,15 +351,20 @@ def df_to_supabase_bulk(
     schema: Optional[pa.Schema] = None,
     database_url: Optional[str] = None,
     keep_parquet: bool = True,
+    base_dir: Optional[Path] = None,
 ) -> tuple[Path, int]:
     """
     Pipeline completo: DataFrame → Parquet → Supabase.
-    
+
+    base_dir repassa para df_to_parquet a raiz onde o Parquet é gravado. Sem
+    isso, não havia como chamar esta função sem escrever no diretório real de
+    dados — era o que impedia os testes de rodar contra um tmp_path.
+
     Returns:
         tuple[Path, int]: caminho do Parquet e qtd de registros carregados
     """
     # 1. Salva Parquet local (para DuckDB queries e backup)
-    parquet_path = df_to_parquet(df, uf, ano, mes, schema, table_name=table_name)
+    parquet_path = df_to_parquet(df, uf, ano, mes, schema, base_dir=base_dir, table_name=table_name)
     
     # 2. Carrega no Supabase via COPY
     try:

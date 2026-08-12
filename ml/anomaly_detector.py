@@ -82,6 +82,11 @@ class AnomalyResult:
 
 def _validate_series(df: pd.DataFrame, min_rows: int = 2) -> None:
     """Valida que o DataFrame tem as colunas ds e y e linhas suficientes."""
+    # detect_anomalies() só captura ValueError. Sem esta guarda, um df=None faz
+    # `set(df.columns)` estourar AttributeError, que escapa do try e derruba a
+    # chamada inteira em vez de devolver AnomalyResult(erro=...).
+    if not isinstance(df, pd.DataFrame):
+        raise ValueError(f"Esperado um DataFrame com colunas ds e y; recebido {type(df).__name__}.")
     required = {"ds", "y"}
     missing = required - set(df.columns)
     if missing:
@@ -185,7 +190,12 @@ def zscore_fallback(
         ds, y, yhat (= média), yhat_lower, yhat_upper,
         z_score, tipo_anomalia, pct_desvio, metodo, is_anomaly
     """
-    _validate_series(df, min_rows=2)
+    # Este é o CAMINHO DE FALLBACK: quem chega aqui já não pôde usar Prophet.
+    # Exigir 2 pontos fazia a degradação parar justamente onde ela mais importa —
+    # série de 1 ponto virava exceção em vez de "sem anomalia". O cálculo abaixo
+    # já cobre o caso: std de 1 ponto é NaN, `NaN > 0` é falso, e o np.where
+    # devolve z_score 0. Série vazia sai vazia.
+    _validate_series(df, min_rows=0)
     df = _prepare_series(df)
 
     mu = df["y"].mean()
@@ -471,7 +481,8 @@ def detect_anomalies(
             municipio_cod=municipio_cod,
             uf_sigla=uf_sigla,
             metodo="erro",
-            n_pontos=len(df),
+            # df pode não ser DataFrame — é justamente um dos erros tratados aqui.
+            n_pontos=len(df) if isinstance(df, pd.DataFrame) else 0,
             n_anomalias=0,
             anomalies=empty,
             forecast=empty,
@@ -507,7 +518,8 @@ def detect_anomalies(
             municipio_cod=municipio_cod,
             uf_sigla=uf_sigla,
             metodo="erro",
-            n_pontos=len(df),
+            # df pode não ser DataFrame — é justamente um dos erros tratados aqui.
+            n_pontos=len(df) if isinstance(df, pd.DataFrame) else 0,
             n_anomalias=0,
             anomalies=empty,
             forecast=empty,
