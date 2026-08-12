@@ -17,8 +17,9 @@ Metodologia (documentada em saudeemdado.com/metodologia):
   - IC95% da taxa bruta: método gamma (Poisson exato)
   - População por faixa nos anos ≠2022: estrutura do Censo 2022 escalada pelo
     total municipal do ano (aproximação documentada)
-  - Excesso de mortalidade: esperado = média 2015–2019 do mesmo mês civil ×
-    (pop do ano / pop média 2015–2019), por UF e Brasil, a partir de 2020
+  - Excesso de mortalidade: esperado = tendência linear por mês civil ajustada a
+    2015–2019 (mínimos quadrados, 5 pontos) e projetada para o ano-alvo, por UF
+    e Brasil, a partir de 2020. Excesso = observado − esperado
   - Detalhe demográfico completo a partir de 2022; 2015–2021 em grão reduzido
     (totais e marginais) para caber no free tier
 
@@ -630,36 +631,48 @@ def build(con: duckdb.DuckDBPyConnection, anos: list[int]) -> None:
     con.execute(f"""
         CREATE OR REPLACE TABLE mart_excesso AS
         WITH serie AS (
+            -- 'ND' = obito sem UF de residencia identificada. Excesso "da UF
+            -- desconhecida" nao e uma serie interpretavel, e a tabela publicada
+            -- nunca o teve; sem este filtro o pipeline criaria uma 28a serie
+            -- espuria. Os obitos ND seguem contando no total do Brasil abaixo,
+            -- que agrega tudo -- eles existiram, so nao se sabe onde.
             SELECT uf_sigla, ano, mes, mes_competencia, obitos
             FROM mart_uf_mes
             WHERE capitulo_cid='TOTAL' AND sexo='TOTAL' AND faixa_etaria='TOTAL'
+              AND uf_sigla <> 'ND'
             UNION ALL
             SELECT 'BR', ano, mes, make_date(ano, mes, 1), sum(obitos)::INT
             FROM mart_uf_mes
             WHERE capitulo_cid='TOTAL' AND sexo='TOTAL' AND faixa_etaria='TOTAL'
             GROUP BY 2, 3
         ),
-        pop_uf AS (
-            SELECT COALESCE(m.uf_sigla,'ND') uf_sigla, p.ano, sum(p.populacao)::DOUBLE pop
-            FROM dim_populacao p JOIN dim_municipio m USING (municipio_cod)
-            GROUP BY 1, 2
-            UNION ALL
-            SELECT 'BR', ano, sum(populacao)::DOUBLE FROM dim_populacao GROUP BY 2
-        ),
-        base AS (
-            SELECT s.uf_sigla, s.mes, avg(s.obitos)::DOUBLE ob_base, avg(p.pop) pop_base
-            FROM serie s JOIN pop_uf p ON p.uf_sigla = s.uf_sigla AND p.ano = s.ano
+        -- Tendencia linear por MES CIVIL: regride os obitos daquele mes contra o
+        -- ano em {BASELINE[0]}-{BASELINE[1]} (minimos quadrados, 5 pontos) e projeta para o
+        -- ano-alvo. Captura crescimento populacional E envelhecimento, que elevam
+        -- o esperado ano a ano.
+        --
+        -- O metodo ANTERIOR era media do baseline x razao populacional. Ele
+        -- ignorava a tendencia secular e por isso superestimava o excesso nos
+        -- anos recentes: o "excesso persistente" de 2022-2023 era em boa parte
+        -- artefato disso. A troca foi anunciada no CHANGELOG 3.1.0 e esta descrita
+        -- em site/app/metodologia (secao 6), nos artigos e no preprint -- mas
+        -- nunca chegou a ESTE script, que continuou com a media. Quem rodasse o
+        -- pipeline reverteria silenciosamente os numeros publicados.
+        tend AS (
+            SELECT s.uf_sigla, s.mes,
+                   regr_intercept(s.obitos, s.ano) AS a,
+                   regr_slope(s.obitos, s.ano)     AS b
+            FROM serie s
             WHERE s.ano BETWEEN {BASELINE[0]} AND {BASELINE[1]}
             GROUP BY 1, 2
         )
         SELECT s.uf_sigla, s.ano, s.mes, s.mes_competencia,
                s.obitos,
-               round(b.ob_base * (p.pop / NULLIF(b.pop_base,0)), 1)              AS esperado,
-               round(s.obitos - b.ob_base * (p.pop / NULLIF(b.pop_base,0)), 1)   AS excesso,
-               round((s.obitos / NULLIF(b.ob_base * (p.pop / NULLIF(b.pop_base,0)),0) - 1) * 100, 2) AS pct_excesso
+               round(t.a + t.b * s.ano, 1)                                    AS esperado,
+               round(s.obitos - (t.a + t.b * s.ano), 1)                       AS excesso,
+               round((s.obitos / NULLIF(t.a + t.b * s.ano, 0) - 1) * 100, 2)  AS pct_excesso
         FROM serie s
-        JOIN base   b ON b.uf_sigla = s.uf_sigla AND b.mes = s.mes
-        JOIN pop_uf p ON p.uf_sigla = s.uf_sigla AND p.ano = s.ano
+        JOIN tend t ON t.uf_sigla = s.uf_sigla AND t.mes = s.mes
         WHERE s.ano >= 2020
     """)
 
@@ -808,7 +821,9 @@ def main() -> None:
         ("exclusoes", "Óbitos fetais (TIPOBITO=1) excluídos de todos os marts"),
         ("padronizacao", "Taxa padronizada por idade: método direto, padrão Brasil Censo 2022, 9 faixas; idade ignorada redistribuída pro-rata"),
         ("ic95", "IC95% da taxa bruta: método gamma (Poisson exato)"),
-        ("excesso_baseline", f"Esperado = média {BASELINE[0]}–{BASELINE[1]} do mesmo mês × ajuste populacional"),
+        ("excesso_baseline", f"Esperado = tendência linear por mês civil ajustada a {BASELINE[0]}–{BASELINE[1]} "
+                             "(capta crescimento e envelhecimento), projetada para o ano-alvo. "
+                             "Excesso = observado − esperado."),
         ("nota_preliminar", "Dados do ano mais recente podem ser preliminares (sujeitos a revisão pelo MS)"),
         ("licenca", "Dados públicos — DATASUS/MS e IBGE; uso livre com citação das fontes"),
         ("gerado_em", datetime.now().isoformat(timespec="seconds")),
