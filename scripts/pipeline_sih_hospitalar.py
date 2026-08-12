@@ -70,6 +70,8 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _metricas_aih import CID10_CAPITULOS, capitulo as _capitulo
+
 from _supabase_key import chave_escrita
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -87,14 +89,6 @@ FTP_DIR = "/dissemin/publicos/SIHSUS/200801_/Dados"
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
 
-CID10_CAPITULOS = [
-    ("I","A00","B99"),("II","C00","D48"),("III","D50","D89"),("IV","E00","E90"),
-    ("V","F00","F99"),("VI","G00","G99"),("VII","H00","H59"),("VIII","H60","H95"),
-    ("IX","I00","I99"),("X","J00","J99"),("XI","K00","K93"),("XII","L00","L99"),
-    ("XIII","M00","M99"),("XIV","N00","N99"),("XV","O00","O99"),("XVI","P00","P96"),
-    ("XVII","Q00","Q99"),("XVIII","R00","R99"),("XIX","S00","T98"),("XX","V01","Y98"),
-    ("XXI","Z00","Z99"),("XXII","U00","U99"),
-]
 
 # faixa etária: (label, idade_min_anos, idade_max_anos_inclusive)
 FAIXAS = [
@@ -110,13 +104,6 @@ LOS_BINS = [
     (7, "61+", 61, None),
 ]
 LOS_MID = [0.5, 2.5, 5.5, 11, 18, 26, 45, 75]  # ponto médio p/ mediana aproximada
-
-
-def _capitulo(cid3: str) -> str:
-    for cap, ini, fim in CID10_CAPITULOS:
-        if ini <= cid3 <= fim:
-            return cap
-    return "N/D"
 
 
 def _faixa_etaria(idade_raw, cod_idade) -> int:

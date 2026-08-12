@@ -41,6 +41,9 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _metricas_aih import (CID10_CAPITULOS, aplica_metricas_por_episodio,
+                           capitulo as _capitulo)
+
 from _supabase_key import chave_escrita
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -58,14 +61,6 @@ FTP_DIR = "/dissemin/publicos/SIHSUS/200801_/Dados"
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
 
-CID10_CAPITULOS = [
-    ("I","A00","B99"),("II","C00","D48"),("III","D50","D89"),("IV","E00","E90"),
-    ("V","F00","F99"),("VI","G00","G99"),("VII","H00","H59"),("VIII","H60","H95"),
-    ("IX","I00","I99"),("X","J00","J99"),("XI","K00","K93"),("XII","L00","L99"),
-    ("XIII","M00","M99"),("XIV","N00","N99"),("XV","O00","O99"),("XVI","P00","P96"),
-    ("XVII","Q00","Q99"),("XVIII","R00","R99"),("XIX","S00","T98"),("XX","V01","Y98"),
-    ("XXI","Z00","Z99"),("XXII","U00","U99"),
-]
 
 # Agravos traçadores → conjuntos de CID-10 (3 caracteres)
 AGRAVOS: dict[str, set[str]] = {
@@ -113,13 +108,6 @@ CID2AGRAVO: dict[str, str] = {}
 for _k, _cids in AGRAVOS.items():
     for _c in _cids:
         CID2AGRAVO[_c] = _k
-
-
-def _capitulo(cid3: str) -> str:
-    for cap, ini, fim in CID10_CAPITULOS:
-        if ini <= cid3 <= fim:
-            return cap
-    return "N/D"
 
 
 def load_env() -> dict[str, str]:
@@ -272,13 +260,7 @@ def main() -> None:
     # Médias por episódio sobre a AIH normal (ver nota IDENT no cabeçalho). Os agravos
     # de saúde mental (depressão, esquizofrenia, álcool/drogas) são capítulo V — os mais
     # atingidos pelo fracionamento da internação longa em várias AIHs.
-    agravo["aih_normal"] = (agravo.internacoes - agravo.aih_continuacao).astype("int64")
-    # .where sem `other` zera para NaN e sobe para float64; .replace(0, pd.NA) daria
-    # dtype object com NAType e quebraria o .round() adiante.
-    _an = agravo["aih_normal"].where(agravo["aih_normal"] > 0)
-    agravo["permanencia_media"] = (agravo.dias_permanencia_normal / _an).round(1)
-    agravo["mortalidade_pct"] = (agravo.obitos / agravo.internacoes * 100).round(2)
-    agravo["custo_medio"] = (agravo.valor_normal / _an).round(2)
+    aplica_metricas_por_episodio(agravo, casas_permanencia=1)
     agravo["internacoes_100k"] = (agravo.internacoes / agravo.populacao * 100000).round(1)
     agravo["populacao"] = agravo["populacao"].astype("Int64")
     agravo = agravo[["municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
@@ -305,11 +287,7 @@ def main() -> None:
     hosp["ano"] = ano
     hosp = hosp.merge(mref, on="municipio_cod", how="left")
     hosp["uf_sigla"] = hosp["uf_sigla"].fillna("ND")
-    hosp["aih_normal"] = (hosp.internacoes - hosp.aih_continuacao).astype("int64")
-    _hn = hosp["aih_normal"].where(hosp["aih_normal"] > 0)
-    hosp["permanencia_media"] = (hosp.dias_permanencia_normal / _hn).round(1)
-    hosp["mortalidade_pct"] = (hosp.obitos / hosp.internacoes * 100).round(2)
-    hosp["custo_medio"] = (hosp.valor_normal / _hn).round(2)
+    aplica_metricas_por_episodio(hosp, casas_permanencia=1)
     hosp = hosp[["cnes", "municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
                  "capitulo_principal", "internacoes", "obitos", "dias_permanencia",
                  "valor_total", "aih_continuacao", "aih_normal", "dias_permanencia_normal",

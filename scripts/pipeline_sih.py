@@ -65,6 +65,9 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _metricas_aih import (CID10_CAPITULOS, MEDIDAS, aplica_metricas_por_episodio,
+                           capitulo as _capitulo)
+
 from _supabase_key import chave_escrita
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -82,22 +85,6 @@ FTP_DIR = "/dissemin/publicos/SIHSUS/200801_/Dados"
 
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
-
-CID10_CAPITULOS = [
-    ("I","A00","B99"),("II","C00","D48"),("III","D50","D89"),("IV","E00","E90"),
-    ("V","F00","F99"),("VI","G00","G99"),("VII","H00","H59"),("VIII","H60","H95"),
-    ("IX","I00","I99"),("X","J00","J99"),("XI","K00","K93"),("XII","L00","L99"),
-    ("XIII","M00","M99"),("XIV","N00","N99"),("XV","O00","O99"),("XVI","P00","P96"),
-    ("XVII","Q00","Q99"),("XVIII","R00","R99"),("XIX","S00","T98"),("XX","V01","Y98"),
-    ("XXI","Z00","Z99"),("XXII","U00","U99"),
-]
-
-
-def _capitulo(cid3: str) -> str:
-    for cap, ini, fim in CID10_CAPITULOS:
-        if ini <= cid3 <= fim:
-            return cap
-    return "N/D"
 
 
 def load_env() -> dict[str, str]:
@@ -212,8 +199,6 @@ def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     for a in anos:
         for uf in UFS:
             partes.append(_process_uf_ano(uf, a, workers))
-    MEDIDAS = ["internacoes", "obitos", "dias_permanencia", "valor_total",
-               "aih_continuacao", "dias_permanencia_normal", "valor_normal"]
     det = pd.concat(partes, ignore_index=True)
     det = (det.groupby(["municipio_cod", "ano", "capitulo_cid"], as_index=False)
            [MEDIDAS].sum())
@@ -235,13 +220,7 @@ def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     # fraciona uma internação longa em varias linhas e infla a média (cap. VI:
     # 10,98 vs. 6,21 dias). O volume (`internacoes`) segue sendo toda a produção
     # aprovada. Ver a nota sobre IDENT no cabeçalho do módulo.
-    mart["aih_normal"] = (mart["internacoes"] - mart["aih_continuacao"]).astype("int64")
-    # .where sem `other` zera para NaN e sobe para float64. Usar .replace(0, pd.NA)
-    # aqui devolveria dtype object com NAType, que quebra o .round() adiante.
-    denom = mart["aih_normal"].where(mart["aih_normal"] > 0)
-    mart["permanencia_media"] = (mart["dias_permanencia_normal"] / denom).round(2)
-    mart["mortalidade_pct"] = (mart["obitos"] / mart["internacoes"] * 100).round(2)
-    mart["custo_medio"] = (mart["valor_normal"] / denom).round(2)
+    aplica_metricas_por_episodio(mart, casas_permanencia=2)
     mart["internacoes_100k"] = None
     m_tot = mart["capitulo_cid"] == "TOTAL"
     mart.loc[m_tot, "internacoes_100k"] = (
