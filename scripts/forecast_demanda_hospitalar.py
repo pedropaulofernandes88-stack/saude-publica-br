@@ -23,6 +23,7 @@ Uso:
 """
 from __future__ import annotations
 
+import sys
 import argparse
 import json
 import os
@@ -34,6 +35,9 @@ import pandas as pd
 import requests
 
 from _supabase_key import chave_escrita
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"

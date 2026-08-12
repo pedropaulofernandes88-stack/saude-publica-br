@@ -1,8 +1,12 @@
 """Baixa as malhas municipais (qualidade mínima) das 27 UFs do IBGE e salva em
 site/public/sdata/malhas/{UF}.json — para o mapa não depender do IBGE em runtime."""
+import sys
 import json
 from pathlib import Path
 import requests
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]

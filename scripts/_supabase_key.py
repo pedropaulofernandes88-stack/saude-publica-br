@@ -22,7 +22,11 @@ publica, entao ler com service_role so aumentaria o estrago de um vazamento.
 """
 from __future__ import annotations
 
+import sys
 import os
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 VAR_ESCRITA = "SUPABASE_SERVICE_ROLE_KEY"
 VAR_LEITURA = "SUPABASE_ANON_KEY"

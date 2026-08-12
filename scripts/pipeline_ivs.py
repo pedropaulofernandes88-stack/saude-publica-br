@@ -21,6 +21,7 @@ Uso: .venv311/Scripts/python scripts/pipeline_ivs.py
 """
 from __future__ import annotations
 
+import sys
 import json
 import os
 import time
@@ -31,6 +32,9 @@ import pandas as pd
 import requests
 
 from _supabase_key import chave_escrita
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"

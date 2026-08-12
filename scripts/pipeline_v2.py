@@ -49,6 +49,9 @@ import requests
 from _supabase_key import chave_escrita
 from scipy.stats import gamma as gamma_dist
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parents[1]
 RAW = ROOT / "data" / "raw" / "SIM"
 RAW_DBC = RAW / "dbc"
@@ -72,6 +75,7 @@ def versao_dataset() -> str:
     except OSError:
         pass
     return "0.0.0"  # sem CHANGELOG legível: melhor um valor obviamente inválido
+
 
 S3_SIM = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SIM"
 FTP_HOST = "ftp.datasus.gov.br"

@@ -46,6 +46,7 @@ Uso:
 """
 from __future__ import annotations
 
+import sys
 import argparse
 import json
 import os
@@ -59,6 +60,9 @@ import requests
 from _supabase_key import chave_escrita
 from scipy.stats import gamma as gamma_dist
 from scipy.stats import poisson as poisson_dist
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"

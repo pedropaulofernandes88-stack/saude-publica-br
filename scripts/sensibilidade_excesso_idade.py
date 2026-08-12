@@ -20,12 +20,16 @@ Uso: .venv311/Scripts/python scripts/sensibilidade_excesso_idade.py
 """
 from __future__ import annotations
 
+import sys
 import os
 from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import requests
+
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"

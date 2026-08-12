@@ -39,6 +39,9 @@ import requests
 
 from _supabase_key import chave_escrita
 
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+
 ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
 MARTS_DIR = ROOT / "data" / "marts"
