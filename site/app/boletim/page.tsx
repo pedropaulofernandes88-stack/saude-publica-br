@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { IcsapPares } from "@/components/icsap-pares";
 import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Ivs, type LinhaMunicipio } from "@/lib/api";
+import { ehCodigoAgregado } from "@/lib/municipios";
 
 function SerieTaxas({ data }: { data: { ano: number; bruta: number | null; padronizada: number | null }[] }) {
   return (
@@ -102,6 +103,20 @@ function BoletimInner() {
         <p className="text-ink-700">
           Selecione um município no <Link href="/painel/" className="font-medium text-accent-700 underline">painel</Link>{" "}
           (clique no nome na tabela) para gerar o boletim.
+        </p>
+      </div>
+    );
+  }
+
+  // "UF0000" é o código que o SIM usa para óbito sem município identificado —
+  // existe no mart, mas não é um município e não rende boletim.
+  if (ehCodigoAgregado(cod)) {
+    return (
+      <div className="card mx-auto mt-10 max-w-xl text-center">
+        <p className="text-ink-700">
+          O código <span className="font-mono">{cod}</span> não é um município: o SIM o usa para
+          agrupar óbitos cujo município de residência não foi identificado. Escolha um município no{" "}
+          <Link href="/painel/" className="font-medium text-accent-700 underline">painel</Link>.
         </p>
       </div>
     );

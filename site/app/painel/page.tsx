@@ -18,6 +18,7 @@ import {
   type LinhaUfMes,
   type SerieTotalItem,
 } from "@/lib/api";
+import { particionarMunicipios } from "@/lib/municipios";
 
 type Sexo = "TOTAL" | "M" | "F";
 
@@ -132,10 +133,18 @@ export default function Painel() {
     return FAIXAS_ORDEM.filter((f) => por.has(f)).map((f) => ({ nome: f, obitos: por.get(f)! }));
   }, [faixas]);
 
+  // Códigos agregados "UF0000" (óbito sem município identificado) não são
+  // municípios: ficam fora da contagem, do ranking e do CSV, mas seus óbitos
+  // continuam visíveis para o total não se perder.
+  const particao = useMemo(
+    () => (municipios ? particionarMunicipios(municipios) : null),
+    [municipios],
+  );
+
   const ranking = useMemo(() => {
-    if (!municipios) return null;
+    if (!particao) return null;
     const q = busca.trim().toLowerCase();
-    return municipios
+    return particao.identificados
       .filter((m) => (m.populacao ?? 0) >= popMin || sexo !== "TOTAL")
       .filter((m) => !q || (m.municipio_nome ?? "").toLowerCase().includes(q))
       .sort((a, b) =>
@@ -146,7 +155,7 @@ export default function Painel() {
             : b.obitos - a.obitos,
       )
       .slice(0, 100);
-  }, [municipios, busca, popMin, ordenarPor, sexo]);
+  }, [particao, busca, popMin, ordenarPor, sexo]);
 
   const topCausas = useMemo(() => {
     if (!causas) return null;
@@ -239,7 +248,15 @@ export default function Painel() {
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <Kpi rotulo={`Óbitos em ${ano}`} valor={totalAno != null ? fmtInt(totalAno) : "…"} detalhe={capDesc} />
         <Kpi rotulo="Óbitos na série 2015–2024" valor={totalPeriodo != null ? fmtInt(totalPeriodo) : "…"} detalhe={uf === "Brasil" ? "Brasil" : uf} />
-        <Kpi rotulo="Municípios com registro" valor={municipios ? fmtInt(municipios.length) : "…"} detalhe={`no recorte selecionado, ${ano}`} />
+        <Kpi
+          rotulo="Municípios com registro"
+          valor={particao ? fmtInt(particao.identificados.length) : "…"}
+          detalhe={
+            particao && particao.obitosNaoIdentificados > 0
+              ? `no recorte selecionado, ${ano} · ${fmtInt(particao.obitosNaoIdentificados)} óbitos sem município identificado`
+              : `no recorte selecionado, ${ano}`
+          }
+        />
       </div>
 
       <div className="card mt-6">
