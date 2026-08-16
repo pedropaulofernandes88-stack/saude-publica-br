@@ -7,6 +7,7 @@ import {
   Cell,
   Line,
   LineChart,
+  ReferenceArea,
   ReferenceLine,
   ResponsiveContainer,
   Scatter,
@@ -93,21 +94,64 @@ function mesPt(iso: string): string {
   return d.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
 }
 
-export function SerieLinha({ data }: { data: { mes: string; obitos: number }[] }) {
+/**
+ * Série mensal de óbitos. `incompletos` marca os meses da cauda que ainda estão
+ * com registro parcial (atraso do SIM): eles são desenhados tracejados, sobre
+ * faixa sombreada, para não serem lidos como queda de mortalidade.
+ */
+export function SerieLinha({
+  data,
+  incompletos,
+}: {
+  data: { mes: string; obitos: number }[];
+  incompletos?: ReadonlySet<string>;
+}) {
+  const temIncompletos = !!incompletos?.size;
+
+  // Duas séries sobrepostas: a cheia vai até o último mês consolidado, a
+  // tracejada cobre a cauda parcial. As duas compartilham o mês de junção
+  // (o último completo) — sem isso a sólida atravessaria o trecho incompleto,
+  // que é justamente o que se quer evitar, e a tracejada ficaria com um ponto
+  // só, invisível.
+  const primeiroIncompleto = temIncompletos
+    ? data.findIndex((d) => incompletos!.has(d.mes))
+    : -1;
+  const juncao = primeiroIncompleto > 0 ? primeiroIncompleto - 1 : primeiroIncompleto;
+  const dados = data.map((d, i) => ({
+    ...d,
+    consolidado: primeiroIncompleto < 0 || i <= juncao ? d.obitos : null,
+    parcial: primeiroIncompleto >= 0 && i >= juncao ? d.obitos : null,
+  }));
+
   return (
     <ResponsiveContainer width="100%" height={320}>
-      <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
+      <LineChart data={dados} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey="mes" tick={AXIS} tickFormatter={mesPt} tickMargin={8} minTickGap={28} />
         <YAxis tick={AXIS} tickFormatter={compactPt} width={52} />
         <Tooltip
-          formatter={(v) => [fmtInt(v as number), "Óbitos"]}
+          formatter={(v, _n, item) => [
+            `${fmtInt(v as number)}${incompletos?.has(String(item?.payload?.mes)) ? " (parcial)" : ""}`,
+            "Óbitos",
+          ]}
           labelFormatter={(l) =>
             new Date(`${l}T00:00:00`).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })
           }
           contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
         />
-        <Line type="monotone" dataKey="obitos" stroke={ACCENT} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+        {primeiroIncompleto >= 0 && (
+          <ReferenceArea
+            x1={dados[juncao].mes}
+            x2={dados[dados.length - 1].mes}
+            fill="#8694ab"
+            fillOpacity={0.1}
+          />
+        )}
+        <Line type="monotone" dataKey="consolidado" stroke={ACCENT} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+        {temIncompletos && (
+          <Line type="monotone" dataKey="parcial" stroke={ACCENT} strokeWidth={2} strokeDasharray="5 4"
+                strokeOpacity={0.65} dot={false} activeDot={{ r: 4 }} />
+        )}
       </LineChart>
     </ResponsiveContainer>
   );

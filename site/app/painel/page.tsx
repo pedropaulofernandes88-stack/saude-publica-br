@@ -19,6 +19,7 @@ import {
   type SerieTotalItem,
 } from "@/lib/api";
 import { particionarMunicipios } from "@/lib/municipios";
+import { incompletosDe, notaCompletude, type ManifestoCompletude } from "@/lib/completude";
 
 type Sexo = "TOTAL" | "M" | "F";
 
@@ -30,6 +31,7 @@ export default function Painel() {
   const [capitulos, setCapitulos] = useState<CapituloCid[]>([]);
 
   const [serie, setSerie] = useState<{ mes: string; obitos: number }[] | null>(null);
+  const [completude, setCompletude] = useState<ManifestoCompletude | null>(null);
   const [faixas, setFaixas] = useState<LinhaUfMes[] | null>(null);
   const [municipios, setMunicipios] = useState<LinhaMunicipio[] | null>(null);
   const [causas, setCausas] = useState<CausaAgregada[] | null>(null);
@@ -42,6 +44,7 @@ export default function Painel() {
   const historico = ano < ANO_DETALHE; // grão reduzido: sexo/faixa só TOTAL
 
   useEffect(() => {
+    sdata<ManifestoCompletude>("completude").then(setCompletude).catch(() => {});
     sdata<CapituloCid[]>("capitulos")
       .catch(() =>
         rest<CapituloCid>("dim_cid10_capitulo", {
@@ -266,7 +269,15 @@ export default function Painel() {
         <p className="mt-1 text-sm text-ink-500">
           {capDesc}{sexo !== "TOTAL" ? ` · sexo ${sexo === "M" ? "masculino" : "feminino"}` : ""} · 2015–2024
         </p>
-        <div className="mt-4">{serie ? <SerieLinha data={serie} /> : <Skeleton />}</div>
+        <div className="mt-4">
+          {serie ? <SerieLinha data={serie} incompletos={incompletosDe(completude, uf)} /> : <Skeleton />}
+        </div>
+        {serie && notaCompletude(incompletosDe(completude, uf)) && (
+          <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-600">
+            <span className="font-medium text-ink-700">Trecho tracejado:</span>{" "}
+            {notaCompletude(incompletosDe(completude, uf))}
+          </p>
+        )}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">

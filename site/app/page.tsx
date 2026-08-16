@@ -5,9 +5,11 @@ import { useEffect, useState } from "react";
 import { SerieLinha } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
 import { fmtInt, sdata, type MetaItem, type SerieTotalItem } from "@/lib/api";
+import { incompletosDe, notaCompletude, type ManifestoCompletude } from "@/lib/completude";
 
 interface HomeData {
   serie: { mes: string; obitos: number }[];
+  incompletos: ReadonlySet<string>;
   total: number;
   municipios: number;
   geradoEm: string;
@@ -21,9 +23,10 @@ export default function Home() {
     (async () => {
       try {
         // dados estáticos gerados no build — nenhuma chamada ao banco
-        const [serieRaw, meta] = await Promise.all([
+        const [serieRaw, meta, completude] = await Promise.all([
           sdata<SerieTotalItem[]>("serie_total"),
           sdata<MetaItem[]>("meta"),
+          sdata<ManifestoCompletude>("completude").catch(() => null),
         ]);
         const serie = serieRaw
           .filter((r) => r.uf_sigla === "BR")
@@ -33,6 +36,7 @@ export default function Home() {
           meta.find((m) => m.chave === "gerado_em")?.valor.slice(0, 10) ?? "";
         setData({
           serie,
+          incompletos: incompletosDe(completude, "BR"),
           total: serie.reduce((s, r) => s + r.obitos, 0),
           municipios: 5571,
           geradoEm,
@@ -106,8 +110,14 @@ export default function Home() {
             <span className="text-xs text-ink-500">Fonte: SIM/DataSUS</span>
           </div>
           <div className="mt-4">
-            {data ? <SerieLinha data={data.serie} /> : <Skeleton />}
+            {data ? <SerieLinha data={data.serie} incompletos={data.incompletos} /> : <Skeleton />}
           </div>
+          {data && notaCompletude(data.incompletos) && (
+            <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-600">
+              <span className="font-medium text-ink-700">Trecho tracejado:</span>{" "}
+              {notaCompletude(data.incompletos)}
+            </p>
+          )}
         </div>
 
         {/* Três domínios */}

@@ -9,6 +9,7 @@
  */
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { construirManifesto } from "../lib/completude.ts";
 
 const URL =
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://zekjhmxjamatlxpkykde.supabase.co";
@@ -74,6 +75,17 @@ const excesso = await rest("mart_excesso_uf_mes", {
 });
 await writeFile(path.join(OUT, "excesso.json"), JSON.stringify(excesso));
 console.log(`[sdata]   ${excesso.length} linhas`);
+
+// Completude: quais meses da cauda ainda estao parciais por atraso de registro
+// do SIM. Mesma regra que o boletim ja usava (observado/esperado < 0,9), agora
+// como manifesto para os graficos poderem marcar o trecho incompleto.
+console.log("[sdata] completude da serie (meses com registro parcial)…");
+const completude = construirManifesto(excesso);
+await writeFile(path.join(OUT, "completude.json"), JSON.stringify(completude));
+console.log(
+  `[sdata]   BR: ${completude.BR.length} mes(es) incompleto(s)`
+  + `${completude.BR.length ? ` — ${completude.BR.join(", ")}` : ""}`,
+);
 
 console.log("[sdata] dengue — agregado por UF × ano × semana (server-side)…");
 try {
