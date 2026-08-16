@@ -37,7 +37,7 @@ export const metadata: Metadata = {
     siteName: "Saúde em Dado",
     title: "Saúde em Dado — Mortalidade no Brasil (SIM/DataSUS)",
     description:
-      "13M+ óbitos (2015–2024) em painéis navegáveis, mapa municipal, taxas padronizadas e API pública gratuita.",
+      "14,4 milhões de óbitos (2015–2024) em painéis navegáveis, mapa municipal, taxas padronizadas e API pública gratuita.",
   },
 };
 

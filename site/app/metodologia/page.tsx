@@ -1,6 +1,56 @@
 import type { Metadata } from "next";
+import { SECOES, gruposOrdenados, secao } from "@/lib/metodologia-secoes";
 
 export const metadata: Metadata = { title: "Metodologia" };
+
+/**
+ * Título de seção com âncora própria. O link "#" ao lado deixa o endereço
+ * copiável — é o que torna a seção citável isoladamente.
+ */
+function H2({ n }: { n: number }) {
+  const s = secao(n);
+  return (
+    <h2 id={s.slug} className="group scroll-mt-24">
+      {s.n}. {s.titulo}{" "}
+      <a
+        href={`#${s.slug}`}
+        aria-label={`Link permanente para a seção ${s.n}, ${s.titulo}`}
+        className="ml-1 text-ink-300 no-underline opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+      >
+        #
+      </a>
+    </h2>
+  );
+}
+
+function Sumario() {
+  return (
+    <nav aria-labelledby="sumario-titulo" className="sumario mt-8 rounded-lg border border-ink-200 bg-ink-50/60 p-5">
+      <h2 id="sumario-titulo" className="font-serif text-lg font-semibold text-ink-900">
+        Nesta página
+      </h2>
+      <p className="mt-1 text-xs text-ink-500">
+        {SECOES.length} seções. Cada título tem link permanente — use-o para citar a seção.
+      </p>
+      <div className="mt-4 grid gap-x-8 gap-y-4 sm:grid-cols-2">
+        {gruposOrdenados().map(({ grupo, secoes }) => (
+          <div key={grupo}>
+            <p className="text-xs font-semibold uppercase tracking-wider text-accent-700">{grupo}</p>
+            <ul className="mt-1 space-y-1">
+              {secoes.map((s) => (
+                <li key={s.slug} className="text-sm leading-snug">
+                  <a href={`#${s.slug}`} className="text-ink-700 hover:text-accent-700">
+                    <span className="tabular-nums text-ink-400">{s.n}.</span> {s.titulo}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    </nav>
+  );
+}
 
 export default function Metodologia() {
   return (
@@ -17,7 +67,9 @@ export default function Metodologia() {
         de internação por agravo/hospital.
       </p>
 
-      <h2>1. Fontes de dados</h2>
+      <Sumario />
+
+      <H2 n={1} />
       <ul>
         <li>
           <strong>Óbitos 2022–2024</strong> — SIM/DataSUS, CSVs nacionais do{" "}
@@ -28,7 +80,7 @@ export default function Metodologia() {
           <strong>Óbitos 2015–2021</strong> — SIM/DataSUS, arquivos <code>.dbc</code> por
           UF/ano do FTP oficial (<code>SIM/CID10/DORES</code>), convertidos com a
           biblioteca aberta <code>datasus-dbc</code>. Total da série:{" "}
-          <strong>mais de 13 milhões de óbitos não fetais</strong>.
+          <strong>14.378.827 óbitos não fetais</strong>.
         </li>
         <li>
           <strong>População total</strong> — IBGE: Estimativas anuais (SIDRA t/6579),
@@ -47,7 +99,7 @@ export default function Metodologia() {
         </li>
       </ul>
 
-      <h2>2. Critérios de inclusão e derivações</h2>
+      <H2 n={2} />
       <ul>
         <li>Óbitos fetais excluídos (<code>TIPOBITO=1</code>), convenção de mortalidade geral;</li>
         <li>Município de <strong>residência</strong> do falecido (<code>CODMUNRES</code>);</li>
@@ -61,7 +113,7 @@ export default function Metodologia() {
         <li>Dados de 2024 <strong>preliminares</strong>, sujeitos a revisão pelo MS.</li>
       </ul>
 
-      <h2>3. Granularidade por período</h2>
+      <H2 n={3} />
       <p>
         Para caber em infraestrutura gratuita sem sacrificar o essencial, a base
         publica <strong>detalhe demográfico completo a partir de 2022</strong>{" "}
@@ -70,7 +122,7 @@ export default function Metodologia() {
         marts de causa (3 caracteres) e as séries mensais por UF cobrem todos os anos.
       </p>
 
-      <h2>4. Taxa padronizada por idade</h2>
+      <H2 n={4} />
       <p>
         Método <strong>direto</strong>: a taxa específica de cada faixa etária do
         município é ponderada pela estrutura etária de uma população padrão —
@@ -88,7 +140,7 @@ export default function Metodologia() {
         <li>Calculada para o total de causas (capítulo = TOTAL, sexo = total).</li>
       </ul>
 
-      <h2>5. Intervalos de confiança (IC95%)</h2>
+      <H2 n={5} />
       <p>
         A taxa bruta acompanha IC95% pelo método <strong>gamma (Poisson exato)</strong>:
         limite inferior = <code>qgamma(0,025; d)/pop</code>, superior ={" "}
@@ -97,7 +149,7 @@ export default function Metodologia() {
         leituras indevidas de taxas instáveis.
       </p>
 
-      <h2>6. Excesso de mortalidade</h2>
+      <H2 n={6} />
       <p>
         Para cada UF (e Brasil), o <strong>esperado</strong> do mês <em>m</em> do ano{" "}
         <em>a</em> vem de uma <strong>tendência linear ajustada ao período 2015–2019</strong>,
@@ -141,7 +193,7 @@ export default function Metodologia() {
         depende do denominador. Scripts e séries de ambas as análises estão no repositório.
       </p>
 
-      <h2>7. Validação automática</h2>
+      <H2 n={7} />
       <ul>
         <li>Totais anuais conferidos contra os volumes oficiais do SIM (ex.: 2015 = 1.264.175; 2022 ≈ 1,54M);</li>
         <li>Subtotais (linhas TOTAL) conciliáveis com qualquer recorte da API;</li>
@@ -149,7 +201,7 @@ export default function Metodologia() {
         <li>Checagens executadas também em CI (GitHub Actions) a cada atualização.</li>
       </ul>
 
-      <h2>8. Limitações conhecidas</h2>
+      <H2 n={8} />
       <ul>
         <li>Qualidade de registro e cobertura do SIM variam regionalmente e melhoraram ao longo do tempo — parte das tendências longas reflete melhora de captação;</li>
         <li>Garbage codes (ex.: R99) não são redistribuídos entre causas;</li>
@@ -158,7 +210,7 @@ export default function Metodologia() {
         <li>2024 preliminar; revisões do MS alteram os números do último ano.</li>
       </ul>
 
-      <h2>9. Dengue (SINAN)</h2>
+      <H2 n={9} />
       <ul>
         <li>
           <strong>Fonte</strong>: SINAN/DataSUS, arquivos nacionais <code>DENGBR{"{AA}"}.dbc</code>
@@ -185,7 +237,7 @@ export default function Metodologia() {
         <li>Em anos recentes a classificação ainda está em andamento, o que pode reduzir descartes.</li>
       </ul>
 
-      <h2>10. Internações hospitalares (SIH/AIH)</h2>
+      <H2 n={10} />
       <ul>
         <li>
           <strong>Fonte</strong>: SIH/DataSUS, arquivos <code>RD{"{UF}{AAMM}"}.dbc</code>
@@ -265,7 +317,7 @@ export default function Metodologia() {
         </li>
       </ul>
 
-      <h2>11. Vulnerabilidade social (proxy, Censo 2022)</h2>
+      <H2 n={11} />
       <p>
         Para permitir cruzar saúde com desigualdade, calculamos um{" "}
         <strong>índice-proxy de vulnerabilidade social</strong> por município, a
@@ -293,7 +345,7 @@ export default function Metodologia() {
         Incorporar o IVS oficial do IPEA está no roadmap.
       </p>
 
-      <h2>12. Internações evitáveis (ICSAP) e fluxo de pacientes</h2>
+      <H2 n={12} />
       <ul>
         <li>
           <strong>ICSAP</strong> — Internações por Condições Sensíveis à Atenção Primária:
@@ -333,7 +385,7 @@ export default function Metodologia() {
         </li>
       </ul>
 
-      <h2>13. Agravos traçadores e visão hospitalar (SIH 2024)</h2>
+      <H2 n={13} />
       <p>
         Além do recorte por capítulo, isolamos <strong>condições traçadoras</strong> no nível de
         CID-10 de 3 caracteres (diagnóstico principal), com internações, óbitos, permanência e
@@ -358,7 +410,7 @@ export default function Metodologia() {
         deriva de forma confiável da AIH (exigiria o cadastro de leitos do CNES).
       </p>
 
-      <h2>14. Mortalidade ajustada (HSMR), permanência esperada e projeção de demanda</h2>
+      <H2 n={14} />
       <p>
         Página <a href="/hospitalar/">Visão hospitalar</a>. Três indicadores adicionais por
         estabelecimento (CNES), a partir do mesmo SIH 2024 já usado nas seções 10–13.
@@ -479,7 +531,7 @@ export default function Metodologia() {
         pareça precisa sem sustentação nos dados abertos.
       </p>
 
-      <h2>15. Cobertura da Atenção Primária (e-Gestor AB)</h2>
+      <H2 n={15} />
       <p>
         Página <a href="/atencao-basica/">Atenção Primária</a>. Publicamos a{" "}
         <strong>cobertura potencial da APS</strong> por município e mês, de janeiro de 2021 à
@@ -610,7 +662,7 @@ export default function Metodologia() {
         , cap. ANS.
       </p>
 
-      <h2>16. Arquétipos de saúde municipal (k-means)</h2>
+      <H2 n={16} />
       <p>
         Agrupamos municípios (população ≥ 20 mil) em cinco perfis por <strong>k-means</strong>
         sobre três dimensões padronizadas por z-score: mortalidade padronizada por idade (2023),
@@ -626,7 +678,7 @@ export default function Metodologia() {
         levantar hipóteses, não para inferir risco individual.
       </p>
 
-      <h2>17. Distância até os pares em internações evitáveis (ICSAP)</h2>
+      <H2 n={17} />
       <p>
         Traduz o indicador ICSAP na pergunta que um gestor de fato faz: <em>quanto
         estou acima de municípios comparáveis, e o que isso representa?</em>
@@ -694,7 +746,7 @@ export default function Metodologia() {
         municipal e na ferramenta MCP <code>icsap_distancia_dos_pares</code>.
       </p>
 
-      <h2>18. Estabelecimentos de saúde (CNES)</h2>
+      <H2 n={18} />
       <p>
         Exibido como KPI no <a href="/mapa/">mapa</a>. É a primeira camada de{" "}
         <strong>oferta</strong> da plataforma: até aqui todos os indicadores contavam{" "}
@@ -779,7 +831,7 @@ export default function Metodologia() {
         Reprodutível em <code>scripts/pipeline_cnes_leitos.py</code>.
       </p>
 
-      <h2>19. Leitos × ICSAP: o indicador responde à oferta hospitalar</h2>
+      <H2 n={19} />
       <p>
         Com a camada de leitos (§18) foi possível testar uma advertência que esta
         metodologia carregava desde o início <em>sem nunca ter sido medida</em>: a de que
@@ -845,7 +897,7 @@ export default function Metodologia() {
         <code>mart_leitos_icsap_municipio</code>.
       </p>
 
-      <h2>20. Vazio assistencial e mortalidade: um achado nulo, testado a fundo</h2>
+      <H2 n={20} />
       <p>
         1.994 municípios (35,8% em 2023) não têm nenhum leito hospitalar local. A pergunta
         óbvia — isso mata mais gente? — exige separar duas hipóteses com implicações opostas:
@@ -887,7 +939,7 @@ export default function Metodologia() {
         <code>mart_vazio_assistencial_municipio</code>.
       </p>
 
-      <h2>21. Gasto público em saúde (SIOPS) × ICSAP: o quarto achado nulo</h2>
+      <H2 n={21} />
       <p>
         Até aqui a plataforma media <em>desfecho</em> (mortalidade, ICSAP, HSMR) e{" "}
         <em>oferta física</em> (leitos), nunca o <strong>insumo financeiro</strong>. O{" "}
@@ -943,7 +995,7 @@ export default function Metodologia() {
         , cap. SIOPS.
       </p>
 
-      <h2>22. Privacidade e células de contagem pequena</h2>
+      <H2 n={22} />
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas
