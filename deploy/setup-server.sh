@@ -93,16 +93,17 @@ cd "$APP_DIR"
 
 # Criar .env com valores gerados automaticamente
 if [ ! -f "$APP_DIR/.env" ]; then
-    cp "$APP_DIR/deploy/.env.production" "$APP_DIR/.env"
+    cp "$APP_DIR/deploy/.env.production.example" "$APP_DIR/.env"
     # Gerar senhas seguras
     POSTGRES_PASSWORD=$(openssl rand -hex 16)
     API_SECRET_KEY=$(openssl rand -hex 32)
     JWT_SECRET_KEY=$(openssl rand -hex 32)
     GRAFANA_PASSWORD=$(openssl rand -hex 8)
     sed -i "s/GERE_COM_openssl_rand_hex_16/$POSTGRES_PASSWORD/g" "$APP_DIR/.env"
-    sed -i "s/GERE_COM_openssl_rand_hex_32/$API_SECRET_KEY/g" "$APP_DIR/.env"
-    # A segunda ocorrência de hex_32 (JWT)
-    sed -i "0,/GERE_COM_openssl_rand_hex_32/! s/GERE_COM_openssl_rand_hex_32/$JWT_SECRET_KEY/" "$APP_DIR/.env"
+    # Ancorar no nome da variavel: API e JWT compartilham o mesmo placeholder e um
+    # s///g casaria as duas ocorrencias com a mesma chave.
+    sed -i "s|^API_SECRET_KEY=.*|API_SECRET_KEY=$API_SECRET_KEY|" "$APP_DIR/.env"
+    sed -i "s|^JWT_SECRET_KEY=.*|JWT_SECRET_KEY=$JWT_SECRET_KEY|" "$APP_DIR/.env"
     sed -i "s/TROQUE_ESTA_SENHA_DO_GRAFANA/$GRAFANA_PASSWORD/g" "$APP_DIR/.env"
     sed -i "s/MESMA_SENHA_ACIMA/$POSTGRES_PASSWORD/g" "$APP_DIR/.env"
     # Salvar as senhas geradas

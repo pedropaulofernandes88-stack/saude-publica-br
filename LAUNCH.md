@@ -89,18 +89,23 @@ git push -u origin main
 
 ## Passo 5 — Preencher variáveis de ambiente (5 min)
 
-Copie o arquivo `deploy/.env.production` para o servidor **ou** preencha-o localmente:
+Copie o template `deploy/.env.production.example` para o servidor **ou** preencha-o
+localmente. Sempre edite a **cópia** (`.env`), nunca o template versionado:
 
 ```bash
-cp deploy/.env.production .env
+cp deploy/.env.production.example .env
 nano .env  # ou use seu editor favorito
 ```
 
 Preencha obrigatoriamente:
-- `SUPABASE_URL`, `SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`
-- `DATABASE_URL` (string de conexão do Supabase)
-- `API_SECRET_KEY` e `JWT_SECRET_KEY` (rode `openssl rand -hex 32` para cada)
-- `GF_SECURITY_ADMIN_PASSWORD` (senha para o Grafana)
+- `POSTGRES_PASSWORD` (rode `openssl rand -hex 16`) e repita o mesmo valor dentro de
+  `DATABASE_URL` e `DATABASE_URL_LOCAL`
+- `API_SECRET_KEY` e `JWT_SECRET_KEY` (rode `openssl rand -hex 32` para cada — use
+  valores **diferentes**)
+- `GRAFANA_ADMIN_PASSWORD` (senha para o Grafana)
+
+> O Passo 6 (`deploy/setup-server.sh`) já gera e substitui todos esses valores
+> automaticamente — preencher à mão só é necessário em instalação manual.
 
 ---
 
