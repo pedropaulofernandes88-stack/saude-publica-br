@@ -50,7 +50,10 @@ const DATASET_JSONLD = {
     "Indicadores agregados de saúde no Brasil a partir dos microdados do DataSUS: mortalidade (SIM) com taxas padronizadas por idade, IC95% e excesso de mortalidade; dengue (SINAN) com incidência e gravidade; internações SUS (SIH) com permanência, custo e mortalidade hospitalar. Por município, ano e CID-10. População IBGE.",
   url: "https://saudeemdado.com",
   sameAs: "https://github.com/pedropaulofernandes88-stack/saude-publica-br",
-  license: "https://creativecommons.org/publicdomain/mark/1.0/",
+  // Os microdados de origem sao de dominio publico, mas o que este Dataset
+  // distribui sao os agregados derivados — CC BY 4.0, como dizem /dados/ e
+  // /sobre/. Declarar Public Domain Mark aqui contradizia as duas paginas.
+  license: "https://creativecommons.org/licenses/by/4.0/",
   isAccessibleForFree: true,
   creator: { "@type": "Person", name: "Pedro Paulo Fernandes" },
   temporalCoverage: "2015-01-01/2024-12-31",

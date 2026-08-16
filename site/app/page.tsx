@@ -176,11 +176,11 @@ export default function Home() {
           </p>
           <pre className="mt-4 overflow-x-auto rounded-lg bg-black/40 p-4 text-xs leading-relaxed">
 {`BRASIL. Ministério da Saúde. Sistema de Informações sobre Mortalidade (SIM).
-Microdados abertos, OpenDataSUS, 2022–2024.
+Microdados abertos, OpenDataSUS, 2015–2024.
 
 IBGE. Censo Demográfico 2022 e Estimativas de População. SIDRA.
 
-Saúde Pública BR: plataforma aberta de indicadores de mortalidade.
+Saúde em Dado: plataforma aberta de indicadores de saúde pública.
 Pipeline e agregações disponíveis em código aberto (MIT).`}
           </pre>
         </div>
