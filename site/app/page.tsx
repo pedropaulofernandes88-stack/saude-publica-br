@@ -110,7 +110,7 @@ export default function Home() {
             <span className="text-xs text-ink-500">Fonte: SIM/DataSUS</span>
           </div>
           <div className="mt-4">
-            {data ? <SerieLinha data={data.serie} incompletos={data.incompletos} /> : <Skeleton />}
+            {data ? <SerieLinha data={data.serie} incompletos={data.incompletos} titulo="Óbitos mensais no Brasil — todas as causas" /> : <Skeleton />}
           </div>
           {data && notaCompletude(data.incompletos) && (
             <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-600">

@@ -285,7 +285,7 @@ export default function Internacoes() {
 
       <div className="card mt-6">
         <h2 className="font-serif text-xl font-semibold text-ink-900">Internações por capítulo CID-10 ({ano})</h2>
-        <div className="mt-4">{porCap ? <Barras data={porCap} horizontal altura={320} /> : <Skeleton altura={320} />}</div>
+        <div className="mt-4">{porCap ? <Barras data={porCap} horizontal altura={320} titulo={`Internações por capítulo CID-10 (${ano})`} unidade="Internações" /> : <Skeleton altura={320} />}</div>
         <div className="mt-3 grid gap-1 text-xs text-ink-500 sm:grid-cols-2">
           {porCap?.slice(0, 6).map((c) => {
             const d = capsDim.find((x) => x.capitulo === c.nome);

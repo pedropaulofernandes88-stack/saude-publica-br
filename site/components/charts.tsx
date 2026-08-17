@@ -19,6 +19,71 @@ import {
 } from "recharts";
 import { fmtDec, fmtInt } from "@/lib/api";
 
+/**
+ * Envelope de acessibilidade dos gráficos.
+ *
+ * Um SVG do Recharts é inerte para tecnologia assistiva: sem role, sem nome e
+ * sem alternativa. Aqui o gráfico vira uma imagem com nome e resumo, e os
+ * números que ele desenha ficam disponíveis numa tabela — que serve tanto ao
+ * leitor de tela quanto a quem só quer o valor exato sem passar o mouse.
+ */
+function Grafico({
+  titulo,
+  resumo,
+  colunas,
+  linhas,
+  children,
+}: {
+  titulo: string;
+  resumo: string;
+  colunas: string[];
+  linhas: (string | number)[][];
+  children: React.ReactNode;
+}) {
+  return (
+    <figure className="m-0">
+      <div role="img" aria-label={`${titulo}. ${resumo}`}>
+        {children}
+      </div>
+      <details className="grafico-dados mt-2 text-xs">
+        <summary className="cursor-pointer text-ink-500 hover:text-accent-700">
+          Ver os dados em tabela ({linhas.length} {linhas.length === 1 ? "linha" : "linhas"})
+        </summary>
+        <div className="mt-2 max-h-72 overflow-auto rounded border border-ink-200">
+          <table className="w-full border-collapse text-left">
+            <caption className="sr-only">{titulo} — dados do gráfico</caption>
+            <thead className="sticky top-0 bg-ink-50">
+              <tr>
+                {colunas.map((c) => (
+                  <th key={c} scope="col" className="border-b border-ink-200 px-3 py-1.5 font-semibold text-ink-800">
+                    {c}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map((l, i) => (
+                <tr key={i}>
+                  {l.map((v, j) => (
+                    <td key={j} className="border-b border-ink-100 px-3 py-1 tabular-nums text-ink-700">
+                      {v}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </details>
+    </figure>
+  );
+}
+
+/** Extremos de uma série, para o resumo textual. */
+function extremos(vals: number[]): { min: number; max: number } {
+  return { min: Math.min(...vals), max: Math.max(...vals) };
+}
+
 const CORES_REGIAO: Record<string, string> = {
   Norte: "#1f9e8a",
   Nordeste: "#e07a1f",
@@ -29,10 +94,31 @@ const CORES_REGIAO: Record<string, string> = {
 
 export function DispersaoVulnMort({
   data,
+  titulo = "Vulnerabilidade social × mortalidade padronizada",
 }: {
   data: { ivs: number; taxa_pad: number; pop: number; nome: string | null; uf: string; regiao: string | null }[];
+  titulo?: string;
 }) {
+  const resumo = data.length
+    ? `Gráfico de dispersão com ${fmtInt(data.length)} municípios. Eixo horizontal: vulnerabilidade social`
+      + ` (proxy de 0 a 100); eixo vertical: taxa de mortalidade padronizada por 100 mil; o tamanho do ponto`
+      + ` é a população e a cor, a região.`
+    : "Sem dados no recorte selecionado.";
+
   return (
+    <Grafico
+      titulo={titulo}
+      resumo={resumo}
+      colunas={["Município", "UF", "Região", "Vulnerabilidade", "Taxa padroniz. /100 mil", "População"]}
+      linhas={data.map((d) => [
+        d.nome ?? "—",
+        d.uf,
+        d.regiao ?? "—",
+        fmtDec(d.ivs, 0),
+        fmtDec(d.taxa_pad, 0),
+        fmtInt(d.pop),
+      ])}
+    >
     <ResponsiveContainer width="100%" height={420}>
       <ScatterChart margin={{ top: 8, right: 16, bottom: 18, left: 8 }}>
         <CartesianGrid stroke="#eceef2" />
@@ -77,6 +163,7 @@ export function DispersaoVulnMort({
         </Scatter>
       </ScatterChart>
     </ResponsiveContainer>
+    </Grafico>
   );
 }
 
@@ -102,9 +189,11 @@ function mesPt(iso: string): string {
 export function SerieLinha({
   data,
   incompletos,
+  titulo = "Série mensal de óbitos",
 }: {
   data: { mes: string; obitos: number }[];
   incompletos?: ReadonlySet<string>;
+  titulo?: string;
 }) {
   const temIncompletos = !!incompletos?.size;
 
@@ -123,7 +212,26 @@ export function SerieLinha({
     parcial: primeiroIncompleto >= 0 && i >= juncao ? d.obitos : null,
   }));
 
+  const { min, max } = extremos(data.map((d) => d.obitos));
+  const resumo = data.length
+    ? `Série mensal com ${data.length} pontos, de ${mesPt(data[0].mes)} a ${mesPt(data[data.length - 1].mes)}.`
+      + ` Mínimo ${fmtInt(min)}, máximo ${fmtInt(max)} óbitos.`
+      + (temIncompletos
+        ? ` Os ${incompletos!.size} últimos meses têm registro incompleto e aparecem tracejados.`
+        : "")
+    : "Sem dados no recorte selecionado.";
+
   return (
+    <Grafico
+      titulo={titulo}
+      resumo={resumo}
+      colunas={["Mês", "Óbitos", "Situação"]}
+      linhas={data.map((d) => [
+        mesPt(d.mes),
+        fmtInt(d.obitos),
+        incompletos?.has(d.mes) ? "parcial" : "consolidado",
+      ])}
+    >
     <ResponsiveContainer width="100%" height={320}>
       <LineChart data={dados} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
         <CartesianGrid stroke={GRID} vertical={false} />
@@ -154,12 +262,31 @@ export function SerieLinha({
         )}
       </LineChart>
     </ResponsiveContainer>
+    </Grafico>
   );
 }
 
 /** Série mensal de cobertura da APS (%), com linha de referência em 100%. */
-export function SerieCobertura({ data }: { data: { mes: string; cobertura: number }[] }) {
+export function SerieCobertura({
+  data,
+  titulo = "Cobertura potencial da Atenção Primária",
+}: {
+  data: { mes: string; cobertura: number }[];
+  titulo?: string;
+}) {
+  const { min, max } = data.length ? extremos(data.map((d) => d.cobertura)) : { min: 0, max: 0 };
+  const resumo = data.length
+    ? `Série mensal com ${data.length} pontos, de ${mesPt(data[0].mes)} a ${mesPt(data[data.length - 1].mes)}.`
+      + ` Cobertura entre ${fmtDec(min, 1)}% e ${fmtDec(max, 1)}%, com linha de referência em 100%.`
+    : "Sem dados no recorte selecionado.";
+
   return (
+    <Grafico
+      titulo={titulo}
+      resumo={resumo}
+      colunas={["Mês", "Cobertura (%)"]}
+      linhas={data.map((d) => [mesPt(d.mes), `${fmtDec(d.cobertura, 1)}%`])}
+    >
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
         <CartesianGrid stroke={GRID} vertical={false} />
@@ -177,15 +304,36 @@ export function SerieCobertura({ data }: { data: { mes: string; cobertura: numbe
         <Line type="monotone" dataKey="cobertura" stroke={ACCENT} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
       </LineChart>
     </ResponsiveContainer>
+    </Grafico>
   );
 }
 
 export function LinhasExcesso({
   data,
+  titulo = "Óbitos observados vs. esperados",
 }: {
   data: { mes: string; obitos: number; esperado: number }[];
+  titulo?: string;
 }) {
+  const acima = data.filter((d) => d.obitos > d.esperado).length;
+  const resumo = data.length
+    ? `Duas séries mensais com ${data.length} pontos, de ${mesPt(data[0].mes)} a ${mesPt(data[data.length - 1].mes)}:`
+      + ` óbitos observados e o esperado pelo baseline 2015–2019.`
+      + ` O observado supera o esperado em ${acima} dos ${data.length} meses.`
+    : "Sem dados no recorte selecionado.";
+
   return (
+    <Grafico
+      titulo={titulo}
+      resumo={resumo}
+      colunas={["Mês", "Observado", "Esperado", "Diferença"]}
+      linhas={data.map((d) => [
+        mesPt(d.mes),
+        fmtInt(d.obitos),
+        fmtInt(Math.round(d.esperado)),
+        `${d.obitos >= d.esperado ? "+" : ""}${fmtInt(Math.round(d.obitos - d.esperado))}`,
+      ])}
+    >
     <ResponsiveContainer width="100%" height={340}>
       <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
         <CartesianGrid stroke={GRID} vertical={false} />
@@ -202,6 +350,7 @@ export function LinhasExcesso({
         <Line type="monotone" dataKey="obitos" stroke="#b4232a" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
       </LineChart>
     </ResponsiveContainer>
+    </Grafico>
   );
 }
 
@@ -210,40 +359,60 @@ export function Barras({
   cor = ACCENT,
   altura = 300,
   horizontal = false,
+  titulo = "Distribuição por categoria",
+  unidade = "Óbitos",
 }: {
   data: { nome: string; obitos: number }[];
   cor?: string;
   altura?: number;
   horizontal?: boolean;
+  titulo?: string;
+  /** Rótulo da grandeza medida — nem todo uso deste gráfico é de óbitos. */
+  unidade?: string;
 }) {
-  if (horizontal) {
-    return (
+  const { min, max } = data.length ? extremos(data.map((d) => d.obitos)) : { min: 0, max: 0 };
+  const maior = data.length ? data.reduce((a, b) => (b.obitos > a.obitos ? b : a)) : null;
+  const resumo = data.length
+    ? `Gráfico de barras com ${data.length} categorias. Maior: ${maior!.nome}, ${fmtInt(max)}.`
+      + ` Menor valor ${fmtInt(min)}. Unidade: ${unidade.toLowerCase()}.`
+    : "Sem dados no recorte selecionado.";
+
+  const grafico = horizontal ? (
       <ResponsiveContainer width="100%" height={altura}>
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 8 }}>
           <CartesianGrid stroke={GRID} horizontal={false} />
           <XAxis type="number" tick={AXIS} tickFormatter={compactPt} />
           <YAxis type="category" dataKey="nome" tick={{ ...AXIS, fill: INK }} width={88} />
           <Tooltip
-            formatter={(v) => [fmtInt(v as number), "Óbitos"]}
+            formatter={(v) => [fmtInt(v as number), unidade]}
             contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
           />
           <Bar dataKey="obitos" fill={cor} radius={[0, 4, 4, 0]} barSize={18} />
         </BarChart>
       </ResponsiveContainer>
-    );
-  }
-  return (
+  ) : (
     <ResponsiveContainer width="100%" height={altura}>
       <BarChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
         <CartesianGrid stroke={GRID} vertical={false} />
         <XAxis dataKey="nome" tick={AXIS} tickMargin={6} interval={0} angle={data.length > 10 ? -35 : 0} textAnchor={data.length > 10 ? "end" : "middle"} height={data.length > 10 ? 56 : 30} />
         <YAxis tick={AXIS} tickFormatter={compactPt} width={52} />
         <Tooltip
-          formatter={(v) => [fmtInt(v as number), "Óbitos"]}
+          formatter={(v) => [fmtInt(v as number), unidade]}
           contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
         />
         <Bar dataKey="obitos" fill={cor} radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
+  );
+
+  return (
+    <Grafico
+      titulo={titulo}
+      resumo={resumo}
+      colunas={["Categoria", unidade]}
+      linhas={data.map((d) => [d.nome, fmtInt(d.obitos)])}
+    >
+      {grafico}
+    </Grafico>
   );
 }

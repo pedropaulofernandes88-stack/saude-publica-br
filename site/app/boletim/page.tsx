@@ -204,7 +204,7 @@ function BoletimInner() {
             <h2 className="font-serif text-xl font-semibold text-ink-900">
               Principais grupos de causas ({atual.ano})
             </h2>
-            <div className="mt-4">{capChart ? <Barras data={capChart} horizontal altura={300} /> : <Skeleton altura={300} />}</div>
+            <div className="mt-4">{capChart ? <Barras data={capChart} horizontal altura={300} titulo={`Principais grupos de causas (${atual.ano})`} /> : <Skeleton altura={300} />}</div>
             <div className="mt-3 grid gap-1 text-xs text-ink-500 sm:grid-cols-2">
               {capChart?.map((c) => {
                 const d = capsDim.find((x) => x.capitulo === c.nome);

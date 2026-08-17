@@ -170,7 +170,7 @@ export default function AtencaoBasica() {
                     <p className="label mb-2">
                       {sel.nome} · {sel.uf} — cobertura potencial mensal (2021–2026)
                     </p>
-                    <SerieCobertura data={serieChart} />
+                    <SerieCobertura data={serieChart} titulo={`${sel.nome} · ${sel.uf} — cobertura potencial mensal`} />
                   </div>
                 </>
               )

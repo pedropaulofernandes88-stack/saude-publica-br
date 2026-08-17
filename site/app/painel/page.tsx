@@ -270,7 +270,7 @@ export default function Painel() {
           {capDesc}{sexo !== "TOTAL" ? ` · sexo ${sexo === "M" ? "masculino" : "feminino"}` : ""} · 2015–2024
         </p>
         <div className="mt-4">
-          {serie ? <SerieLinha data={serie} incompletos={incompletosDe(completude, uf)} /> : <Skeleton />}
+          {serie ? <SerieLinha data={serie} incompletos={incompletosDe(completude, uf)} titulo={`Evolução mensal — ${uf === "Brasil" ? "Brasil" : uf}`} /> : <Skeleton />}
         </div>
         {serie && notaCompletude(incompletosDe(completude, uf)) && (
           <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-600">
@@ -284,13 +284,13 @@ export default function Painel() {
         <div className="card">
           <h2 className="font-serif text-xl font-semibold text-ink-900">Distribuição etária ({ano})</h2>
           {historico && <p className="mt-1 text-xs text-ink-500">No grão histórico, sempre todas as causas.</p>}
-          <div className="mt-4">{faixaChart ? <Barras data={faixaChart} /> : <Skeleton altura={300} />}</div>
+          <div className="mt-4">{faixaChart ? <Barras data={faixaChart} titulo={`Distribuição etária (${ano})`} /> : <Skeleton altura={300} />}</div>
         </div>
         <div className="card">
           <h2 className="font-serif text-xl font-semibold text-ink-900">15 principais causas básicas ({ano})</h2>
           <p className="mt-1 text-xs text-ink-500">Categorias CID-10 (3 caracteres), independentes do filtro de capítulo/sexo.</p>
           <div className="mt-4">
-            {topCausas ? <Barras data={topCausas} horizontal altura={360} /> : <Skeleton altura={360} />}
+            {topCausas ? <Barras data={topCausas} horizontal altura={360} titulo={`15 principais causas básicas (${ano})`} /> : <Skeleton altura={360} />}
           </div>
         </div>
       </div>

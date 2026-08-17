@@ -96,7 +96,7 @@ export default function Nascimentos() {
           Taxa de Mortalidade Infantil por UF ({Math.min(ano, 2022)})
         </h2>
         <p className="mt-1 text-sm text-ink-500">Óbitos de menores de 1 ano por mil nascidos vivos. Disponível até 2022.</p>
-        <div className="mt-4">{tmiUf ? <Barras data={tmiUf} horizontal altura={460} cor="#b4232a" /> : <Skeleton altura={460} />}</div>
+        <div className="mt-4">{tmiUf ? <Barras data={tmiUf} horizontal altura={460} cor="#b4232a" titulo={`Taxa de Mortalidade Infantil por UF (${Math.min(ano, 2022)})`} unidade="Óbitos por mil nascidos vivos" /> : <Skeleton altura={460} />}</div>
       </div>
 
       <div className="card mt-6 overflow-x-auto">
