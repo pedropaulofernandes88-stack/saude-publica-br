@@ -11,36 +11,44 @@ const config: Config = {
         //   50–200  fundo
         //   300     1,96:1  borda e decoração — NUNCA texto
         //   400     3,07:1  ícone e divisor — NUNCA texto
-        //   500     5,31:1  texto secundário (menor tom seguro)
-        //   600+    6,43:1+ texto
+        // Neutro QUENTE — direção "papel científico". O 50 é a superfície do
+        // body; os cards ficam brancos sobre ele. Contraste medido sobre o papel
+        // (#FAF7F2), não sobre branco puro:
         //
-        // O 500 estava em #677791 = 4,54:1, passando por 0,04 de margem: qualquer
-        // ajuste de cor o derrubava. Só ele foi escurecido — de 600 para cima a
-        // rampa já tinha espaçamento bom (6,4 / 8,5 / 10,1 / 15,5).
+        //   50–200            fundo
+        //   300     1,86:1    borda — NUNCA texto, NUNCA elemento de interface
+        //   400     3,06:1    ícone e divisor (>=3:1 p/ UI) — NUNCA texto
+        //   500     5,36:1    texto secundário (menor tom seguro)
+        //   600+    7,2:1+    texto
+        //
+        // A rampa fria anterior tinha o 500 em 4,54:1, com 0,04 de margem. Esta
+        // mantém o mesmo papel por passo, com o viés quente e a folga preservada.
         ink: {
-          50: "#f6f7f9",
-          100: "#eceef2",
-          200: "#d5dae2",
-          300: "#b1bac9",
-          400: "#8694ab",
-          500: "#5e6c84",
-          600: "#525f78",
-          700: "#434d62",
-          800: "#3a4253",
-          900: "#1e2433",
-          950: "#14181f",
+          50: "#faf7f2",
+          100: "#f1ede5",
+          200: "#e0d9cd",
+          300: "#c0b7a8",
+          400: "#978d7e",
+          500: "#6e6559",
+          600: "#5a5248",
+          700: "#46403a",
+          800: "#35302b",
+          900: "#23201c",
+          950: "#17150f",
         },
+        // Verde-petróleo, mais fundo que o verde médio anterior. O 700 é o tom
+        // de link e botão: 7,13:1 sobre o papel.
         accent: {
-          50: "#eefdf5",
-          100: "#d6fae6",
-          200: "#b0f3d1",
-          300: "#7ce7b6",
-          400: "#46d295",
-          500: "#1fb87b",
-          600: "#129563",
-          700: "#107752",
-          800: "#115e43",
-          900: "#0f4d38",
+          50: "#edf6f2",
+          100: "#d4eae0",
+          200: "#a9d6c3",
+          300: "#6fbba0",
+          400: "#3d9e7e",
+          500: "#1b8163",
+          600: "#0f6d53",
+          700: "#0b5f4c",
+          800: "#094b3d",
+          900: "#073b31",
         },
       },
       fontFamily: {
