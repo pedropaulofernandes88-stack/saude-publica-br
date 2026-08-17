@@ -42,8 +42,6 @@ Em resumo: seja respeitoso, construtivo e inclusivo. Reporte comportamentos inad
 | Ferramenta | Versão mínima | Instalação |
 |-----------|--------------|------------|
 | Python | 3.11+ | [python.org](https://www.python.org/) |
-| Docker | 24+ | [docs.docker.com](https://docs.docker.com/get-docker/) |
-| Docker Compose | v2.20+ | incluído no Docker Desktop |
 | Git | 2.40+ | [git-scm.com](https://git-scm.com/) |
 | Node.js | 20+ | [nodejs.org](https://nodejs.org/) (apenas para frontend) |
 
@@ -73,9 +71,6 @@ Edite `.env` com suas configurações:
 ```bash
 # Banco de dados (Supabase local via Docker ou Supabase Cloud)
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/saude_publica
-
-# Redis
-REDIS_URL=redis://localhost:6379/0
 
 # Supabase (se usar cloud)
 SUPABASE_URL=https://seu-projeto.supabase.co
@@ -123,23 +118,15 @@ python scripts/generate_demo_data.py
 bash scripts/load_demo_data.sh
 ```
 
-### 6. Suba a stack completa
+### 6. Rode o site localmente
 
 ```bash
-docker compose up -d
+cd site && npm ci && npm run dev    # http://localhost:3000
 ```
 
-Verifique que tudo está OK:
-
-```bash
-docker compose ps
-curl http://localhost/api/health
-```
-
-Resposta esperada:
-```json
-{"versao": "0.4.0", "ambiente": "development", "db_conectado": true, "cache_conectado": true}
-```
+Os dados vêm da API pública (PostgREST/Supabase) — não há serviço local para
+subir. A stack anterior (Docker + FastAPI + Redis) está em
+[`archive/`](archive/README.md) e não é implantada.
 
 ---
 
@@ -147,37 +134,23 @@ Resposta esperada:
 
 ```
 saude-publica-br/
-├── api/                    # FastAPI REST API
-│   ├── routers/            # Um arquivo por domínio (producao, mortalidade, etc.)
-│   ├── middleware/         # Prometheus metrics
-│   ├── cache.py            # Integração Redis
-│   ├── database.py         # Pool asyncpg
-│   ├── schemas.py          # Modelos Pydantic
-│   └── main.py             # App principal
+├── site/                   # Next.js — o site publicado (export estático)
+│   ├── app/                # Uma rota por diretório; wrapper servidor + cliente
+│   ├── components/         # Gráficos, KPIs, navegação
+│   ├── lib/                # Tokens de design, regras puras, tipos da API
+│   └── scripts/            # Geração de dados estáticos no build
+├── scripts/                # Pipelines: DuckDB → marts no Supabase
+├── ingestion/              # Download e normalização dos microdados DataSUS
 ├── dbt/                    # Transformações dbt-core
-│   ├── models/
-│   │   ├── staging/        # Normalização bruta → typed
-│   │   ├── intermediate/   # Enriquecimento (join com IBGE, SIGTAP)
-│   │   └── marts/          # Indicadores finais (produção, mortalidade, etc.)
-│   ├── tests/              # Testes de dados dbt
-│   └── profiles.yml
-├── frontend/               # Next.js 14 App Router
-│   ├── app/                # Rotas (page.tsx por página)
-│   ├── components/         # Componentes reutilizáveis
-│   └── lib/                # Clientes de API e utils
-├── pipeline/               # Ingestão PySUS → Parquet
-│   ├── ingest.py           # Ponto de entrada
-│   └── loaders/            # Um módulo por sistema (sia, sim, sih, sinan, cnes)
-├── prefect/                # Fluxos de orquestração
-│   ├── weekly_pipeline.py
-│   └── validation_flow.py
-├── streamlit/              # Dashboard MVP
-├── nginx/                  # Reverse proxy
-├── monitoring/             # Prometheus + Grafana
-├── scripts/                # Utilitários
+├── validation/             # Suítes Great Expectations
+├── tests/                  # Testes Python
+├── mcp_server/             # Servidor MCP (PyPI: saudeemdado-mcp)
+├── clients/python/         # Cliente Python (PyPI: saudeemdado)
+├── migrations/             # SQL do Supabase
+├── ml/                     # Detecção de anomalias
 ├── docs/                   # Documentação e ADRs
-│   └── architecture/
-└── .github/workflows/      # CI/CD
+├── archive/                # Stack legada — não implantada
+└── .github/workflows/      # CI e publicação
 ```
 
 ---
@@ -245,7 +218,7 @@ ruff format .
 ruff check .
 
 # Type check
-mypy api/ --ignore-missing-imports
+mypy scripts/ mcp_server/ --ignore-missing-imports
 ```
 
 ### SQL / dbt
@@ -335,12 +308,6 @@ pytest api/tests/test_producao.py -v
 cd dbt
 dbt test                          # todos
 dbt test --select mart_producao   # modelo específico
-```
-
-### Testes de integração (requer Docker)
-
-```bash
-docker compose -f docker-compose.test.yml up --abort-on-container-exit
 ```
 
 ### Pre-commit (roda automaticamente no commit)

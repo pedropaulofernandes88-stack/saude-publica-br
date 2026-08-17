@@ -1,10 +1,28 @@
 # ADR-005 — nginx + Prometheus/Grafana como camada de produção
 
-**Status:** Aceito  
+**Status:** Revertido (era: Aceito)  
 **Data:** 2025-01-15  
 **Autores:** saude-publica-br team  
 
 ---
+
+> ### ⚠️ Decisão revertida
+>
+> Esta ADR descreve uma arquitetura que **não está mais em uso**. Ela é mantida
+> como registro histórico: documenta a decisão original e o contexto em que fez
+> sentido, não o que roda hoje.
+>
+> **O que substituiu:** site estático no GitHub Pages + PostgREST sobre Supabase.
+> Sem servidor próprio, sem cache dedicado, sem camada de API mantida por nós.
+>
+> **Por que:** o custo de manter a stack não se justificava para um projeto de
+> mantenedor único; o PostgREST entrega o mesmo contrato REST sobre as mesmas
+> tabelas sem código para manter.
+>
+> O código correspondente está em [`archive/`](../../archive/README.md).
+
+---
+
 
 ## Contexto
 

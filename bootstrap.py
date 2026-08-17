@@ -25,8 +25,6 @@ import argparse
 import os
 import subprocess
 import sys
-import time
-import webbrowser
 from pathlib import Path
 
 # ── rich é instalado no passo 2; antes disso, fallback simples ──
@@ -248,38 +246,6 @@ def _update_env(key: str, value: str):
 
 # ═══════════════════════════════════════════════════════════
 # Passo 4 — Subir Redis via Docker
-# ═══════════════════════════════════════════════════════════
-
-def step4_start_redis():
-    step_header(4, "Iniciando Redis (Docker)")
-
-    # Testa se Redis já está rodando
-    if run_ok("redis-cli ping"):
-        ok("Redis já está rodando")
-        return
-
-    if not run_ok("docker --version"):
-        warn("Docker não encontrado. Redis não será iniciado automaticamente.")
-        warn("Instale Docker ou Redis manualmente e execute novamente.")
-        info("Continuando sem Redis (cache desabilitado)...")
-        return
-
-    info("Subindo Redis via docker compose...")
-    result = run("docker compose up -d redis")
-    if result.returncode != 0:
-        warn("Falha ao subir Redis. Continuando sem cache...")
-        return
-
-    # Aguarda Redis ficar pronto
-    for attempt in range(10):
-        time.sleep(2)
-        if run_ok("docker exec saude_redis redis-cli ping"):
-            ok("Redis rodando em redis://localhost:6379")
-            return
-        info(f"Aguardando Redis... ({attempt + 1}/10)")
-
-    warn("Redis pode não ter iniciado corretamente. Verifique com: docker logs saude_redis")
-
 # ═══════════════════════════════════════════════════════════
 # Passo 5 — Criar tabelas no Supabase
 # ═══════════════════════════════════════════════════════════
@@ -579,87 +545,7 @@ def step9_validate_marts():
 # ═══════════════════════════════════════════════════════════
 # Passo 10 — Iniciar API FastAPI
 # ═══════════════════════════════════════════════════════════
-
-def step10_start_api():
-    step_header(10, "Iniciando API FastAPI")
-
-    api_main = ROOT / "api" / "main.py"
-    if not api_main.exists():
-        warn("api/main.py não encontrado. Pulando inicialização da API.")
-        return
-
-    env_vars = _read_env()
-    port = env_vars.get("API_PORT", "8000")
-
-    info(f"Iniciando API em http://localhost:{port} (background)...")
-    info("Logs da API em: api.log")
-
-    # Inicia em background
-    log_file = open(ROOT / "api.log", "w")
-    subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "api.main:app",
-         "--host", "0.0.0.0", "--port", port, "--reload"],
-        cwd=str(ROOT),
-        stdout=log_file,
-        stderr=log_file,
-    )
-
-    # Aguarda API ficar pronta
-    import urllib.request
-    for attempt in range(15):
-        time.sleep(2)
-        try:
-            urllib.request.urlopen(f"http://localhost:{port}/health", timeout=3)
-            ok(f"API rodando em http://localhost:{port}")
-            ok(f"Docs da API: http://localhost:{port}/docs")
-            return
-        except Exception:
-            info(f"Aguardando API... ({attempt + 1}/15)")
-
-    warn("API pode não ter iniciado. Verifique: tail -f api.log")
-
-# ═══════════════════════════════════════════════════════════
 # Passo 11 — Abrir Dashboard Streamlit
-# ═══════════════════════════════════════════════════════════
-
-def step11_open_dashboard():
-    step_header(11, "Abrindo Dashboard Streamlit")
-
-    home_page = ROOT / "dashboard" / "app.py"
-    if not home_page.exists():
-        warn("dashboard/app.py não encontrado.")
-        return
-
-    info("Iniciando Streamlit em http://localhost:8501 ...")
-    info("Pressione Ctrl+C para encerrar o dashboard.")
-
-    print()
-    if RICH:
-        console.print(Panel.fit(
-            "[bold green]🎉 Setup concluído com sucesso![/bold green]\n\n"
-            "[cyan]Dashboard:[/cyan] http://localhost:8501\n"
-            "[cyan]API:[/cyan]       http://localhost:8000\n"
-            "[cyan]API Docs:[/cyan]  http://localhost:8000/docs\n\n"
-            "[yellow]Para ingestão completa (todos os estados 2020-2024):[/yellow]\n"
-            "  make ingest-full\n"
-            "  (estimativa: 2-4h dependendo da conexão)",
-            title="saude-publica-br",
-            border_style="green"
-        ))
-    else:
-        print("=" * 60)
-        print("🎉 Setup concluído com sucesso!")
-        print(f"  Dashboard: http://localhost:8501")
-        print(f"  API:       http://localhost:8000")
-        print(f"  API Docs:  http://localhost:8000/docs")
-        print("=" * 60)
-
-    time.sleep(2)
-    webbrowser.open("http://localhost:8501")
-
-    # Streamlit no foreground (bloqueia até Ctrl+C)
-    run(f'"{sys.executable}" -m streamlit run {home_page} --server.port 8501')
-
 # ═══════════════════════════════════════════════════════════
 # Health check
 # ═══════════════════════════════════════════════════════════
@@ -714,20 +600,17 @@ STEPS = [
     step1_check_python,       # 1
     step2_install_deps,       # 2
     step3_configure_env,      # 3
-    step4_start_redis,        # 4
     step5_setup_database,     # 5
     step6_load_references,    # 6
     step7_pilot_ingestion,    # 7
     step8_dbt_build,          # 8
     step9_validate_marts,     # 9  ← Great Expectations
-    step10_start_api,         # 10
-    step11_open_dashboard,    # 11
 ]
 
 def main():
     parser = argparse.ArgumentParser(description="Bootstrap automatizado do saude-publica-br")
     parser.add_argument("--step", type=int, default=1, metavar="N",
-                        help="Iniciar a partir do passo N (1-11)")
+                        help="Iniciar a partir do passo N (1-8)")
     parser.add_argument("--check", action="store_true",
                         help="Verificar saúde do sistema sem instalar nada")
     parser.add_argument("--skip-gx", action="store_true",

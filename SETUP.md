@@ -42,13 +42,10 @@ Quando o script perguntar pelo `DATABASE_URL`, cole a URL do Passo 2.
 | 1 | Verifica Python 3.11+ | < 1s |
 | 2 | Instala todos os pacotes (`pip install`) | 2–5 min |
 | 3 | Configura o `.env` com suas credenciais | < 1s |
-| 4 | Sobe o Redis via Docker | 10s |
 | 5 | Cria as tabelas no Supabase (SQL) | 30s |
 | 6 | Carrega municípios IBGE + CID-10 | 1 min |
 | 7 | Baixa dados piloto: SP, Jan–Mar 2024 | 3–8 min |
 | 8 | Roda `dbt build` — cria todos os marts | 2 min |
-| 9 | Inicia a API FastAPI | 5s |
-| 10 | Abre o dashboard no navegador | automático |
 
 **Total: ~10–20 minutos na primeira execução.**
 
@@ -67,7 +64,7 @@ python bootstrap.py --check    # verifica o que está funcionando
 
 ## 📥 Ingestão completa (após validar o piloto)
 
-Quando o piloto (SP/2024) funcionar e o dashboard carregar dados, rode a ingestão completa:
+Quando o piloto (SP/2024) funcionar e os marts existirem, rode a ingestão completa:
 
 ```bash
 make ingest-full
@@ -83,32 +80,33 @@ python -m ingestion.ingest_sia_pa --all
 ## 🚀 Comandos do dia a dia
 
 ```bash
-make api           # Inicia a API FastAPI (porta 8000)
-make dashboard     # Abre o Streamlit (porta 8501)
-make all           # API + Dashboard juntos
 make check         # Verifica se tudo está OK
 make dbt-build     # Reconstrói os marts
-make redis-up      # Sobe o Redis
+make test          # Roda a suíte de testes
+```
+
+Para rodar o site localmente:
+
+```bash
+cd site && npm ci && npm run dev    # http://localhost:3000
 ```
 
 ---
 
-## 🌐 URLs após o setup
+## 🌐 Onde os dados ficam
 
-| Serviço | URL |
-|---------|-----|
-| Dashboard | http://localhost:8501 |
-| API | http://localhost:8000 |
-| API Docs (Swagger) | http://localhost:8000/docs |
-| Redis (opcional) | http://localhost:8081 |
+| O quê | Onde |
+|-------|------|
+| marts | Supabase (PostgREST) — API pública, somente leitura |
+| site local | http://localhost:3000 (`npm run dev` em `site/`) |
+| site publicado | https://saudeemdado.com |
+
+> Não há API própria nem Redis. A stack anterior (FastAPI + Redis + Docker)
+> está em [`archive/`](archive/README.md) e não é implantada.
 
 ---
 
 ## ❓ Dúvidas frequentes
-
-**"Docker não está instalado"**
-Instale em https://docs.docker.com/get-docker/ — necessário apenas para o Redis.
-Alternativa: `sudo apt install redis-server` (Linux) ou `brew install redis` (Mac).
 
 **"Erro de conexão com o Supabase"**
 Verifique se substituiu `[YOUR-PASSWORD]` na URL e se o projeto do Supabase está ativo.

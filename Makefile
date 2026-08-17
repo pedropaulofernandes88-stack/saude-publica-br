@@ -3,26 +3,23 @@
 # ============================================================
 # Comandos principais:
 #   make setup          → Setup completo (primeira vez)
-#   make api            → Inicia API FastAPI
-#   make dashboard      → Abre dashboard Streamlit
-#   make all            → API + Dashboard juntos
 #   make ingest-pilot   → Ingestão piloto (SP 2024, ~5 min)
 #   make ingest-full    → Ingestão completa (todos estados 2020-2024)
+#   make dbt-build      → Reconstrói os marts
 #   make check          → Verifica saúde de todos os componentes
+#
+# Os alvos de API, dashboard Streamlit e Redis saíram junto com a stack
+# legada — ver archive/README.md. O site publica por deploy-site.yml.
 # ============================================================
 
 PYTHON     := python3
 PIP        := $(PYTHON) -m pip
-UVICORN    := $(PYTHON) -m uvicorn
-STREAMLIT  := $(PYTHON) -m streamlit
 DBT        := dbt
 ROOT       := .
-API_PORT   := 8000
-DASH_PORT  := 8501
 
-.PHONY: help setup check install redis-up redis-down db-setup refs \
-        ingest-pilot ingest-full dbt-build api dashboard all \
-        test lint format clean logs
+.PHONY: help setup check install db-setup refs \
+        ingest-pilot ingest-full dbt-build \
+        test lint format clean
 
 # ── Default: mostra ajuda ─────────────────────────────────
 help:
@@ -31,16 +28,10 @@ help:
 	@echo "  ─────────────────────────────────────────"
 	@echo "  make setup          Setup completo (1ª vez)"
 	@echo "  make check          Verifica todos os componentes"
-	@echo "  make api            Inicia API FastAPI (porta $(API_PORT))"
-	@echo "  make dashboard      Abre Streamlit (porta $(DASH_PORT))"
-	@echo "  make all            API + Dashboard juntos"
 	@echo "  make ingest-pilot   Ingestão: SP, Jan-Mar 2024"
 	@echo "  make ingest-full    Ingestão: todos estados 2020-2024"
 	@echo "  make dbt-build      Reconstrói todos os marts"
-	@echo "  make redis-up       Sobe Redis via Docker"
-	@echo "  make redis-down     Para Redis"
 	@echo "  make test           Roda testes"
-	@echo "  make logs           Mostra logs da API"
 	@echo "  make clean          Remove arquivos temporários"
 	@echo ""
 
@@ -56,18 +47,6 @@ check:
 # ── Dependências ─────────────────────────────────────────
 install:
 	$(PIP) install -r requirements.txt
-
-# ── Redis ────────────────────────────────────────────────
-redis-up:
-	docker compose up -d redis
-	@echo "✅ Redis rodando em localhost:6379"
-
-redis-down:
-	docker compose down redis
-
-redis-ui:
-	docker compose --profile debug up -d redis-commander
-	@echo "✅ Redis Commander em http://localhost:8081"
 
 # ── Banco de dados ───────────────────────────────────────
 db-setup:
@@ -107,33 +86,9 @@ dbt-test:
 dbt-docs:
 	cd dbt && $(DBT) docs generate && $(DBT) docs serve
 
-# ── API ──────────────────────────────────────────────────
-api:
-	@echo "🚀 API FastAPI em http://localhost:$(API_PORT)"
-	@echo "   Docs: http://localhost:$(API_PORT)/docs"
-	$(UVICORN) api.main:app --host 0.0.0.0 --port $(API_PORT) --reload
-
-api-prod:
-	$(UVICORN) api.main:app --host 0.0.0.0 --port $(API_PORT) --workers 4
-
-# ── Dashboard ────────────────────────────────────────────
-dashboard:
-	@echo "📊 Streamlit em http://localhost:$(DASH_PORT)"
-	$(STREAMLIT) run dashboard/app.py --server.port $(DASH_PORT)
-
-# ── Tudo junto ───────────────────────────────────────────
-all: redis-up
-	@echo "🚀 Iniciando API + Dashboard..."
-	$(UVICORN) api.main:app --host 0.0.0.0 --port $(API_PORT) --reload &
-	sleep 3
-	$(STREAMLIT) run dashboard/app.py --server.port $(DASH_PORT)
-
 # ── Testes ───────────────────────────────────────────────
 test:
 	$(PYTHON) -m pytest tests/ -v --tb=short
-
-test-api:
-	$(PYTHON) -m pytest tests/test_api/ -v
 
 test-fast:
 	$(PYTHON) -m pytest tests/ -v -m "not slow"
@@ -144,13 +99,6 @@ lint:
 
 format:
 	$(PYTHON) -m ruff format .
-
-# ── Logs ─────────────────────────────────────────────────
-logs:
-	tail -f api.log 2>/dev/null || echo "api.log não encontrado. API rodando?"
-
-logs-docker:
-	docker logs saude_redis -f
 
 # ── Limpeza ──────────────────────────────────────────────
 clean:
@@ -176,20 +124,9 @@ status:
 
 # ── Deploy ────────────────────────────────────────────────────────────────
 
-.PHONY: publish
-publish: ## Publicar saudeemdado.com do zero (Railway + Vercel + Supabase)
-	@chmod +x deploy/bootstrap.sh && ./deploy/bootstrap.sh
-
 .PHONY: deploy
-deploy: ## Fazer push e disparar deploy manual
-	@git add -A && git commit -m "deploy: $(shell date +%Y-%m-%d)" --allow-empty
+deploy: ## Publicar: push em main dispara deploy-site.yml
 	@git push origin main
-	@gh workflow run deploy.yml
-	@echo "✅ Deploy disparado — acompanhe em: gh run list"
-
-.PHONY: logs
-logs: ## Ver logs da API no Railway
-	@railway logs --service api
 
 .PHONY: open
 open: ## Abrir o site no browser

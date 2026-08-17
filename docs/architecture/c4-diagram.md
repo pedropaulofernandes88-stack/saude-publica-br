@@ -5,6 +5,17 @@
 
 ---
 
+> ### ⚠️ Histórico
+>
+> Este diagrama **não descreve a arquitetura atual**. Ele registra a stack
+> original (FastAPI, Redis, nginx, Docker), hoje em
+> [`archive/`](../../archive/README.md).
+>
+> O que roda hoje: site estático (GitHub Pages) + PostgREST/Supabase +
+> pipelines locais em `scripts/` + servidor MCP publicado no PyPI.
+
+---
+
 ## Nível 1 — Contexto do Sistema
 
 ```mermaid

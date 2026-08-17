@@ -9,13 +9,9 @@ Fornece:
 """
 from __future__ import annotations
 
-import asyncio
-from typing import AsyncGenerator
-from unittest.mock import AsyncMock, MagicMock, patch
 
 import pandas as pd
 import pytest
-import pytest_asyncio
 
 # ---------------------------------------------------------------------------
 # Helpers internos
@@ -201,85 +197,11 @@ def df_sazonalidade_valid() -> pd.DataFrame:
 
 
 # ---------------------------------------------------------------------------
-# Fixtures: asyncpg mock (para testes de API)
+# A fixture async_client (TestClient da API FastAPI) foi removida junto com a
+# stack legada. Ela montava api.main:app, que hoje vive em archive/api/ e nao
+# e implantada em lugar nenhum. Os testes que a usavam estao em
+# archive/tests-api/.
 # ---------------------------------------------------------------------------
-
-@pytest.fixture
-def mock_asyncpg_conn():
-    """Retorna um mock de asyncpg.Connection com métodos comuns mockados."""
-    conn = AsyncMock()
-    conn.fetch = AsyncMock(return_value=[])
-    conn.fetchrow = AsyncMock(return_value=None)
-    conn.fetchval = AsyncMock(return_value=0)
-    conn.execute = AsyncMock(return_value="OK")
-    return conn
-
-
-@pytest.fixture
-def mock_asyncpg_pool(mock_asyncpg_conn):
-    """Pool mock que devolve o conn mock via acquire() como context manager."""
-    pool = AsyncMock()
-    # pool.acquire() é usado como async context manager
-    pool.acquire.return_value.__aenter__ = AsyncMock(return_value=mock_asyncpg_conn)
-    pool.acquire.return_value.__aexit__ = AsyncMock(return_value=False)
-    pool.close = AsyncMock()
-    return pool
-
-
-@pytest.fixture
-def mock_redis():
-    """Mock de redis.asyncio.Redis com get/set/delete mockados."""
-    r = AsyncMock()
-    r.get = AsyncMock(return_value=None)   # cache miss por padrão
-    r.set = AsyncMock(return_value=True)
-    r.delete = AsyncMock(return_value=1)
-    r.ping = AsyncMock(return_value=True)
-    return r
-
-
-# ---------------------------------------------------------------------------
-# Fixture: TestClient assíncrono via httpx
-# ---------------------------------------------------------------------------
-
-@pytest_asyncio.fixture
-async def async_client(mock_asyncpg_conn, mock_asyncpg_pool, mock_redis):
-    """
-    Cliente de teste assíncrono que monta a aplicação FastAPI com
-    pool e Redis mockados, sem precisar de banco real.
-    """
-    import httpx
-    from httpx import ASGITransport
-
-    # Importa a app e o módulo de database/cache
-    from api.main import app
-    import api.database as db_module
-
-    # Injeta o pool mock
-    db_module._pool = mock_asyncpg_pool
-
-    # Override da dependency get_db — yield direto da conn mock,
-    # evitando chamar acquire() (que é AsyncMock e retorna coroutine sem __aenter__)
-    from api.database import get_db
-
-    async def override_get_db():
-        yield mock_asyncpg_conn
-
-    app.dependency_overrides[get_db] = override_get_db
-
-    # Mock do Redis (se existir módulo de cache)
-    try:
-        import api.cache as cache_module
-        cache_module._redis = mock_redis
-    except (ImportError, AttributeError):
-        pass
-
-    transport = ASGITransport(app=app)
-    async with httpx.AsyncClient(transport=transport, base_url="http://testserver") as client:
-        yield client
-
-    # Cleanup
-    app.dependency_overrides.clear()
-    db_module._pool = None
 
 
 # ---------------------------------------------------------------------------

@@ -303,8 +303,7 @@ def main() -> None:
     logger.info("")
     logger.info("Próximos passos:")
     logger.info("  1. bash scripts/load_demo_data.sh   — carrega no banco local")
-    logger.info("  2. docker compose up -d              — sobe a stack")
-    logger.info("  3. curl http://localhost/api/health  — verifica a API")
+    logger.info("  2. cd site && npm run dev            — abre o site em :3000")
     logger.info("=" * 60)
 
 

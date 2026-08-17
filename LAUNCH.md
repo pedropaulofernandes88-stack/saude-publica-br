@@ -1,235 +1,113 @@
-# 🚀 Publicar saudeemdado.com — Guia Completo
+# Publicar o Saúde em Dado
 
-Tempo estimado: **45–60 minutos** da primeira vez.
+O projeto roda **sem servidor para administrar**. Não há Docker, nginx, VPS nem
+API própria: o site é estático e os dados vêm do PostgREST do Supabase.
+
+> Versões anteriores deste guia descreviam um provisionamento com Hetzner,
+> Docker Compose, Redis, Prometheus e Grafana. Essa arquitetura foi aposentada e
+> está em [`archive/`](archive/README.md) — seguir aquele roteiro hoje monta uma
+> infraestrutura que não serve o site.
+
+## O que compõe a publicação
+
+| camada | onde vive | como publica |
+|---|---|---|
+| site | `site/` (Next.js, export estático) | `deploy-site.yml` → GitHub Pages |
+| dados | Supabase (PostgREST) | `scripts/` escrevem os marts |
+| servidor MCP | `mcp_server/` | `publish-mcp.yml` → PyPI + registry |
+
+Custo de infraestrutura: zero, dentro dos planos gratuitos.
 
 ---
 
-## Pré-requisitos
+## 1. Supabase
 
-- [ ] Domínio `saudeemdado.com` comprado ✅
-- [ ] Conta no [Supabase](https://supabase.com) (gratuita para começar)
-- [ ] Conta no [Hetzner Cloud](https://hetzner.com/cloud) ou [DigitalOcean](https://digitalocean.com)
-- [ ] Código do projeto em um repositório GitHub (público ou privado)
-
----
-
-## Passo 1 — Criar banco de dados no Supabase (5 min)
-
-1. Acesse [app.supabase.com](https://app.supabase.com) → **New Project**
-2. Nome: `saude-em-dado` | Região: **South America (São Paulo)**
-3. Anote a senha do banco — você vai precisar
-4. Aguarde o projeto ser criado (~2 min)
-5. Vá em **Settings → API** e copie:
+1. Criar projeto em [app.supabase.com](https://app.supabase.com) — região **South America (São Paulo)**.
+2. Em **Settings → API**, copiar:
    - `Project URL` → `SUPABASE_URL`
-   - `anon public` key → `SUPABASE_ANON_KEY`
-   - `service_role` key → `SUPABASE_SERVICE_ROLE_KEY`
-6. Vá em **Settings → Database → Connection string (URI)** e copie a URI
-   - Substitua `[YOUR-PASSWORD]` pela senha que você definiu
-   - Cole como `DATABASE_URL` no `.env`
+   - `anon public` → `SUPABASE_ANON_KEY` (**pública por design**, vai para o browser)
+   - `service_role` → `SUPABASE_SERVICE_ROLE_KEY` (**nunca commitar, nunca expor**)
+3. Aplicar as migrations de `migrations/` pelo SQL Editor.
 
----
+A `anon` só lê. A escrita nos marts é feita com a `service_role`, usada apenas
+pelos pipelines — ver `scripts/_supabase_key.py`.
 
-## Passo 2 — Criar servidor na Hetzner (5 min)
+## 2. Domínio no GitHub Pages
 
-1. Acesse [console.hetzner.com](https://console.hetzner.com) → **Servers → Create Server**
-2. Configurações recomendadas:
-   - **Localização**: Nuremberg ou Falkenstein (mais barato) — ou Helsinki
-   - **Imagem**: Ubuntu 22.04
-   - **Tipo**: `CX21` (2 vCPU, 4 GB RAM) = **€3,49/mês** para começar
-   - **SSH Key**: adicione sua chave pública (`cat ~/.ssh/id_rsa.pub`)
-3. Clique **Create & Buy** — anote o **IP público** do servidor
+Em **Settings → Pages**, definir a origem como **GitHub Actions**.
 
-> 💡 Se precisar de mais RAM para carregar os dados reais, escale para `CX31` (8 GB) depois.
-
----
-
-## Passo 3 — Apontar domínio para o servidor (5 min)
-
-No painel do seu registrador de domínio (Registro.br, GoDaddy, Cloudflare...):
+No registrador do domínio:
 
 ```
-Tipo: A
-Nome: @   (ou saudeemdado.com)
-Valor: IP_DO_SERVIDOR_HETZNER
-TTL: 300
-
-Tipo: A
-Nome: www
-Valor: IP_DO_SERVIDOR_HETZNER
-TTL: 300
+A     @     185.199.108.153
+A     @     185.199.109.153
+A     @     185.199.110.153
+A     @     185.199.111.153
+CNAME www   pedropaulofernandes88-stack.github.io
 ```
 
-> ⏳ Aguarde 5–10 minutos para o DNS propagar antes do próximo passo.
+O arquivo `CNAME` é gerado no build (`deploy-site.yml`), não versionado.
 
-**Verificar propagação:**
-```bash
-nslookup saudeemdado.com
-# Deve retornar o IP do seu servidor Hetzner
-```
+> O registro `www` precisa apontar para o host `github.io` — não para o apex.
+> Sem isso o certificado não cobre `www.saudeemdado.com`.
 
----
+## 3. Carregar os dados
 
-## Passo 4 — Fazer upload do código para GitHub (5 min)
-
-Se ainda não tem o projeto no GitHub:
+Localmente, com Python 3.11+:
 
 ```bash
-cd /caminho/para/saude-publica-br
-
-git init
-git add .
-git commit -m "chore: initial commit — saudeemdado.com"
-git remote add origin https://github.com/SEU_USUARIO/saude-publica-br.git
-git push -u origin main
-```
-
-> ⚠️ Certifique-se que `.env` está no `.gitignore` — NUNCA suba senhas para o GitHub.
-
----
-
-## Passo 5 — Preencher variáveis de ambiente (5 min)
-
-Copie o template `deploy/.env.production.example` para o servidor **ou** preencha-o
-localmente. Sempre edite a **cópia** (`.env`), nunca o template versionado:
-
-```bash
-cp deploy/.env.production.example .env
-nano .env  # ou use seu editor favorito
-```
-
-Preencha obrigatoriamente:
-- `POSTGRES_PASSWORD` (rode `openssl rand -hex 16`) e repita o mesmo valor dentro de
-  `DATABASE_URL` e `DATABASE_URL_LOCAL`
-- `API_SECRET_KEY` e `JWT_SECRET_KEY` (rode `openssl rand -hex 32` para cada — use
-  valores **diferentes**)
-- `GRAFANA_ADMIN_PASSWORD` (senha para o Grafana)
-
-> O Passo 6 (`deploy/setup-server.sh`) já gera e substitui todos esses valores
-> automaticamente — preencher à mão só é necessário em instalação manual.
-
----
-
-## Passo 6 — Executar o setup no servidor (20 min)
-
-SSH no servidor e execute o script de instalação:
-
-```bash
-# 1. Conectar ao servidor
-ssh root@IP_DO_SERVIDOR
-
-# 2. Baixar e executar o script de setup
-curl -sSL https://raw.githubusercontent.com/SEU_USUARIO/saude-publica-br/main/deploy/setup-server.sh \
-  -o setup.sh && chmod +x setup.sh
-
-# 3. Configurar variáveis (antes de rodar o script)
-export REPO_URL="https://github.com/SEU_USUARIO/saude-publica-br.git"
-export CERTBOT_EMAIL="seu@email.com"
-
-# 4. Rodar o setup completo
-./setup.sh
-```
-
-O script vai:
-- ✅ Instalar Docker e Docker Compose
-- ✅ Configurar firewall (UFW)
-- ✅ Clonar o repositório
-- ✅ Obter certificado SSL (Let's Encrypt) para `saudeemdado.com`
-- ✅ Subir todos os serviços (API + Redis + Frontend + nginx + Prometheus + Grafana)
-
----
-
-## Passo 7 — Verificar se está funcionando (2 min)
-
-```bash
-# Status dos serviços
-docker compose ps
-
-# Logs da API
-docker compose logs -f api
-
-# Testar a API
-curl https://saudeemdado.com/api/health
-# Deve retornar: {"status": "ok", "api_version": "0.7.0"}
-```
-
-**URLs após o deploy:**
-
-| URL | O que é |
-|-----|---------|
-| `https://saudeemdado.com` | Site / Frontend |
-| `https://saudeemdado.com/api/docs` | Swagger UI (documentação interativa) |
-| `https://saudeemdado.com/api/health` | Health check da API |
-| `http://IP:3001` | Grafana (monitoramento) |
-
----
-
-## Passo 8 — Carregar os dados (opcional, para dados reais)
-
-Com o ambiente funcionando com dados de demo, você pode carregar os dados reais:
-
-```bash
-# No servidor, dentro do diretório do projeto
-cd /opt/saude-publica-br
-
-# Instalar dependências Python
 pip install -r requirements.txt
-
-# Rodar a ingestão para um estado (teste)
-python ingestion/ingest_all_states.py --estados SP --ano-inicio 2023 --ano-fim 2024
-
-# Se OK, rodar para todos os estados
-python ingestion/ingest_all_states.py --ano-inicio 2020 --ano-fim 2024
+cp .env.example .env      # preencher SUPABASE_SERVICE_ROLE_KEY
+python scripts/pipeline_v2.py
 ```
 
-> ⏰ A ingestão completa (27 estados, 5 anos) leva de 2 a 8 horas dependendo da velocidade do servidor.
+O pipeline baixa os microdados do DataSUS, agrega em DuckDB e publica os marts
+no Supabase. Detalhes de método em [`/metodologia/`](https://saudeemdado.com/metodologia/).
 
----
+## 4. Publicar o site
 
-## Manutenção
+Qualquer push em `main` que toque `site/**` dispara `deploy-site.yml`. Não há
+passo manual.
 
-### Atualizar a aplicação após mudanças no código:
+Para conferir localmente antes:
 
 ```bash
-ssh root@IP_DO_SERVIDOR
-cd /opt/saude-publica-br
-git pull
-docker compose up -d --build api frontend
+cd site
+npm ci
+npm run build      # gera site/out
+npm test           # 23 testes, runner nativo do Node
 ```
 
-### Renovação de SSL (automática):
-O Certbot já está configurado para renovar automaticamente todo domingo às 3h.
+## 5. Publicar o servidor MCP
 
-### Ver logs em tempo real:
+Uma tag `mcp-v*` dispara `publish-mcp.yml`, que publica no PyPI (trusted
+publishing via OIDC, sem segredo) e no registry oficial de MCP.
+
 ```bash
-docker compose logs -f api        # API
-docker compose logs -f nginx      # nginx
-docker compose logs -f frontend   # Frontend
+git tag -a mcp-v0.4.0 -m "..." && git push origin mcp-v0.4.0
 ```
 
-### Escalar o servidor (se precisar de mais recursos):
-No painel da Hetzner: **Servers → Seu servidor → Rescue → Resize**
-- `CX21` → `CX31` (8 GB RAM) para dados pesados
-- `CX31` → `CX41` (16 GB RAM) para produção com muitos usuários
+> Versão publicada no PyPI **não pode ser reenviada**. Antes de taguear:
+> `mcp_server/pyproject.toml` e `mcp_server/server.json` precisam ter a mesma
+> versão, e o marcador `mcp-name:` deve estar no README do pacote.
 
 ---
 
-## Custos estimados
+## Segredos do repositório
 
-| Serviço | Custo |
-|---------|-------|
-| Servidor Hetzner CX21 | €3,49/mês |
-| Supabase (free tier, até 500MB) | Grátis |
-| Supabase Pro (para dados reais) | $25/mês |
-| Cloudflare DNS | Grátis |
-| Certificado SSL (Let's Encrypt) | Grátis |
-| **Total mínimo** | **~€4/mês** |
-| **Total com Supabase Pro** | **~$30/mês** |
+Configurados em **Settings → Secrets and variables → Actions**:
 
----
+| segredo | usado por |
+|---|---|
+| `SUPABASE_HOST`, `SUPABASE_PASSWORD` | `dbt-docs.yml` |
+| `ALERTAS_ENVIO_SECRET` | `boletim-semanal.yml` |
 
-## Suporte
+O PyPI não precisa de segredo: usa OIDC.
 
-Problemas? Abra uma issue no repositório GitHub ou consulte:
-- [Documentação FastAPI](https://fastapi.tiangolo.com)
-- [Documentação Supabase](https://supabase.com/docs)
-- [Hetzner Community](https://community.hetzner.com)
+## Automações agendadas
+
+| workflow | quando |
+|---|---|
+| `boletim-semanal.yml` | segundas, 12h UTC |
+| `validate-data.yml` | agendado |
+| `supabase-keepalive.yml` | agendado (evita pausa do projeto free) |

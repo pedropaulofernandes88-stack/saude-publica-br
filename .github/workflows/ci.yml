@@ -8,10 +8,11 @@
 # nunca eram executados em lugar nenhum.
 #
 # Divisão de responsabilidade:
-#   ci.yml           → site/, scripts/, tests/ (menos tests/api), mcp_server/, clients/
-#   api-ci.yml       → api/ e tests/api/
-#   frontend-ci.yml  → frontend/
+#   ci.yml           → site/, scripts/, tests/, mcp_server/, clients/
 #   deploy-site.yml  → publica site/ no GitHub Pages, só em main
+#
+# api-ci.yml e frontend-ci.yml foram removidos junto com a stack legada, que
+# hoje vive em archive/ e não é implantada em lugar nenhum.
 # =============================================================================
 name: CI
 
@@ -91,15 +92,12 @@ jobs:
           pip install --upgrade pip
           pip install -r requirements-test.txt
 
-      # Fora daqui só o que exige a app FastAPI (fastapi, redis): tests/api/ e
-      # tests/test_api_anomalias.py rodam no api-ci.yml, com as deps de api/.
-      # Todo o resto entra — pipelines, validação, ingestão e ml: 458 testes.
+      # Roda a suite inteira: pipelines, validação, ingestão e ml.
+      # Os --ignore de tests/api e test_api_anomalias.py sairam junto com a
+      # stack legada — os dois testavam a API FastAPI, hoje em
+      # archive/tests-api/ e nao mais executada.
       - name: Pytest
-        run: |
-          pytest tests/ \
-            --ignore=tests/api \
-            --ignore=tests/test_api_anomalias.py \
-            -v --tb=short
+        run: pytest tests/ -v --tb=short
 
       # Só as regras F (pyflakes): import não usado, variável morta, nome
       # indefinido — coisas que indicam bug. O ruleset completo do pyproject
