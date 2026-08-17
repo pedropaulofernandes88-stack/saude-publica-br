@@ -5,9 +5,16 @@
   <link href="https://saudeemdado.com/boletim.xml" rel="self"/>
   <link href="https://saudeemdado.com/boletim-semanal/"/>
   <id>tag:saudeemdado.com,2026:boletim</id>
-  <updated>2026-08-10T12:52:10.940Z</updated>
+  <updated>2026-08-17T12:28:20.831Z</updated>
   <author><name>Saúde em Dado</name><uri>https://saudeemdado.com</uri></author>
   <rights>Dados públicos (DataSUS/MS, IBGE) e InfoDengue (Fiocruz/FGV). Agregados sob CC BY 4.0.</rights>
+  <entry>
+    <title>SE 33/2026 — 5 municípios em novo alerta</title>
+    <link href="https://saudeemdado.com/boletim-semanal/?e=2026-se33"/>
+    <id>tag:saudeemdado.com,2026:2026-se33</id>
+    <updated>2026-08-17T12:28:20.831Z</updated>
+    <content type="html">&lt;ul&gt;&lt;li&gt;SE 31/2026 — dengue: 5 municípios em alerta (nível laranja ou vermelho) em 3 UFs, de 451 monitorados. Maiores: Sobral/CE, Mossoró/RN, Teixeira de Freitas/BA, Santo Antônio de Jesus/BA e outros. Fonte: InfoDengue (Fiocruz/FGV).&lt;/li&gt;&lt;li&gt;Na rede sentinela (451 municípios, 60% da população), 3.260 casos de dengue já notificados na semana, mas 7.207 estimados após correção do atraso de digitação (nowcasting) — a contagem crua da semana corrente sempre subestima.&lt;/li&gt;&lt;li&gt;Chikungunya: 3 municípios em alerta — Salvador/BA, Dourados/MS, Campinas/SP.&lt;/li&gt;&lt;li&gt;Dengue 2024: 6.564.924 casos prováveis e 6.337 óbitos — casos acima da faixa esperada (P75 do canal endêmico 2015–2023) em 52 das 52 semanas.&lt;/li&gt;&lt;li&gt;20 UFs passaram um trimestre ou mais acima do canal endêmico em 2024 — maiores volumes: SP, MG, PR.&lt;/li&gt;&lt;li&gt;Mortalidade geral em novembro de 2024: 102.412 óbitos, -8,2% vs. esperado (baseline 2015–2019) — 1 mês(es) mais recente(s) excluído(s) por registro incompleto.&lt;/li&gt;&lt;li&gt;Internações SUS 2024: 14.171.364 AIH, mortalidade intra-hospitalar de 4,4% e R$ 23,7 bi aprovados.&lt;/li&gt;&lt;/ul&gt;&lt;h3&gt;Mudanças desta semana&lt;/h3&gt;&lt;ul&gt;&lt;li&gt;&lt;strong&gt;Teixeira de Freitas/BA&lt;/strong&gt; — dengue entrou em alerta vermelho&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Santo Antônio de Jesus/BA&lt;/strong&gt; — dengue entrou em alerta vermelho&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Eunápolis/BA&lt;/strong&gt; — dengue entrou em alerta laranja&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Mossoró/RN&lt;/strong&gt; — dengue entrou em alerta vermelho&lt;/li&gt;&lt;li&gt;&lt;strong&gt;Campinas/SP&lt;/strong&gt; — chikungunya entrou em alerta vermelho&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;&lt;small&gt;Vigilância: SE 31/2026, rede de 451 municípios. Fonte: InfoDengue (Fiocruz/FGV).&lt;/small&gt;&lt;/p&gt;</content>
+  </entry>
   <entry>
     <title>SE 32/2026 — 2 municípios em novo alerta</title>
     <link href="https://saudeemdado.com/boletim-semanal/?e=2026-se32"/>
