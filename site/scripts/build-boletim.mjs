@@ -17,6 +17,7 @@
  */
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import { mesesIncompletosDaSerie } from "../lib/completude.ts";
 
 const BASE =
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://zekjhmxjamatlxpkykde.supabase.co";
@@ -376,18 +377,22 @@ for (const r of soUfs) {
   brPorMes.set(r.mes_competencia, cur);
 }
 
-// Completude: o SIM tem atraso de registro — meses finais com razão
-// observado/esperado < 90% são descartados como incompletos, senão o boletim
-// publicaria um "déficit" de mortalidade que é só dado ainda não digitado.
-const mesesOrdenados = [...brPorMes.keys()].sort();
-let descartados = 0;
-while (mesesOrdenados.length) {
-  const m = mesesOrdenados[mesesOrdenados.length - 1];
-  const v = brPorMes.get(m);
-  if (v.obitos / v.esperado >= 0.9) break;
-  mesesOrdenados.pop();
-  descartados++;
-}
+// Completude: o SIM tem atraso de registro — os meses finais com razão
+// observado/esperado abaixo do limiar são descartados como incompletos, senão o
+// boletim publicaria um "déficit" de mortalidade que é só dado ainda não
+// digitado.
+//
+// A regra nasceu aqui e depois passou a valer também para os gráficos do site,
+// que sofriam do mesmo problema. Ela vive em lib/completude.ts e é importada
+// nos dois lugares: manter duas cópias foi o que permitiu, antes, a home
+// publicar uma queda que o boletim já sabia ser artefato.
+const incompletos = new Set(
+  mesesIncompletosDaSerie(
+    [...brPorMes.entries()].map(([mes_competencia, v]) => ({ mes_competencia, ...v })),
+  ),
+);
+const mesesOrdenados = [...brPorMes.keys()].sort().filter((m) => !incompletos.has(m));
+const descartados = incompletos.size;
 const ultimoMes = mesesOrdenados[mesesOrdenados.length - 1];
 
 const serie12m = mesesOrdenados

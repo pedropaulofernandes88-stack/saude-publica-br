@@ -34,7 +34,11 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # 24, nao 20: build-boletim.mjs importa site/lib/completude.ts, e type
+          # stripping exige Node 22.6+ (padrao do 23 em diante). Sem isto o cron
+          # semanal quebraria em producao. O Node 20 tambem saiu do suporte em
+          # abril/2026.
+          node-version: "24"
 
       # Sai com 2 quando a edição foi produzida mas está degradada (fonte fora
       # do ar, modelo congelado, mart vazia). Publicamos assim mesmo — a página
