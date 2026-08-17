@@ -349,7 +349,7 @@ export default function Painel() {
               <tbody>
                 {ranking.map((m, i) => (
                   <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                    <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                     <td className="px-3 py-2 font-medium text-ink-900">
                       <a href={`/boletim/?m=${m.municipio_cod}`}
                          className="hover:text-accent-700 hover:underline"
@@ -366,7 +366,7 @@ export default function Painel() {
                     <td className="px-3 py-2 text-right tabular-nums text-ink-700">
                       {fmtDec(m.taxa_obitos_100k)}
                       {m.ic95_inf != null && (
-                        <span className="text-xs text-ink-400"> ({fmtDec(m.ic95_inf)}–{fmtDec(m.ic95_sup)})</span>
+                        <span className="text-xs text-ink-500"> ({fmtDec(m.ic95_inf)}–{fmtDec(m.ic95_sup)})</span>
                       )}
                     </td>
                     <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">

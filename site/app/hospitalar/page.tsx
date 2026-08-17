@@ -438,7 +438,7 @@ export default function Hospitalar() {
                 <tbody>
                   {hsmr.map((h, i) => (
                     <tr key={h.cnes} className="border-b border-ink-100 hover:bg-ink-50">
-                      <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                      <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                       <td className="px-3 py-2 tabular-nums text-ink-500">{h.cnes}</td>
                       <td className="px-3 py-2 font-medium text-ink-900">{h.municipio_nome ?? h.municipio_cod}</td>
                       <td className="px-3 py-2 text-ink-600">{h.uf_sigla}</td>
@@ -452,8 +452,8 @@ export default function Hospitalar() {
                           <span title={`${fmtInt(h.leitos_uti)} leitos de UTI — comparado apenas a hospitais com UTI`}
                                 className="cursor-help">sim</span>
                         ) : h.estrato === "sem_uti" ? (
-                          <span title="Sem UTI — comparado apenas a hospitais sem UTI" className="cursor-help text-ink-400">não</span>
-                        ) : <span className="text-ink-300">—</span>}
+                          <span title="Sem UTI — comparado apenas a hospitais sem UTI" className="cursor-help text-ink-500">não</span>
+                        ) : <span className="text-ink-500">—</span>}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums">
                         <span className={
@@ -467,19 +467,19 @@ export default function Hospitalar() {
                           {h.hsmr_estrato != null ? fmtDec(h.hsmr_estrato, 2) : "—"}
                         </span>
                         {h.hsmr_ic95_inf != null && h.hsmr_ic95_sup != null && (
-                          <span className="ml-1 whitespace-nowrap text-xs text-ink-400">
+                          <span className="ml-1 whitespace-nowrap text-xs text-ink-500">
                             [{fmtDec(h.hsmr_ic95_inf, 2)}–{fmtDec(h.hsmr_ic95_sup, 2)}]
                           </span>
                         )}
                         {h.significancia === "esperado" && (
                           <span title={`Não difere do esperado após correção para múltiplas comparações (q=${fmtDec(h.hsmr_q_valor, 3)})`}
-                                className="ml-1 text-ink-400">≈</span>
+                                className="ml-1 text-ink-500">≈</span>
                         )}
                         {h.significancia === "indeterminado" && (
                           <span title="Óbitos esperados = 0: não é possível calcular intervalo" className="ml-1 text-amber-600">?</span>
                         )}
                         {(h.significancia === "acima" || h.significancia === "abaixo") && h.hsmr_q_valor != null && (
-                          <span title={`q-valor (FDR) = ${fmtDec(h.hsmr_q_valor, 3)}`} className="ml-1 cursor-help text-ink-300">*</span>
+                          <span title={`q-valor (FDR) = ${fmtDec(h.hsmr_q_valor, 3)}`} className="ml-1 cursor-help text-ink-500">*</span>
                         )}
                       </td>
                     </tr>
@@ -501,11 +501,11 @@ export default function Hospitalar() {
             calculado sobre a mesma régua.
           </p>
           <p>
-            A classificação (cor e <span className="text-ink-400">≈</span>) usa o{" "}
+            A classificação (cor e <span className="text-ink-500">≈</span>) usa o{" "}
             <strong>q-valor</strong>, não o IC bruto: com milhares de hospitais testados por ano,
             testar cada um a 5% sem correção geraria falsos positivos só por acaso. Corrigimos com{" "}
             <strong>Benjamini-Hochberg</strong> aplicado dentro de cada estrato-ano; passe o mouse
-            no <span className="text-ink-300">*</span> para ver o q-valor.{" "}
+            no <span className="text-ink-500">*</span> para ver o q-valor.{" "}
             <span className="text-amber-600">?</span> indica óbitos esperados = 0, onde não há teste
             possível. Mínimo de 12 internações/ano.
           </p>
@@ -571,7 +571,7 @@ export default function Hospitalar() {
             )
           ) : <Skeleton altura={300} />}
         </div>
-        <p className="mt-2 text-xs text-ink-400">
+        <p className="mt-2 text-xs text-ink-500">
           Mostrando os maiores desvios positivos (permanência mais longa que o esperado) no recorte, com
           ≥ 30 internações do hospital para o diagnóstico.
         </p>
@@ -595,7 +595,7 @@ export default function Hospitalar() {
                 <button key={o.cnes} type="button"
                         onClick={() => { setHospSel({ cnes: o.cnes, nome: `${o.municipio_nome} · CNES ${o.cnes}` }); setHospBusca(o.municipio_nome ?? ""); }}
                         className="block w-full px-3 py-2 text-left text-sm hover:bg-ink-50">
-                  CNES {o.cnes} <span className="text-ink-400">· {o.municipio_nome} · {o.uf_sigla} · {fmtInt(o.internacoes)} internações/2024</span>
+                  CNES {o.cnes} <span className="text-ink-500">· {o.municipio_nome} · {o.uf_sigla} · {fmtInt(o.internacoes)} internações/2024</span>
                 </button>
               ))}
             </div>
@@ -625,7 +625,7 @@ export default function Hospitalar() {
                         <td className="px-3 py-2 text-right tabular-nums text-ink-500">{fmtDec(f.ic_inferior, 0)}–{fmtDec(f.ic_superior, 0)}</td>
                         <td className="px-3 py-2 text-right">
                           <span className={f.confianca === "baixa" ? "text-amber-700" : "text-accent-800"}>
-                            {f.confianca} <span className="text-ink-400">({f.n_meses_historico}m)</span>
+                            {f.confianca} <span className="text-ink-500">({f.n_meses_historico}m)</span>
                           </span>
                         </td>
                       </tr>

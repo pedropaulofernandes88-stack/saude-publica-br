@@ -7,10 +7,11 @@ import {
 } from "recharts";
 import { Kpi, Skeleton } from "@/components/kpi";
 import { UFS, fmtDec, fmtInt, rest, sdata, type DengueAno, type DengueSemana } from "@/lib/api";
+import { ALERTA, EIXO, GRADE, REFERENCIA } from "@/lib/tokens";
 
 const ANOS_DENGUE = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];
 const CORES_ANO: Record<number, string> = {
-  2024: "#b4232a", 2023: "#e07a1f", 2022: "#1fb87b", 2021: "#677791", 2019: "#8694ab",
+  2024: ALERTA, 2023: "#e07a1f", 2022: "#1fb87b", 2021: EIXO, 2019: REFERENCIA,
 };
 
 export default function Dengue() {
@@ -165,13 +166,13 @@ export default function Dengue() {
           {sazonal ? (
             <ResponsiveContainer width="100%" height={340}>
               <LineChart data={sazonal} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
-                <CartesianGrid stroke="#eceef2" vertical={false} />
-                <XAxis dataKey="semana" tick={{ fontSize: 12, fill: "#677791" }}
-                       label={{ value: "semana epidemiológica", position: "insideBottom", offset: -2, fontSize: 11, fill: "#8694ab" }} />
-                <YAxis tick={{ fontSize: 12, fill: "#677791" }} width={52}
+                <CartesianGrid stroke={GRADE} vertical={false} />
+                <XAxis dataKey="semana" tick={{ fontSize: 12, fill: EIXO }}
+                       label={{ value: "semana epidemiológica", position: "insideBottom", offset: -2, fontSize: 11, fill: REFERENCIA }} />
+                <YAxis tick={{ fontSize: 12, fill: EIXO }} width={52}
                        tickFormatter={(v) => (v as number).toLocaleString("pt-BR", { notation: "compact" })} />
                 <Tooltip formatter={(v, n) => [fmtInt(v as number), String(n).replace("a", "")]}
-                         contentStyle={{ borderRadius: 8, borderColor: "#eceef2", fontSize: 13 }} />
+                         contentStyle={{ borderRadius: 8, borderColor: GRADE, fontSize: 13 }} />
                 {[2024, 2023, 2022, 2019].map((a) => (
                   <Line key={a} type="monotone" dataKey={`a${a}`} name={`a${a}`}
                         stroke={CORES_ANO[a] ?? "#b1bac9"} strokeWidth={a === 2024 ? 2.8 : 1.8} dot={false} />
@@ -196,20 +197,20 @@ export default function Dengue() {
           {canal ? (
             <ResponsiveContainer width="100%" height={340}>
               <ComposedChart data={canal} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
-                <CartesianGrid stroke="#eceef2" vertical={false} />
-                <XAxis dataKey="semana" tick={{ fontSize: 12, fill: "#677791" }}
-                       label={{ value: "semana epidemiológica", position: "insideBottom", offset: -2, fontSize: 11, fill: "#8694ab" }} />
-                <YAxis tick={{ fontSize: 12, fill: "#677791" }} width={52}
+                <CartesianGrid stroke={GRADE} vertical={false} />
+                <XAxis dataKey="semana" tick={{ fontSize: 12, fill: EIXO }}
+                       label={{ value: "semana epidemiológica", position: "insideBottom", offset: -2, fontSize: 11, fill: REFERENCIA }} />
+                <YAxis tick={{ fontSize: 12, fill: EIXO }} width={52}
                        tickFormatter={(v) => (v as number).toLocaleString("pt-BR", { notation: "compact" })} />
                 <Tooltip
                   formatter={(v, n) => [fmtInt(v as number),
                     n === "observado" ? `Observado ${ano}` : n === "mediana" ? "Mediana histórica" : "Faixa esperada (P75)"]}
                   labelFormatter={(l) => `Semana ${l}`}
-                  contentStyle={{ borderRadius: 8, borderColor: "#eceef2", fontSize: 13 }} />
+                  contentStyle={{ borderRadius: 8, borderColor: GRADE, fontSize: 13 }} />
                 <Area type="monotone" dataKey="p75" stroke="none" fill="#cdd5e0" fillOpacity={0.6} name="p75" />
                 <Area type="monotone" dataKey="p25" stroke="none" fill="#ffffff" fillOpacity={1} name="p25" />
-                <Line type="monotone" dataKey="mediana" stroke="#8694ab" strokeWidth={1.6} strokeDasharray="5 4" dot={false} name="mediana" />
-                <Line type="monotone" dataKey="observado" stroke="#b4232a" strokeWidth={2.8} dot={false} name="observado" />
+                <Line type="monotone" dataKey="mediana" stroke={REFERENCIA} strokeWidth={1.6} strokeDasharray="5 4" dot={false} name="mediana" />
+                <Line type="monotone" dataKey="observado" stroke={ALERTA} strokeWidth={2.8} dot={false} name="observado" />
                 <Legend />
               </ComposedChart>
             </ResponsiveContainer>
@@ -225,17 +226,17 @@ export default function Dengue() {
               <AreaChart data={totaisAno} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
                 <defs>
                   <linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#b4232a" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="#b4232a" stopOpacity={0.05} />
+                    <stop offset="0%" stopColor={ALERTA} stopOpacity={0.5} />
+                    <stop offset="100%" stopColor={ALERTA} stopOpacity={0.05} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid stroke="#eceef2" vertical={false} />
-                <XAxis dataKey="ano" tick={{ fontSize: 12, fill: "#677791" }} />
-                <YAxis tick={{ fontSize: 12, fill: "#677791" }} width={52}
+                <CartesianGrid stroke={GRADE} vertical={false} />
+                <XAxis dataKey="ano" tick={{ fontSize: 12, fill: EIXO }} />
+                <YAxis tick={{ fontSize: 12, fill: EIXO }} width={52}
                        tickFormatter={(v) => (v as number).toLocaleString("pt-BR", { notation: "compact" })} />
                 <Tooltip formatter={(v) => [fmtInt(v as number), "Casos prováveis"]}
-                         contentStyle={{ borderRadius: 8, borderColor: "#eceef2", fontSize: 13 }} />
-                <Area type="monotone" dataKey="casos" stroke="#b4232a" strokeWidth={2.5} fill="url(#gd)" />
+                         contentStyle={{ borderRadius: 8, borderColor: GRADE, fontSize: 13 }} />
+                <Area type="monotone" dataKey="casos" stroke={ALERTA} strokeWidth={2.5} fill="url(#gd)" />
               </AreaChart>
             </ResponsiveContainer>
           ) : <Skeleton altura={280} />}
@@ -260,7 +261,7 @@ export default function Dengue() {
               <tbody>
                 {rankingInc.map((m, i) => (
                   <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                    <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                     <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                     <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.casos_provaveis)}</td>

@@ -123,7 +123,7 @@ export default function Home() {
         {/* Três domínios */}
         <div className="mt-12 grid gap-4 sm:grid-cols-3">
           <Link href="/painel/" className="card group transition hover:border-accent-400 hover:shadow-md">
-            <h3 className="font-serif text-lg font-semibold text-ink-900">💀 Mortalidade <span className="text-ink-400">· SIM</span></h3>
+            <h3 className="font-serif text-lg font-semibold text-ink-900">💀 Mortalidade <span className="text-ink-500">· SIM</span></h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
               14,4 milhões de óbitos (2015–2024) por causa, sexo e idade. Taxas
               padronizadas, IC95% e excesso de mortalidade.
@@ -131,7 +131,7 @@ export default function Home() {
             <span className="mt-3 inline-block text-sm font-medium text-accent-700 group-hover:underline">Abrir painel →</span>
           </Link>
           <Link href="/dengue/" className="card group transition hover:border-accent-400 hover:shadow-md">
-            <h3 className="font-serif text-lg font-semibold text-ink-900">🦟 Dengue <span className="text-ink-400">· SINAN</span></h3>
+            <h3 className="font-serif text-lg font-semibold text-ink-900">🦟 Dengue <span className="text-ink-500">· SINAN</span></h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
               Casos prováveis, incidência e óbitos por semana epidemiológica,
               incluindo a epidemia recorde de 2024 (6,6 milhões de casos).
@@ -139,7 +139,7 @@ export default function Home() {
             <span className="mt-3 inline-block text-sm font-medium text-accent-700 group-hover:underline">Ver dengue →</span>
           </Link>
           <Link href="/internacoes/" className="card group transition hover:border-accent-400 hover:shadow-md">
-            <h3 className="font-serif text-lg font-semibold text-ink-900">🏥 Internações <span className="text-ink-400">· SIH</span></h3>
+            <h3 className="font-serif text-lg font-semibold text-ink-900">🏥 Internações <span className="text-ink-500">· SIH</span></h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
               Internações pagas pelo SUS por município e causa: permanência
               média, mortalidade hospitalar e custo.
@@ -181,7 +181,7 @@ export default function Home() {
         {/* Como citar */}
         <div className="card mt-12 bg-ink-950 text-ink-100">
           <h2 className="font-serif text-xl font-semibold text-white">Como citar</h2>
-          <p className="mt-2 text-sm text-ink-300">
+          <p className="mt-2 text-sm text-ink-500">
             Em trabalhos acadêmicos, cite as fontes primárias e a plataforma:
           </p>
           <pre className="mt-4 overflow-x-auto rounded-lg bg-black/40 p-4 text-xs leading-relaxed">

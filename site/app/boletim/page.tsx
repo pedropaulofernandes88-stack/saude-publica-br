@@ -11,20 +11,21 @@ import {
 import { IcsapPares } from "@/components/icsap-pares";
 import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Ivs, type LinhaMunicipio } from "@/lib/api";
 import { ehCodigoAgregado } from "@/lib/municipios";
+import { EIXO, GRADE, REFERENCIA, SERIE } from "@/lib/tokens";
 
 function SerieTaxas({ data }: { data: { ano: number; bruta: number | null; padronizada: number | null }[] }) {
   return (
     <ResponsiveContainer width="100%" height={300}>
       <LineChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
-        <CartesianGrid stroke="#eceef2" vertical={false} />
-        <XAxis dataKey="ano" tick={{ fontSize: 12, fill: "#677791" }} />
-        <YAxis tick={{ fontSize: 12, fill: "#677791" }} width={48} />
+        <CartesianGrid stroke={GRADE} vertical={false} />
+        <XAxis dataKey="ano" tick={{ fontSize: 12, fill: EIXO }} />
+        <YAxis tick={{ fontSize: 12, fill: EIXO }} width={48} />
         <Tooltip
           formatter={(v, name) => [fmtDec(v as number), name === "padronizada" ? "Padronizada /100 mil" : "Bruta /100 mil"]}
-          contentStyle={{ borderRadius: 8, borderColor: "#eceef2", fontSize: 13 }}
+          contentStyle={{ borderRadius: 8, borderColor: GRADE, fontSize: 13 }}
         />
-        <Line type="monotone" dataKey="bruta" stroke="#8694ab" strokeWidth={2} strokeDasharray="5 4" dot={{ r: 2.5 }} />
-        <Line type="monotone" dataKey="padronizada" stroke="#107752" strokeWidth={2.5} dot={{ r: 3 }} />
+        <Line type="monotone" dataKey="bruta" stroke={REFERENCIA} strokeWidth={2} strokeDasharray="5 4" dot={{ r: 2.5 }} />
+        <Line type="monotone" dataKey="padronizada" stroke={SERIE} strokeWidth={2.5} dot={{ r: 3 }} />
       </LineChart>
     </ResponsiveContainer>
   );
@@ -161,7 +162,7 @@ function BoletimInner() {
                 <div>
                   <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Vulnerabilidade (proxy)</p>
                   <p className="mt-1 font-serif text-2xl font-semibold text-ink-900">
-                    {fmtDec(ivs.ivs_score, 0)}<span className="text-base text-ink-400">/100</span>
+                    {fmtDec(ivs.ivs_score, 0)}<span className="text-base text-ink-500">/100</span>
                     <span className="ml-2 rounded bg-ink-100 px-2 py-0.5 text-xs font-medium text-ink-600">{ivs.ivs_quartil}</span>
                   </p>
                 </div>
