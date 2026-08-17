@@ -1,7 +1,13 @@
 import type { Metadata } from "next";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/api";
 
-export const metadata: Metadata = { title: "Dados & API" };
+export const metadata: Metadata = {
+  title: "Dados & API pública",
+  description:
+    "API REST pública e gratuita (PostgREST), downloads em Parquet com SHA-256, cliente Python e "
+    + "servidor MCP para consultar os indicadores de saúde do Brasil (DataSUS + IBGE) sem cadastro.",
+  alternates: { canonical: "/dados/" },
+};
 
 export default function Dados() {
   return (
