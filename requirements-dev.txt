@@ -19,4 +19,4 @@ ruff==0.8.4
 # pipeline precisa dela — mas sem ela o passo do CI que confere se
 # saudeemdado_mcp ainda importa nao roda. O teto <2 acompanha o pyproject do
 # pacote: a mcp 2.0.0 removeu mcp.server.fastmcp.
-mcp>=1.2,<2
+mcp>=2,<3
