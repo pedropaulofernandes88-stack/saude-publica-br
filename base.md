@@ -4,6 +4,22 @@
 
 ---
 
+> ### 📌 Documento histórico
+>
+> Este documento registra a **concepção original** do projeto e a arquitetura
+> planejada na época (FastAPI, Redis, nginx, Prometheus/Grafana, dashboard
+> Streamlit, orquestração Prefect). Boa parte dela foi revertida.
+>
+> **O que roda hoje:** site estático em `site/` publicado no GitHub Pages,
+> PostgREST sobre Supabase como API pública, pipelines em `scripts/` e servidor
+> MCP em `mcp_server/`. O código da arquitetura antiga está em
+> [`archive/`](archive/README.md).
+>
+> Para instruções vigentes use [`LAUNCH.md`](LAUNCH.md),
+> [`SETUP.md`](SETUP.md) e [`CONTRIBUTING.md`](CONTRIBUTING.md).
+
+---
+
 ## 📋 ÍNDICE
 
 1. [Visão e Missão](#1-visão-e-missão)

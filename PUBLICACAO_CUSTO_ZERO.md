@@ -99,8 +99,8 @@ Sem variáveis obrigatórias: a URL/chave pública de leitura já têm default n
 |---------|-------------|-----------|
 | Banco Supabase | 500 MB | ~150 MB |
 | Egress Supabase | 5 GB/mês | depende do tráfego |
-| Pausa por inatividade | 7 dias sem requisições | dashboard/API mantêm ativo |
-| Streamlit Cloud | 1 GB RAM | suficiente |
+| Pausa por inatividade | 7 dias sem requisições | `supabase-keepalive.yml` mantém ativo |
+| GitHub Pages | 100 GB/mês de banda | suficiente |
 
 Se o projeto Supabase pausar por inatividade, reative no dashboard
 ([app.supabase.com](https://app.supabase.com)) — os dados não são perdidos.

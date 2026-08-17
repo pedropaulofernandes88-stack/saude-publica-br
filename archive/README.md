@@ -45,13 +45,37 @@ credenciais. Em agosto de 2026 uma auditoria automática o leu como vazamento de
 segredos e custou uma investigação inteira para provar o contrário — parte da
 razão de este material sair do caminho.
 
-### `dashboard_publico/` — Streamlit
+### `dashboard_publico/` e `dashboard/` — Streamlit
 
-Painel exploratório anterior ao site atual.
+Painéis exploratórios anteriores ao site atual. O `dashboard/` consumia
+`http://localhost:8000` — a API que está aqui ao lado, o que o torna inoperante
+por definição.
+
+### `nginx/` — reverse proxy
+
+Fazia proxy para `api:8000` e `frontend:3000`, ambos containers do
+`docker-compose.yml` que está neste diretório.
+
+### `monitoring/` — Prometheus + Grafana
+
+Raspava `api:8000/metrics` e `nginx:80`. O painel Grafana visualiza métricas que
+nenhum serviço emite mais.
 
 ### `docker-compose.yml`
 
-Orquestra os serviços de `api/`, `frontend/` e `deploy/`.
+Orquestra os serviços de `api/`, `frontend/`, `nginx/` e `monitoring/`.
+
+## O que NÃO está aqui, e por quê
+
+**`supabase/` continua na raiz** — são Edge Functions **implantadas e em uso**:
+`alertas-assinatura` atende o formulário de inscrição do site e `alertas-envio`
+recebe o POST do boletim semanal. Verificado por HTTP (200 e 405,
+respectivamente).
+
+**`flows/` continua na raiz** — flows do Prefect que orquestram `ingestion/`,
+que é código vivo. Nenhum agendador os inicia hoje, mas eles apontam para o
+Supabase atual, não para a stack morta. Arquivá-los é decisão de produto (o
+Prefect foi abandonado ou é caminho a retomar?), não conclusão de evidência.
 
 ## Decisões registradas
 

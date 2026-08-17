@@ -6,14 +6,11 @@ O que este script faz (sem pedir nada além do básico):
   1.  Verifica Python e dependências essenciais
   2.  Instala todos os pacotes via pip
   3.  Cria e valida o arquivo .env
-  4.  Sobe o Redis via Docker Compose
-  5.  Cria as tabelas no Supabase (executa setup_supabase.sql)
-  6.  Carrega tabelas de referência (municipios, CID-10)
-  7.  Executa ingestão piloto: SP, Jan-Mar/2024 (~3 min)
-  8.  Roda dbt build (cria todos os marts)
-  9.  Valida todos os marts com Great Expectations
-  10. Inicia a API FastAPI em background
-  11. Abre o dashboard Streamlit no navegador
+  4.  Cria as tabelas no Supabase (executa setup_supabase.sql)
+  5.  Carrega tabelas de referência (municipios, CID-10)
+  6.  Executa ingestão piloto: SP, Jan-Mar/2024 (~3 min)
+  7.  Roda dbt build (cria todos os marts)
+  8.  Valida todos os marts com Great Expectations
 
 Uso:
   python bootstrap.py           # Setup completo
