@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import { SECOES, gruposOrdenados, secao } from "@/lib/metodologia-secoes";
 
-export const metadata: Metadata = { title: "Metodologia" };
+export const metadata: Metadata = {
+  title: "Metodologia",
+  description:
+    "Como cada indicador é produzido, em 22 seções com link permanente: fontes, critérios de inclusão, "
+    + "taxa padronizada por idade, IC95%, excesso de mortalidade, validação automática e as limitações "
+    + "conhecidas de cada base (SIM, SINAN, SIH, CNES, SINASC, SIOPS).",
+  alternates: { canonical: "/metodologia/" },
+};
 
 /**
  * Título de seção com âncora própria. O link "#" ao lado deixa o endereço

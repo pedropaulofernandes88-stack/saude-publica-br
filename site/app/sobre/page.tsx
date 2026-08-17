@@ -1,6 +1,13 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Sobre o projeto" };
+export const metadata: Metadata = {
+  title: "Sobre o projeto",
+  description:
+    "Plataforma aberta e sem fins lucrativos que transforma microdados do SUS em indicadores "
+    + "reproduzíveis, publicando a limitação junto do número. Pipeline em código aberto (MIT), "
+    + "agregados em CC BY 4.0. Por Pedro Paulo Fernandes.",
+  alternates: { canonical: "/sobre/" },
+};
 
 export default function Sobre() {
   return (
