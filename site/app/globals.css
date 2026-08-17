@@ -68,6 +68,18 @@ body {
 .prose-doc a {
   @apply font-medium text-accent-700 underline decoration-accent-300 underline-offset-2 hover:decoration-accent-700;
 }
+/* Sumário da metodologia: é navegação, não corpo de texto. Precisa de regra
+   própria porque .prose-doc é CSS do projeto (não o plugin typography), então
+   a classe utilitária "not-prose" não tem efeito aqui. */
+.prose-doc .sumario ul {
+  @apply list-none p-0;
+}
+.prose-doc .sumario li {
+  @apply mt-0;
+}
+.prose-doc .sumario a {
+  @apply font-normal no-underline hover:underline;
+}
 .prose-doc table {
   @apply mt-4 w-full border-collapse text-sm;
 }

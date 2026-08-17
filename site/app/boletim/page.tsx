@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { IcsapPares } from "@/components/icsap-pares";
 import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Ivs, type LinhaMunicipio } from "@/lib/api";
+import { ehCodigoAgregado } from "@/lib/municipios";
 
 function SerieTaxas({ data }: { data: { ano: number; bruta: number | null; padronizada: number | null }[] }) {
   return (
@@ -107,6 +108,20 @@ function BoletimInner() {
     );
   }
 
+  // "UF0000" é o código que o SIM usa para óbito sem município identificado —
+  // existe no mart, mas não é um município e não rende boletim.
+  if (ehCodigoAgregado(cod)) {
+    return (
+      <div className="card mx-auto mt-10 max-w-xl text-center">
+        <p className="text-ink-700">
+          O código <span className="font-mono">{cod}</span> não é um município: o SIM o usa para
+          agrupar óbitos cujo município de residência não foi identificado. Escolha um município no{" "}
+          <Link href="/painel/" className="font-medium text-accent-700 underline">painel</Link>.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <>
       {erro && <div className="card mt-6 border-red-200 bg-red-50 text-sm text-red-800">Falha: {erro}</div>}
@@ -189,7 +204,7 @@ function BoletimInner() {
             <h2 className="font-serif text-xl font-semibold text-ink-900">
               Principais grupos de causas ({atual.ano})
             </h2>
-            <div className="mt-4">{capChart ? <Barras data={capChart} horizontal altura={300} /> : <Skeleton altura={300} />}</div>
+            <div className="mt-4">{capChart ? <Barras data={capChart} horizontal altura={300} titulo={`Principais grupos de causas (${atual.ano})`} /> : <Skeleton altura={300} />}</div>
             <div className="mt-3 grid gap-1 text-xs text-ink-500 sm:grid-cols-2">
               {capChart?.map((c) => {
                 const d = capsDim.find((x) => x.capitulo === c.nome);

@@ -129,7 +129,11 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          # 24, nao 20: o prebuild (build-static-data.mjs) importa lib/completude.ts
+          # direto, e os testes rodam em .mts no runner nativo. Type stripping so
+          # existe a partir do Node 22.6, e por padrao do 23 em diante. O Node 20
+          # tambem saiu do suporte em abril/2026.
+          node-version: "24"
           cache: npm
           cache-dependency-path: site/package-lock.json
 
@@ -140,6 +144,10 @@ jobs:
       - name: TypeScript type-check
         working-directory: site
         run: npx tsc --noEmit
+
+      - name: Testes do site
+        working-directory: site
+        run: npm test
 
       - name: Build estático
         working-directory: site

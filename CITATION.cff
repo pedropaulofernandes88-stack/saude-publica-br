@@ -5,9 +5,9 @@ message: >-
   Saúde; IBGE — Censo 2022 e Estimativas de População).
 title: "Saúde em Dado: inteligência epidemiológica aberta sobre os microdados do SUS"
 type: software
-version: v3.1.0
+version: v3.2.0
 doi: 10.5281/zenodo.20706845
-date-released: "2026-06-29"
+date-released: "2026-08-12"
 authors:
   - family-names: Fernandes
     given-names: Pedro
@@ -30,12 +30,14 @@ keywords:
   - Brasil
   - CID-10
 abstract: >-
-  Plataforma aberta que transforma os microdados do Sistema de Informações
-  sobre Mortalidade (SIM/DataSUS, 2015–2024; 13M+ óbitos) em indicadores
-  acessíveis: taxas brutas com IC95%, taxas padronizadas por idade (padrão
-  Brasil Censo 2022), excesso de mortalidade e séries por município, causa
-  (CID-10), sexo e faixa etária — via painel navegável, mapa, API REST pública
-  e downloads em Parquet. Pipeline 100% reproduzível.
+  Plataforma aberta que transforma microdados do SUS em indicadores acessíveis.
+  Mortalidade (SIM/DataSUS, 2015–2024; 14,4 milhões de óbitos): taxas brutas com
+  IC95%, taxas padronizadas por idade (padrão Brasil Censo 2022), excesso de
+  mortalidade e séries por município, causa (CID-10), sexo e faixa etária.
+  Também dengue (SINAN), internações e ICSAP (SIH), leitos e serviços (CNES),
+  nascimentos (SINASC) e financiamento (SIOPS) — via painel navegável, mapa,
+  API REST pública, servidor MCP e downloads em Parquet. Pipeline 100%
+  reproduzível.
 references:
   - type: data
     title: "SIM — Sistema de Informações sobre Mortalidade (microdados)"

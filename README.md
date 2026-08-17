@@ -10,7 +10,7 @@
 [![Licença](https://img.shields.io/badge/licença-MIT-green.svg)](LICENSE)
 [![Custo](https://img.shields.io/badge/custo-R%24%200%2Fmês-success.svg)](#-arquitetura-a-custo-zero)
 [![Dados](https://img.shields.io/badge/DataSUS-SIM·SINAN·SIH·SINASC-009688.svg)](#-fontes-de-dados)
-[![Release](https://img.shields.io/badge/release-v3.1.0-blue.svg)](https://github.com/pedropaulofernandes88-stack/saude-publica-br/releases)
+[![Release](https://img.shields.io/badge/release-v3.2.0-blue.svg)](https://github.com/pedropaulofernandes88-stack/saude-publica-br/releases)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.20706845.svg)](https://doi.org/10.5281/zenodo.20706845)
 
 [**Site**](https://saudeemdado.com) · [**API**](https://saudeemdado.com/dados/) · [**Análises**](https://saudeemdado.com/artigos/) · [**Metodologia**](https://saudeemdado.com/metodologia/)

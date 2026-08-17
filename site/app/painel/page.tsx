@@ -18,6 +18,8 @@ import {
   type LinhaUfMes,
   type SerieTotalItem,
 } from "@/lib/api";
+import { particionarMunicipios } from "@/lib/municipios";
+import { incompletosDe, notaCompletude, type ManifestoCompletude } from "@/lib/completude";
 
 type Sexo = "TOTAL" | "M" | "F";
 
@@ -29,6 +31,7 @@ export default function Painel() {
   const [capitulos, setCapitulos] = useState<CapituloCid[]>([]);
 
   const [serie, setSerie] = useState<{ mes: string; obitos: number }[] | null>(null);
+  const [completude, setCompletude] = useState<ManifestoCompletude | null>(null);
   const [faixas, setFaixas] = useState<LinhaUfMes[] | null>(null);
   const [municipios, setMunicipios] = useState<LinhaMunicipio[] | null>(null);
   const [causas, setCausas] = useState<CausaAgregada[] | null>(null);
@@ -41,6 +44,7 @@ export default function Painel() {
   const historico = ano < ANO_DETALHE; // grão reduzido: sexo/faixa só TOTAL
 
   useEffect(() => {
+    sdata<ManifestoCompletude>("completude").then(setCompletude).catch(() => {});
     sdata<CapituloCid[]>("capitulos")
       .catch(() =>
         rest<CapituloCid>("dim_cid10_capitulo", {
@@ -132,10 +136,18 @@ export default function Painel() {
     return FAIXAS_ORDEM.filter((f) => por.has(f)).map((f) => ({ nome: f, obitos: por.get(f)! }));
   }, [faixas]);
 
+  // Códigos agregados "UF0000" (óbito sem município identificado) não são
+  // municípios: ficam fora da contagem, do ranking e do CSV, mas seus óbitos
+  // continuam visíveis para o total não se perder.
+  const particao = useMemo(
+    () => (municipios ? particionarMunicipios(municipios) : null),
+    [municipios],
+  );
+
   const ranking = useMemo(() => {
-    if (!municipios) return null;
+    if (!particao) return null;
     const q = busca.trim().toLowerCase();
-    return municipios
+    return particao.identificados
       .filter((m) => (m.populacao ?? 0) >= popMin || sexo !== "TOTAL")
       .filter((m) => !q || (m.municipio_nome ?? "").toLowerCase().includes(q))
       .sort((a, b) =>
@@ -146,7 +158,7 @@ export default function Painel() {
             : b.obitos - a.obitos,
       )
       .slice(0, 100);
-  }, [municipios, busca, popMin, ordenarPor, sexo]);
+  }, [particao, busca, popMin, ordenarPor, sexo]);
 
   const topCausas = useMemo(() => {
     if (!causas) return null;
@@ -239,7 +251,15 @@ export default function Painel() {
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <Kpi rotulo={`Óbitos em ${ano}`} valor={totalAno != null ? fmtInt(totalAno) : "…"} detalhe={capDesc} />
         <Kpi rotulo="Óbitos na série 2015–2024" valor={totalPeriodo != null ? fmtInt(totalPeriodo) : "…"} detalhe={uf === "Brasil" ? "Brasil" : uf} />
-        <Kpi rotulo="Municípios com registro" valor={municipios ? fmtInt(municipios.length) : "…"} detalhe={`no recorte selecionado, ${ano}`} />
+        <Kpi
+          rotulo="Municípios com registro"
+          valor={particao ? fmtInt(particao.identificados.length) : "…"}
+          detalhe={
+            particao && particao.obitosNaoIdentificados > 0
+              ? `no recorte selecionado, ${ano} · ${fmtInt(particao.obitosNaoIdentificados)} óbitos sem município identificado`
+              : `no recorte selecionado, ${ano}`
+          }
+        />
       </div>
 
       <div className="card mt-6">
@@ -249,20 +269,28 @@ export default function Painel() {
         <p className="mt-1 text-sm text-ink-500">
           {capDesc}{sexo !== "TOTAL" ? ` · sexo ${sexo === "M" ? "masculino" : "feminino"}` : ""} · 2015–2024
         </p>
-        <div className="mt-4">{serie ? <SerieLinha data={serie} /> : <Skeleton />}</div>
+        <div className="mt-4">
+          {serie ? <SerieLinha data={serie} incompletos={incompletosDe(completude, uf)} titulo={`Evolução mensal — ${uf === "Brasil" ? "Brasil" : uf}`} /> : <Skeleton />}
+        </div>
+        {serie && notaCompletude(incompletosDe(completude, uf)) && (
+          <p className="mt-3 border-t border-ink-200 pt-3 text-xs text-ink-600">
+            <span className="font-medium text-ink-700">Trecho tracejado:</span>{" "}
+            {notaCompletude(incompletosDe(completude, uf))}
+          </p>
+        )}
       </div>
 
       <div className="mt-6 grid gap-6 lg:grid-cols-2">
         <div className="card">
           <h2 className="font-serif text-xl font-semibold text-ink-900">Distribuição etária ({ano})</h2>
           {historico && <p className="mt-1 text-xs text-ink-500">No grão histórico, sempre todas as causas.</p>}
-          <div className="mt-4">{faixaChart ? <Barras data={faixaChart} /> : <Skeleton altura={300} />}</div>
+          <div className="mt-4">{faixaChart ? <Barras data={faixaChart} titulo={`Distribuição etária (${ano})`} /> : <Skeleton altura={300} />}</div>
         </div>
         <div className="card">
           <h2 className="font-serif text-xl font-semibold text-ink-900">15 principais causas básicas ({ano})</h2>
           <p className="mt-1 text-xs text-ink-500">Categorias CID-10 (3 caracteres), independentes do filtro de capítulo/sexo.</p>
           <div className="mt-4">
-            {topCausas ? <Barras data={topCausas} horizontal altura={360} /> : <Skeleton altura={360} />}
+            {topCausas ? <Barras data={topCausas} horizontal altura={360} titulo={`15 principais causas básicas (${ano})`} /> : <Skeleton altura={360} />}
           </div>
         </div>
       </div>

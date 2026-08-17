@@ -110,14 +110,14 @@ export default function Tendencias() {
         <p className="mt-1 text-sm text-ink-500">
           Linha tracejada: esperado (baseline 2015–2019 com ajuste populacional). Vermelha: observado.
         </p>
-        <div className="mt-4">{excUf ? <LinhasExcesso data={excUf} /> : <Skeleton altura={340} />}</div>
+        <div className="mt-4">{excUf ? <LinhasExcesso data={excUf} titulo={`Observado × esperado — ${uf === "BR" ? "Brasil" : uf} (2020–2024)`} /> : <Skeleton altura={340} />}</div>
       </div>
 
       <div className="card mt-6">
         <h2 className="font-serif text-xl font-semibold text-ink-900">
           Série completa 2015–2024 — {uf === "BR" ? "Brasil" : uf}
         </h2>
-        <div className="mt-4">{serieUf ? <SerieLinha data={serieUf} /> : <Skeleton />}</div>
+        <div className="mt-4">{serieUf ? <SerieLinha data={serieUf} titulo={`Série completa 2015–2024 — ${uf === "BR" ? "Brasil" : uf}`} /> : <Skeleton />}</div>
       </div>
 
       {resumo && (
