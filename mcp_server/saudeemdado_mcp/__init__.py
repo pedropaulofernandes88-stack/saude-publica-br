@@ -24,12 +24,22 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
     import saudeemdado as sd
 
 import requests
-from mcp.server.fastmcp import FastMCP
+from mcp.server import MCPServer
 
-__version__ = "0.3.1"
+__version__ = "0.4.0"
 
-mcp = FastMCP(
+# A 2.0.0 do SDK renomeou FastMCP para MCPServer e removeu mcp.server.fastmcp.
+# A API de decorators nao mudou: as 19 @mcp.tool() seguem iguais.
+mcp = MCPServer(
     "saudeemdado",
+    version=__version__,
+    title="Saúde em Dado",
+    description=(
+        "Dados oficiais de saúde no Brasil — mortalidade (SIM), dengue (SINAN), "
+        "internações SUS (SIH), leitos e serviços (CNES), nascimentos (SINASC) e "
+        "financiamento (SIOPS), a partir dos microdados do DataSUS e do IBGE."
+    ),
+    website_url="https://saudeemdado.com",
     instructions=(
         "Dados oficiais de saúde no Brasil (DataSUS 2015–2024 + IBGE). REGRAS DE USO "
         "(número de saúde não admite invenção):\n"

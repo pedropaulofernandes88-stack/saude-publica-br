@@ -4,17 +4,16 @@ build-backend = "hatchling.build"
 
 [project]
 name = "saudeemdado-mcp"
-version = "0.3.1"
+version = "0.4.0"
 description = "Servidor MCP do Saúde em Dado — a saúde do Brasil (DataSUS + IBGE) consultável por IA"
 readme = "README.md"
 license = { text = "MIT" }
 authors = [{ name = "Pedro Paulo Fernandes", email = "pedropaulofernandes88@gmail.com" }]
 requires-python = ">=3.10"
-# mcp fica preso na linha 1.x: a 2.0.0 removeu mcp.server.fastmcp, de onde este
-# servidor importa FastMCP. Com o teto aberto, `pip install saudeemdado-mcp`
-# num ambiente limpo resolve para 2.0 e quebra no import — o pacote publicado
-# esta nessa situacao. Subir para a 2.x exige migrar a API, nao so soltar o pino.
-dependencies = ["mcp>=1.2,<2", "requests>=2.28", "saudeemdado>=2.0"]
+# Migrado para a linha 2.x: FastMCP virou MCPServer e mcp.server.fastmcp foi
+# removido. O teto <3 evita repetir o incidente da 0.3.0, que declarava
+# `mcp>=1.2` sem teto e passou a quebrar no import quando a 2.0.0 saiu.
+dependencies = ["mcp>=2,<3", "requests>=2.28", "saudeemdado>=2.0"]
 keywords = ["mcp", "datasus", "sus", "epidemiologia", "dados abertos", "brasil", "ia"]
 classifiers = [
   "Intended Audience :: Science/Research",
