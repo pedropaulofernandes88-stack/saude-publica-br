@@ -24,7 +24,9 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 20
+          # Precisa acompanhar o ci.yml: o prebuild importa lib/completude.ts e
+          # type stripping exige Node 22.6+ (padrao do 23 em diante).
+          node-version: "24"
           cache: npm
           cache-dependency-path: site/package-lock.json
       - name: Build estático
