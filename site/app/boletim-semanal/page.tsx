@@ -10,6 +10,7 @@ import { Kpi, Skeleton } from "@/components/kpi";
 import { LinhasExcesso } from "@/components/charts";
 import { AssinarAlertas } from "@/components/assinar-alertas";
 import { fmtDec, fmtInt, sdata } from "@/lib/api";
+import { ALERTA, EIXO, GRADE, REFERENCIA } from "@/lib/tokens";
 
 interface CanalSemana {
   semana: number;
@@ -144,20 +145,20 @@ function CanalEndemico({ data, ano }: { data: CanalSemana[]; ano: number }) {
   return (
     <ResponsiveContainer width="100%" height={340}>
       <ComposedChart data={data} margin={{ top: 8, right: 16, bottom: 0, left: 8 }}>
-        <CartesianGrid stroke="#eceef2" vertical={false} />
-        <XAxis dataKey="semana" tick={{ fontSize: 12, fill: "#677791" }}
-               label={{ value: "semana epidemiológica", position: "insideBottom", offset: -2, fontSize: 11, fill: "#8694ab" }} />
-        <YAxis tick={{ fontSize: 12, fill: "#677791" }} width={52}
+        <CartesianGrid stroke={GRADE} vertical={false} />
+        <XAxis dataKey="semana" tick={{ fontSize: 12, fill: EIXO }}
+               label={{ value: "semana epidemiológica", position: "insideBottom", offset: -2, fontSize: 11, fill: REFERENCIA }} />
+        <YAxis tick={{ fontSize: 12, fill: EIXO }} width={52}
                tickFormatter={(v) => (v as number).toLocaleString("pt-BR", { notation: "compact" })} />
         <Tooltip
           formatter={(v, n) => [fmtInt(v as number),
             n === "observado" ? `Observado ${ano}` : n === "mediana" ? "Mediana histórica" : "Faixa esperada (P75)"]}
           labelFormatter={(l) => `Semana ${l}`}
-          contentStyle={{ borderRadius: 8, borderColor: "#eceef2", fontSize: 13 }} />
+          contentStyle={{ borderRadius: 8, borderColor: GRADE, fontSize: 13 }} />
         <Area type="monotone" dataKey="p75" stroke="none" fill="#cdd5e0" fillOpacity={0.6} name="p75" />
         <Area type="monotone" dataKey="p25" stroke="none" fill="#ffffff" fillOpacity={1} name="p25" />
-        <Line type="monotone" dataKey="mediana" stroke="#8694ab" strokeWidth={1.6} strokeDasharray="5 4" dot={false} name="mediana" />
-        <Line type="monotone" dataKey="observado" stroke="#b4232a" strokeWidth={2.8} dot={false} name="observado" />
+        <Line type="monotone" dataKey="mediana" stroke={REFERENCIA} strokeWidth={1.6} strokeDasharray="5 4" dot={false} name="mediana" />
+        <Line type="monotone" dataKey="observado" stroke={ALERTA} strokeWidth={2.8} dot={false} name="observado" />
         <Legend />
       </ComposedChart>
     </ResponsiveContainer>
@@ -173,7 +174,7 @@ const NIVEL_ESTILO: Record<number, { cor: string; texto: string }> = {
 
 function NivelBadge({ nivel }: { nivel: number | null }) {
   const e = nivel ? NIVEL_ESTILO[nivel] : null;
-  if (!e) return <span className="text-ink-400">—</span>;
+  if (!e) return <span className="text-ink-500">—</span>;
   return (
     <span className={`inline-block rounded border px-1.5 py-0.5 text-xs font-medium ${e.cor}`}>
       {e.texto}
@@ -205,7 +206,7 @@ function TabelaVigilancia({
           {capitais.map((c) => (
             <tr key={c.geocode} className="border-b border-ink-100">
               <td className="py-2 pr-3 font-medium text-ink-900">
-                {c.municipio} <span className="text-ink-400">{c.uf}</span>
+                {c.municipio} <span className="text-ink-500">{c.uf}</span>
               </td>
               <td className="py-2 pr-3"><NivelBadge nivel={c.nivel} /></td>
               <td className="py-2 pr-3 text-right tabular-nums text-ink-600">{fmtInt(c.casos_notificados)}</td>
@@ -215,7 +216,7 @@ function TabelaVigilancia({
                     produziu estimativa própria — exibi-lo sugeriria certeza que não existe. */}
                 {c.casos_est_min != null && c.casos_est_max != null
                   && c.casos_est_min !== c.casos_est_max && (
-                  <span className="ml-1 text-xs font-normal text-ink-400">
+                  <span className="ml-1 text-xs font-normal text-ink-500">
                     ({fmtInt(c.casos_est_min)}–{fmtInt(c.casos_est_max)})
                   </span>
                 )}
@@ -402,7 +403,7 @@ function BoletimInner() {
                     <tr key={u.uf} className="border-b border-ink-100">
                       <td className="py-2 pr-3 font-medium text-ink-900">{u.uf}</td>
                       <td className="py-2 pr-3 text-right tabular-nums text-ink-600">{u.municipios}</td>
-                      <td className={`py-2 pr-3 text-right tabular-nums ${u.em_alerta > 0 ? "font-medium text-orange-700" : "text-ink-400"}`}>
+                      <td className={`py-2 pr-3 text-right tabular-nums ${u.em_alerta > 0 ? "font-medium text-orange-700" : "text-ink-500"}`}>
                         {u.em_alerta || "—"}
                       </td>
                       <td className="py-2 pr-3 text-right tabular-nums text-ink-600">{fmtInt(u.casos_notificados)}</td>
@@ -565,7 +566,7 @@ function BoletimInner() {
                       className={`hover:text-accent-700 ${e.edicao === boletim.edicao ? "font-semibold text-accent-700" : "text-ink-700"}`}>
                   SE {e.semana} · {e.ano}
                 </Link>
-                <span className="ml-2 text-xs text-ink-400">
+                <span className="ml-2 text-xs text-ink-500">
                   {new Date(e.gerado_em).toLocaleDateString("pt-BR")}
                 </span>
               </li>

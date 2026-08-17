@@ -320,7 +320,7 @@ export default function Internacoes() {
               <tbody>
                 {ranking.map((m, i) => (
                   <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                    <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                     <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                     <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.internacoes)}</td>
@@ -372,7 +372,7 @@ export default function Internacoes() {
                     && wilsonInf(m.internacoes_icsap, m.internacoes_total) > icsapAgg.pct / 100;
                   return (
                     <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
-                      <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                      <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                       <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                       <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                       <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">
@@ -389,7 +389,7 @@ export default function Internacoes() {
             </table>
           ) : <Skeleton altura={300} />}
         </div>
-        <p className="mt-2 text-xs text-ink-400">
+        <p className="mt-2 text-xs text-ink-500">
           <span className="text-red-600">▲</span> município cujo IC95% (Wilson) do %ICSAP supera a média do
           recorte ({icsapAgg ? fmtDec(icsapAgg.pct, 1) : "…"}%) — sinal robusto, não ruído de amostra pequena.
           Gasto evitável (est.) = internações ICSAP × custo médio das internações por condições sensíveis
@@ -414,7 +414,7 @@ export default function Internacoes() {
                 <button key={o.municipio_cod} type="button"
                         onClick={() => { setFluxoSel({ cod: o.municipio_cod, nome: o.municipio_nome ?? o.municipio_cod }); setFluxoBusca(o.municipio_nome ?? ""); }}
                         className="block w-full px-3 py-2 text-left text-sm hover:bg-ink-50">
-                  {o.municipio_nome} <span className="text-ink-400">· {o.uf_sigla}</span>
+                  {o.municipio_nome} <span className="text-ink-500">· {o.uf_sigla}</span>
                 </button>
               ))}
             </div>
@@ -512,7 +512,7 @@ export default function Internacoes() {
                   <tbody>
                     {agravoRank.map((m, i) => (
                       <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
-                        <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                        <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                         <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                         <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.internacoes)}</td>
@@ -563,7 +563,7 @@ export default function Internacoes() {
               <tbody>
                 {hospRank.map((hh, i) => (
                   <tr key={hh.cnes} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                    <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                     <td className="px-3 py-2 tabular-nums text-ink-500">{hh.cnes}</td>
                     <td className="px-3 py-2 font-medium text-ink-900">{hh.municipio_nome ?? hh.municipio_cod}</td>
                     <td className="px-3 py-2 text-ink-600">{hh.uf_sigla}</td>
@@ -578,7 +578,7 @@ export default function Internacoes() {
             </table>
           ) : <Skeleton altura={300} />}
         </div>
-        <p className="mt-2 text-xs text-ink-400">
+        <p className="mt-2 text-xs text-ink-500">
           Hospitais identificados pelo código CNES (o nome do estabelecimento não está incluído nesta versão).
           Ocupação de leitos não é estimada (não deriva de forma confiável da AIH).
         </p>

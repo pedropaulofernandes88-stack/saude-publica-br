@@ -7,6 +7,7 @@ import {
   UFS, fmtDec, fmtInt, rest,
   type MortalidadeInfantil, type Natalidade,
 } from "@/lib/api";
+import { ALERTA } from "@/lib/tokens";
 
 const ANOS = [2022, 2021];
 
@@ -96,7 +97,7 @@ export default function Nascimentos() {
           Taxa de Mortalidade Infantil por UF ({Math.min(ano, 2022)})
         </h2>
         <p className="mt-1 text-sm text-ink-500">Óbitos de menores de 1 ano por mil nascidos vivos. Disponível até 2022.</p>
-        <div className="mt-4">{tmiUf ? <Barras data={tmiUf} horizontal altura={460} cor="#b4232a" titulo={`Taxa de Mortalidade Infantil por UF (${Math.min(ano, 2022)})`} unidade="Óbitos por mil nascidos vivos" /> : <Skeleton altura={460} />}</div>
+        <div className="mt-4">{tmiUf ? <Barras data={tmiUf} horizontal altura={460} cor={ALERTA} titulo={`Taxa de Mortalidade Infantil por UF (${Math.min(ano, 2022)})`} unidade="Óbitos por mil nascidos vivos" /> : <Skeleton altura={460} />}</div>
       </div>
 
       <div className="card mt-6 overflow-x-auto">
@@ -117,7 +118,7 @@ export default function Nascimentos() {
               <tbody>
                 {ranking.map((m, i) => (
                   <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="px-3 py-2 tabular-nums text-ink-400">{i + 1}</td>
+                    <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                     <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                     <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.nascidos)}</td>

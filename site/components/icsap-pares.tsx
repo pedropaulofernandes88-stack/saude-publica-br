@@ -35,7 +35,7 @@ export function IcsapPares({ dados }: { dados: IcsapPares }) {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Neste município</p>
           <p className="mt-1 font-serif text-2xl font-semibold text-ink-900">
-            {fmtDec(dados.pct_icsap, 1)}<span className="text-base text-ink-400">%</span>
+            {fmtDec(dados.pct_icsap, 1)}<span className="text-base text-ink-500">%</span>
           </p>
           <p className="mt-0.5 text-xs text-ink-500">
             {fmtInt(dados.internacoes_icsap)} de {fmtInt(dados.internacoes_total)} internações
@@ -44,7 +44,7 @@ export function IcsapPares({ dados }: { dados: IcsapPares }) {
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Mediana dos pares</p>
           <p className="mt-1 font-serif text-2xl font-semibold text-ink-600">
-            {fmtDec(dados.mediana_pares_pct, 1)}<span className="text-base text-ink-400">%</span>
+            {fmtDec(dados.mediana_pares_pct, 1)}<span className="text-base text-ink-500">%</span>
           </p>
           <p className="mt-0.5 text-xs text-ink-500">
             os 25% melhores do grupo: {fmtDec(dados.p25_pares_pct, 1)}%
@@ -54,7 +54,7 @@ export function IcsapPares({ dados }: { dados: IcsapPares }) {
           <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Diferença</p>
           <p className={`mt-1 font-serif text-2xl font-semibold ${acima ? "text-red-700" : "text-accent-700"}`}>
             {dados.diferenca_pp > 0 ? "+" : ""}{fmtDec(dados.diferenca_pp, 1)}
-            <span className="text-base text-ink-400"> p.p.</span>
+            <span className="text-base text-ink-500"> p.p.</span>
           </p>
           <p className="mt-0.5 text-xs text-ink-500">
             {acima ? "acima da mediana dos pares" : "na mediana ou abaixo"}

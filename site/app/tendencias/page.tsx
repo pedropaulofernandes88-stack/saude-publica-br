@@ -4,10 +4,11 @@ import { useEffect, useMemo, useState } from "react";
 import { DispersaoVulnMort, LinhasExcesso, SerieLinha } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
 import { UFS, fmtDec, fmtInt, sdata, type CruzVulnMort, type LinhaExcesso, type SerieTotalItem } from "@/lib/api";
+import { SERIE } from "@/lib/tokens";
 
 const REGIOES = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"];
 const COR_REG: Record<string, string> = {
-  Norte: "#1f9e8a", Nordeste: "#e07a1f", "Centro-Oeste": "#a05fb4", Sudeste: "#2f6fb0", Sul: "#107752",
+  Norte: "#1f9e8a", Nordeste: "#e07a1f", "Centro-Oeste": "#a05fb4", Sudeste: "#2f6fb0", Sul: SERIE,
 };
 
 export default function Tendencias() {

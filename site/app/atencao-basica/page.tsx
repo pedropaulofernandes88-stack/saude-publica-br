@@ -143,7 +143,7 @@ export default function AtencaoBasica() {
                 <button key={o.municipio_cod} type="button"
                         onClick={() => { setSel({ cod: o.municipio_cod, nome: o.municipio_nome ?? o.municipio_cod, uf: o.uf_sigla }); setBusca(o.municipio_nome ?? ""); }}
                         className="block w-full px-3 py-2 text-left text-sm hover:bg-ink-50">
-                  {o.municipio_nome} <span className="text-ink-400">· {o.uf_sigla} · {fmtInt(o.populacao)} hab.</span>
+                  {o.municipio_nome} <span className="text-ink-500">· {o.uf_sigla} · {fmtInt(o.populacao)} hab.</span>
                 </button>
               ))}
             </div>

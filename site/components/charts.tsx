@@ -18,6 +18,7 @@ import {
   ZAxis,
 } from "recharts";
 import { fmtDec, fmtInt } from "@/lib/api";
+import { ALERTA, CATEGORIA, CORES_REGIAO, EIXO, GRADE, REFERENCIA, SERIE } from "@/lib/tokens";
 
 /**
  * Envelope de acessibilidade dos gráficos.
@@ -84,13 +85,6 @@ function extremos(vals: number[]): { min: number; max: number } {
   return { min: Math.min(...vals), max: Math.max(...vals) };
 }
 
-const CORES_REGIAO: Record<string, string> = {
-  Norte: "#1f9e8a",
-  Nordeste: "#e07a1f",
-  "Centro-Oeste": "#a05fb4",
-  Sudeste: "#2f6fb0",
-  Sul: "#107752",
-};
 
 export function DispersaoVulnMort({
   data,
@@ -121,21 +115,21 @@ export function DispersaoVulnMort({
     >
     <ResponsiveContainer width="100%" height={420}>
       <ScatterChart margin={{ top: 8, right: 16, bottom: 18, left: 8 }}>
-        <CartesianGrid stroke="#eceef2" />
+        <CartesianGrid stroke={GRADE} />
         <XAxis
           type="number" dataKey="ivs" name="Vulnerabilidade" domain={[0, 100]}
-          tick={{ fontSize: 12, fill: "#677791" }}
-          label={{ value: "vulnerabilidade social (proxy 0–100)", position: "insideBottom", offset: -8, fontSize: 11, fill: "#8694ab" }}
+          tick={{ fontSize: 12, fill: EIXO }}
+          label={{ value: "vulnerabilidade social (proxy 0–100)", position: "insideBottom", offset: -8, fontSize: 11, fill: REFERENCIA }}
         />
         <YAxis
           type="number" dataKey="taxa_pad" name="Taxa padronizada"
-          tick={{ fontSize: 12, fill: "#677791" }} width={52}
-          label={{ value: "óbitos /100 mil (padroniz.)", angle: -90, position: "insideLeft", fontSize: 11, fill: "#8694ab" }}
+          tick={{ fontSize: 12, fill: EIXO }} width={52}
+          label={{ value: "óbitos /100 mil (padroniz.)", angle: -90, position: "insideLeft", fontSize: 11, fill: REFERENCIA }}
         />
         <ZAxis type="number" dataKey="pop" range={[12, 240]} name="População" />
         <Tooltip
           cursor={{ strokeDasharray: "3 3" }}
-          contentStyle={{ borderRadius: 8, borderColor: "#eceef2", fontSize: 13 }}
+          contentStyle={{ borderRadius: 8, borderColor: GRADE, fontSize: 13 }}
           formatter={(v, n) => [
             n === "Vulnerabilidade" ? fmtDec(v as number, 0)
               : n === "Taxa padronizada" ? fmtDec(v as number, 0)
@@ -151,7 +145,7 @@ export function DispersaoVulnMort({
                 <div style={{ fontWeight: 600 }}>{p.nome} · {p.uf}</div>
                 <div>Vulnerabilidade: <b>{fmtDec(p.ivs, 0)}</b>/100</div>
                 <div>Taxa padronizada: <b>{fmtDec(p.taxa_pad, 0)}</b> /100 mil</div>
-                <div style={{ color: "#677791" }}>População: {fmtInt(p.pop)}</div>
+                <div style={{ color: EIXO }}>População: {fmtInt(p.pop)}</div>
               </div>
             );
           }}
@@ -167,10 +161,11 @@ export function DispersaoVulnMort({
   );
 }
 
-const AXIS = { fontSize: 12, fill: "#677791" };
-const GRID = "#eceef2";
-const ACCENT = "#107752";
-const INK = "#3a4253";
+// Apelidos locais herdados: os nomes de verdade vivem em @/lib/tokens.
+const AXIS = { fontSize: 12, fill: EIXO };
+const GRID = GRADE;
+const ACCENT = SERIE;
+const INK = CATEGORIA;
 
 function compactPt(n: number): string {
   return n.toLocaleString("pt-BR", { notation: "compact", maximumFractionDigits: 1 });
@@ -251,7 +246,7 @@ export function SerieLinha({
           <ReferenceArea
             x1={dados[juncao].mes}
             x2={dados[dados.length - 1].mes}
-            fill="#8694ab"
+            fill={REFERENCIA}
             fillOpacity={0.1}
           />
         )}
@@ -299,8 +294,8 @@ export function SerieCobertura({
           }
           contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
         />
-        <ReferenceLine y={100} stroke="#8694ab" strokeDasharray="5 4"
-                      label={{ value: "100%", position: "right", fontSize: 11, fill: "#8694ab" }} />
+        <ReferenceLine y={100} stroke={REFERENCIA} strokeDasharray="5 4"
+                      label={{ value: "100%", position: "right", fontSize: 11, fill: REFERENCIA }} />
         <Line type="monotone" dataKey="cobertura" stroke={ACCENT} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
       </LineChart>
     </ResponsiveContainer>
@@ -346,8 +341,8 @@ export function LinhasExcesso({
           }
           contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
         />
-        <Line type="monotone" dataKey="esperado" stroke="#8694ab" strokeWidth={2} strokeDasharray="6 4" dot={false} />
-        <Line type="monotone" dataKey="obitos" stroke="#b4232a" strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
+        <Line type="monotone" dataKey="esperado" stroke={REFERENCIA} strokeWidth={2} strokeDasharray="6 4" dot={false} />
+        <Line type="monotone" dataKey="obitos" stroke={ALERTA} strokeWidth={2.5} dot={false} activeDot={{ r: 4 }} />
       </LineChart>
     </ResponsiveContainer>
     </Grafico>

@@ -15,7 +15,7 @@ function H2({ n }: { n: number }) {
       <a
         href={`#${s.slug}`}
         aria-label={`Link permanente para a seção ${s.n}, ${s.titulo}`}
-        className="ml-1 text-ink-300 no-underline opacity-0 transition group-hover:opacity-100 focus:opacity-100"
+        className="ml-1 text-ink-500 no-underline opacity-0 transition group-hover:opacity-100 focus:opacity-100"
       >
         #
       </a>
@@ -40,7 +40,7 @@ function Sumario() {
               {secoes.map((s) => (
                 <li key={s.slug} className="text-sm leading-snug">
                   <a href={`#${s.slug}`} className="text-ink-700 hover:text-accent-700">
-                    <span className="tabular-nums text-ink-400">{s.n}.</span> {s.titulo}
+                    <span className="tabular-nums text-ink-500">{s.n}.</span> {s.titulo}
                   </a>
                 </li>
               ))}
