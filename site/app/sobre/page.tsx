@@ -39,7 +39,7 @@ export default function Sobre() {
           </div>
           <div className="rounded-lg bg-white p-3 ring-1 ring-ink-200">
             <p className="text-xs font-semibold uppercase tracking-wide text-ink-500">Gestão pública</p>
-            <p className="mt-1 text-sm text-ink-800">Diretor de TI — Prefeitura de Penápolis (SP)</p>
+            <p className="mt-1 text-sm text-ink-800">Diretor de TI — Setor Público (SP)</p>
           </div>
         </div>
         <p className="mt-4 text-sm">

@@ -263,7 +263,7 @@ Metadados legíveis por gerenciadores de referência em [`CITATION.cff`](CITATIO
 
 **Pedro Fernandes**
 Mestrando em Saúde Coletiva (IAMSPE) · Pós-graduando em Inteligência Artificial e Ciência de Dados em
-Saúde (Hospital Sírio-Libanês) · Diretor de Tecnologia da Informação — Prefeitura Municipal de Penápolis (SP)
+Saúde (Hospital Sírio-Libanês) · Diretor de Tecnologia da Informação — Setor Público (SP)
 
 [![ORCID](https://img.shields.io/badge/ORCID-0009--0008--6248--2486-a6ce39)](https://orcid.org/0009-0008-6248-2486)
 [![Lattes](https://img.shields.io/badge/Currículo-Lattes-1f6feb)](http://lattes.cnpq.br/6641343625206093)

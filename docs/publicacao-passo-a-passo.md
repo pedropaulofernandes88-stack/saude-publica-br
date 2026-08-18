@@ -217,7 +217,7 @@ Rankings de saúde na imprensa quase sempre usam a taxa bruta — e por isso qua
 Assunto: Ferramenta aberta e gratuita de indicadores de saúde por município
 
 Prezados, sou Pedro Fernandes (Mestrando em Saúde Coletiva, IAMSPE; Diretor de TI
-da Prefeitura de Penápolis). Desenvolvi uma plataforma aberta e sem custos —
+no setor público). Desenvolvi uma plataforma aberta e sem custos —
 saudeemdado.com — que transforma os microdados do DataSUS em indicadores municipais
 prontos: mortalidade padronizada, internações evitáveis (ICSAP) com gasto evitável
 estimado, fluxo de pacientes e qualidade do registro. Tudo por município, com API

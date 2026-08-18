@@ -14,7 +14,7 @@ export const AUTHOR = {
   credenciais: [
     "Mestrando em Saúde Coletiva (IAMSPE)",
     "Pós-graduando em Inteligência Artificial e Ciência de Dados em Saúde (Hospital Sírio-Libanês)",
-    "Diretor de Tecnologia da Informação — Prefeitura Municipal de Penápolis (SP)",
+    "Diretor de Tecnologia da Informação — Setor Público (SP)",
   ],
   resumoBio:
     "Pesquisador na interseção entre saúde coletiva, ciência de dados e gestão pública. Concebeu e mantém a plataforma Saúde em Dado.",
