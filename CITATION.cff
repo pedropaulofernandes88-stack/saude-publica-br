@@ -5,9 +5,9 @@ message: >-
   Saúde; IBGE — Censo 2022 e Estimativas de População).
 title: "Saúde em Dado: inteligência epidemiológica aberta sobre os microdados do SUS"
 type: software
-version: v3.2.0
+version: v3.3.0
 doi: 10.5281/zenodo.20706845
-date-released: "2026-08-12"
+date-released: "2026-08-18"
 authors:
   - family-names: Fernandes
     given-names: Pedro

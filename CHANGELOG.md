@@ -7,6 +7,91 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [3.3.0] — 2026-08-18 — Legibilidade, acessibilidade e uma stack a menos
+
+> Nenhum número publicado mudou de valor: os marts, as colunas e os endpoints
+> continuam idênticos. O que mudou foi quem consegue ler, e quanta coisa morta
+> havia em volta. O gatilho foi uma auditoria externa cujo achado mais grave —
+> credenciais vazadas em `deploy/.env.production` — era falso positivo: o
+> arquivo só tinha placeholders. Os achados restantes eram reais e viraram
+> esta versão.
+
+### Adicionado
+
+- **Sistemas de código documentados em `/dados/`.** Cada coluna de código passa a
+  declarar o sistema que segue, com o URI canônico da RNDS: IBGE
+  (`BRDivisaoGeograficaBrasil`), CID-10 (`BRCID10`), CNES e o
+  `administrative-gender` do HL7. Registra também que `municipio_cod` já está nos
+  mesmos 6 dígitos que a RNDS adota — junta sem conversão — enquanto `uf_sigla` é
+  sigla e não código.
+- **Valores sentinela em tabela própria.** `TOTAL`, `IGN`/`I`, `ND` e os
+  agregados `<UF>0000` deixam de estar espalhados em prosa.
+- **Equivalente textual em todos os gráficos.** Os cinco tipos ganham
+  `role="img"` com nome acessível gerado e uma tabela de dados em `<details>`,
+  com `caption` e `th[scope]`.
+- **Metodologia navegável.** As 22 seções ganham âncora, sumário e link
+  permanente derivado do título — renumerar não quebra link de terceiro.
+- **`SECURITY.md`**, escrito sobre o falso positivo que abriu o ciclo: diz o que
+  *não* é vazamento aqui antes de listar o que é.
+- **Templates de issue e de PR**, incluindo um para "um número não bate" com as
+  três causas que respondem pela maioria das divergências.
+- **`.mailmap`**, unificando as duas identidades de autor.
+
+### Alterado
+
+- **Identidade visual "papel científico"** — neutro quente, verde-petroleo e
+  cinco cores de região validadas para daltonismo. As cores de dado passam a ter
+  um módulo só (`site/lib/tokens.ts`), porque o Recharts recebe cor por prop.
+- **Contraste AA e escala tipográfica** como tokens, com `line-height` por passo.
+- **Navegação mobile de verdade** — botão de 44px com `aria-expanded`, painel
+  agrupado, fechamento por Escape, clique fora e navegação.
+- **Densidade cortada em todas as rotas**: rankings longos passam a exibir um
+  recorte com botão de expansão, mantendo a tabela inteira no DOM para busca e
+  leitor de tela.
+- **`metadata` própria em doze rotas**, cada uma com seu `canonical`.
+- **Servidor MCP migrado para o SDK 2.x** (`FastMCP` → `MCPServer`), publicado
+  no PyPI como `saudeemdado-mcp` 0.4.0.
+- **CI passa a rodar em Node 24** e a executar os testes da raiz, que antes não
+  rodavam em lugar nenhum.
+
+### Corrigido
+
+- **Códigos `<UF>0000` eram contados como município** no KPI do painel, inflando
+  o total. A regra de classificação passa a ter um módulo testado
+  (`site/lib/municipios.ts`) com teste de invariante contra os 5.571 do IBGE.
+- **Meses de registro parcial pareciam queda real** nas séries. A linha agora se
+  divide em trecho consolidado e trecho parcial, compartilhando o mês de junção.
+- **A regra de completude vivia em dois lugares** — boletim e gráficos — que
+  concordavam até deixarem de concordar. Passou a ter um lugar só
+  (`site/lib/completude.ts`).
+- **O pino do `mcp` vivia em três arquivos** e a migração atualizou um; o CI
+  quebrou por `ImportError`.
+- **`canonical` apontando para `/`** em três páginas, que se declaravam
+  duplicatas da home para os buscadores.
+- **Rolagem horizontal no celular** e versão, licença, marca e contagens
+  divergentes entre JSON-LD, prosa e metadados.
+
+### Removido
+
+- **A primeira arquitetura inteira foi para `archive/`**: API FastAPI + Redis,
+  front na Vercel, Docker Compose, nginx, Prometheus/Grafana e os painéis
+  Streamlit. Nada disso estava implantado — o site é estático no GitHub Pages e a
+  API é o PostgREST do Supabase. `supabase/` e `flows/` ficaram na raiz por
+  estarem vivos.
+- **Quatro arquivos saíram da raiz**: `railway.toml` e `vercel.json` (apontavam
+  para dentro de `archive/`), `base.md` (1.660 linhas de documento histórico) e
+  `PUBLICACAO_CUSTO_ZERO.md` (duplicava README, `/dados/` e `LAUNCH.md`).
+
+### Segurança
+
+- `.gitignore` passa a cobrir `.env.*`, reabrindo só o sufixo `.example` — um
+  arquivo de ambiente preenchido no futuro fica invisível ao `git add`.
+- `deploy/setup-server.sh` reusava `API_SECRET_KEY` como `JWT_SECRET_KEY`: o
+  `sed` com `/g` substituía as duas ocorrências pelo mesmo valor. Corrigido com
+  âncora no nome da variável.
+
+---
+
 ## [3.2.0] — 2026-08-12 — Tipo de AIH, unidade da ANS e escrita fechada
 
 > Três correções que mudam número publicado, e a régua que faltava para pegá-las
