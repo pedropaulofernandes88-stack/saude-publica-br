@@ -65,6 +65,27 @@ nenhum serviço emite mais.
 
 Orquestra os serviços de `api/`, `frontend/`, `nginx/` e `monitoring/`.
 
+### `railway.toml` e `vercel.json` — hospedagem da stack antiga
+
+Ficavam na raiz do repositório e apontavam para dentro deste diretório:
+`railway.toml` constrói `api/Dockerfile` e `vercel.json` declara
+`rootDirectory: "frontend"`. Nenhum dos dois serviços é usado — o site vai para
+o GitHub Pages por `deploy-site.yml`. Estavam quebrados desde que `api/` e
+`frontend/` saíram da raiz.
+
+### `base.md` — documento de concepção
+
+1.660 linhas descrevendo a arquitetura planejada em 2023 (FastAPI, Redis, nginx,
+Prometheus/Grafana, Streamlit, Prefect). O próprio arquivo já se declarava
+histórico no cabeçalho. Vale como registro de intenção; não como instrução.
+
+### `PUBLICACAO_CUSTO_ZERO.md` — guia de publicação duplicado
+
+Repetia a arquitetura do README, a lista de tabelas de `/dados/` e os passos de
+`LAUNCH.md`, e ainda ensinava a subir o dashboard Streamlit que está aqui ao
+lado. A única parte que não existia em outro lugar — a tabela de limites do
+plano gratuito — foi movida para `LAUNCH.md`.
+
 ## O que NÃO está aqui, e por quê
 
 **`supabase/` continua na raiz** — são Edge Functions **implantadas e em uso**:

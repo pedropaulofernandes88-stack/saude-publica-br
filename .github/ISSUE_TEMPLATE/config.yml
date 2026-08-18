@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Como um indicador é calculado
+    url: https://saudeemdado.com/metodologia/
+    about: Taxa padronizada, IC95%, excesso de mortalidade, canal endêmico e ICSAP estão descritos por extenso na metodologia.
+  - name: Como consultar os dados
+    url: https://saudeemdado.com/dados/
+    about: API REST sem cadastro, downloads em Parquet, cliente Python e servidor MCP — com os sistemas de código e os valores sentinela documentados.
+  - name: Relatar vulnerabilidade
+    url: https://github.com/pedropaulofernandes88-stack/saude-publica-br/security/advisories/new
+    about: Falhas de segurança vão por canal privado. Leia antes o SECURITY.md — a chave anon do Supabase é pública por desenho.

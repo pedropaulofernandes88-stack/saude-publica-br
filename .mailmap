@@ -1,0 +1,4 @@
+# Unifica identidades de autor no `git shortlog`, no `git log` e nos gráficos
+# de contribuição. Sem isso os commits feitos pela conta do GitHub aparecem
+# como um segundo colaborador, apesar de serem a mesma pessoa e o mesmo e-mail.
+Pedro Paulo Fernandes <pedropaulofernandes88@gmail.com> pedropaulofernandes88-stack <pedropaulofernandes88@gmail.com>

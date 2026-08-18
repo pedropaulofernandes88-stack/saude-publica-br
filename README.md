@@ -171,18 +171,33 @@ confere mensalmente totais oficiais e conciliação entre marts.
 
 ```
 saude-publica-br/
-├── scripts/              # pipelines (SIM, SINAN, SIH, SINASC, IVS) + validação
-├── site/                # Next.js 14 (estático) → saudeemdado.com
-│   ├── app/             # páginas: painel, dengue, internacoes, nascimentos,
-│   │                    #          mapa, tendencias, artigos, dados, metodologia
-│   ├── components/      # gráficos (Recharts), KPIs, byline
-│   ├── content/         # artigos assinados (seção Análises)
-│   └── scripts/         # geração de JSON estático no build
-├── clients/python/      # pacote `saudeemdado` (PyPI-ready)
-├── mcp_server/          # servidor Model Context Protocol
-├── data/marts/          # marts agregados (Parquet)
-├── .github/workflows/   # deploy, keep-alive, validação
-├── CITATION.cff · LICENSE · .zenodo.json
+│
+├── site/               # Next.js 14, export estático → saudeemdado.com
+│   ├── app/            # uma pasta por rota: painel, dengue, internacoes,
+│   │                   #   nascimentos, mapa, tendencias, artigos, dados,
+│   │                   #   metodologia, atencao-basica, boletim, hospitalar
+│   ├── components/     # gráficos (Recharts), KPIs, navegação
+│   ├── lib/            # regras puras e testáveis: municipios, completude,
+│   │                   #   tokens de design, seções da metodologia
+│   ├── content/        # artigos assinados (seção Análises)
+│   └── scripts/        # gera o JSON estático durante o build
+│
+├── scripts/            # pipelines: SIM, SINAN, SIH, SINASC, CNES, IVS, SIOPS
+├── ingestion/          # ingestão dos microdados brutos do DataSUS
+├── dbt/                # modelos intermediate → marts
+├── migrations/         # SQL versionado do Supabase, incluindo as políticas RLS
+├── validation/         # suítes Great Expectations sobre os marts
+├── ml/                 # detector de anomalias e scoring em lote
+├── data/refs/          # tabelas de referência (CID-10, municípios, população)
+│
+├── mcp_server/         # servidor MCP → PyPI: saudeemdado-mcp
+├── clients/python/     # cliente da API → pacote saudeemdado
+├── supabase/functions/ # Edge Functions do boletim por assinatura
+├── flows/              # flows Prefect (sem agendador ativo hoje)
+│
+├── .github/workflows/  # CI, deploy do site, boletim, publicação do MCP
+├── docs/               # ADRs e notas de arquitetura
+└── archive/            # a primeira arquitetura, aposentada — ver archive/README.md
 ```
 
 ---
@@ -220,6 +235,15 @@ sub-registro na relação vulnerabilidade × mortalidade.
 Os indicadores são **agregados e descritivos** — não substituem julgamento técnico. Pede-se, de boa-fé,
 que a plataforma não seja usada para discriminação no acesso à saúde, vigilância em massa de indivíduos
 ou automação de decisões clínicas/de política pública sem supervisão profissional. Detalhes na [LICENSE](LICENSE).
+
+## 🔒 Segurança
+
+Vulnerabilidades vão por canal privado — ver [`SECURITY.md`](SECURITY.md). Leia
+antes a seção sobre o que **não** é vazamento aqui: a chave `anon` do Supabase é
+pública por desenho (é o que permite consultar a API sem cadastro), e os arquivos
+`.env` versionados são templates com placeholders.
+
+---
 
 ## 📄 Licença
 

@@ -111,3 +111,17 @@ O PyPI não precisa de segredo: usa OIDC.
 | `boletim-semanal.yml` | segundas, 12h UTC |
 | `validate-data.yml` | agendado |
 | `supabase-keepalive.yml` | agendado (evita pausa do projeto free) |
+
+## Limites do plano gratuito
+
+Onde a conta encosta no teto, e o que acontece se passar:
+
+| Recurso | Limite gratuito | Uso atual |
+|---|---|---|
+| Banco Supabase | 500 MB | ~150 MB |
+| Egress Supabase | 5 GB/mês | depende do tráfego |
+| Pausa por inatividade | 7 dias sem requisição | `supabase-keepalive.yml` evita |
+| Banda do GitHub Pages | 100 GB/mês | folgado |
+
+Se o projeto Supabase pausar por inatividade, basta reativá-lo em
+[app.supabase.com](https://app.supabase.com) — nenhum dado é perdido.
