@@ -178,9 +178,154 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
         </tbody>
       </table>
       <p>
-        <strong>Importante:</strong> linhas com <code>capitulo_cid=&#39;TOTAL&#39;</code>,{" "}
-        <code>sexo=&#39;TOTAL&#39;</code> ou <code>faixa_etaria=&#39;TOTAL&#39;</code> são
-        subtotais pré-calculados. Filtre-os explicitamente para evitar dupla contagem.
+        <strong>Importante:</strong> nem toda linha é uma observação. Algumas são
+        subtotais pré-calculados (<code>TOTAL</code>) e outras são marcadores de
+        ausência (<code>IGN</code>, <code>ND</code>, códigos <code>&lt;UF&gt;0000</code>).
+        Somar sem filtrá-los produz dupla contagem ou município fantasma — a lista
+        completa está em <a href="#sentinelas">Valores sentinela</a>, adiante.
+      </p>
+
+      <h2 id="sistemas-de-codigo">Sistemas de código</h2>
+      <p>
+        As colunas de código não carregam identificadores internos: seguem sistemas
+        externos padronizados. Isso torna a base unível a qualquer outra fonte que use
+        os mesmos sistemas — inclusive prontuários e sistemas clínicos conformes aos
+        perfis da{" "}
+        <a href="https://rnds-fhir.saude.gov.br/" target="_blank" rel="noreferrer">RNDS</a>{" "}
+        (BR Core). São quatro os sistemas com URI canônico — os demais são convenção
+        desta base e estão marcados como tal.
+      </p>
+      <pre>
+        <code>{`# URIs canônicos, para bindings FHIR / terminologia
+IBGE, município-UF-região   https://rnds-fhir.saude.gov.br/CodeSystem/BRDivisaoGeograficaBrasil
+CID-10                      https://rnds-fhir.saude.gov.br/NamingSystem/BRCID10
+CNES                        https://rnds-fhir.saude.gov.br/NamingSystem/cnes
+Sexo                        http://hl7.org/fhir/administrative-gender`}</code>
+      </pre>
+      <p className="text-sm text-ink-500">
+        Definições:{" "}
+        <a href="https://rnds-fhir.saude.gov.br/CodeSystem-BRDivisaoGeograficaBrasil.html" target="_blank" rel="noreferrer">BRDivisaoGeograficaBrasil</a>{" · "}
+        <a href="https://rnds-fhir.saude.gov.br/NamingSystem-BRCID10.html" target="_blank" rel="noreferrer">BRCID10</a>{" · "}
+        <a href="https://rnds-fhir.saude.gov.br/NamingSystem-cnes.html" target="_blank" rel="noreferrer">CNES</a>{" · "}
+        <a href="https://rnds-fhir.saude.gov.br/ValueSet-BRSexo-1.0.html" target="_blank" rel="noreferrer">BRSexo-1.0</a>.
+      </p>
+      <table>
+        <thead>
+          <tr>
+            <th>Coluna</th>
+            <th>Sistema</th>
+            <th>Formato nesta base</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>municipio_cod</code>, <code>municipio_res</code>, <code>municipio_mov</code></td>
+            <td>IBGE, nível município</td>
+            <td><strong>6 dígitos</strong>, sem dígito verificador (<code>355030</code>). É o mesmo nível adotado pela RNDS — junta sem conversão</td>
+          </tr>
+          <tr>
+            <td><code>municipio_cod7</code> (só em <code>dim_municipio</code>)</td>
+            <td>IBGE, nível município</td>
+            <td>7 dígitos, <em>com</em> dígito verificador (<code>3550308</code>). Use <code>dim_municipio</code> para converter entre as duas formas</td>
+          </tr>
+          <tr>
+            <td><code>uf_sigla</code>, <code>uf_res</code>, <code>uf_mov</code></td>
+            <td>IBGE, nível UF</td>
+            <td>sigla de 2 letras (<code>SP</code>). <strong>Não</strong> é o código numérico: o equivalente da RNDS são os <strong>2 primeiros dígitos</strong> de <code>municipio_cod</code> (<code>35</code>)</td>
+          </tr>
+          <tr>
+            <td><code>regiao</code></td>
+            <td>IBGE, nível região</td>
+            <td>nome da macrorregião. O código de 1 dígito é o <strong>primeiro</strong> de <code>municipio_cod</code></td>
+          </tr>
+          <tr>
+            <td><code>capitulo_cid</code>, <code>capitulo_principal</code></td>
+            <td>CID-10, capítulo</td>
+            <td>numeral romano, <code>I</code>–<code>XXII</code>. A faixa correspondente está em <code>dim_cid10_capitulo.faixa</code> (<code>O00-O99</code>)</td>
+          </tr>
+          <tr>
+            <td><code>causabas_3</code></td>
+            <td>CID-10, categoria</td>
+            <td><strong>3 caracteres</strong> (<code>G31</code>). Vem de <code>CAUSABAS</code> no SIM e <code>DIAG_PRINC</code> no SIH; descrições em <code>dim_cid10_categoria</code></td>
+          </tr>
+          <tr>
+            <td><code>cnes</code></td>
+            <td>CNES</td>
+            <td>7 dígitos, <strong>string com zeros à esquerda</strong> (<code>0000035</code>). Converter para número destrói a chave</td>
+          </tr>
+          <tr>
+            <td><code>sexo</code></td>
+            <td>HL7 <code>administrative-gender</code></td>
+            <td><code>M</code> / <code>F</code> / <code>I</code> equivalem a <code>male</code> / <code>female</code> / <code>unknown</code> — os mesmos três valores do <code>BRSexo-1.0</code></td>
+          </tr>
+          <tr>
+            <td><code>ano_epi</code> + <code>semana_epi</code></td>
+            <td>semana epidemiológica (MS)</td>
+            <td>SE de 1 a 53, com ano epidemiológico próprio — <strong>não coincide</strong> com o ano civil na virada. Sem equivalente FHIR</td>
+          </tr>
+          <tr>
+            <td><code>mes_competencia</code></td>
+            <td>ISO 8601</td>
+            <td>primeiro dia do mês (<code>2023-03-01</code>), não uma data de evento</td>
+          </tr>
+          <tr>
+            <td><code>faixa_etaria</code></td>
+            <td>convenção desta base</td>
+            <td><code>&lt;1</code>, <code>1-4</code>, <code>5-14</code>, <code>15-29</code>, <code>30-44</code>, <code>45-59</code>, <code>60-74</code>, <code>75+</code>. Escolhida para a padronização por idade; <strong>não</strong> é sistema externo</td>
+          </tr>
+          <tr>
+            <td><code>agravo</code>, <code>agravo_label</code>, <code>grupo</code></td>
+            <td>convenção desta base</td>
+            <td>chaves derivadas de prefixos CID-10 de 3 caracteres. O mapa canônico é o dicionário <code>AGRAVOS</code> em <code>scripts/pipeline_sih_agravo.py</code></td>
+          </tr>
+          <tr>
+            <td><code>internacoes_icsap</code>, <code>pct_icsap</code></td>
+            <td>Lista Brasileira de ICSAP</td>
+            <td>Portaria SAS/MS 221/2008, aproximada no nível de CID-10 de 3 caracteres</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h3 id="sentinelas">Valores sentinela</h3>
+      <p>
+        Estes valores ocupam colunas de código sem serem códigos. Tratá-los como
+        categoria real é o erro mais comum cometido em cima desta base:
+      </p>
+      <table>
+        <thead>
+          <tr><th>Valor</th><th>Colunas</th><th>Significa</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><code>TOTAL</code></td>
+            <td><code>capitulo_cid</code>, <code>sexo</code>, <code>faixa_etaria</code></td>
+            <td>subtotal pré-calculado. Somado junto com as partes, <strong>dobra a contagem</strong> — filtre explicitamente</td>
+          </tr>
+          <tr>
+            <td><code>I</code> / <code>IGN</code></td>
+            <td><code>sexo</code> / <code>faixa_etaria</code></td>
+            <td>atributo ignorado no registro de origem. É um evento real com campo ausente — descartá-lo subestima o total</td>
+          </tr>
+          <tr>
+            <td><code>ND</code></td>
+            <td><code>uf_sigla</code></td>
+            <td>UF não identificada</td>
+          </tr>
+          <tr>
+            <td><code>&lt;UF&gt;0000</code></td>
+            <td><code>municipio_cod</code></td>
+            <td>agregado de &quot;município ignorado&quot; da UF. <code>110000</code> é Rondônia sem município identificado, não uma cidade — há um código desses por UF</td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        O IBGE tem <strong>5.571</strong> municípios; as tabelas municipais trazem mais
+        linhas justamente por causa dos agregados acima. A regra de exclusão usada pelo
+        site é pública em{" "}
+        <a href="https://github.com/pedropaulofernandes88-stack/saude-publica-br/blob/main/site/lib/municipios.ts" target="_blank" rel="noreferrer">
+          <code>site/lib/municipios.ts</code>
+        </a>{" "}
+        (<code>ehCodigoAgregado</code> e <code>municipioIdentificado</code>).
       </p>
 
       <h2>Uso em Python e R</h2>
