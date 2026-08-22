@@ -213,7 +213,20 @@ export default function Metodologia() {
         <li>Qualidade de registro e cobertura do SIM variam regionalmente e melhoraram ao longo do tempo — parte das tendências longas reflete melhora de captação;</li>
         <li>Garbage codes (ex.: R99) não são redistribuídos entre causas;</li>
         <li>A taxa padronizada usa estrutura etária fixa (Censo 2022) escalada — aproximação para anos distantes de 2022;</li>
-        <li>O baseline do excesso não modela tendência de longo prazo;</li>
+        {/* Esta linha dizia "O baseline do excesso não modela tendência de longo
+            prazo" — verdade do método ANTIGO (média 2015–2019 × razão populacional),
+            que a §6 declara ter sido substituído justamente por não modelar a
+            tendência. Ficou para trás na troca, afirmando ao leitor o oposto do que
+            o §6 descreve, dentro da seção de limitações — o lugar onde a
+            contradição custa mais caro. O que segue é a limitação que o método
+            atual de fato tem. */}
+        <li>
+          O baseline do excesso ajusta a tendência sobre <strong>5 pontos</strong> por mês
+          civil (2015–2019) e a extrapola até 5 anos à frente, <strong>sem intervalo de
+          incerteza publicado</strong>: o valor é uma estimativa pontual segundo este baseline,
+          e a extrapolação perde confiabilidade no extremo da série — ver a cautela com 2024
+          na §6;
+        </li>
         <li>2024 preliminar; revisões do MS alteram os números do último ano.</li>
       </ul>
 
@@ -523,12 +536,44 @@ export default function Metodologia() {
       </p>
       <p>
         <strong>Projeção de demanda.</strong> Tendência linear sobre a série mensal de
-        internações de cada hospital — o mesmo método de regressão usado no excesso de
-        mortalidade (§6), aplicado por hospital em vez de por UF. A faixa de incerteza é
-        indicativa (previsão ± 1,96 × desvio-padrão dos resíduos do ajuste), não um intervalo de
-        predição formal. Hospitais com menos de 24 meses de histórico recebem
-        <code> confianca=&quot;baixa&quot;</code>: uma tendência calculada sobre poucos pontos é
-        instável — sinalizada, não ocultada.
+        internações de cada hospital, ajustada sobre o <strong>tempo de calendário</strong> —
+        mês ausente conta como ausente, não como vizinho do seguinte. O intervalo é o de
+        predição da regressão (cresce com a distância da extrapolação) multiplicado por um
+        fator de calibração medido em backtest: z = 2,42 / 2,64 / 2,80 para 1, 2 e 3 meses,
+        no lugar do 1,96 da normal.
+      </p>
+      <p>
+        <strong>A projeção é validada antes de ser publicada.</strong> Por{" "}
+        <strong>origem móvel</strong> (o modelo só vê o passado de cada origem), sobre 4.445
+        hospitais, contra cinco alternativas: naive, ingênuo sazonal, média móvel de 3 meses,
+        sazonal com deriva e tendência com sazonalidade. A tendência linear supera o baseline
+        sazonal em todos os horizontes (MASE 0,810 / 0,867 / 0,922) e em todos os estratos de
+        volume. O pipeline <em>recusa-se a publicar</em> se o relatório de backtest não existir.
+      </p>
+      <p>
+        <strong>Três coisas que o backtest mudou, e uma que ele impediu.</strong> Mudou: (a) a
+        projeção passou a partir de uma <em>âncora única</em> — a última competência da base —,
+        e não do último mês de cada hospital, o que vinha publicando previsões para meses já
+        passados; (b) o intervalo, antes declarado como 95%, cobria de fato{" "}
+        <strong>85,0%</strong> no horizonte de 3 meses, e a calibração corrigiu isso; (c){" "}
+        <code>confianca</code> — que só refletia o comprimento da série — deu lugar a{" "}
+        <code>status_validacao</code>, derivado do erro <em>medido</em> no estrato de volume do
+        hospital. Impediu: os modelos <em>sazonais</em> pareciam a melhoria óbvia, já que no
+        agregado nacional a sazonalidade é nítida (fevereiro fica 5,9% abaixo da tendência);
+        medidos por hospital, ficaram <strong>piores</strong> (MASE 1,03 a 1,11). A amplitude
+        sazonal é menor que o ruído de um estabelecimento isolado. O que vale no agregado não
+        transferiu para a unidade.
+      </p>
+      <p>
+        <strong>O intervalo é largo, e isso é o resultado.</strong> Mediana de 74% da previsão
+        nos hospitais acima de 500 internações/mês e 217% nos de 6 a 20. Demanda mensal de um
+        hospital é intrinsecamente ruidosa; a banda estreita anterior não era mais precisa, era
+        menos honesta. Hospitais abaixo de 5 internações/mês <strong>não são publicados</strong>{" "}
+        (erro medido acima de 50%), e os que pararam de reportar antes da última competência
+        também não. Método completo, métricas e limitações no{" "}
+        <a href="https://github.com/pedropaulofernandes88-stack/saude-publica-br/blob/main/docs/MODEL_CARD_FORECAST.md">
+          model card
+        </a>.
       </p>
       <p>
         <strong>O que não fazemos, e por quê:</strong> não estimamos risco de readmissão ou
