@@ -10,7 +10,11 @@ const serif = Source_Serif_4({ subsets: ["latin"], variable: "--font-serif" });
 export const metadata: Metadata = {
   metadataBase: new URL("https://saudeemdado.com"),
   title: {
-    default: "Saúde em Dado — Mortalidade no Brasil (SIM/DataSUS)",
+    // "Mortalidade no Brasil" descrevia a plataforma de quando ela só tinha o SIM.
+    // Hoje são seis sistemas (SIM, SINAN, SIH, SINASC, CNES, SIOPS) e o título
+    // subvendia o produto. Os termos que rankeiam — "mortalidade" e "Brasil" —
+    // ficam; o que muda é deixarem de ser o escopo inteiro.
+    default: "Saúde em Dado — Mortalidade, dengue e internações no Brasil (DataSUS)",
     template: "%s · Saúde em Dado",
   },
   description:
@@ -30,14 +34,23 @@ export const metadata: Metadata = {
       ],
     },
   },
+  // A imagem do cartão vem de app/opengraph-image.png pela convenção de arquivo do
+  // Next — não declare `images` aqui, ou ela deixa de ser usada. Gerada por
+  // scripts/gerar_assets_marca.py; o ícone vem de app/icon.svg e public/favicon.ico.
   openGraph: {
     type: "website",
     locale: "pt_BR",
     url: "https://saudeemdado.com",
     siteName: "Saúde em Dado",
-    title: "Saúde em Dado — Mortalidade no Brasil (SIM/DataSUS)",
+    title: "Saúde em Dado — Mortalidade, dengue e internações no Brasil (DataSUS)",
     description:
       "14,4 milhões de óbitos (2015–2024) em painéis navegáveis, mapa municipal, taxas padronizadas e API pública gratuita.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Saúde em Dado — Mortalidade, dengue e internações no Brasil (DataSUS)",
+    description:
+      "Indicadores agregados do DataSUS e do IBGE, com metodologia declarada e API pública gratuita.",
   },
 };
 
