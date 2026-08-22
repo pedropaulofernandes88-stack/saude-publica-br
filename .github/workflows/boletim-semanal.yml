@@ -96,12 +96,23 @@ jobs:
             echo "Sem arquivo de alertas para ${EDICAO} — nada a enviar."
             exit 0
           fi
-          RESP=$(curl -sS -X POST "${SUPABASE_URL}/functions/v1/alertas-envio" \
+          # -w para separar o status HTTP do corpo: a função agora responde 207
+          # (entrega parcial) ou 502 (nenhuma entrega), e não só 200 com ok:false.
+          # Antes bastava `grep '"ok":true'` num corpo que era sempre ok:true —
+          # o job ficava verde com todos os e-mails falhando.
+          RESP=$(curl -sS -w '\n%{http_code}' -X POST "${SUPABASE_URL}/functions/v1/alertas-envio" \
             -H "Content-Type: application/json" \
             -H "x-alertas-secret: ${ALERTAS_ENVIO_SECRET}" \
             --data-binary "@${ARQ}")
-          echo "Resposta do envio: ${RESP}"
-          echo "$RESP" | grep -q '"ok":true' || { echo "Falha no envio"; exit 1; }
+          HTTP=$(echo "$RESP" | tail -n1)
+          CORPO=$(echo "$RESP" | sed '$d')
+          echo "Resposta do envio (HTTP ${HTTP}): ${CORPO}"
+          if [ "$HTTP" != "200" ]; then
+            echo "::error::envio de alertas retornou HTTP ${HTTP} — ${CORPO}"
+            exit 1
+          fi
+          echo "$CORPO" | grep -q '"ok":true' || {
+            echo "::error::envio de alertas não confirmou ok:true — ${CORPO}"; exit 1; }
 
       # ── Guard-rail ──────────────────────────────────────────────────────
       # Degradação silenciosa é o modo de falha que mata um projeto automatizado:
