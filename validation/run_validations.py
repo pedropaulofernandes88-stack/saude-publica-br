@@ -36,7 +36,6 @@ SUITE_REGISTRY: dict[str, str] = {
     "acesso_cobertura":    "mart_acesso_cobertura",
     "mix_complexidade":    "mart_mix_complexidade",
     "sazonalidade":        "mart_sazonalidade",
-    "anomalias_prophet":   "mart_anomalias_prophet",
     "mortalidade":         "mart_mortalidade",
     "internacoes":         "mart_internacoes",
 }
@@ -103,8 +102,11 @@ def run_suite(
 
     t0 = time.perf_counter()
     try:
-        import great_expectations as gx
-
+        # `import great_expectations as gx` vivia aqui sem nunca ser usado. Não
+        # servia nem de guarda de presença: os módulos de validation.suites já
+        # importam a biblioteca no topo, então a ausência dela quebraria antes
+        # de chegar a esta linha. Ficou invisível porque o CI só lintava
+        # scripts/, mcp_server/ e clients/ — validation/ não entrava.
         df = loader(limit=limit)
         suite, batch_def = build_fn(df)
 
