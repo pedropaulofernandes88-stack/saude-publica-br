@@ -44,7 +44,7 @@ python-dotenv>=1.0.0
 # requirements.txt` nunca completava — por isso o ambiente local sempre foi
 # montado pacote a pacote. A API usada (add, remove, info, success, warning)
 # e a mesma nas duas linhas. Para voltar ao 0.7, o caminho e sair do pysus.
-loguru>=0.6.0,<0.7.0
+loguru>=0.6.0,<0.8.0
 tenacity>=8.2.0
 click>=8.1.0
 rich>=13.7.0
