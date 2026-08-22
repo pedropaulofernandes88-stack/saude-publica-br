@@ -40,6 +40,25 @@ pytest-asyncio==0.24.0
 pytest-cov==6.0.0
 ruff==0.8.4
 
-# Import do servidor MCP conferido pelo CI (teto <2: a 2.0.0 removeu
-# mcp.server.fastmcp).
+# Import do servidor MCP conferido pelo CI.
+#
+# O comentario aqui dizia "teto <2: a 2.0.0 removeu mcp.server.fastmcp" -- ou
+# seja, justificava um teto ABAIXO de 2.0.0, enquanto a linha seguinte EXIGE
+# 2.x. Ficou para tras quando o servidor migrou de FastMCP para MCPServer (a
+# 2.0.0 renomeou a classe, e o codigo em mcp_server/ ja usa o nome novo). Quem
+# lesse o comentario e "corrigisse" o pino para <2 quebraria o pacote publicado
+# no PyPI. O teto <3 continua valendo: e a proxima major, ainda nao avaliada.
 mcp>=2,<3
+
+# ── Pisos de segurança (transitivas) ────────────────────────────────────────
+# Estas três não são importadas diretamente por nada aqui: `cryptography` vem de
+# great-expectations e PyJWT, `starlette` vem do SDK `mcp`. Entram assim mesmo
+# porque `pip-audit` acusou cinco vulnerabilidades conhecidas nelas, e sem piso
+# explícito uma instalação nova pode resolver para a versão vulnerável de novo.
+#
+# Nenhuma é alcançável nesta arquitetura — não há servidor HTTP em produção, e o
+# servidor MCP fala por stdio, sem parsing de formulário — mas o custo de fixar
+# o piso é zero e a análise completa está em docs/SECURITY_AUDIT.md.
+cryptography>=50.0.0     # PYSEC-2026-3552/3553/3554
+starlette>=1.3.1         # PYSEC-2026-249 (limites ignorados em urlencoded)
+pydantic-settings>=2.14.2  # GHSA-4xgf-cpjx-pc3j (symlink em secrets_dir)
