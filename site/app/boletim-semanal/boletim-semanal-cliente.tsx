@@ -314,16 +314,16 @@ function BoletimInner() {
           </p>
         </div>
       )}
-      {vig && vig.atraso_semanas != null && vig.atraso_semanas > 3 && (
-        <div className="card mt-6 border-amber-300 bg-amber-50">
-          <h2 className="font-serif text-lg font-semibold text-amber-900">
-            ⚠ Vigilância defasada
+      {vig && vig.atraso_semanas != null && vig.atraso_semanas >= 3 && (
+        <div className="card mt-6 border-red-300 bg-red-50">
+          <h2 className="font-serif text-lg font-semibold text-red-900">
+            ⚠ Boletim degradado — vigilância defasada
           </h2>
-          <p className="mt-2 text-sm leading-relaxed text-amber-900">
+          <p className="mt-2 text-sm leading-relaxed text-red-900">
             Os dados de vigilância mais recentes são da SE {vig.semana_epi}/{vig.ano_epi} —{" "}
-            <strong>{vig.atraso_semanas} semanas atrás</strong> desta edição. O atraso normal é
-            de 1 a 2 semanas, então a fonte externa pode estar desatualizada. Trate a seção
-            abaixo como retrato antigo, não como situação de hoje.
+            <strong>{vig.atraso_semanas} semanas atrás</strong> desta edição (SE {boletim.semana}).
+            O atraso normal é de 1 a 2 semanas, então a fonte externa pode estar desatualizada.
+            Trate a seção abaixo como retrato antigo, não como situação de hoje.
           </p>
         </div>
       )}
@@ -331,10 +331,29 @@ function BoletimInner() {
       {/* ── Vigilância atual (InfoDengue) ── */}
       {vig && (
         <>
+          {/* Nunca "desta semana": a semana da EDIÇÃO e a semana do DADO são coisas
+              diferentes, e em saúde pública confundi-las é erro de conteúdo, não de
+              layout. O título passa a nomear a semana de referência, e a defasagem
+              aparece sempre — não só quando fica grave. */}
           <h2 className="mt-10 font-serif text-2xl font-semibold text-ink-950">
-            🚨 Vigilância desta semana — SE {vig.semana_epi}/{vig.ano_epi}
+            🚨 Vigilância corrente — SE {vig.semana_epi}/{vig.ano_epi}
           </h2>
-          <p className="mt-1 text-sm text-ink-600">
+          <p className={`mt-2 inline-block rounded-lg border px-3 py-1.5 text-sm ${
+            vig.atraso_semanas == null ? "border-ink-200 bg-ink-50 text-ink-700"
+            : vig.atraso_semanas >= 3 ? "border-red-300 bg-red-50 text-red-900"
+            : vig.atraso_semanas === 2 ? "border-amber-300 bg-amber-50 text-amber-900"
+            : "border-ink-200 bg-ink-50 text-ink-700"}`}>
+            Publicado na SE {boletim.semana}/{boletim.ano}. Última semana disponível no
+            InfoDengue: <strong>SE {vig.semana_epi}/{vig.ano_epi}</strong>
+            {vig.atraso_semanas != null && (
+              <> — defasagem de <strong>{vig.atraso_semanas}{" "}
+              {vig.atraso_semanas === 1 ? "semana" : "semanas"}</strong>
+              {vig.atraso_semanas >= 3 ? " (acima do normal — veja o aviso acima)"
+                : vig.atraso_semanas === 2 ? " (no limite do normal, que é 1 a 2 semanas)"
+                : ""}</>
+            )}.
+          </p>
+          <p className="mt-2 text-sm text-ink-600">
             Rede sentinela de <strong>{fmtInt(vig.rede.total)} municípios</strong> (as 27 capitais, municípios
             com mais de {fmtInt(vig.rede.criterios.populacao_minima)} habitantes e os de maior carga histórica
             de dengue) — <strong>{fmtDec(vig.rede.cobertura_pct, 0)}% da população do país</strong>, todas as
@@ -350,7 +369,7 @@ function BoletimInner() {
                  detalhe={`nível laranja ou vermelho, de ${fmtInt(vig.dengue.municipios_monitorados)} monitorados`} />
             <Kpi rotulo="Transmissão em crescimento" valor={String(vig.dengue.transmissao_crescente)}
                  detalhe="municípios com Rt > 1" />
-            <Kpi rotulo="Casos estimados na semana" valor={fmtInt(vig.dengue.total_estimado)}
+            <Kpi rotulo={`Casos estimados na SE ${vig.semana_epi}`} valor={fmtInt(vig.dengue.total_estimado)}
                  detalhe={`${fmtInt(vig.dengue.total_notificado)} já notificados — o restante é atraso de digitação`} />
           </div>
 
@@ -385,7 +404,7 @@ function BoletimInner() {
           <div className="card mt-6">
             <h3 className="font-serif text-xl font-semibold text-ink-900">Panorama por UF — dengue</h3>
             <p className="mt-1 text-sm text-ink-500">
-              Municípios da rede sentinela em cada UF e quantos estão em alerta nesta semana.
+              Municípios da rede sentinela em cada UF e quantos estão em alerta na SE {vig.semana_epi}/{vig.ano_epi}.
             </p>
             <div className="mt-4 overflow-x-auto">
               <table className="w-full text-sm">
@@ -419,7 +438,7 @@ function BoletimInner() {
             <h3 className="font-serif text-xl font-semibold text-ink-900">Capitais — dengue</h3>
             <p className="mt-1 text-sm text-ink-500">
               Referência das 27 capitais, ordenadas por casos estimados. A coluna &quot;4 semanas&quot; compara
-              a estimativa desta semana com a de quatro semanas atrás.
+              a estimativa da SE {vig.semana_epi} com a de quatro semanas antes.
             </p>
             <TabelaVigilancia capitais={vig.capitais_dengue} rotulo="Capital" />
             <p className="mt-3 text-xs text-ink-500">
