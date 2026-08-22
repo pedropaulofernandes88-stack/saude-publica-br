@@ -1,0 +1,99 @@
+# =============================================================================
+# Observador das fontes — quando o DataSUS mexe no arquivo
+# =============================================================================
+# O projeto nunca soube quando reingerir. Os marts ficaram congelados desde
+# junho/2026 enquanto o boletim semanal seguia publicando os mesmos números como
+# se fossem novos — cinco edições seguidas com 6.564.924 casos de dengue e
+# 102.412 óbitos, sem variar um dígito.
+#
+# Este workflow resolve o gatilho, não a ingestão. Ele NÃO baixa microdado e NÃO
+# escreve no Supabase: faz HEAD no S3 do SIM e LIST no FTP do DataSUS, o que
+# custa alguns KB, e registra tamanho e data de ~1.600 arquivos. Quando algum
+# muda, abre issue. Reingerir continua sendo decisão humana — mas passa a ser
+# uma decisão informada.
+#
+# Por que vale: na primeira observação (18/08/2026) o DataSUS tinha reescrito
+# DENGBR07, DENGBR08 e DENGBR09 seis dias antes. Dengue de 2007 revisada em
+# 2026. Sem isto, ninguém no projeto teria como saber.
+#
+# NÃO precisa de segredo nenhum. Só `contents: write` para versionar a
+# observação e `issues: write` para avisar.
+# =============================================================================
+name: Observar fontes do DataSUS
+
+on:
+  schedule:
+    # Segundas, 09h UTC (06h em Brasília) — três horas antes do boletim, para
+    # que a edição da semana já saia sabendo se a fonte mexeu.
+    - cron: "0 9 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+concurrency:
+  group: observar-fontes
+  cancel-in-progress: false
+
+jobs:
+  observar:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      # requests e nada mais: o observador nao usa pandas nem duckdb.
+      - name: Instalar dependências
+        run: pip install --upgrade pip requests
+
+      - name: Observar
+        id: obs
+        run: |
+          set -o pipefail
+          python scripts/observar_fontes.py 2>&1 | tee /tmp/observacao.log
+          ARQ=$(ls -1 data/observacoes/*.json | tail -1)
+          echo "arquivo=$ARQ" >> "$GITHUB_OUTPUT"
+          echo "mudancas=$(python -c "import json,sys;print(json.load(open('$ARQ',encoding='utf-8'))['n_mudancas'] or 0)")" >> "$GITHUB_OUTPUT"
+
+      - name: Versionar a observação
+        run: |
+          git config user.name  "observador-bot"
+          git config user.email "actions@github.com"
+          git add data/observacoes/
+          if git diff --cached --quiet; then
+            echo "nada novo para versionar"
+            exit 0
+          fi
+          git commit -m "obs(fontes): observação de $(date -u +%Y-%m-%d) (${{ steps.obs.outputs.mudancas }} mudanças)"
+          git push
+
+      # A issue e o produto: e o unico momento em que alguem precisa olhar.
+      - name: Avisar quando a fonte mexeu
+        if: steps.obs.outputs.mudancas != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          python - <<'PY' > /tmp/corpo.md
+          import glob, json
+          d = json.load(open(sorted(glob.glob("data/observacoes/*.json"))[-1], encoding="utf-8"))
+          print(f"O DataSUS mexeu em **{d['n_mudancas']}** arquivo(s) desde `{d['comparado_com']}`.\n")
+          print("| base | arquivo | o que mudou | modificado em |")
+          print("|---|---|---|---|")
+          for m in d["mudancas"][:60]:
+              print(f"| {m['base']} | `{m['arquivo']}` | {m['mudanca']} | {m.get('modificado_em') or '—'} |")
+          if d["n_mudancas"] > 60:
+              print(f"\n… e mais {d['n_mudancas'] - 60}. A lista completa está na observação versionada.")
+          print("\n---\n")
+          print("Mudança de arquivo **não é** mudança de indicador — o arquivo pode ter sido")
+          print("reescrito com conteúdo equivalente. Isto diz que vale a pena reingerir a base")
+          print("afetada e comparar, não que algum número publicado esteja errado.")
+          PY
+          gh issue create \
+            --title "Fontes do DataSUS mudaram — ${{ steps.obs.outputs.mudancas }} arquivo(s) em $(date -u +%Y-%m-%d)" \
+            --body-file /tmp/corpo.md \
+            --label dado \
+            --repo "${{ github.repository }}"
