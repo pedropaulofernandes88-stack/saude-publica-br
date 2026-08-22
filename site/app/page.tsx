@@ -181,7 +181,10 @@ export default function Home() {
         {/* Como citar */}
         <div className="card mt-12 bg-ink-950 text-ink-100">
           <h2 className="font-serif text-xl font-semibold text-white">Como citar</h2>
-          <p className="mt-2 text-sm text-ink-500">
+          {/* ink-400, não ink-500: a rampa foi calibrada para 4,54:1 sobre o PAPEL
+              (fundo claro). Este é o único card de fundo escuro do site, e ali o
+              ink-500 cai para 3,19:1 — reprova em WCAG AA. O ink-400 dá 5,59:1. */}
+          <p className="mt-2 text-sm text-ink-400">
             Em trabalhos acadêmicos, cite as fontes primárias e a plataforma:
           </p>
           <pre className="mt-4 overflow-x-auto rounded-lg bg-black/40 p-4 text-xs leading-relaxed">

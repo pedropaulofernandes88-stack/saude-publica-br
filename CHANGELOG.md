@@ -7,6 +7,120 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [3.4.0] — 2026-08-22 — Previsão validada, e uma explicação causal retirada de circulação
+
+> Duas frentes, um mesmo princípio: número publicado precisa de evidência que o
+> sustente, e a evidência precisa ser regenerável. O forecast de demanda ganhou
+> backtesting — e o backtest encontrou defeito, refutou a melhoria "óbvia" e
+> obrigou a alargar um intervalo. O servidor MCP parou de ensinar uma
+> interpretação de ICSAP que a própria metodologia já havia refutado.
+
+### Corrigido
+
+- **MCP ensinava causalidade refutada (mais grave desta versão).** A descrição de
+  `icsap_distancia_dos_pares` afirmava que "onde falta leito, a internação eletiva
+  some e a fatia de ICSAP sobe" — hipótese que a §19 da metodologia testou contra
+  os leitos do CNES e **refutou na direção e no mecanismo** (ρ = +0,32; municípios
+  sem leito local têm %ICSAP *menor*, 17,7% contra 21,4%; ter leito local eleva a
+  internação por ICSAP em +51% a +85%). `internacoes_evitaveis_icsap` e
+  `detectar_anomalias` traduziam "%ICSAP alto" como "fragilidade da atenção
+  primária". Como o pacote está no PyPI e se apresenta como camada
+  anti-alucinação, o erro viajava com a autoridade da plataforma. O sinal do
+  copiloto agora consulta `mart_leitos_municipio` e entrega a oferta local junto
+  com o número. Seis testes de consistência entre metodologia, MCP e site
+  impedem a volta — verificados contra a versão defeituosa, onde acusam 7 falhas.
+- **786 previsões retrospectivas estavam publicadas.** O forecast projetava a
+  partir do último mês *de cada hospital*, não da base: 340 estabelecimentos que
+  pararam de reportar recebiam "previsões" para meses já passados, a mais antiga
+  de 2022-07, na coluna rotulada "mês previsto". A causa era o upsert por
+  `merge-duplicates`, que nunca removia a âncora anterior. A tabela passa a ser
+  substituída a cada carga.
+- **Eixo temporal do forecast.** O ajuste usava a posição da linha (`np.arange`),
+  não o mês. 833 de 4.848 hospitais têm buraco na série; para eles o eixo saía
+  comprimido e a inclinação, inflada. Numa série sintética sem ruído com quatro
+  meses faltando, o método antigo erra 3,1%.
+- **Intervalo do forecast cobria 85%, não 95%.** Medido por backtest, e piorando
+  com o horizonte (89,0% → 86,8% → 85,0%). Agora é intervalo de predição com
+  fator de calibração empírico: z = 2,42 / 2,64 / 2,80 no lugar de 1,96.
+- **`validate_data.py` transformava falha em verde.** Os blocos de dengue e
+  internações eram `try/except` que imprimiam `[skip]`; queda de rede, coluna
+  renomeada ou consulta vazia deixavam a validação passar sem ter validado.
+- **`alertas-envio` retornava `ok:true` com todas as entregas falhando**, e o
+  workflow decidia por `grep '"ok":true'`. Agora `ok` reflete a entrega, com 207
+  para parcial e 502 para nenhuma.
+- **HTML de e-mail sem escape.** Nome de município, doença e rótulo de nível iam
+  direto do InfoDengue para o corpo da mensagem.
+- **`.card` vencia os utilitários de fundo.** Definido fora de `@layer
+  components`, ele derrubava `bg-*` em todos os **15 cards com cor semântica**:
+  todo banner de erro e de alerta do site renderizava branco. No bloco "Como
+  citar" o resultado era um título `text-white` sobre card branco — 1,00:1,
+  invisível.
+- **Contradição na seção de limitações.** "O baseline do excesso não modela
+  tendência de longo prazo" era verdade do método antigo, substituído justamente
+  por não modelar tendência. Trocada pela limitação que o método atual tem: 5
+  pontos por mês civil, extrapolados até 5 anos, sem intervalo publicado.
+- **Comentário de `requirements-test.txt` contradizia o pino** que ele
+  justificava (dizia "teto <2", a linha exige `>=2,<3`).
+
+### Adicionado
+
+- **`scripts/validate_forecast.py`** — backtesting por origem móvel sobre 4.445
+  hospitais, sete modelos, três horizontes, ~915 mil previsões avaliadas. Gera
+  CSV, JSON e Markdown em `data/validacao/`. Sem rede e sem aleatoriedade.
+- **`scripts/_series_forecast.py`** — núcleo compartilhado entre quem publica e
+  quem mede, para que não divirjam. Inclui réplica exata do método anterior, para
+  quantificar o que a correção comprou.
+- **Status de publicação derivado de erro medido.** `status_validacao` (A/B/C)
+  substitui `confianca`, que só refletia o comprimento da série. Limiares (30% e
+  50% de sMAPE) vêm do ponto de quebra da distribuição observada por estrato.
+- **60 testes de invariante científica** (`tests/test_forecast_validacao.py`),
+  incluindo ausência de vazamento temporal verificada por construção.
+- **`docs/ML_VALIDATION.md`**, **`docs/MODEL_CARD_FORECAST.md`**,
+  **`docs/SECURITY_AUDIT.md`**, **`docs/CI_ARCHITECTURE.md`** e **ADR-006**.
+- **Dependabot** (npm, pip, github-actions; mensal) e **job de supply chain no
+  CI** (`npm audit` + `pip-audit`, informativo por decisão).
+- **Favicon, ícone e imagem Open Graph**, gerados da marca existente por
+  `scripts/gerar_assets_marca.py` e conferidos no CI.
+
+### Alterado
+
+- **Migração V027** acrescenta metadados de validação ao forecast. `confianca`
+  fica, derivada do status e marcada como obsoleta: a API é pública e sem
+  cadastro, não há como avisar consumidores antes de remover.
+- **Servidor MCP para 0.5.0.**
+- **`ml/` arquivado** em `archive/ml-prophet/`. Detectava anomalias em produção
+  ambulatorial (SIA), fonte fora do pipeline; nada o importava e
+  `mart_anomalias_prophet` **nunca existiu em produção**. Os 7 testes
+  permanentemente skipados foram junto — a suíte passa a ter **0 skips**.
+- **`postcss` 8.4.49 → 8.5.26 e `nanoid` → 3.3.18** via `overrides`: `npm audit`
+  cai de 3 alertas altos para 1. O que resta é o Next.js 14, inalcançável em
+  `output: export` sem servidor, sem middleware e sem Server Action —
+  reclassificado com evidência em vez de "corrigido" com dois majors.
+- **`cryptography`, `starlette` e `pydantic-settings` atualizados.** O
+  `pip-audit` nunca havia sido executado neste projeto e encontrou 5
+  vulnerabilidades em 3 pacotes; agora acusa zero, com pisos fixados.
+- **Ruff do CI passa a cobrir `validation/`.** `ingestion/` e `flows/` seguem
+  fora, agora por decisão declarada — têm 30 ocorrências F, incluindo 5 `F821`.
+- **Boletim nunca mais diz "desta semana"** sobre dado que não é da semana da
+  edição. A defasagem aparece sempre, com escala: 0–1 normal, 2 amarelo, ≥3
+  degradado.
+- **Contraste do bloco "Como citar"** e título do site, que ainda dizia
+  "Mortalidade no Brasil" com seis sistemas no ar.
+
+### Notas
+
+- A **melhoria óbvia foi refutada pelo próprio backtest**: modelos sazonais
+  pareciam o próximo passo, já que no agregado nacional fevereiro fica 5,9%
+  abaixo da tendência. Medidos por hospital, ficaram piores (MASE 1,03 a 1,11
+  contra 0,922). A amplitude sazonal é menor que o ruído de um estabelecimento
+  isolado. O método publicado **não mudou** — três dos quatro defeitos eram de
+  engenharia, um de calibração, nenhum do estimador.
+- O intervalo publicado **ficou mais largo** (mediana de 74% da previsão nos
+  hospitais grandes, 217% nos de 6–20/mês). A previsão não piorou; a incerteza
+  deixou de ser subdeclarada.
+
+---
+
 ## [3.3.0] — 2026-08-18 — Legibilidade, acessibilidade e uma stack a menos
 
 > Nenhum número publicado mudou de valor: os marts, as colunas e os endpoints

@@ -102,10 +102,6 @@ def load_sazonalidade(limit: Optional[int] = None) -> pd.DataFrame:
     return load_mart("mart_sazonalidade", limit=limit)
 
 
-def load_anomalias_prophet(limit: Optional[int] = None) -> pd.DataFrame:
-    return load_mart("mart_anomalias_prophet", limit=limit)
-
-
 def load_mortalidade(limit: Optional[int] = None) -> pd.DataFrame:
     return load_mart("marts.mart_mortalidade", limit=limit)
 
@@ -122,7 +118,6 @@ MART_LOADERS: dict[str, callable] = {
     "acesso_cobertura": load_acesso_cobertura,
     "mix_complexidade": load_mix_complexidade,
     "sazonalidade": load_sazonalidade,
-    "anomalias_prophet": load_anomalias_prophet,
     "mortalidade": load_mortalidade,
     "internacoes": load_internacoes,
 }

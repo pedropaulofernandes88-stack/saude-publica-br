@@ -37,15 +37,33 @@ interface UfBloco { uf: string; novos: Ocorrencia[]; agravados: Ocorrencia[]; to
 
 const int = (n: number) => Math.round(n).toLocaleString("pt-BR");
 
+/** Escapa texto que vai para o corpo do HTML.
+ *
+ * Nome de município, nome de doença e rótulo de nível vêm do InfoDengue, não
+ * daqui. Hoje são strings limpas, mas "a origem é confiável" é a premissa que
+ * envelhece pior em qualquer sistema que compõe HTML por concatenação — e o
+ * destino é a caixa de entrada de assinantes, onde não há CSP para segurar nada.
+ */
+const esc = (v: unknown) =>
+  String(v ?? "")
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;").replaceAll("'", "&#39;");
+
+/** Escapa URL destinada a href. Só http(s) passa: bloqueia javascript: e data:. */
+const escUrl = (v: unknown) => {
+  const s = String(v ?? "");
+  return /^https?:\/\//i.test(s) ? esc(s) : "#";
+};
+
 function linhaOcorrencia(o: Ocorrencia, tipo: "novo" | "agravado") {
   const rotulo = tipo === "novo"
-    ? `entrou em alerta <strong>${o.nivel_label}</strong>`
-    : `agravou para <strong>${o.nivel_label}</strong>`;
+    ? `entrou em alerta <strong>${esc(o.nivel_label)}</strong>`
+    : `agravou para <strong>${esc(o.nivel_label)}</strong>`;
   const rt = o.rt != null
     ? ` Rt ${o.rt.toFixed(2)}${o.rt > 1 ? " (transmissão crescendo)" : ""}.`
     : "";
   return `<li style="margin-bottom:10px">
-<strong>${o.municipio}</strong> — ${o.doenca} ${rotulo}.<br>
+<strong>${esc(o.municipio)}</strong> — ${esc(o.doenca)} ${rotulo}.<br>
 <span style="color:#4a5568;font-size:14px">${int(o.casos_notificados)} casos notificados, <strong>${int(o.casos_estimados)} estimados</strong> nesta semana.${rt}</span></li>`;
 }
 
@@ -53,7 +71,7 @@ function corpoEmail(blocos: UfBloco[], meta: {
   semana: number; ano: number; permalink: string; cancelar: string; escopo: string;
 }) {
   const secoes = blocos.map((b) => `
-<h3 style="font-family:Georgia,serif;color:#0d1b2a;margin:22px 0 8px;font-size:18px">${b.uf}</h3>
+<h3 style="font-family:Georgia,serif;color:#0d1b2a;margin:22px 0 8px;font-size:18px">${esc(b.uf)}</h3>
 <ul style="padding-left:18px;margin:0">
 ${b.novos.map((o) => linhaOcorrencia(o, "novo")).join("")}
 ${b.agravados.map((o) => linhaOcorrencia(o, "agravado")).join("")}
@@ -62,14 +80,14 @@ ${b.agravados.map((o) => linhaOcorrencia(o, "agravado")).join("")}
   const total = blocos.reduce((s, b) => s + b.total, 0);
   const html = `<div style="font:16px/1.6 system-ui,-apple-system,sans-serif;color:#1a2231;max-width:560px">
 <p style="color:#8694ab;font-size:13px;text-transform:uppercase;letter-spacing:.5px;margin:0 0 4px">Alerta epidemiológico · SE ${meta.semana}/${meta.ano}</p>
-<h2 style="font-family:Georgia,serif;color:#0d1b2a;margin:0 0 14px">${total} município${total > 1 ? "s" : ""} com mudança ${meta.escopo}</h2>
+<h2 style="font-family:Georgia,serif;color:#0d1b2a;margin:0 0 14px">${total} município${total > 1 ? "s" : ""} com mudança ${esc(meta.escopo)}</h2>
 <p style="color:#4a5568">Detectamos entrada ou agravamento de alerta de arbovirose na rede sentinela nesta semana.</p>
 ${secoes}
-<p style="margin-top:26px"><a href="${meta.permalink}" style="display:inline-block;background:#107752;color:#fff;text-decoration:none;padding:12px 22px;border-radius:9px;font-weight:600">Ver o boletim completo</a></p>
+<p style="margin-top:26px"><a href="${escUrl(meta.permalink)}" style="display:inline-block;background:#107752;color:#fff;text-decoration:none;padding:12px 22px;border-radius:9px;font-weight:600">Ver o boletim completo</a></p>
 <div style="margin-top:26px;padding-top:16px;border-top:1px solid #eceef2;color:#8694ab;font-size:13px">
 <p style="margin:0 0 8px"><strong>Como ler:</strong> “estimados” vem do nowcasting do InfoDengue (Fiocruz/FGV), que corrige o atraso de digitação — a contagem crua da semana corrente sempre subestima. Um município pode alertar com poucos casos digitados: o sinal vem do padrão de crescimento.</p>
 <p style="margin:0 0 8px">Você recebe este e-mail apenas quando há mudança. Semana sem novidade, nenhuma mensagem.</p>
-<p style="margin:0"><a href="${meta.cancelar}" style="color:#8694ab">Cancelar inscrição</a> · <a href="https://saudeemdado.com/metodologia/" style="color:#8694ab">Metodologia</a></p>
+<p style="margin:0"><a href="${escUrl(meta.cancelar)}" style="color:#8694ab">Cancelar inscrição</a> · <a href="https://saudeemdado.com/metodologia/" style="color:#8694ab">Metodologia</a></p>
 </div></div>`;
 
   const texto = blocos.map((b) => `${b.uf}\n` + [...b.novos.map((o) => `- ${o.municipio}: ${o.doenca} entrou em alerta ${o.nivel_label} (${int(o.casos_estimados)} casos estimados)`),
@@ -145,8 +163,19 @@ Deno.serve(async (req) => {
   if (enviados.length && !payload.dry_run) {
     await db.rpc("alerta_marcar_envio", { p_emails: enviados, p_edicao: payload.edicao });
   }
+  // `ok` reflete a ENTREGA, não o fato de a função ter rodado até o fim.
+  //
+  // Antes esta resposta era sempre `ok: true`, com `falhas` num campo ao lado. O
+  // workflow do boletim decide por `grep '"ok":true'` — então uma edição em que
+  // todos os e-mails falharam saía verde no Actions, e ninguém ficava sabendo que
+  // os assinantes não receberam nada. Falha de entrega tem de derrubar o job.
+  //
+  // 207 (Multi-Status) para sucesso parcial: o corpo distingue enviados de
+  // falhas, e o chamador escolhe o que fazer; `ok` só é true com zero falhas.
+  const status = falhas.length === 0 ? 200 : (enviados.length ? 207 : 502);
   return json({
-    ok: true, edicao: payload.edicao, dry_run: !!payload.dry_run,
+    ok: falhas.length === 0, edicao: payload.edicao, dry_run: !!payload.dry_run,
     destinatarios: destinos.length, enviados: enviados.length, falhas: falhas.length,
-  });
+    ...(falhas.length ? { erro: `${falhas.length} de ${destinos.length} entregas falharam` } : {}),
+  }, status);
 });

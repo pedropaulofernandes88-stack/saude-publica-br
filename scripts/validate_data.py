@@ -42,6 +42,43 @@ def check(nome: str, cond: bool, detalhe: str = "") -> None:
         FALHAS.append(nome)
 
 
+class Bloco:
+    """Agrupa checagens que dependem de uma consulta, sem transformar erro em skip.
+
+    Antes, os blocos de dengue e de internações eram `try/except Exception` que
+    imprimiam `[skip]` e seguiam. Isso significava que uma queda da API, uma coluna
+    renomeada ou um filtro quebrado deixavam a validação VERDE sem ter validado
+    nada — o modo de falha mais perigoso que um verificador pode ter, porque ele
+    afirma que checou. As duas tabelas existem e sustentam páginas publicadas;
+    não há motivo para tolerar ausência.
+
+    Uso:
+        with Bloco("dengue"):
+            ...            # exceção aqui vira FALHA, não skip
+    """
+
+    def __init__(self, nome: str) -> None:
+        self.nome = nome
+
+    def __enter__(self) -> Bloco:
+        return self
+
+    def __exit__(self, tipo, valor, _tb) -> bool:
+        if tipo is not None:
+            check(f"{self.nome}: consulta respondeu", False, f"{tipo.__name__}: {valor}")
+            return True  # registrado como falha; segue para os demais blocos
+        return False
+
+    def exige_dados(self, linhas: list[dict]) -> bool:
+        """Resultado vazio é falha, não silêncio.
+
+        `if linhas:` deixava o bloco inteiro passar sem imprimir uma linha sequer
+        quando a consulta voltava vazia — indistinguível de sucesso no log do CI.
+        """
+        check(f"{self.nome}: consulta retornou linhas", bool(linhas), f"n={len(linhas)}")
+        return bool(linhas)
+
+
 def agg(table: str, params: dict) -> list[dict]:
     r = requests.get(f"{URL}/rest/v1/{table}", params=params, headers=H, timeout=120)
     r.raise_for_status()
@@ -109,25 +146,23 @@ def main() -> None:
           f"n={len(vals)}")
 
     # 7. Dengue: epidemia 2024 ~6,5M casos prováveis (concilia com MS ~6,6M)
-    try:
+    with Bloco("dengue") as b:
         deng = agg("mart_dengue_municipio_ano", {
             "select": "ano_epi,casos:casos_provaveis.sum()", "ano_epi": "eq.2024"})
-        if deng:
+        if b.exige_dados(deng):
             casos24 = int(deng[0]["casos"])
             check("dengue 2024 ~ 6,5M casos", 6_000_000 <= casos24 <= 7_000_000, f"obtido={casos24:,}")
-    except Exception as exc:  # tabela pode não existir ainda
-        print(f"[skip] dengue: {exc}")
 
     # 8. Internações: sanidade da permanência e coerência dos contadores por tipo de AIH.
     #    A permanência é POR EPISÓDIO, então o denominador é aih_normal — usar
     #    `internacoes` aqui reintroduziria a definição que fracionava internação longa
     #    em várias AIHs. Ver §10 da metodologia.
-    try:
+    with Bloco("internações") as b:
         intern = agg("mart_internacoes_municipio", {
             "select": "internacoes,dias_permanencia,aih_continuacao,aih_normal,"
                       "dias_permanencia_normal,valor_total,valor_normal",
             "capitulo_cid": "eq.TOTAL", "ano": "eq.2023", "populacao": "gte.500000", "limit": "30"})
-        if intern:
+        if b.exige_dados(intern):
             tot_i = sum(x["internacoes"] for x in intern)
             tot_n = sum(x["aih_normal"] or 0 for x in intern)
             tot_dn = sum(x["dias_permanencia_normal"] or 0 for x in intern)
@@ -144,8 +179,6 @@ def main() -> None:
             frac = sum(x["aih_continuacao"] or 0 for x in intern) / tot_i if tot_i else 0
             check("internações: continuação entre 0,1% e 5% do total (capitais)",
                   0.001 <= frac <= 0.05, f"fração={frac:.3%}")
-    except Exception as exc:
-        print(f"[skip] internações: {exc}")
 
     print()
     if FALHAS:

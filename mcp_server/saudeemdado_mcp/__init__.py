@@ -26,7 +26,7 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server import MCPServer
 
-__version__ = "0.4.0"
+__version__ = "0.5.0"
 
 # A 2.0.0 do SDK renomeou FastMCP para MCPServer e removeu mcp.server.fastmcp.
 # A API de decorators nao mudou: as 19 @mcp.tool() seguem iguais.
@@ -61,6 +61,18 @@ mcp = MCPServer(
         "(sistema nervoso) a diferença é grande — 25% e 10% das AIHs são de continuação.\n"
         "7. NÃO faça inferência causal, extrapolação além do dado, nem recomendação "
         "clínica individual. Estes dados são agregados/ecológicos e retrospectivos.\n"
+        "8. ICSAP NÃO É TERMÔMETRO DA ATENÇÃO PRIMÁRIA. A leitura convencional "
+        "('%ICSAP alto = APS fraca') foi TESTADA nesta plataforma e não se sustenta: "
+        "cruzando leitos do CNES com ICSAP nos 5.570 municípios (2024), a correlação com "
+        "leitos SUS/mil é POSITIVA (ρ=+0,32; +0,34 controlando porte e vulnerabilidade), e "
+        "municípios SEM leito local têm %ICSAP MENOR (mediana 17,7%), não maior, que os "
+        "com leito (21,4%). O efeito está no NUMERADOR: ter leito local aumenta a "
+        "internação por ICSAP em +51% a +85% conforme o porte, sem mexer nas demais. "
+        "Um município que abre um hospital pequeno vê seu %ICSAP SUBIR. Portanto: NUNCA "
+        "traduza %ICSAP alto como 'atenção primária frágil'; descreva-o como sinal que "
+        "exige comparação com oferta hospitalar local, porte, cobertura privada e pares. "
+        "A hipótese inversa — 'onde falta leito a eletiva some e a fatia de ICSAP sobe' — "
+        "está REFUTADA; não a repita. Detalhes na §19 da metodologia.\n"
         "Metodologia: https://saudeemdado.com/metodologia/"
     ),
 )
@@ -136,8 +148,16 @@ def internacoes_municipios(uf: str = "", ano: int = 2024, capitulo_cid: str = "T
 @mcp.tool()
 def internacoes_evitaveis_icsap(uf: str = "") -> list[dict]:
     """ICSAP — internações por condições sensíveis à atenção primária, por município (2024):
-    total, ICSAP, % e por 100k hab. Proporção alta sinaliza fragilidade da atenção básica;
-    é indicador de sistema, não de 'má gestão' local."""
+    total, ICSAP, % e por 100k hab.
+
+    NÃO LEIA %ICSAP COMO QUALIDADE DA ATENÇÃO BÁSICA. Medido nesta plataforma (§19 da
+    metodologia, 5.570 municípios, 2024): a correlação com leitos SUS/mil é POSITIVA
+    (ρ=+0,32), e municípios sem leito local têm %ICSAP MENOR (17,7%) que os com leito
+    (21,4%) — ter leito local aumenta a internação sensível em +51% a +85% conforme o
+    porte, sem mexer nas demais. O indicador mede, em parte relevante, a EXISTÊNCIA DE
+    LEITO na cidade. Proporção alta é sinal que exige comparação com oferta hospitalar,
+    porte, cobertura privada e pares — nunca conclusão sobre a APS. É indicador de
+    sistema, não de 'má gestão' local."""
     params = {
         "select": "municipio_cod,municipio_nome,uf_sigla,internacoes_total,"
                   "internacoes_icsap,aih_continuacao,aih_continuacao_icsap,"
@@ -222,7 +242,11 @@ def detectar_anomalias(municipio_cod: str) -> dict:
     """COPILOTO: dado um município (6 dígitos), retorna um resumo priorizado de sinais —
     confiabilidade do registro, ICSAP vs. média nacional (~21%), e letalidade de dengue —
     para um briefing de gestor. Cada sinal traz o valor e a fonte; interprete com as regras
-    de uso (sem causalidade; sinalizar baixa confiabilidade)."""
+    de uso (sem causalidade; sinalizar baixa confiabilidade).
+
+    O sinal `icsap` NÃO afirma nada sobre a atenção primária: ele vem acompanhado da oferta
+    de leitos do próprio município justamente porque a associação medida entre leito local
+    e %ICSAP é positiva e forte (§19). Relate os dois juntos ou não relate nenhum."""
     achados = []
     q = sd._get("mart_qualidade_registro_municipio",
                 {"select": "municipio_nome,uf_sigla,pct_mal_definidas,classificacao",
@@ -238,9 +262,32 @@ def detectar_anomalias(municipio_cod: str) -> dict:
     if ic and ic[0].get("pct_icsap") is not None:
         p = float(ic[0]["pct_icsap"])
         if p > 30 and (ic[0]["internacoes_total"] or 0) >= 200:
+            # A oferta local entra JUNTO com o sinal, nunca depois: o %ICSAP responde
+            # fortemente a ter leito na cidade (§19), e o número sozinho induz a leitura
+            # errada -- que era exatamente o que este campo dizia antes.
+            lt = sd._get("mart_leitos_municipio",
+                         {"select": "leitos_sus,leitos_sus_por_mil",
+                          "municipio_cod": f"eq.{municipio_cod}", "ano": "eq.2024"})
+            n_leitos = int(lt[0]["leitos_sus"] or 0) if lt and lt[0].get("leitos_sus") is not None else None
+            if n_leitos is None:
+                oferta = ("Oferta local de leitos indisponível para este município — "
+                          "obtenha-a antes de interpretar o número.")
+            elif n_leitos > 0:
+                oferta = (f"Este município TEM {n_leitos} leitos SUS "
+                          f"({lt[0].get('leitos_sus_por_mil')}/mil hab), e ter leito local está "
+                          "associado a %ICSAP mais alto (+51% a +85% de internação sensível "
+                          "conforme o porte, §19) — parte deste número pode ser oferta, não APS.")
+            else:
+                oferta = ("Este município NÃO tem leito SUS local, então a oferta hospitalar "
+                          "local NÃO explica o número (municípios sem leito têm %ICSAP mediano "
+                          "MENOR, 17,7% vs. 21,4%, §19). É um caso fora do padrão: investigue "
+                          "o fluxo de internação dos residentes antes de qualquer leitura.")
             achados.append({"sinal": "icsap", "gravidade": "média" if p < 40 else "alta",
-                            "detalhe": f"{p:.1f}% de internações evitáveis (média nacional ~21%) — "
-                                       "possível fragilidade da atenção primária", "fonte": "SIH 2024"})
+                            "detalhe": f"{p:.1f}% de internações evitáveis (média nacional ~21%). "
+                                       f"NÃO conclua fragilidade da atenção primária. {oferta} "
+                                       "Compare com pares de mesmo porte e oferta antes de interpretar.",
+                            "leitos_sus": n_leitos,
+                            "fonte": "SIH 2024 + CNES 2024 (mart_leitos_municipio)"})
     dg = sd._get("mart_dengue_municipio_ano",
                  {"select": "casos_provaveis,obitos,letalidade_pct,incidencia_100k",
                   "municipio_cod": f"eq.{municipio_cod}", "ano_epi": "eq.2024"})
@@ -324,9 +371,15 @@ def icsap_distancia_dos_pares(municipio_cod: str = "", uf: str = "", top: int = 
        atenção primária; boa cobertura reduz, não zera. Por isso a referência é a
        mediana dos pares, nunca zero.
     3. Associação ECOLÓGICA (municipal): não é risco individual nem prova de causa.
-    4. Proporção alta pode indicar ACESSO restrito, não atenção primária ruim: onde
-       falta leito, internação eletiva some e a fatia de ICSAP sobe. Sugira cruzar
-       com oferta hospitalar antes de concluir.
+    4. O %ICSAP responde à OFERTA HOSPITALAR LOCAL, e o efeito é grande — medido, não
+       suposto (§19). Esta ressalva já foi o oposto disto ("onde falta leito, a eletiva
+       some e a fatia de ICSAP sobe"); a hipótese foi testada contra os leitos do CNES e
+       REFUTADA na direção e no mecanismo. O que vale: municípios SEM leito local têm
+       %ICSAP MENOR (17,7% vs. 21,4%), e a presença de leito aumenta a internação por
+       ICSAP em +51% a +85% conforme o porte, sem alterar as demais — é o numerador que
+       cresce. Quem abre um hospital pequeno vê o %ICSAP SUBIR sem ter piorado a APS.
+       Nunca conclua "atenção primária frágil" a partir deste número; cruze com oferta
+       hospitalar, porte e cobertura privada antes de qualquer leitura.
     5. O custo em reais é TETO: deriva de 6 agravos traçadores que pendem para o
        lado caro da lista (AVC e ICC), sem as condições baratas (gastroenterite,
        infecção urinária, anemia)."""

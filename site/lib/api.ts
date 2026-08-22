@@ -335,10 +335,21 @@ export interface ForecastDemandaHospital {
   uf_sigla: string;
   ano_mes_previsto: string;
   internacoes_previstas: number;
+  /** Intervalo de 95% com z calibrado empiricamente pelo backtest, não z=1,96. */
   ic_inferior: number;
   ic_superior: number;
   n_meses_historico: number;
-  confianca: "adequada" | "baixa";
+  horizonte_meses: number;
+  faixa_volume: string | null;
+  /** A = validado · B = experimental · C = não publicável (não sai da API). */
+  status_validacao: "A" | "B" | "C" | null;
+  motivo_status: string | null;
+  /** Erro que previsões deste estrato apresentaram no backtest de origem móvel. */
+  smape_backtest_pct: number | null;
+  modelo: string | null;
+  ultima_competencia: string | null;
+  /** @deprecated Refletia só o comprimento da série. Use status_validacao. */
+  confianca: "adequada" | "baixa" | null;
 }
 
 export interface Natalidade {

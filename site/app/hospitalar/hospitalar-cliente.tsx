@@ -147,7 +147,9 @@ export function HospitalarCliente() {
   useEffect(() => {
     if (!hospSel) { setForecast(null); return; }
     rest<ForecastDemandaHospital>("mart_forecast_demanda_hospital", {
-      select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano_mes_previsto,internacoes_previstas,ic_inferior,ic_superior,n_meses_historico,confianca",
+      select: "cnes,municipio_cod,municipio_nome,uf_sigla,ano_mes_previsto,internacoes_previstas,"
+            + "ic_inferior,ic_superior,n_meses_historico,horizonte_meses,faixa_volume,"
+            + "status_validacao,motivo_status,smape_backtest_pct,modelo,ultima_competencia,confianca",
       cnes: `eq.${hospSel.cnes}`, order: "ano_mes_previsto",
     }).then(setForecast).catch(() => setForecast([]));
   }, [hospSel]);
@@ -585,10 +587,15 @@ export function HospitalarCliente() {
       {/* Forecast de demanda */}
       <div className="card mt-6">
         <h2 className="font-serif text-xl font-semibold text-ink-900">Projeção de demanda por hospital</h2>
-        <p className="mt-1 max-w-2xl text-sm text-ink-500">
-          Tendência linear sobre a série mensal de internações do hospital — mesmo método usado no excesso
-          de mortalidade da plataforma. Com menos de 24 meses de histórico, a confiança é marcada como
-          <strong> baixa</strong>: a tendência ainda é instável.
+        <p className="mt-1 max-w-2xl text-sm text-ink-600">
+          Tendência linear sobre a série mensal de internações, avaliada por{" "}
+          <strong>validação de origem móvel</strong>: o modelo foi comparado com cinco alternativas
+          (naive, ingênuo sazonal, média móvel, sazonal+drift e tendência com sazonalidade) sobre
+          4.445 hospitais, treinando só com o passado de cada origem. Ele supera o baseline sazonal
+          em todos os horizontes, e o intervalo mostrado usa a incerteza que o backtest de fato
+          mediu — por isso é largo.{" "}
+          <strong>Hospitais cuja série não alcança a última competência não são projetados</strong>,
+          e os de menos de 5 internações/mês não são publicados: o erro medido ali passa de 50%.
         </p>
         <div className="mt-4 max-w-md">
           <label className="label" htmlFor="h-busca">Buscar hospital por município</label>
@@ -615,11 +622,18 @@ export function HospitalarCliente() {
                   Sem histórico mensal suficiente para projetar este hospital (mínimo de 6 meses).
                 </p>
               ) : (
+                <>
                 <table className="mt-2 w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                      <th className="px-3 py-2">Mês previsto</th><th className="px-3 py-2 text-right">Internações previstas</th>
-                      <th className="px-3 py-2 text-right">Faixa (IC aprox.)</th><th className="px-3 py-2 text-right">Confiança</th>
+                      <th className="px-3 py-2">Mês</th>
+                      <th className="px-3 py-2 text-right">O modelo estima</th>
+                      {/* O intervalo deixa de ser coluna acessória: com z calibrado
+                          pelo backtest ele é largo (mediana de 74% da previsão nos
+                          hospitais grandes, 217% nos de 6–20/mês), e essa largura é
+                          a informação — não um detalhe a esconder ao lado do ponto. */}
+                      <th className="px-3 py-2 text-right">Intervalo de previsão (95%)</th>
+                      <th className="px-3 py-2 text-right">Status</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -627,16 +641,43 @@ export function HospitalarCliente() {
                       <tr key={f.ano_mes_previsto} className="border-b border-ink-100">
                         <td className="px-3 py-2 font-medium text-ink-900">{f.ano_mes_previsto}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtDec(f.internacoes_previstas, 0)}</td>
-                        <td className="px-3 py-2 text-right tabular-nums text-ink-500">{fmtDec(f.ic_inferior, 0)}–{fmtDec(f.ic_superior, 0)}</td>
+                        <td className="px-3 py-2 text-right tabular-nums font-medium text-ink-900">
+                          {fmtDec(f.ic_inferior, 0)}–{fmtDec(f.ic_superior, 0)}
+                        </td>
                         <td className="px-3 py-2 text-right">
-                          <span className={f.confianca === "baixa" ? "text-amber-700" : "text-accent-800"}>
-                            {f.confianca} <span className="text-ink-500">({f.n_meses_historico}m)</span>
+                          <span className={f.status_validacao === "A"
+                            ? "rounded border border-accent-300 bg-accent-50 px-1.5 py-0.5 text-xs font-medium text-accent-800"
+                            : "rounded border border-amber-300 bg-amber-50 px-1.5 py-0.5 text-xs font-medium text-amber-800"}>
+                            {f.status_validacao === "A" ? "validado" : "experimental"}
                           </span>
                         </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
+                {forecast[0] && (
+                  <p className="mt-3 rounded-lg border border-ink-200 bg-ink-50 px-3 py-2 text-xs leading-relaxed text-ink-700">
+                    <strong>Como ler.</strong> O número do meio é uma estimativa, não uma
+                    previsão do que vai ocorrer. Previsões deste porte de hospital
+                    {forecast[0].smape_backtest_pct != null && (
+                      <> erraram, historicamente, <strong>{fmtDec(forecast[0].smape_backtest_pct, 0)}% em média</strong> (sMAPE)</>
+                    )}
+                    {" "}no backtest de origem móvel — por isso o intervalo é largo. Ele já
+                    embute essa incerteza: use a faixa, não o ponto.
+                    {forecast[0].status_validacao === "B" && (
+                      <> Este hospital está marcado como <strong>experimental</strong>:{" "}
+                      {forecast[0].motivo_status}. Não use para dimensionar oferta.</>
+                    )}
+                    <br />
+                    <span className="text-ink-500">
+                      Modelo <code>{forecast[0].modelo}</code> · última competência{" "}
+                      {forecast[0].ultima_competencia} · {forecast[0].n_meses_historico} meses de
+                      histórico · método e métricas em{" "}
+                      <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
+                    </span>
+                  </p>
+                )}
+                </>
               )
             ) : <Skeleton altura={140} />}
           </div>
@@ -646,8 +687,11 @@ export function HospitalarCliente() {
       <p className="mt-4 text-xs text-ink-500">
         Fonte: SIH/DataSUS (AIH aprovadas). HSMR: padronização indireta por faixa etária × capítulo CID-10,
         taxas de referência nacionais. LOS: mediana aproximada por histograma de faixas de dias. Forecast:
-        tendência linear sobre a série mensal observada, com faixa de incerteza indicativa (não é IC de
-        predição formal). Cobre apenas a rede SUS. Ver <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
+        tendência linear sobre o tempo de calendário, com intervalo de predição calibrado por
+        validação de origem móvel (backtest sobre 4.445 hospitais) — o modelo supera o baseline
+        sazonal em todos os horizontes (MASE 0,81 / 0,87 / 0,92), e a largura do intervalo reflete
+        o erro que ele de fato apresentou. Cobre apenas a rede SUS.
+        Ver <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
       </p>
     </div>
   );

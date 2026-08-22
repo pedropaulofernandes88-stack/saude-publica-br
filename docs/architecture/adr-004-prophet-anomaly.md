@@ -1,5 +1,14 @@
 # ADR-004 — Prophet para detecção de anomalias em séries temporais
 
+> **ARQUIVADO em 2026-08-22.** O código desta decisão saiu para
+> `archive/ml-prophet/`. Motivo: o alvo era a produção ambulatorial (SIA/PA),
+> que não está no pipeline atual; `mart_anomalias_prophet` nunca chegou a
+> existir em produção (a migração V006 não foi aplicada) e nada importava o
+> módulo. Os 7 testes que viviam skipados foram junto. A camada preditiva que a
+> plataforma publica é o forecast de demanda hospitalar, que não usa Prophet —
+> ver `docs/MODEL_CARD_FORECAST.md`. A decisão registrada abaixo permanece como
+> histórico do que foi considerado e por quê.
+
 **Status:** Aceito  
 **Data:** 2024-11-01  
 **Autores:** saude-publica-br team  

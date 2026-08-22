@@ -1,0 +1,77 @@
+# =============================================================================
+# Dependabot — atualização de dependências
+# =============================================================================
+# Não existia. As dependências só eram revisadas quando alguém rodava `npm audit`
+# à mão, e o resultado disso foi um lockfile com três alertas de severidade alta
+# parados: `postcss` e `nanoid` tinham correção disponível havia meses, dentro do
+# mesmo major, sem nenhum risco de quebra. Ninguém sabia.
+#
+# CADÊNCIA MENSAL, e não semanal, de propósito. O projeto tem um mantenedor. PR
+# de dependência que ninguém revisa não é segurança — é ruído que treina o
+# mantenedor a ignorar a caixa de entrada. Mensal com agrupamento gera algo da
+# ordem de um PR por ecossistema por mês, que é revisável de verdade.
+#
+# O QUE NÃO ESTÁ AQUI
+# `ingestion/` e `flows/` não têm manifesto próprio; `requirements.txt` cobre a
+# árvore Python inteira. O `site/` é o único manifesto Node.
+# =============================================================================
+version: 2
+
+updates:
+  # ── Node: o site publicado ────────────────────────────────────────────────
+  - package-ecosystem: npm
+    directory: /site
+    schedule:
+      interval: monthly
+      day: monday
+      time: "09:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    labels: ["dependências", "site"]
+    commit-message:
+      prefix: "chore(site)"
+    groups:
+      # Patch e minor entram juntos: são a atualização que quase sempre se
+      # aceita sem leitura linha a linha, e separá-las multiplicaria PRs.
+      seguras:
+        update-types: ["minor", "patch"]
+    ignore:
+      # Major do Next é decisão de arquitetura, não de dependência: o site é
+      # `output: export` e o salto 14 → 16 mexe no único componente que gera as
+      # páginas. Quando for feito, será deliberado e com build comparado, não
+      # por merge de PR automático. Ver docs/SECURITY_AUDIT.md.
+      - dependency-name: next
+        update-types: ["version-update:semver-major"]
+      # React 19 exige revisar todo o código cliente; mesmo raciocínio.
+      - dependency-name: react
+        update-types: ["version-update:semver-major"]
+      - dependency-name: react-dom
+        update-types: ["version-update:semver-major"]
+
+  # ── Python: pipelines, validação, servidor MCP ────────────────────────────
+  - package-ecosystem: pip
+    directory: /
+    schedule:
+      interval: monthly
+      day: monday
+      time: "09:00"
+      timezone: America/Sao_Paulo
+    open-pull-requests-limit: 5
+    labels: ["dependências", "python"]
+    commit-message:
+      prefix: "chore(deps)"
+    groups:
+      seguras:
+        update-types: ["minor", "patch"]
+
+  # ── As próprias Actions ───────────────────────────────────────────────────
+  # Action de terceiro é execução de código arbitrário com o token do
+  # repositório. Manter as versões correntes é a parte mais barata de higiene de
+  # supply chain que existe.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    labels: ["dependências", "ci"]
+    commit-message:
+      prefix: "chore(ci)"

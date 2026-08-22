@@ -108,17 +108,26 @@ jobs:
       # maiúsculos de matriz em código numérico (16). Travar o CI nisso seria
       # exigir uma reescrita de estilo que ninguém pediu. Para subir a régua,
       # limpe um grupo de regras por vez e acrescente aqui.
+      # `validation` entrou nesta lista em 2026-08: ficava de fora sem motivo, e
+      # escondia um import morto de `great_expectations` em run_validations.py.
       #
-      # `ingestion` entrou em 2026-08-22. Ficar de fora do lint foi o que deixou
-      # 5 erros F821 passarem despercebidos por dois meses em
-      # ingestion/ingest_all_states.py — `_sia_pa_schema` e companhia, chamados
-      # em dicionário de módulo, ou seja, NameError no import. Esse arquivo e o
-      # resto da camada de microdados foram para archive/ingestion/; o que
-      # sobrou (ingestion/utils/, coberto por tests/ingestion/test_utils.py) já
-      # estava com zero ocorrências F, então entra sem dívida.
-      # archive/ segue fora do lint de propósito: não roda, não é implantado.
+      # `ingestion` entrou em 2026-08-22, e com ele cai a ressalva que estava
+      # aqui: `ingestion` e `flows` ficavam FORA de proposito porque acusavam 30
+      # ocorrencias F -- entre elas cinco F821 em ingest_all_states.py -- e a
+      # decisao entre arquivar e consertar estava pendente. Foi decidida por
+      # evidencia: os dois eram a arquitetura antiga e foram para archive/, com
+      # os F821 junto (ver archive/ingestion/README.md). O F821 nao era ruido de
+      # lint -- `_sia_pa_schema` e companhia sao chamados em dicionario de
+      # MODULO, entao o arquivo levantava NameError no proprio import, sem rodar
+      # uma linha util, desde junho de 2026.
+      #
+      # O que sobrou de `ingestion/` e `ingestion/utils/`, coberto por
+      # tests/ingestion/test_utils.py e ja com zero ocorrencias F: entra sem
+      # divida. E ficar fora do lint foi justamente o que deixou aqueles cinco
+      # F821 passarem dois meses despercebidos, entao entrar e o ponto.
+      # `flows/` nao aparece mais: archive/ segue fora do lint de proposito.
       - name: Ruff — regras de bug (F)
-        run: ruff check scripts mcp_server clients ingestion --select F --output-format=github
+        run: ruff check scripts mcp_server clients validation ingestion --select F --output-format=github
 
       # Garante que o pacote publicado no PyPI ainda importa com as deps do projeto.
       - name: Importar servidor MCP e client Python
@@ -172,3 +181,65 @@ jobs:
           PAGINAS=$(find out -name "*.html" | wc -l)
           echo "páginas geradas: $PAGINAS"
           test "$PAGINAS" -ge 20 || { echo "::error::só $PAGINAS páginas; esperado ≥20"; exit 1; }
+
+      # O favicon e a imagem OG são gerados por scripts/gerar_assets_marca.py e
+      # versionados. Como não são regerados no build, a única forma de descobrir
+      # que sumiram seria alguém compartilhar um link e ver o cartão cinza —
+      # que foi exatamente como o problema anterior chegou até aqui.
+      - name: Conferir que os ativos de marca estão no export
+        working-directory: site
+        run: |
+          for arquivo in favicon.ico icon.svg opengraph-image.png; do
+            test -f "out/$arquivo" || { echo "::error::out/$arquivo não foi exportado"; exit 1; }
+          done
+          grep -q 'og:image' out/index.html || { echo "::error::index.html sem og:image"; exit 1; }
+          echo "favicon, ícone e imagem OG presentes"
+
+  # ── Supply chain ───────────────────────────────────────────────────────────
+  # INFORMATIVO, não bloqueante — e a distinção importa.
+  #
+  # O alerta que sobra hoje no `npm audit` é o do Next.js 14, e ele não é
+  # alcançável nesta arquitetura: o site é `output: export`, sem servidor Next,
+  # sem middleware e sem Server Action, servido como arquivo estático pelo GitHub
+  # Pages. Todos os advisories da lista exigem o runtime de servidor. A correção
+  # que o npm oferece é `next@16` — dois majors no único componente que gera as
+  # páginas, com risco real de regressão e ganho nulo em produção.
+  #
+  # Um job bloqueante aqui travaria a main indefinidamente por um risco que não
+  # existe, e o desfecho previsível seria alguém desligar o job. Informativo, ele
+  # continua mostrando quando aparece algo NOVO — que é o que se quer vigiar.
+  # A análise completa está em docs/SECURITY_AUDIT.md.
+  supply-chain:
+    name: Supply chain (informativo)
+    runs-on: ubuntu-22.04
+    continue-on-error: true
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: npm audit
+        working-directory: site
+        run: |
+          npm ci --ignore-scripts
+          npm audit --audit-level=high || true
+          echo "--- resumo ---"
+          npm audit --json 2>/dev/null \
+            | python3 -c 'import sys,json; m=json.load(sys.stdin).get("metadata",{}).get("vulnerabilities",{}); print(m)' || true
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements*.txt
+
+      - name: pip-audit
+        run: |
+          pip install --upgrade pip pip-audit
+          pip install -r requirements-test.txt
+          pip-audit --desc --strict || true
