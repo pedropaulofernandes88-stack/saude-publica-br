@@ -140,7 +140,7 @@ saude-publica-br/
 │   ├── lib/                # Tokens de design, regras puras, tipos da API
 │   └── scripts/            # Geração de dados estáticos no build
 ├── scripts/                # Pipelines: DuckDB → marts no Supabase
-├── ingestion/              # Download e normalização dos microdados DataSUS
+├── ingestion/utils/        # Bulk load (Parquet → COPY) e ledger de ingestão
 ├── dbt/                    # Transformações dbt-core
 ├── validation/             # Suítes Great Expectations
 ├── tests/                  # Testes Python

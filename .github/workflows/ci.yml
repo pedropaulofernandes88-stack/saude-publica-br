@@ -26,6 +26,7 @@ on:
     paths:
       - "site/**"
       - "scripts/**"
+      - "ingestion/**"
       - "ml/**"
       - "tests/**"
       - "validation/**"
@@ -38,6 +39,7 @@ on:
     paths:
       - "site/**"
       - "scripts/**"
+      - "ingestion/**"
       - "ml/**"
       - "tests/**"
       - "validation/**"
@@ -106,8 +108,17 @@ jobs:
       # maiúsculos de matriz em código numérico (16). Travar o CI nisso seria
       # exigir uma reescrita de estilo que ninguém pediu. Para subir a régua,
       # limpe um grupo de regras por vez e acrescente aqui.
+      #
+      # `ingestion` entrou em 2026-08-22. Ficar de fora do lint foi o que deixou
+      # 5 erros F821 passarem despercebidos por dois meses em
+      # ingestion/ingest_all_states.py — `_sia_pa_schema` e companhia, chamados
+      # em dicionário de módulo, ou seja, NameError no import. Esse arquivo e o
+      # resto da camada de microdados foram para archive/ingestion/; o que
+      # sobrou (ingestion/utils/, coberto por tests/ingestion/test_utils.py) já
+      # estava com zero ocorrências F, então entra sem dívida.
+      # archive/ segue fora do lint de propósito: não roda, não é implantado.
       - name: Ruff — regras de bug (F)
-        run: ruff check scripts mcp_server clients --select F --output-format=github
+        run: ruff check scripts mcp_server clients ingestion --select F --output-format=github
 
       # Garante que o pacote publicado no PyPI ainda importa com as deps do projeto.
       - name: Importar servidor MCP e client Python

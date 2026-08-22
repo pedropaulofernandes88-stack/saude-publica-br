@@ -73,6 +73,30 @@ Ficavam na raiz do repositório e apontavam para dentro deste diretório:
 o GitHub Pages por `deploy-site.yml`. Estavam quebrados desde que `api/` e
 `frontend/` saíram da raiz.
 
+### `ingestion/` — microdados brutos via PySUS
+
+Baixava microdados do DataSUS e fazia `COPY` para tabelas `*_raw`, que o dbt
+transformava em marts. Substituído pelos pipelines de `scripts/`, que calculam
+os marts em DuckDB local e publicam o resultado agregado no Supabase.
+
+Evidência de que não roda: `ingest_all_states.py` levanta `NameError` no import
+(`_sia_pa_schema` não existe) desde junho de 2026; nenhum módulo vivo importa o
+pacote; e as tabelas que ele escreve (`sim_do_raw`, `mart_mortalidade`) têm
+nomes disjuntos das que o site e o servidor MCP consomem
+(`mart_mortalidade_municipio`, …).
+
+`ingestion/utils/` **não** veio junto — ver "O que NÃO está aqui".
+Detalhes em [`ingestion/README.md`](ingestion/README.md).
+
+### `flows/` — orquestração Prefect
+
+Sete flows que disparavam a ingestão semanal e o `dbt build`. Nenhum agendador
+os inicia — não há deployment do Prefect em lugar nenhum do repositório, e o
+`requirements-test.txt` exclui o Prefect de propósito. Orquestravam
+`ingestion/`, que está aqui ao lado.
+
+Detalhes em [`flows/README.md`](flows/README.md).
+
 ### `base.md` — documento de concepção
 
 1.660 linhas descrevendo a arquitetura planejada em 2023 (FastAPI, Redis, nginx,
@@ -93,10 +117,18 @@ plano gratuito — foi movida para `LAUNCH.md`.
 recebe o POST do boletim semanal. Verificado por HTTP (200 e 405,
 respectivamente).
 
-**`flows/` continua na raiz** — flows do Prefect que orquestram `ingestion/`,
-que é código vivo. Nenhum agendador os inicia hoje, mas eles apontam para o
-Supabase atual, não para a stack morta. Arquivá-los é decisão de produto (o
-Prefect foi abandonado ou é caminho a retomar?), não conclusão de evidência.
+**`ingestion/utils/` continua na raiz** — `bulk_load.py` e `ingestion_log.py`,
+cobertos por 64 testes em `tests/ingestion/test_utils.py` que o CI executa. Não
+têm consumidor em produção hoje (os pipelines de `scripts/` usam o próprio
+`SupabaseLoader`); ficaram porque arquivá-los custaria 64 testes que passam em
+troca de nada. Ver [`ingestion/README.md`](ingestion/README.md).
+
+> Uma versão anterior desta seção dizia que **`flows/` continua na raiz** porque
+> orquestrava `ingestion/`, "que é código vivo", e que arquivá-lo seria decisão
+> de produto e não conclusão de evidência. A premissa era falsa: nada importava
+> `ingestion/`, as tabelas que ele escrevia não são as publicadas, e seu módulo
+> de entrada levantava `NameError` no import desde junho de 2026. Os dois
+> diretórios desceram para cá em 2026-08-22.
 
 ## Decisões registradas
 

@@ -183,7 +183,7 @@ saude-publica-br/
 │   └── scripts/        # gera o JSON estático durante o build
 │
 ├── scripts/            # pipelines: SIM, SINAN, SIH, SINASC, CNES, IVS, SIOPS
-├── ingestion/          # ingestão dos microdados brutos do DataSUS
+├── ingestion/utils/    # bulk load (Parquet → COPY) e ledger de ingestão
 ├── dbt/                # modelos intermediate → marts
 ├── migrations/         # SQL versionado do Supabase, incluindo as políticas RLS
 ├── validation/         # suítes Great Expectations sobre os marts
@@ -193,7 +193,6 @@ saude-publica-br/
 ├── mcp_server/         # servidor MCP → PyPI: saudeemdado-mcp
 ├── clients/python/     # cliente da API → pacote saudeemdado
 ├── supabase/functions/ # Edge Functions do boletim por assinatura
-├── flows/              # flows Prefect (sem agendador ativo hoje)
 │
 ├── .github/workflows/  # CI, deploy do site, boletim, publicação do MCP
 ├── docs/               # ADRs e notas de arquitetura

@@ -1,6 +1,8 @@
 -- stg_sim_obitos.sql
 -- Padroniza e limpa dados brutos do SIM/DO (Declarações de Óbito).
--- Fonte: sim_do_raw (ingerida por ingestion/ingest_sim.py via PySUS).
+-- Fonte: sim_do_raw, que era ingerida por ingestion/ingest_sim.py via PySUS.
+-- Esse ingestor foi para archive/ingestion/ em 2026-08-22: nada popula
+-- sim_do_raw hoje, e os marts publicados saem de scripts/ (ver archive/README.md).
 -- Materialização: view — sem custo de storage, recalculada sob demanda.
 
 {{ config(materialized='view', schema='staging') }}

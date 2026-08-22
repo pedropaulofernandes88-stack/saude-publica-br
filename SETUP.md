@@ -62,18 +62,20 @@ python bootstrap.py --check    # verifica o que está funcionando
 
 ---
 
-## 📥 Ingestão completa (após validar o piloto)
+## 📥 Ingestão
 
-Quando o piloto (SP/2024) funcionar e os marts existirem, rode a ingestão completa:
+Os pipelines que alimentam a base publicada estão em `scripts/` — SIM, SINAN,
+SIH, SINASC, CNES e SIOPS. Rodam direto, calculam os marts em DuckDB local e
+publicam o resultado agregado no Supabase:
 
 ```bash
-make ingest-full
-# ou:
-python -m ingestion.ingest_sia_pa --all
+python scripts/pipeline_v2.py
 ```
 
-> ⏱️ **Estimativa:** 2–4 horas para todos os 27 estados × 2020–2024.
-> O processo é incremental — se cair no meio, retoma de onde parou.
+> ⚠️ `make ingest-full` e `python -m ingestion.ingest_sia_pa --all` saíram em
+> 2026-08-22. Miravam o SIA (produção ambulatorial), fonte fora do pipeline
+> atual, e faziam parte da primeira arquitetura — hoje em
+> [`archive/ingestion/`](archive/ingestion/README.md).
 
 ---
 

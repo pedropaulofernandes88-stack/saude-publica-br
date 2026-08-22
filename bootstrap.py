@@ -81,6 +81,23 @@ def abort(msg: str):
     err(msg)
     sys.exit(1)
 
+def _passo_arquivado(alvo: str, alternativa: str):
+    """
+    Passo que dependia da primeira arquitetura e não roda mais.
+
+    Em 2026-08-22 `ingestion/ingest_*.py`, `ingestion/refs_loader.py`,
+    `ingestion/setup_supabase.sql` e `flows/` foram para `archive/` — ver
+    `archive/ingestion/README.md`. Estes passos avisam e seguem em vez de
+    falhar, para que `--check` e os passos ainda válidos continuem utilizáveis.
+
+    A versão anterior do passo 6 REGENERAVA `ingestion/refs_loader.py` quando
+    não o encontrava. Depois da mudança isso recriaria código arquivado dentro
+    de um diretório que agora passa pelo ruff no CI.
+    """
+    warn(f"Passo arquivado — {alvo} está em archive/ e não é mais executado.")
+    info(alternativa)
+    info("Contexto: archive/ingestion/README.md")
+
 # ═══════════════════════════════════════════════════════════
 # Passo 1 — Verificar Python
 # ═══════════════════════════════════════════════════════════
@@ -249,236 +266,30 @@ def _update_env(key: str, value: str):
 
 def step5_setup_database():
     step_header(5, "Criando tabelas no Supabase")
-
-    sql_file = ROOT / "ingestion" / "setup_supabase.sql"
-    if not sql_file.exists():
-        abort(f"Arquivo SQL não encontrado: {sql_file}")
-
-    env_vars = _read_env()
-    db_url = env_vars.get("DATABASE_URL", "")
-    if not db_url:
-        abort("DATABASE_URL não configurada. Execute novamente o bootstrap.")
-
-    info("Conectando ao Supabase e criando schema...")
-
-    try:
-        import psycopg
-        sql_content = sql_file.read_text(encoding="utf-8")
-
-        with psycopg.connect(db_url, connect_timeout=30) as conn:
-            with conn.cursor() as cur:
-                # Remove comandos que precisam de superuser no Supabase
-                safe_sql = _sanitize_sql_for_supabase(sql_content)
-                cur.execute(safe_sql)
-            conn.commit()
-
-        ok("Schema criado: ingestion_log + sia_pa_raw + partições + índices")
-
-    except ImportError:
-        abort("psycopg não instalado. Execute: pip install psycopg[binary]")
-    except Exception as e:
-        err(f"Erro ao conectar ao banco: {e}")
-        console.print()
-        console.print(Panel(
-            "[bold yellow]ALTERNATIVA: Execute o SQL diretamente no Supabase Dashboard[/bold yellow]\n\n"
-            "1. Acesse: [link]https://supabase.com/dashboard/project/[PROJECT_REF]/sql/new[/link]\n"
-            "   (substitua [PROJECT_REF] pelo ref do seu projeto)\n\n"
-            "2. Copie todo o conteúdo de: [bold cyan]ingestion/setup_supabase.sql[/bold cyan]\n\n"
-            "3. Cole no editor e clique [bold green]RUN[/bold green]\n\n"
-            "4. Volte aqui e execute: [bold]python bootstrap.py --step 6[/bold]",
-            title="📋 SQL Editor Fallback",
-            border_style="yellow"
-        ))
-        import subprocess
-        try:
-            subprocess.run(["cat", str(sql_file)], check=True)
-        except Exception:
-            pass
-        if RICH:
-            if not Confirm.ask("\n  Já executou o SQL no dashboard? Continuar?", default=False):
-                abort("Execute o SQL no Supabase SQL Editor e rode: python bootstrap.py --step 6")
-        else:
-            resp = input("  Já executou o SQL no dashboard? Continuar? (s/N): ").strip().lower()
-            if resp != "s":
-                abort("Execute o SQL no Supabase SQL Editor e rode: python bootstrap.py --step 6")
-
-def _sanitize_sql_for_supabase(sql: str) -> str:
-    """Remove comandos que exigem superuser no Supabase Cloud."""
-    skip_prefixes = (
-        "CREATE EXTENSION",
-        "ALTER SYSTEM",
-        "CREATE TABLESPACE",
+    _passo_arquivado(
+        "ingestion/setup_supabase.sql",
+        "As tabelas em uso hoje sao versionadas em migrations/ (V006..V026).",
     )
-    lines = []
-    skip_block = False
-    for line in sql.splitlines():
-        stripped = line.strip().upper()
-        if any(stripped.startswith(p) for p in skip_prefixes):
-            continue  # pula esta linha
-        lines.append(line)
-    return "\n".join(lines)
 
-# ═══════════════════════════════════════════════════════════
-# Passo 6 — Carregar tabelas de referência
-# ═══════════════════════════════════════════════════════════
 
 def step6_load_references():
-    step_header(6, "Carregando tabelas de referência (municípios, CID-10)")
-
-    refs_script = ROOT / "ingestion" / "refs_loader.py"
-    if not refs_script.exists():
-        warn("refs_loader.py não encontrado — criando script de referências...")
-        _create_refs_loader()
-
-    info("Carregando municípios IBGE e tabela CID-10...")
-    result = run(f'"{sys.executable}" ingestion/refs_loader.py')
-    if result.returncode != 0:
-        warn("refs_loader falhou. Verifique os logs acima.")
-        warn("As referências podem ser carregadas manualmente depois.")
-    else:
-        ok("Municípios e CID-10 carregados com sucesso")
-
-def _create_refs_loader():
-    """Cria um refs_loader.py básico se não existir."""
-    script = ROOT / "ingestion" / "refs_loader.py"
-    content = '''#!/usr/bin/env python3
-"""Carrega tabelas de referência: municípios IBGE e CID-10."""
-import os, sys
-from pathlib import Path
-import pandas as pd
-import psycopg
-from dotenv import load_dotenv
-
-ROOT = Path(__file__).parent.parent
-load_dotenv(ROOT / ".env")
-DB_URL = os.environ["DATABASE_URL"]
-
-CREATE_MUNICIPIOS = """
-CREATE TABLE IF NOT EXISTS municipios_ibge (
-    codigo_ibge  CHAR(7)     PRIMARY KEY,
-    nome         TEXT        NOT NULL,
-    uf_sigla     CHAR(2)     NOT NULL,
-    uf_nome      TEXT        NOT NULL,
-    regiao       TEXT        NOT NULL,
-    populacao    INTEGER,
-    area_km2     NUMERIC(12,2)
-);
-"""
-
-CREATE_CID10 = """
-CREATE TABLE IF NOT EXISTS cid10_capitulos (
-    codigo_inicio CHAR(3)    NOT NULL,
-    codigo_fim    CHAR(3)    NOT NULL,
-    descricao     TEXT       NOT NULL,
-    capitulo      SMALLINT   PRIMARY KEY
-);
-"""
-
-CAPITULOS_CID10 = [
-    (1,  "A00","B99","Doenças infecciosas e parasitárias"),
-    (2,  "C00","D48","Neoplasias (tumores)"),
-    (3,  "D50","D89","Doenças do sangue e imunidade"),
-    (4,  "E00","E90","Doenças endócrinas e metabólicas"),
-    (5,  "F00","F99","Transtornos mentais e comportamentais"),
-    (6,  "G00","G99","Doenças do sistema nervoso"),
-    (7,  "H00","H59","Doenças dos olhos"),
-    (8,  "H60","H95","Doenças do ouvido"),
-    (9,  "I00","I99","Doenças do aparelho circulatório"),
-    (10, "J00","J99","Doenças do aparelho respiratório"),
-    (11, "K00","K93","Doenças do aparelho digestivo"),
-    (12, "L00","L99","Doenças da pele"),
-    (13, "M00","M99","Doenças osteomusculares"),
-    (14, "N00","N99","Doenças do aparelho geniturinário"),
-    (15, "O00","O99","Gravidez, parto e puerpério"),
-    (16, "P00","P96","Afecções perinatais"),
-    (17, "Q00","Q99","Malformações congênitas"),
-    (18, "R00","R99","Sinais e sintomas anormais"),
-    (19, "S00","T98","Lesões e envenenamentos"),
-    (20, "V01","Y98","Causas externas"),
-    (21, "Z00","Z99","Contatos com serviços de saúde"),
-]
-
-def main():
-    print("Conectando ao banco...")
-    with psycopg.connect(DB_URL) as conn:
-        with conn.cursor() as cur:
-            # Cria tabelas
-            cur.execute(CREATE_MUNICIPIOS)
-            cur.execute(CREATE_CID10)
-
-            # Insere capítulos CID-10
-            cur.executemany(
-                "INSERT INTO cid10_capitulos VALUES (%s,%s,%s,%s) ON CONFLICT DO NOTHING",
-                [(cap, ci, cf, desc) for cap, ci, cf, desc in CAPITULOS_CID10]
-            )
-            print(f"  ✅ {len(CAPITULOS_CID10)} capítulos CID-10 inseridos")
-
-            # Municípios via IBGE API (pequeno dataset)
-            try:
-                import httpx
-                print("  Baixando municípios do IBGE API...")
-                r = httpx.get(
-                    "https://servicodados.ibge.gov.br/api/v1/localidades/municipios",
-                    timeout=30
-                )
-                municipios = r.json()
-                rows = [
-                    (
-                        str(m["id"]),
-                        m["nome"],
-                        m["microrregiao"]["mesorregiao"]["UF"]["sigla"],
-                        m["microrregiao"]["mesorregiao"]["UF"]["nome"],
-                        m["microrregiao"]["mesorregiao"]["UF"]["regiao"]["nome"],
-                        None, None
-                    )
-                    for m in municipios
-                ]
-                cur.executemany(
-                    """INSERT INTO municipios_ibge
-                       (codigo_ibge, nome, uf_sigla, uf_nome, regiao, populacao, area_km2)
-                       VALUES (%s,%s,%s,%s,%s,%s,%s)
-                       ON CONFLICT DO NOTHING""",
-                    rows
-                )
-                print(f"  ✅ {len(rows)} municípios inseridos")
-            except Exception as e:
-                print(f"  ⚠️  Falha ao baixar municípios: {e}")
-                print("  Execute manualmente: python ingestion/refs_loader.py")
-
-        conn.commit()
-    print("✅ Referências carregadas com sucesso!")
-
-if __name__ == "__main__":
-    main()
-'''
-    script.write_text(content, encoding="utf-8")
-    print(f"  ℹ  refs_loader.py criado em {script}")
+    step_header(6, "Carregando tabelas de referencia")
+    _passo_arquivado(
+        "ingestion/refs_loader.py",
+        "As dimensoes vivas saem de data/refs/*.parquet, carregadas por "
+        "scripts/pipeline_v2.py.",
+    )
 
 # ═══════════════════════════════════════════════════════════
 # Passo 7 — Ingestão piloto (SP, Jan-Mar 2024)
 # ═══════════════════════════════════════════════════════════
 
 def step7_pilot_ingestion():
-    step_header(7, "Ingestão piloto — SP, Jan/Fev/Mar 2024")
-    info("Baixando dados reais do DataSUS via PySUS (~3-8 min conforme conexão)...")
-    info("Apenas SP + 3 meses para validar o pipeline rapidamente.")
-
-    ingest_script = ROOT / "ingestion" / "ingest_sia_pa.py"
-    if not ingest_script.exists():
-        warn("ingest_sia_pa.py não encontrado. Pulando ingestão piloto.")
-        warn("Execute manualmente depois: python -m ingestion.ingest_sia_pa --estados SP --anos 2024")
-        return
-
-    result = run(
-        f'"{sys.executable}" -m ingestion.ingest_sia_pa '
-        f'--estados SP --anos 2024 --meses 1 2 3'
+    step_header(7, "Ingestao piloto")
+    _passo_arquivado(
+        "ingestion/ingest_sia_pa.py",
+        "O SIA saiu do pipeline. Quem ingere hoje: python scripts/pipeline_v2.py.",
     )
-    if result.returncode != 0:
-        warn("Ingestão piloto falhou.")
-        warn("Possíveis causas: FTP DataSUS instável, sem conexão à internet.")
-        warn("Tente mais tarde: python -m ingestion.ingest_sia_pa --estados SP --anos 2024")
-    else:
-        ok("Dados piloto carregados: SP Jan-Mar/2024")
 
 # ═══════════════════════════════════════════════════════════
 # Passo 8 — dbt build

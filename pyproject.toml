@@ -76,9 +76,11 @@ dev = [
 ]
 
 [project.scripts]
-ingest-sia = "ingestion.ingest_sia_pa:main"
-load-refs = "ingestion.refs_loader:main"
-run-dbt = "flows.dbt_run:main"
+# ingest-sia, load-refs e run-dbt apontavam para ingestion/ingest_sia_pa.py,
+# ingestion/refs_loader.py e flows/dbt_run.py — os três em archive/ desde
+# 2026-08-22, ver archive/ingestion/README.md. Eram console scripts quebrados:
+# `ingest-sia` chamava um módulo que nem importa (NameError em ingest_all_states)
+# e `load-refs` populava tabelas ref_* que não existem em migrations/.
 validate-marts = "validation.run_validations:main"
 
 [tool.hatch.envs.default]
