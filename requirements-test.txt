@@ -35,10 +35,25 @@ click>=8.1.0
 httpx>=0.26.0
 
 # Ferramentas
-pytest==8.3.4
-pytest-asyncio==0.24.0
-pytest-cov==6.0.0
-ruff==0.8.4
+#
+# Os pinos estavam em pytest 8.3.4 / pytest-asyncio 0.24 / pytest-cov 6.0 /
+# ruff 0.8.4 enquanto o ambiente local ja rodava 9.1.1 / 1.4.0 / 7.1.0 / 0.16.2.
+# A divergencia nao era teorica: o job de supply chain, na sua primeira
+# execucao, acusou PYSEC-2026-1845 no pytest 8.3.4 (diretorio previsivel em
+# /tmp/pytest-of-{user} no UNIX, com DoS local e possivel escalada) -- algo que
+# NENHUMA execucao local encontraria, porque o pino vulneravel so existia aqui.
+#
+# Risco real baixo: e o runner de teste, nao codigo publicado. Mas o custo de
+# alinhar e zero e o ganho e duplo -- fecha a vulnerabilidade e faz o CI rodar a
+# mesma coisa que a maquina de quem desenvolve, que era a lacuna de
+# reprodutibilidade apontada em docs/SECURITY_AUDIT.md.
+#
+# As versoes abaixo sao as que a suite de 499 testes ja passa localmente em
+# 3.11. O CI tambem roda 3.12; se divergir la, o job dira.
+pytest==9.1.1
+pytest-asyncio==1.4.0
+pytest-cov==7.1.0
+ruff==0.16.2
 
 # Import do servidor MCP conferido pelo CI.
 #
