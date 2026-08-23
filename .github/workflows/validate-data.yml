@@ -93,3 +93,35 @@ jobs:
       - name: Avisar quando a chave de serviço não está configurada
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY == '' }}
         run: echo "::warning::SUPABASE_SERVICE_ROLE_KEY ausente — deriva de esquema NÃO foi verificada"
+
+  reconstrucao:
+    # A prova de que o repositorio reconstroi o banco. Roda contra um Postgres
+    # DESCARTAVEL do proprio runner -- nunca contra producao, e o script recusa
+    # destinos que pareçam Supabase gerenciado.
+    #
+    # Nao precisa de segredo: o schema.sql esta versionado e os Parquet vem do
+    # bucket publico. Ou seja, qualquer pessoa reproduz este job.
+    name: Reconstruir o banco do zero
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: postgres
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install "psycopg[binary]" pandas pyarrow requests
+
+      - name: Aplicar schema.sql e carregar os Parquet publicados
+        run: |
+          python scripts/reconstruir.py             --destino postgresql://postgres:postgres@localhost:5432/postgres             --quieto

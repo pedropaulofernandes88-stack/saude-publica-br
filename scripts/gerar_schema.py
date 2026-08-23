@@ -56,11 +56,14 @@ ROOT = Path(__file__).resolve().parents[1]
 DESTINO = ROOT / "migrations" / "schema" / "schema.sql"
 
 SECOES = {
+    0: "Schemas",
     1: "Tabelas, colunas e constraints",
     2: "Índices (os de PK e UNIQUE saem junto com a constraint)",
-    3: "Row Level Security",
-    4: "Policies",
-    5: "Views",
+    3: "Funções",
+    4: "Row Level Security",
+    5: "Policies",
+    6: "Views",
+    7: "Comentários",
 }
 
 
@@ -95,9 +98,9 @@ def montar(linhas: list[dict]) -> str:
         "-- repositório. As migrações registram a INTENÇÃO de cada mudança; este arquivo",
         "-- registra o ESTADO. Um não substitui o outro.",
         "--",
-        "-- Cobre o schema `public`. Não cobre: GRANTs de papel (auditados à parte),",
-        "-- os schemas `alertas`/`storage`/`auth`, e dados — o conteúdo vem dos Parquet",
-        "-- descritos em data/publicacoes/.",
+        "-- Cobre os schemas `public` e `alertas` — apenas ESTRUTURA, nenhuma linha de",
+        "-- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`",
+        "-- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.",
         "--",
         f"-- Extraído em: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M UTC')}",
         f"-- Objetos: {len(linhas)}",
