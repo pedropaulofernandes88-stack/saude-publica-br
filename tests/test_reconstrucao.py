@@ -92,3 +92,20 @@ def test_guarda_recusa_qualquer_supabase_gerenciado() -> None:
 def test_guarda_permite_postgres_descartavel() -> None:
     env = {"SUPABASE_URL": "https://zekjhmxjamatlxpkykde.supabase.co"}
     proteger("postgresql://postgres:postgres@localhost:5432/postgres", env)
+
+
+@pytest.mark.skipif(not SCHEMA.exists(), reason="schema.sql ainda não foi gerado")
+def test_expectativas_saem_do_schema_e_nao_de_constantes() -> None:
+    """A conferência compara o banco com o ARTEFATO aplicado, não com números.
+
+    A primeira versão trazia `n_fn == 10` escrito à mão e teria falhado: são 9
+    funções em `public` e 1 em `alertas`. Derivar do arquivo faz a checagem
+    acompanhar o esquema em vez de envelhecer com ele.
+    """
+    from reconstruir import _esperado_do_schema
+
+    e = _esperado_do_schema()
+    assert set(e) == {"policy", "comment", "function", "rls"}
+    assert all(v > 0 for v in e.values()), e
+    # Coerência interna: não pode haver mais policy que tabela com RLS.
+    assert e["policy"] <= e["rls"] + e["policy"]

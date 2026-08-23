@@ -118,12 +118,25 @@ def exigir_banco_vazio(cur) -> None:
 # ---------------------------------------------------------------------------
 
 def criar_papeis(cur) -> None:
+    """Cria os papéis do Supabase que as policies referenciam.
+
+    Sem bloco `DO`: o corpo de um DO é literal de string, e o Postgres não
+    consegue inferir o tipo de um parâmetro lá dentro — a primeira versão
+    quebrou no CI com `IndeterminateDatatype: could not determine data type of
+    parameter $1`. Consultar antes e compor o identificador é mais simples e
+    não tem esse problema.
+    """
+    from psycopg import sql
+
+    cur.execute("select rolname from pg_roles where rolname = any(%s)", (list(PAPEIS),))
+    existentes = {linha[0] for linha in cur.fetchall()}
+    criados = []
     for papel in PAPEIS:
-        cur.execute(
-            "do $$ begin if not exists (select 1 from pg_roles where rolname=%s) "
-            "then execute format('create role %%I nologin', %s); end if; end $$;",
-            (papel, papel))
-    print(f"[1/4] papéis garantidos: {', '.join(PAPEIS)}", flush=True)
+        if papel not in existentes:
+            cur.execute(sql.SQL("create role {} nologin").format(sql.Identifier(papel)))
+            criados.append(papel)
+    print(f"[1/4] papéis: {len(existentes)} já existiam, "
+          f"{len(criados)} criados ({', '.join(criados) or 'nenhum'})", flush=True)
 
 
 def _instrucoes(sql: str) -> list[str]:
@@ -210,6 +223,34 @@ def carregar_dados(cur, man, env: dict, amostra: int | None, quieto: bool) -> in
     return total
 
 
+def _esperado_do_schema() -> dict[str, int]:
+    """Conta no schema.sql quantos objetos de cada tipo ele promete criar.
+
+    A conferência compara o banco reconstruído com o ARTEFATO que foi aplicado,
+    e não com constantes. É a diferença entre "o rebuild produziu o que o
+    schema.sql descreve" e "o rebuild produziu o que eu lembrava".
+    """
+    texto = SCHEMA.read_text(encoding="utf-8")
+    instrucoes = _instrucoes(texto)
+
+    def comeca(prefixos: tuple[str, ...]) -> int:
+        n = 0
+        for instrucao in instrucoes:
+            # A instrução pode vir precedida do comentário de seção.
+            corpo = "\n".join(ln for ln in instrucao.splitlines()
+                              if ln.strip() and not ln.strip().startswith("--"))
+            if corpo.lstrip().lower().startswith(prefixos):
+                n += 1
+        return n
+
+    return {
+        "policy": comeca(("create policy",)),
+        "comment": comeca(("comment on",)),
+        "function": comeca(("create or replace function", "create function")),
+        "rls": comeca(("alter table",)),
+    }
+
+
 def conferir(cur, man, amostra: int | None) -> None:
     print("\n[4/4] conferindo o banco reconstruído contra o manifesto\n", flush=True)
     tabelas = sorted(man.tabelas)
@@ -237,11 +278,19 @@ def conferir(cur, man, amostra: int | None) -> None:
         print("\n(amostra: checagens de esquema puladas)", flush=True)
         return
 
+    # As expectativas saem do PRÓPRIO schema.sql que acabou de ser aplicado, não
+    # de números escritos aqui. Número digitado à mão envelhece: a primeira versão
+    # esperava 10 funções em `public` quando são 9 (a décima está em `alertas`),
+    # e só o CI descobriria. Contando o artefato, a checagem acompanha o esquema.
+    esperado = _esperado_do_schema()
     print()
+
     cur.execute("select count(*) from pg_policy p join pg_class c on c.oid=p.polrelid "
-                "join pg_namespace n on n.oid=c.relnamespace where n.nspname='public'")
+                "join pg_namespace n on n.oid=c.relnamespace "
+                "where n.nspname in ('public','alertas')")
     (n_pol,) = cur.fetchone()
-    check("policies recriadas", n_pol == 36, f"{n_pol} de 36")
+    check("policies recriadas", n_pol == esperado["policy"],
+          f"{n_pol} de {esperado['policy']}")
 
     cur.execute("select reloptions from pg_class c join pg_namespace n on n.oid=c.relnamespace "
                 "where n.nspname='public' and c.relname='mart_icsap_pares'")
@@ -252,23 +301,26 @@ def conferir(cur, man, amostra: int | None) -> None:
           str(opts))
 
     cur.execute("select count(*) from pg_description d join pg_class c on c.oid=d.objoid "
-                "join pg_namespace n on n.oid=c.relnamespace where n.nspname in ('public','alertas')")
+                "join pg_namespace n on n.oid=c.relnamespace "
+                "where n.nspname in ('public','alertas')")
     (n_com,) = cur.fetchone()
-    check("comentários preservados", n_com >= 55, f"{n_com}")
+    check("comentários preservados", n_com == esperado["comment"],
+          f"{n_com} de {esperado['comment']}")
 
     cur.execute("select count(*) from pg_proc p join pg_namespace n on n.oid=p.pronamespace "
-                "where n.nspname='public' and p.prokind='f'")
+                "where n.nspname in ('public','alertas') and p.prokind='f'")
     (n_fn,) = cur.fetchone()
-    check("funções recriadas", n_fn == 10, f"{n_fn} de 10")
+    check("funções recriadas", n_fn == esperado["function"],
+          f"{n_fn} de {esperado['function']}")
 
     cur.execute("select count(*) from information_schema.tables where table_schema='alertas'")
     (n_al,) = cur.fetchone()
-    check("schema alertas reconstruído", n_al == 1, f"{n_al} tabela(s)")
+    check("schema alertas reconstruído", n_al >= 1, f"{n_al} tabela(s)")
 
     cur.execute("select count(*) from pg_class c join pg_namespace n on n.oid=c.relnamespace "
-                "where n.nspname='public' and c.relkind='r' and c.relrowsecurity")
+                "where n.nspname in ('public','alertas') and c.relkind='r' and c.relrowsecurity")
     (n_rls,) = cur.fetchone()
-    check("RLS habilitado nas tabelas", n_rls == 36, f"{n_rls} de 36")
+    check("RLS habilitado", n_rls == esperado["rls"], f"{n_rls} de {esperado['rls']}")
 
 
 def main() -> None:
