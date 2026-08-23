@@ -193,3 +193,36 @@ def test_salvar_grava_manifesto_e_ponteiro(tmp_path: Path, monkeypatch) -> None:
     assert ponteiro == {"id": "2026-08-23", "arquivo": "2026-08-23.json"}
     # O ponteiro não contém as tabelas — só aponta.
     assert "tabelas" not in ponteiro
+
+
+# ---------------------------------------------------------------------------
+# Ambiente
+# ---------------------------------------------------------------------------
+
+def test_variavel_vazia_conta_como_ausente(monkeypatch, tmp_path: Path) -> None:
+    """`${{ secrets.X }}` vira string VAZIA quando o segredo não existe.
+
+    O repositório não tem nenhum segredo configurado, então o GitHub Actions
+    exportou SUPABASE_URL="" e o `setdefault` não disparou — a chave existia,
+    só estava vazia. O script montou URL a partir de "" e o primeiro job de CI
+    quebrou com "Invalid URL: No schema supplied".
+    """
+    import _publicacao
+    monkeypatch.setattr(_publicacao, "ROOT", tmp_path)   # sem .env
+    monkeypatch.setenv("SUPABASE_URL", "")
+    monkeypatch.setenv("SUPABASE_ANON_KEY", "")
+    monkeypatch.setenv("SUPABASE_SERVICE_ROLE_KEY", "")
+
+    env = _publicacao.carregar_env()
+    assert env["SUPABASE_URL"] == _publicacao.URL_PUBLICA
+    assert env["SUPABASE_ANON_KEY"] == _publicacao.ANON_PUBLICA
+    # A chave de ESCRITA nunca ganha padrão: vazia continua ausente.
+    assert not env.get("SUPABASE_SERVICE_ROLE_KEY")
+
+
+def test_chave_de_escrita_nunca_tem_padrao(monkeypatch, tmp_path: Path) -> None:
+    """Um padrão para a chave de escrita seria um segredo no repositório."""
+    import _publicacao
+    monkeypatch.setattr(_publicacao, "ROOT", tmp_path)
+    monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
+    assert "SUPABASE_SERVICE_ROLE_KEY" not in _publicacao.carregar_env()

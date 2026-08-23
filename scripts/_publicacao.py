@@ -110,6 +110,15 @@ def carregar_env() -> dict[str, str]:
                 k, _, v = linha.partition("=")
                 env[k.strip()] = v.strip()
     env.update({k: v for k, v in os.environ.items() if k.startswith("SUPABASE")})
+
+    # Variável VAZIA conta como ausente. O GitHub Actions materializa
+    # `${{ secrets.X }}` como string vazia quando o segredo não existe, e o
+    # repositório não tem nenhum segredo configurado. Sem esta linha,
+    # `setdefault` não dispara — a chave existe, só está vazia — e o script
+    # tenta montar URL a partir de "", falhando com "Invalid URL: No schema
+    # supplied". Foi exatamente assim que o primeiro job de CI quebrou.
+    env = {k: v for k, v in env.items() if v}
+
     env.setdefault("SUPABASE_URL", URL_PUBLICA)
     env.setdefault("SUPABASE_ANON_KEY", ANON_PUBLICA)
     return env
