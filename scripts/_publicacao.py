@@ -84,6 +84,22 @@ COMPRESSAO = "zstd"
 # Ambiente
 # ---------------------------------------------------------------------------
 
+#: URL e chave de LEITURA públicas do projeto.
+#:
+#: São os mesmos valores já embutidos em `scripts/validate_data.py`, em
+#: `site/lib/api.ts` e no workflow de keep-alive — a chave `anon` é pública por
+#: desenho do PostgREST, e o README a divulga. Ter o padrão aqui é o que permite
+#: rodar a validação de leitura no CI sem nenhum segredo configurado; a chave de
+#: ESCRITA nunca tem padrão e continua vindo só do ambiente.
+URL_PUBLICA = "https://zekjhmxjamatlxpkykde.supabase.co"
+ANON_PUBLICA = (
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9."
+    "eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpla2pobXhqYW1hdGx4cGt5a2RlIiwicm9sZSI6ImFub24i"
+    "LCJpYXQiOjE3ODEwNzY4MzIsImV4cCI6MjA5NjY1MjgzMn0."
+    "px8FcU0QK8w9v95kwGlGzASKpY3drsxAvFe0e6wUoCU"
+)
+
+
 def carregar_env() -> dict[str, str]:
     env: dict[str, str] = {}
     f = ROOT / ".env"
@@ -94,8 +110,8 @@ def carregar_env() -> dict[str, str]:
                 k, _, v = linha.partition("=")
                 env[k.strip()] = v.strip()
     env.update({k: v for k, v in os.environ.items() if k.startswith("SUPABASE")})
-    if "SUPABASE_URL" not in env:
-        raise SystemExit("SUPABASE_URL ausente (.env ou ambiente)")
+    env.setdefault("SUPABASE_URL", URL_PUBLICA)
+    env.setdefault("SUPABASE_ANON_KEY", ANON_PUBLICA)
     return env
 
 

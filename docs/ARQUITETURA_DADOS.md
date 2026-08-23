@@ -144,13 +144,56 @@ pego o defeito original — 14 tabelas servidas sem arquivo, por dois meses.
 
 ## Esquema
 
-`migrations/` **não reproduz** este banco, e isso está documentado em
-`migrations/schema/gerar_schema.sql`. O artefato confiável é
-`migrations/schema/schema.sql`, extraído do catálogo e versionado.
+`migrations/` **não reproduz** este banco. Das 57 migrações aplicadas em
+produção, 47 foram feitas ad-hoc, sem arquivo no repositório; 13 arquivos do
+repositório nunca foram aplicados. Quem clonar e aplicar `migrations/` em ordem
+obtém **outro banco**.
+
+O artefato confiável é `migrations/schema/schema.sql` — **126 objetos** (36
+tabelas, 17 índices, 36 RLS, 36 policies, 1 view), extraídos do catálogo:
+
+```bash
+python scripts/gerar_schema.py             # regera o arquivo
+python scripts/gerar_schema.py --conferir  # falha se o banco divergiu do git
+```
+
+A extração é **por script, não manual** — passo manual é exatamente o que
+produziu as 47 migrações ad-hoc. Ela chama `public.gerar_schema_ddl()`
+(migração V028), uma função `SECURITY DEFINER` com `search_path` fixo, sem
+parâmetros e executável apenas por `service_role`.
+
+`--conferir` é o modo de CI: compara o arquivo versionado com o banco e emite um
+diff unificado da divergência. Verificado injetando uma coluna fantasma no
+arquivo — o detector apontou a linha exata e saiu com código 1.
+
+**Migrações continuam valendo.** Elas registram a *intenção* e o *porquê* de cada
+mudança; `schema.sql` registra o *estado*. Um não substitui o outro — o que não
+existia era o segundo.
 
 A separação é deliberada: **esquema e conteúdo são camadas distintas**. O esquema
 vem de `schema.sql`; o conteúdo vem dos Parquet descritos em
 `data/publicacoes/`. Reconstruir o banco é aplicar um e carregar o outro.
+
+## No CI
+
+`validate-data.yml` roda três jobs:
+
+| job | credencial | o que garante |
+|---|---|---|
+| `dados` | nenhuma | invariantes da base publicada |
+| `camadas` | nenhuma (4 de 5 checagens) | coerência manifesto × Storage × Postgres × sdata |
+| `esquema` | `SUPABASE_SERVICE_ROLE_KEY` | `schema.sql` corresponde ao banco |
+
+**O repositório não tem nenhum segredo configurado hoje** (`gh api …/secrets`
+devolve `total_count: 0`). Por isso o job `camadas` foi desenhado para rodar sem
+credencial: quatro checagens usam só a chave pública de leitura, já embutida em
+`validate_data.py` e no site. A quinta — cobertura, que lê o OpenAPI do
+PostgREST — se anuncia como **PULADA** em vez de falhar ou de passar em
+silêncio, e o job emite um `::warning::`.
+
+Enquanto `SUPABASE_SERVICE_ROLE_KEY` não for configurado como segredo, a
+checagem de cobertura e a de deriva de esquema **não rodam em CI** — só na
+máquina de quem publica.
 
 ## Consequências
 
@@ -166,8 +209,9 @@ modelagem, com namespace disjunto e **zero objetos materializados** nos schemas
 
 | item | estado |
 |---|---|
-| pipelines escrevendo Parquet canônico direto | parcial — a maioria ainda passa pelo banco |
-| `schema.sql` gerado e versionado | o gerador existe; falta rodar e commitar a saída |
-| rebuild do Postgres a partir dos Parquet | não implementado |
-| `validar_camadas.py` no CI | não integrado |
-| redução do banco | não iniciada — depende dos itens acima |
+| pipelines escrevendo Parquet canônico direto | parcial — 3 de 36 (`pipeline`); 17 em `postgres-bootstrap`, 16 em `storage-legado` |
+| rebuild do Postgres a partir dos Parquet | **não implementado** — é o que provaria a reprodutibilidade de ponta a ponta |
+| redução do banco | não iniciada — depende do rebuild |
+| segredo `SUPABASE_SERVICE_ROLE_KEY` no CI | ausente: cobertura e deriva de esquema não rodam em CI |
+| `snapshot_publicacao` (V026) | continua sem aplicar — o histórico agora vem das publicações, e a tabela precisa ser reavaliada ou aposentada |
+| dbt | decisão pendente; incompatível com fonte canônica única |

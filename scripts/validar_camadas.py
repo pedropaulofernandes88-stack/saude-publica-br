@@ -151,6 +151,14 @@ def conferir_cobertura(man, env: dict) -> None:
     nenhum arquivo publicado, por dois meses, sem ninguém notar.
     """
     print("\n── cobertura: API × publicação ──────────────────────────────")
+    if not env.get("SUPABASE_SERVICE_ROLE_KEY"):
+        # Degradar é melhor que falhar OU que passar em silêncio. As outras
+        # quatro checagens rodam só com a chave pública; esta é a única que
+        # precisa da chave de serviço, e um job vermelho por falta de segredo
+        # ensinaria a ignorar o job.
+        print("[PULOU] cobertura API × publicação — exige SUPABASE_SERVICE_ROLE_KEY "
+              "(o endpoint raiz do PostgREST só responde à chave de serviço)", flush=True)
+        return
     try:
         servidas = tabelas_servidas(env)
     except Exception as exc:

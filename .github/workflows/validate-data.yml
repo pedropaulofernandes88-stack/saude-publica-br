@@ -1,5 +1,19 @@
-# Validação automática da base publicada: âncoras oficiais, conciliação entre
-# marts e integridade dimensional — tudo via API pública (verificável por terceiros).
+# =============================================================================
+# Validação da base publicada
+# =============================================================================
+# Três verificações, com exigências de credencial diferentes — e por isso em
+# jobs separados, para que a ausência de um segredo não derrube o que não
+# depende dele.
+#
+#   dados     invariantes da base publicada (âncoras oficiais, conciliação
+#             entre marts, integridade dimensional). Só API pública: qualquer
+#             pessoa reproduz.
+#   camadas   coerência entre manifesto, Storage, Postgres e sdata. Precisa da
+#             chave de serviço para ler o OpenAPI do PostgREST.
+#   esquema   o schema.sql versionado ainda corresponde ao banco. Detecta DDL
+#             aplicado sem versionar — que foi como 47 das 57 migrações em
+#             produção surgiram sem arquivo no repositório.
+# =============================================================================
 name: Validação dos dados
 
 on:
@@ -7,10 +21,18 @@ on:
     - cron: "23 7 2 * *"   # mensal
   workflow_dispatch:
   push:
-    paths: ["scripts/validate_data.py"]
+    paths:
+      - "scripts/validate_data.py"
+      - "scripts/validar_camadas.py"
+      - "scripts/gerar_schema.py"
+      - "scripts/_publicacao.py"
+      - "data/publicacoes/**"
+      - "migrations/schema/**"
+      - ".github/workflows/validate-data.yml"
 
 jobs:
-  validar:
+  dados:
+    name: Invariantes da base publicada
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -19,3 +41,51 @@ jobs:
           python-version: "3.12"
       - run: pip install requests
       - run: python scripts/validate_data.py
+
+  camadas:
+    name: Coerência entre camadas
+    runs-on: ubuntu-latest
+    # `env` no nível do JOB, não do passo: a expressão `if` de um passo não
+    # enxerga o `env` declarado nesse mesmo passo.
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests pandas pyarrow
+
+      # Roda SEM segredo nenhum: quatro das cinco checagens usam só a chave
+      # pública de leitura, que já é embutida em validate_data.py e no site. A
+      # quinta (cobertura API × publicação) exige a chave de serviço e se
+      # anuncia como PULADA quando ela falta — nunca passa em silêncio.
+      - name: Conferir manifesto × Storage × Postgres × sdata
+        run: python scripts/validar_camadas.py
+
+      - name: Avisar que a cobertura não foi verificada
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY == '' }}
+        run: echo "::warning::SUPABASE_SERVICE_ROLE_KEY ausente — a checagem de COBERTURA (tabela servida sem arquivo publicado) não rodou"
+
+  esquema:
+    name: schema.sql corresponde ao banco
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install requests
+
+      - name: Conferir deriva de esquema
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        run: python scripts/gerar_schema.py --conferir
+
+      - name: Avisar quando a chave de serviço não está configurada
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY == '' }}
+        run: echo "::warning::SUPABASE_SERVICE_ROLE_KEY ausente — deriva de esquema NÃO foi verificada"
