@@ -226,3 +226,60 @@ def test_chave_de_escrita_nunca_tem_padrao(monkeypatch, tmp_path: Path) -> None:
     monkeypatch.setattr(_publicacao, "ROOT", tmp_path)
     monkeypatch.delenv("SUPABASE_SERVICE_ROLE_KEY", raising=False)
     assert "SUPABASE_SERVICE_ROLE_KEY" not in _publicacao.carregar_env()
+
+
+# ---------------------------------------------------------------------------
+# Integridade da chave primária
+# ---------------------------------------------------------------------------
+
+def test_guarda_recusa_parquet_com_pk_duplicada() -> None:
+    """Duplicata na PK é impossível na tabela de origem: se está no arquivo, o
+    arquivo está errado.
+
+    Esta guarda faltava, e custou caro. O exportador paginava com LIMIT/OFFSET
+    sem ORDER BY — ordem indefinida no Postgres — e páginas consecutivas se
+    sobrepuseram: `mart_internacoes_municipio` saiu com 334.769 linhas e apenas
+    212.893 chaves distintas. O TOTAL bateu com o banco, porque as linhas
+    repetidas ocuparam o lugar das que sumiram, então a checagem de contagem
+    passou e o arquivo corrompido foi publicado. Só a violação de PK no rebuild
+    pegou.
+    """
+    import _publicacao
+
+    df = pd.DataFrame({
+        "municipio_cod": ["350000", "350000", "330000"],
+        "ano": [2024, 2024, 2024],
+        "obitos": [10, 10, 20],
+    })
+    with pytest.raises(RuntimeError, match="corrompido"):
+        _publicacao.conferir_chave_unica("mart_x", df, ["municipio_cod", "ano"])
+
+
+def test_guarda_aceita_parquet_integro() -> None:
+    import _publicacao
+
+    df = pd.DataFrame({
+        "municipio_cod": ["350000", "330000"],
+        "ano": [2024, 2024],
+        "obitos": [10, 20],
+    })
+    _publicacao.conferir_chave_unica("mart_x", df, ["municipio_cod", "ano"])
+
+
+def test_pk_ausente_no_dataframe_nao_quebra() -> None:
+    """View publicada pode não trazer todas as colunas da PK da tabela base."""
+    import _publicacao
+
+    _publicacao.conferir_chave_unica("v", pd.DataFrame({"a": [1, 1]}), ["b", "c"])
+
+
+def test_chaves_primarias_saem_do_schema_versionado() -> None:
+    """A ordenação da exportação segue o esquema, não uma lista escrita à mão."""
+    import _publicacao
+
+    pks = _publicacao.chaves_primarias()
+    if not pks:
+        pytest.skip("schema.sql ainda não foi gerado")
+    assert pks["mart_mortalidade_municipio"] == [
+        "municipio_cod", "ano", "capitulo_cid", "sexo"]
+    assert all(isinstance(v, list) and v for v in pks.values())

@@ -58,6 +58,7 @@ import hashlib
 import io
 import json
 import os
+import re
 import subprocess
 import time
 from dataclasses import asdict, dataclass, field
@@ -312,6 +313,26 @@ def descrever(nome: str, caminho: Path, origem: str, id_pub: str) -> Tabela:
 # Postgres → Parquet (bootstrap)
 # ---------------------------------------------------------------------------
 
+def chaves_primarias() -> dict[str, list[str]]:
+    """Chave primária de cada tabela, lida do `schema.sql` versionado.
+
+    Vem do artefato, e não de uma lista escrita aqui: se o esquema mudar, a
+    ordenação da exportação acompanha sozinha.
+    """
+    arquivo = ROOT / "migrations" / "schema" / "schema.sql"
+    if not arquivo.exists():
+        return {}
+    pks: dict[str, list[str]] = {}
+    texto = arquivo.read_text(encoding="utf-8")
+    for m in re.finditer(
+        r"create table if not exists public\.(\w+)\s*\((.*?)\n\);", texto, re.S
+    ):
+        p = re.search(r"PRIMARY KEY \(([^)]+)\)", m.group(2))
+        if p:
+            pks[m.group(1)] = [c.strip().strip('"') for c in p.group(1).split(",")]
+    return pks
+
+
 def exportar_do_postgres(tabela: str, env: dict[str, str], destino: Path,
                          quieto: bool = False) -> Path:
     """Reexporta uma tabela inteira do Postgres para Parquet local.
@@ -319,10 +340,26 @@ def exportar_do_postgres(tabela: str, env: dict[str, str], destino: Path,
     Caminho de BOOTSTRAP, não o estado desejado — ver o cabeçalho do módulo.
     Pagina de 1000 em 1000 porque é o teto do PostgREST (pedir mais devolve
     1000 assim mesmo).
+
+    A ORDENAÇÃO EXPLÍCITA NÃO É COSMÉTICA. Paginar com LIMIT/OFFSET sem ORDER BY
+    é indefinido: o Postgres não promete a mesma ordem entre duas consultas, e
+    páginas consecutivas podem se sobrepor — repetindo linhas e perdendo outras.
+    Foi o que aconteceu: `mart_internacoes_municipio` saiu com 334.769 linhas e
+    apenas 212.893 chaves distintas, e o TOTAL bateu com o banco, porque as
+    linhas repetidas ocuparam o lugar das que sumiram. Uma checagem que compara
+    só a contagem não enxerga isso; só a violação de PK no rebuild enxergou.
     """
     url = env["SUPABASE_URL"].rstrip("/")
     chave = env["SUPABASE_ANON_KEY"]
     cabecalho = {"apikey": chave, "Authorization": f"Bearer {chave}"}
+
+    pk = chaves_primarias().get(tabela)
+    if not pk:
+        raise RuntimeError(
+            f"{tabela}: sem chave primária conhecida em schema.sql — exportar sem "
+            "ordenação determinística produziria linhas duplicadas e ausentes")
+    ordem = ",".join(f"{c}.asc" for c in pk)
+
     linhas: list[dict] = []
     offset = 0
     while True:
@@ -330,7 +367,7 @@ def exportar_do_postgres(tabela: str, env: dict[str, str], destino: Path,
             f"{url}/rest/v1/{tabela}",
             headers={**cabecalho, "Range-Unit": "items",
                      "Range": f"{offset}-{offset + PAGINA_REST - 1}"},
-            params={"select": "*"}, timeout=120)
+            params={"select": "*", "order": ordem}, timeout=120)
         r.raise_for_status()
         lote = r.json()
         linhas.extend(lote)
@@ -341,9 +378,30 @@ def exportar_do_postgres(tabela: str, env: dict[str, str], destino: Path,
             print(f"      {tabela}: {offset:,} linhas...", flush=True)
     if not linhas:
         raise RuntimeError(f"{tabela}: consulta devolveu zero linhas")
+
+    df = pd.DataFrame(linhas)
+    conferir_chave_unica(tabela, df, pk)
     destino.parent.mkdir(parents=True, exist_ok=True)
-    pd.DataFrame(linhas).to_parquet(destino, compression=COMPRESSAO, index=False)
+    df.to_parquet(destino, compression=COMPRESSAO, index=False)
     return destino
+
+
+def conferir_chave_unica(tabela: str, df: pd.DataFrame, pk: list[str]) -> None:
+    """Recusa um DataFrame cuja chave primária tenha repetição.
+
+    Guarda que faltava: a contagem de linhas batia com o banco enquanto o
+    arquivo já estava corrompido. Duplicata na PK é impossível na tabela de
+    origem — se aparece no arquivo, o arquivo está errado, ponto.
+    """
+    presentes = [c for c in pk if c in df.columns]
+    if not presentes:
+        return
+    n, distintas = len(df), len(df[presentes].drop_duplicates())
+    if n != distintas:
+        raise RuntimeError(
+            f"{tabela}: {n:,} linhas para apenas {distintas:,} chaves distintas "
+            f"({n - distintas:,} duplicadas em {'+'.join(presentes)}). "
+            "O arquivo está corrompido e NÃO será publicado.")
 
 
 def contar_no_postgres(tabela: str, env: dict[str, str]) -> int:

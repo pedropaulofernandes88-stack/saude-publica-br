@@ -49,7 +49,9 @@ from _publicacao import (  # noqa: E402
     baixar_do_storage,
     carregar_env,
     carregar_manifesto,
+    chaves_primarias,
     commit_atual,
+    conferir_chave_unica,
     contar_no_postgres,
     descrever,
     enviar_ao_storage,
@@ -234,6 +236,16 @@ def main() -> None:
             continue
 
         caminho, origem = obtido
+
+        # A guarda vale para QUALQUER origem, não só para a reexportação: um
+        # Parquet do pipeline ou herdado do Storage também pode estar corrompido,
+        # e publicar arquivo com PK repetida é publicar dado errado com checksum
+        # certo.
+        pk = chaves_primarias().get(tabela)
+        if pk:
+            import pandas as pd
+            conferir_chave_unica(tabela, pd.read_parquet(caminho), pk)
+
         t = descrever(tabela, caminho, origem, id_pub)
 
         igual_ao_anterior = (
@@ -260,6 +272,19 @@ def main() -> None:
         if not args.simular:
             enviar_ao_storage(caminho, f"{tabela}.parquet", env)
             enviar_ao_storage(caminho, t.caminho_historico(), env)
+
+    # Tabela FORA de `alvos` também é herdada. Sem isto, `--tabelas X` produzia
+    # um manifesto afirmando que a publicação tem UMA tabela — e `atual.json`
+    # passava a apontar para ele. Uma publicação é sempre o conjunto inteiro:
+    # `--tabelas` limita o que é REPROCESSADO, não o que é descrito.
+    if anterior:
+        fora_do_recorte = [n for n in anterior.tabelas if n not in manifesto.tabelas]
+        for nome in fora_do_recorte:
+            manifesto.tabelas[nome] = anterior.tabelas[nome]
+            herdadas.append(nome)
+        if fora_do_recorte and not args.quieto:
+            print(f"   = {len(fora_do_recorte)} tabelas fora do recorte, herdadas de "
+                  f"{anterior.id}", flush=True)
 
     print(f"\n[publicar] mudaram: {len(mudaram)} · herdadas: {len(herdadas)} · "
           f"sem arquivo: {len(ausentes)}", flush=True)
