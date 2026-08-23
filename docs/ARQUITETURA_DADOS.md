@@ -226,12 +226,50 @@ três maiores tabelas somam 50% dos 740 MB.
 modelagem, com namespace disjunto e **zero objetos materializados** nos schemas
 `staging`/`intermediate`/`marts` em dois meses, não tem lugar nesta arquitetura.
 
+## Tamanho do banco
+
+**740 MB → 607 MB** em 2026-08-23: 133 MB (18%) recuperados por `VACUUM FULL`,
+sem perder uma linha e com a API verificada depois.
+
+| tabela | antes | depois | bytes/linha |
+|---|---:|---:|---|
+| `mart_internacoes_agravo` | 61 MB | 35 MB | 323 → 194 |
+| `mart_internacoes_municipio` | 111 MB | 67 MB | 200 → 154 |
+| `mart_los_hospital` | 59 MB | 31 MB | 180 → 95 |
+
+`mart_internacoes_municipio` chegou a reportar 411 mil linhas vivas tendo
+334.769 — 76 mil fantasmas. O inchaço veio dos upserts e do `DELETE + INSERT`
+que o pipeline de forecast faz a cada execução.
+
+```bash
+python scripts/diagnostico_banco.py --limite-mb 700
+```
+
+Ganho de faxina volta, então a medição virou parte do CI. A **medição** é
+automatizável por RPC (`diagnostico_banco()`, V031); a **ação** não — `VACUUM`
+não roda dentro de função nem de transação, e o projeto não guarda senha de
+banco. O script mede, avisa e imprime os comandos exatos; compactar é manual.
+Declarar a limitação é melhor que fingir automação que não existe.
+
+### O que ainda pesa, e por que não foi mexido
+
+| oportunidade | ganho | por que não |
+|---|---:|---|
+| texto denormalizado (`municipio_nome`, `uf_sigla`, `regiao` repetidos linha a linha) | ~61 MB | remover quebra o contrato da API pública, que serve essas colunas |
+| `numeric` → `real` nas colunas de taxa | dezenas de MB | muda a precisão de dado publicado |
+| linhas `sexo != 'TOTAL'` em `mart_mortalidade_municipio` | ~2/3 de 180 MB | reduz a granularidade que a plataforma publica |
+| `idx_mm_uf_ano` e `idx_intern_uf_ano` | ~10 MB | 38 e 6 buscas em 3 meses, mas o site filtra por UF; o ganho não paga o risco |
+
+As três primeiras são decisões de produto, não de engenharia: mudam o que a
+plataforma entrega. Ficam registradas com o número ao lado para que a escolha
+seja informada.
+
 ## O que ainda não está pronto
 
 | item | estado |
 |---|---|
 | pipelines escrevendo Parquet canônico direto | parcial — 3 de 36 (`pipeline`); 17 em `postgres-bootstrap`, 16 em `storage-legado` |
-| redução do banco | não iniciada — agora é decisão, não bloqueio: o rebuild prova que o Postgres é reconstruível |
+| pipelines escrevendo Parquet canônico direto | parcial — 3 de 36 |
 | segredo `SUPABASE_SERVICE_ROLE_KEY` no CI | ausente: cobertura e deriva de esquema não rodam em CI |
 | `snapshot_publicacao` (V026) | continua sem aplicar — o histórico agora vem das publicações, e a tabela precisa ser reavaliada ou aposentada |
 | dbt | decisão pendente; incompatível com fonte canônica única |

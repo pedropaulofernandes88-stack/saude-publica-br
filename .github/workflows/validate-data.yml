@@ -75,7 +75,7 @@ jobs:
     # aparecia com ✓ mesmo quando a checagem era pulada por falta de segredo --
     # um check verde afirmando algo que não foi verificado, que é o mesmo
     # defeito de validate_data.py e alertas-envio corrigido nesta série.
-    name: Deriva de esquema (exige chave de serviço)
+    name: Esquema e tamanho do banco (exige chave de serviço)
     runs-on: ubuntu-latest
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -90,6 +90,16 @@ jobs:
       - name: Conferir se schema.sql ainda corresponde ao banco
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         run: python scripts/gerar_schema.py --conferir
+
+      # O banco foi de 740 MB para 607 MB com VACUUM FULL em 2026-08-23, sem
+      # perder uma linha. Ganho de faxina volta: os pipelines fazem upsert e o
+      # forecast faz DELETE+INSERT a cada execucao. Medir e o que impede o
+      # inchaco de reaparecer em silencio. O limite tem folga proposital sobre
+      # os 607 MB atuais -- alarme que toca por variacao normal e alarme que se
+      # aprende a ignorar.
+      - name: Medir tamanho e inchaço do banco
+        if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
+        run: python scripts/diagnostico_banco.py --limite-mb 700
 
       - name: Avisar quando a chave de serviço não está configurada
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY == '' }}

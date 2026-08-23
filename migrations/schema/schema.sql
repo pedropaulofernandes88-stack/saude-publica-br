@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-08-23 10:20 UTC
--- Objetos: 200
+-- Extraído em: 2026-08-23 11:12 UTC
+-- Objetos: 201
 -- =============================================================================
 
 
@@ -819,6 +819,52 @@ begin
   get diagnostics n = row_count;
   return n;
 end;
+$function$
+;
+
+CREATE OR REPLACE FUNCTION public.diagnostico_banco()
+ RETURNS TABLE(categoria text, objeto text, linhas bigint, bytes bigint, bytes_por_linha numeric, detalhe text)
+ LANGUAGE sql
+ STABLE SECURITY DEFINER
+ SET search_path TO 'pg_catalog', 'public'
+AS $function$
+    select 'banco'::text, current_database()::text, null::bigint,
+           pg_database_size(current_database()),
+           null::numeric,
+           'tamanho total do banco'::text
+    union all
+    select 'tabela', c.relname, s.n_live_tup,
+           pg_total_relation_size(c.oid),
+           round(pg_relation_size(c.oid)::numeric / nullif(s.n_live_tup, 0), 1),
+           'mortas=' || s.n_dead_tup
+           || ' heap=' || pg_size_pretty(pg_relation_size(c.oid))
+           || ' indices=' || pg_size_pretty(pg_indexes_size(c.oid))
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+    join pg_stat_user_tables s on s.relid = c.oid
+    where c.relkind = 'r'
+    union all
+    select 'inchaco', c.relname, s.n_dead_tup,
+           pg_relation_size(c.oid),
+           round(100.0 * s.n_dead_tup / nullif(s.n_live_tup + s.n_dead_tup, 0), 1),
+           'pct de tuplas mortas'
+    from pg_class c
+    join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+    join pg_stat_user_tables s on s.relid = c.oid
+    where c.relkind = 'r' and s.n_dead_tup > 1000
+    union all
+    select 'indice_ocioso', si.relname || '.' || si.indexrelname, si.idx_scan,
+           pg_relation_size(si.indexrelid),
+           null::numeric,
+           'buscas desde ' || (select stats_reset::date::text from pg_stat_database
+                               where datname = current_database())
+    from pg_stat_user_indexes si
+    join pg_index i on i.indexrelid = si.indexrelid
+    join pg_class c on c.oid = si.relid
+    join pg_namespace n on n.oid = c.relnamespace and n.nspname = 'public'
+    where not i.indisprimary and not i.indisunique
+      and si.idx_scan < 50 and pg_relation_size(si.indexrelid) > 512 * 1024
+    order by 1, 4 desc;
 $function$
 ;
 
