@@ -20,16 +20,13 @@ Checkpoint por UF (resumível). Uso:
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import os
 import sys
-import tempfile
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime
-from ftplib import FTP
 from pathlib import Path
 
 import pandas as pd
@@ -43,6 +40,15 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _datasus_ftp import (  # noqa: E402
+    ArquivoAusente,
+    FalhaDeColeta,
+    baixar,
+    checkpoint_utilizavel,
+    gravar_checkpoint,
+    meses_publicados,
+    registros_dbc,
+)
 from _publicacao import acumular_parquet  # noqa: E402
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -117,47 +123,34 @@ def load_env() -> dict[str, str]:
 
 
 def _process_file(uf: str, ano: int, mes: int):
-    """Um RD mensal → (fluxo dict, icsap dict). None se ausente."""
-    import datasus_dbc
-    import dbfread
+    """Um RD mensal → (fluxo dict, icsap dict).
+
+    Levanta `ArquivoAusente` se a competência ainda não foi publicada e
+    `FalhaDeColeta` se ela existe e a coleta falhou. Antes, os dois casos
+    viravam `None` e o mês sumia do ano sem deixar rastro — foi assim que
+    MA 2023 perdeu 5 meses (-41%) sem o pipeline reclamar.
+    """
     yymm = f"{ano % 100:02d}{mes:02d}"
     nome = f"RD{uf}{yymm}"
-    try:
-        ftp = FTP(FTP_HOST, timeout=180); ftp.login()
-        try:
-            ftp.size(f"{FTP_DIR}/{nome}.dbc")
-        except Exception:
-            ftp.quit(); return None
-        buf = io.BytesIO(); ftp.retrbinary(f"RETR {FTP_DIR}/{nome}.dbc", buf.write); ftp.quit()
-    except Exception:
-        return None
-    tmp = Path(tempfile.gettempdir())
-    dbc = tmp / f"{nome}.dbc"; dbf = tmp / f"{nome}.dbf"
-    dbc.write_bytes(buf.getvalue())
+    dados = baixar(FTP_DIR, f"{nome}.dbc")
     fluxo: dict = defaultdict(int)
     icsap: dict = defaultdict(lambda: [0, 0, 0, 0])  # mun_res -> [total, icsap, cont, icsap_cont]
-    try:
-        datasus_dbc.decompress(str(dbc), str(dbf))
-        for rec in dbfread.DBF(str(dbf), encoding="latin-1", char_decode_errors="replace", load=False):
-            res = (str(rec.get("MUNIC_RES") or "")).strip()[:6]
-            mov = (str(rec.get("MUNIC_MOV") or "")).strip()[:6]
-            if len(res) < 6:
-                continue
-            cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
-            # AIH de continuação (IDENT=5): contada no total (produção), mas registrada
-            # à parte para auditoria. Impacto medido no %ICSAP: +0,93% relativo — pequeno,
-            # porque só I69 e G40 da lista brasileira geram continuação em volume.
-            cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
-            c = icsap[res]; c[0] += 1; c[2] += cont
-            if cid in ICSAP3:
-                c[1] += 1; c[3] += cont
-            if len(mov) == 6 and mov != res:
-                fluxo[(res, mov)] += 1
-        return dict(fluxo), dict(icsap)
-    except Exception:
-        return None
-    finally:
-        dbc.unlink(missing_ok=True); dbf.unlink(missing_ok=True)
+    for rec in registros_dbc(dados, nome):
+        res = (str(rec.get("MUNIC_RES") or "")).strip()[:6]
+        mov = (str(rec.get("MUNIC_MOV") or "")).strip()[:6]
+        if len(res) < 6:
+            continue
+        cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
+        # AIH de continuação (IDENT=5): contada no total (produção), mas registrada
+        # à parte para auditoria. Impacto medido no %ICSAP: +0,93% relativo — pequeno,
+        # porque só I69 e G40 da lista brasileira geram continuação em volume.
+        cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
+        c = icsap[res]; c[0] += 1; c[2] += cont
+        if cid in ICSAP3:
+            c[1] += 1; c[3] += cont
+        if len(mov) == 6 and mov != res:
+            fluxo[(res, mov)] += 1
+    return dict(fluxo), dict(icsap)
 
 
 def _process_uf(uf: str, ano: int, workers: int):
@@ -165,31 +158,60 @@ def _process_uf(uf: str, ano: int, workers: int):
     # sufixo _v2: checkpoints antigos nao tinham a contagem de AIH de continuacao
     fck = CKPT / f"fluxo_{uf}_{ano}_v2.parquet"
     ick = CKPT / f"icsap_{uf}_{ano}_v2.parquet"
-    if fck.exists() and ick.exists():
+    esperados = meses_publicados(FTP_DIR, f"RD{uf}", ano)
+    if not esperados:
+        raise FalhaDeColeta(f"o FTP não publica nenhum mês de RD{uf} em {ano}")
+    if checkpoint_utilizavel(fck, esperados) and checkpoint_utilizavel(ick, esperados):
         return pd.read_parquet(fck), pd.read_parquet(ick)
+
     fluxo: dict = defaultdict(int)
     icsap: dict = defaultdict(lambda: [0, 0, 0, 0])
+    coletados: list[int] = []
+    falhas: list[int] = []
+
+    def acumular(mes: int, res) -> None:
+        fl, ic = res
+        coletados.append(mes)
+        for k, v in fl.items():
+            fluxo[k] += v
+        for mun, c in ic.items():
+            t = icsap[mun]
+            for i in range(4):
+                t[i] += c[i]
+
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = {ex.submit(_process_file, uf, ano, m): m for m in range(1, 13)}
+        futs = {ex.submit(_process_file, uf, ano, m): m for m in esperados}
         for fut in as_completed(futs):
-            res = fut.result()
-            if not res:
-                continue
-            fl, ic = res
-            for k, v in fl.items():
-                fluxo[k] += v
-            for mun, c in ic.items():
-                t = icsap[mun]
-                for i in range(4):
-                    t[i] += c[i]
+            mes = futs[fut]
+            try:
+                acumular(mes, fut.result())
+            except ArquivoAusente:
+                # o FTP listou o arquivo e ele sumiu entre a listagem e o RETR
+                falhas.append(mes)
+            except FalhaDeColeta:
+                falhas.append(mes)
+
+    # Segunda passada, em série: a concorrência é a causa mais comum de recusa
+    # do FTP do DataSUS, e o mês que falhou com 6 conexões costuma passar com 1.
+    for mes in sorted(falhas):
+        acumular(mes, _process_file(uf, ano, mes))
+
+    faltando = sorted(set(esperados) - set(coletados))
+    if faltando:
+        raise FalhaDeColeta(
+            f"{uf} {ano}: meses {faltando} publicados no FTP e não coletados; "
+            "checkpoint NÃO gravado")
+
     fdf = pd.DataFrame([(ano, r, m, n) for (r, m), n in fluxo.items()],
                        columns=["ano", "municipio_res", "municipio_mov", "internacoes"])
     idf = pd.DataFrame([(mun, ano, c[0], c[1], c[2], c[3]) for mun, c in icsap.items()],
                        columns=["municipio_cod", "ano", "internacoes_total", "internacoes_icsap",
                                 "aih_continuacao", "aih_continuacao_icsap"])
-    fdf.to_parquet(fck, compression="zstd", index=False)
-    idf.to_parquet(ick, compression="zstd", index=False)
-    print(f"[fluxo] {uf} {ano}: {len(fdf):,} pares de fluxo, {int(idf['internacoes_total'].sum()):,} internações", flush=True)
+    gravar_checkpoint(fdf, fck, coletados)
+    gravar_checkpoint(idf, ick, coletados)
+    print(f"[fluxo] {uf} {ano}: {len(fdf):,} pares de fluxo, "
+          f"{int(idf['internacoes_total'].sum()):,} internações "
+          f"({len(coletados)} de 12 meses)", flush=True)
     return fdf, idf
 
 

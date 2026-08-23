@@ -49,22 +49,28 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import math
 import os
 import sys
-import tempfile
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
-from ftplib import FTP
 from pathlib import Path
 
 import pandas as pd
 import requests
 
+from _datasus_ftp import (
+    ArquivoAusente,
+    FalhaDeColeta,
+    baixar,
+    checkpoint_utilizavel,
+    gravar_checkpoint,
+    meses_publicados,
+    registros_dbc,
+)
 from _metricas_aih import (MEDIDAS, aplica_metricas_por_episodio,
                            capitulo as _capitulo)
 
@@ -114,58 +120,34 @@ def _process_file(uf: str, ano: int, mes: int) -> dict | None:
     Retorna dict[(mun6, cap)] = [n, obitos, dias, valor, n_cont, dias_norm, valor_norm],
     onde `n_cont` conta AIH de continuação (IDENT=5) e os campos `_norm` somam apenas
     AIH normal — ver a nota sobre IDENT no cabeçalho do módulo.
-    None em erro/ausência (meses futuros)."""
-    import datasus_dbc
-    import dbfread
-
+    Levanta `ArquivoAusente` se a competência não foi publicada e
+    `FalhaDeColeta` se ela existe e a coleta falhou — ver `_datasus_ftp`."""
     yymm = f"{ano % 100:02d}{mes:02d}"
     nome = f"RD{uf}{yymm}"
-    try:
-        ftp = FTP(FTP_HOST, timeout=180)
-        ftp.login()
+    dados = baixar(FTP_DIR, f"{nome}.dbc")
+    agg: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
+    for rec in registros_dbc(dados, nome):
+        mun = (str(rec.get("MUNIC_RES") or "")).strip()[:6]
+        if len(mun) < 6:
+            continue
+        cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
+        cap = _capitulo(cid) if cid else "N/D"
         try:
-            ftp.size(f"{FTP_DIR}/{nome}.dbc")
-        except Exception:
-            ftp.quit()
-            return None  # mês inexistente
-        buf = io.BytesIO()
-        ftp.retrbinary(f"RETR {FTP_DIR}/{nome}.dbc", buf.write)
-        ftp.quit()
-    except Exception:
-        return None
-
-    tmp = Path(tempfile.gettempdir())
-    dbc = tmp / f"{nome}.dbc"
-    dbf = tmp / f"{nome}.dbf"
-    dbc.write_bytes(buf.getvalue())
-    try:
-        datasus_dbc.decompress(str(dbc), str(dbf))
-        agg: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
-        for rec in dbfread.DBF(str(dbf), encoding="latin-1", char_decode_errors="replace", load=False):
-            mun = (str(rec.get("MUNIC_RES") or "")).strip()[:6]
-            if len(mun) < 6:
-                continue
-            cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
-            cap = _capitulo(cid) if cid else "N/D"
-            try:
-                dias = int(rec.get("DIAS_PERM") or 0)
-            except (ValueError, TypeError):
-                dias = 0
-            try:
-                val = float(rec.get("VAL_TOT") or 0)
-            except (ValueError, TypeError):
-                val = 0.0
-            morte = 1 if str(rec.get("MORTE") or "0").strip() in ("1",) else 0
-            cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
-            c = agg[(mun, cap)]
-            c[0] += 1; c[1] += morte; c[2] += dias; c[3] += val
-            c[4] += cont
-            if not cont:
-                c[5] += dias; c[6] += val
-        return dict(agg)
-    finally:
-        dbc.unlink(missing_ok=True)
-        dbf.unlink(missing_ok=True)
+            dias = int(rec.get("DIAS_PERM") or 0)
+        except (ValueError, TypeError):
+            dias = 0
+        try:
+            val = float(rec.get("VAL_TOT") or 0)
+        except (ValueError, TypeError):
+            val = 0.0
+        morte = 1 if str(rec.get("MORTE") or "0").strip() in ("1",) else 0
+        cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
+        c = agg[(mun, cap)]
+        c[0] += 1; c[1] += morte; c[2] += dias; c[3] += val
+        c[4] += cont
+        if not cont:
+            c[5] += dias; c[6] += val
+    return dict(agg)
 
 
 CKPT = ROOT / "data" / "raw" / "SIH" / "ckpt"
@@ -177,28 +159,52 @@ def _process_uf_ano(uf: str, ano: int, workers: int) -> pd.DataFrame:
     # sufixo _v2: os checkpoints anteriores nao tinham os contadores por IDENT e
     # seriam reaproveitados em silencio, produzindo um mart sem as colunas novas.
     ckpt = CKPT / f"sih_{uf}_{ano}_v2.parquet"
-    if ckpt.exists():
+    esperados = meses_publicados(FTP_DIR, f"RD{uf}", ano)
+    if not esperados:
+        raise FalhaDeColeta(f"o FTP não publica nenhum mês de RD{uf} em {ano}")
+    if checkpoint_utilizavel(ckpt, esperados):
         return pd.read_parquet(ckpt)
 
     agg: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])  # (mun, cap) -> [...]
+    coletados: list[int] = []
+    falhas: list[int] = []
+
+    def acumular(mes: int, res: dict) -> None:
+        coletados.append(mes)
+        for (mun, cap), c in res.items():
+            t = agg[(mun, cap)]
+            for i in range(7):
+                t[i] += c[i]
+
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = {ex.submit(_process_file, uf, ano, m): m for m in range(1, 13)}
+        futs = {ex.submit(_process_file, uf, ano, m): m for m in esperados}
         for fut in as_completed(futs):
-            res = fut.result()
-            if res:
-                for (mun, cap), c in res.items():
-                    t = agg[(mun, cap)]
-                    for i in range(7):
-                        t[i] += c[i]
+            mes = futs[fut]
+            try:
+                acumular(mes, fut.result())
+            except (ArquivoAusente, FalhaDeColeta):
+                falhas.append(mes)
+
+    # segunda passada em série: o FTP do DataSUS recusa conexões concorrentes
+    for mes in sorted(falhas):
+        acumular(mes, _process_file(uf, ano, mes))
+
+    faltando = sorted(set(esperados) - set(coletados))
+    if faltando:
+        raise FalhaDeColeta(
+            f"{uf} {ano}: meses {faltando} publicados no FTP e não coletados; "
+            "checkpoint NÃO gravado")
+
     df = pd.DataFrame(
         [(mun, ano, cap, c[0], c[1], c[2], round(c[3], 2), c[4], c[5], round(c[6], 2))
          for (mun, cap), c in agg.items()],
         columns=["municipio_cod", "ano", "capitulo_cid", "internacoes", "obitos",
                  "dias_permanencia", "valor_total", "aih_continuacao",
                  "dias_permanencia_normal", "valor_normal"])
-    df.to_parquet(ckpt, compression="zstd", index=False)
+    gravar_checkpoint(df, ckpt, coletados)
     print(f"[sih] {uf} {ano}: {int(df['internacoes'].sum()):,} internações "
-          f"({int(df['aih_continuacao'].sum()):,} de continuação) → checkpoint", flush=True)
+          f"({int(df['aih_continuacao'].sum()):,} de continuação, "
+          f"{len(coletados)} de 12 meses) → checkpoint", flush=True)
     return df
 
 

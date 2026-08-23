@@ -26,20 +26,26 @@ Checkpoint por UF (resumível). Uso:
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import os
 import sys
-import tempfile
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from ftplib import FTP
 from pathlib import Path
 
 import pandas as pd
 import requests
 
+from _datasus_ftp import (
+    ArquivoAusente,
+    FalhaDeColeta,
+    baixar,
+    checkpoint_utilizavel,
+    gravar_checkpoint,
+    meses_publicados,
+    registros_dbc,
+)
 from _metricas_aih import (aplica_metricas_por_episodio,
                            capitulo as _capitulo)
 
@@ -131,69 +137,55 @@ def load_env() -> dict[str, str]:
 
 
 def _process_file(uf: str, ano: int, mes: int):
-    """Um RD mensal → (agravo dict, hospital dict). None se ausente."""
-    import datasus_dbc
-    import dbfread
+    """Um RD mensal → (agravo dict, hospital dict).
+
+    Levanta `ArquivoAusente` (competência não publicada) ou `FalhaDeColeta`
+    (existe e falhou). Ver `_datasus_ftp`: RR 2022 perdeu -7% das internações
+    por um mês que falhou em silêncio.
+    """
     yymm = f"{ano % 100:02d}{mes:02d}"
     nome = f"RD{uf}{yymm}"
-    try:
-        ftp = FTP(FTP_HOST, timeout=180); ftp.login()
-        try:
-            ftp.size(f"{FTP_DIR}/{nome}.dbc")
-        except Exception:
-            ftp.quit(); return None
-        buf = io.BytesIO(); ftp.retrbinary(f"RETR {FTP_DIR}/{nome}.dbc", buf.write); ftp.quit()
-    except Exception:
-        return None
-    tmp = Path(tempfile.gettempdir())
-    dbc = tmp / f"{nome}.dbc"; dbf = tmp / f"{nome}.dbf"
-    dbc.write_bytes(buf.getvalue())
+    dados = baixar(FTP_DIR, f"{nome}.dbc")
     # [n, obitos, dias, valor, n_continuacao, dias_normal, valor_normal] — ver nota IDENT
     agravo: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])   # (mun_res, agravo)
     hosp: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])     # (cnes, mun_mov, cap)
-    try:
-        datasus_dbc.decompress(str(dbc), str(dbf))
-        for rec in dbfread.DBF(str(dbf), encoding="latin-1", char_decode_errors="replace", load=False):
-            cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
-            if not cid:
-                continue
-            try:
-                dias = int(rec.get("DIAS_PERM") or 0)
-            except (ValueError, TypeError):
-                dias = 0
-            try:
-                val = float(rec.get("VAL_TOT") or 0)
-            except (ValueError, TypeError):
-                val = 0.0
-            morte = 1 if str(rec.get("MORTE") or "0").strip() == "1" else 0
-            cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
+    for rec in registros_dbc(dados, nome):
+        cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
+        if not cid:
+            continue
+        try:
+            dias = int(rec.get("DIAS_PERM") or 0)
+        except (ValueError, TypeError):
+            dias = 0
+        try:
+            val = float(rec.get("VAL_TOT") or 0)
+        except (ValueError, TypeError):
+            val = 0.0
+        morte = 1 if str(rec.get("MORTE") or "0").strip() == "1" else 0
+        cont = 1 if str(rec.get("IDENT") or "").strip() == "5" else 0
 
-            # --- agravo (por residência) ---
-            ag = CID2AGRAVO.get(cid)
-            if ag:
-                res = (str(rec.get("MUNIC_RES") or "")).strip()[:6]
-                if len(res) == 6:
-                    c = agravo[(res, ag)]
-                    c[0] += 1; c[1] += morte; c[2] += dias; c[3] += val
-                    c[4] += cont
-                    if not cont:
-                        c[5] += dias; c[6] += val
-
-            # --- hospital (por CNES / atendimento) ---
-            cnes = (str(rec.get("CNES") or "")).strip()
-            if cnes and cnes not in ("", "0000000"):
-                mov = (str(rec.get("MUNIC_MOV") or "")).strip()[:6]
-                cap = _capitulo(cid)
-                h = hosp[(cnes, mov, cap)]
-                h[0] += 1; h[1] += morte; h[2] += dias; h[3] += val
-                h[4] += cont
+        # --- agravo (por residência) ---
+        ag = CID2AGRAVO.get(cid)
+        if ag:
+            res = (str(rec.get("MUNIC_RES") or "")).strip()[:6]
+            if len(res) == 6:
+                c = agravo[(res, ag)]
+                c[0] += 1; c[1] += morte; c[2] += dias; c[3] += val
+                c[4] += cont
                 if not cont:
-                    h[5] += dias; h[6] += val
-        return dict(agravo), dict(hosp)
-    except Exception:
-        return None
-    finally:
-        dbc.unlink(missing_ok=True); dbf.unlink(missing_ok=True)
+                    c[5] += dias; c[6] += val
+
+        # --- hospital (por CNES / atendimento) ---
+        cnes = (str(rec.get("CNES") or "")).strip()
+        if cnes and cnes not in ("", "0000000"):
+            mov = (str(rec.get("MUNIC_MOV") or "")).strip()[:6]
+            cap = _capitulo(cid)
+            h = hosp[(cnes, mov, cap)]
+            h[0] += 1; h[1] += morte; h[2] += dias; h[3] += val
+            h[4] += cont
+            if not cont:
+                h[5] += dias; h[6] += val
+    return dict(agravo), dict(hosp)
 
 
 def _process_uf(uf: str, ano: int, workers: int):
@@ -201,25 +193,47 @@ def _process_uf(uf: str, ano: int, workers: int):
     # sufixo _v2: checkpoints antigos nao tem os contadores por IDENT
     ack = CKPT / f"agravo_{uf}_{ano}_v2.parquet"
     hck = CKPT / f"hosp_{uf}_{ano}_v2.parquet"
-    if ack.exists() and hck.exists():
+    esperados = meses_publicados(FTP_DIR, f"RD{uf}", ano)
+    if not esperados:
+        raise FalhaDeColeta(f"o FTP não publica nenhum mês de RD{uf} em {ano}")
+    if checkpoint_utilizavel(ack, esperados) and checkpoint_utilizavel(hck, esperados):
         return pd.read_parquet(ack), pd.read_parquet(hck)
     agravo: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
     hosp: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
+    coletados: list[int] = []
+    falhas: list[int] = []
+
+    def acumular(mes: int, res) -> None:
+        coletados.append(mes)
+        ag, hs = res
+        for k, v in ag.items():
+            t = agravo[k]
+            for i in range(7):
+                t[i] += v[i]
+        for k, v in hs.items():
+            t = hosp[k]
+            for i in range(7):
+                t[i] += v[i]
+
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = {ex.submit(_process_file, uf, ano, m): m for m in range(1, 13)}
+        futs = {ex.submit(_process_file, uf, ano, m): m for m in esperados}
         for fut in as_completed(futs):
-            res = fut.result()
-            if not res:
-                continue
-            ag, hs = res
-            for k, v in ag.items():
-                t = agravo[k]
-                for i in range(7):
-                    t[i] += v[i]
-            for k, v in hs.items():
-                t = hosp[k]
-                for i in range(7):
-                    t[i] += v[i]
+            mes = futs[fut]
+            try:
+                acumular(mes, fut.result())
+            except (ArquivoAusente, FalhaDeColeta):
+                falhas.append(mes)
+
+    # segunda passada em série: o FTP do DataSUS recusa conexões concorrentes
+    for mes in sorted(falhas):
+        acumular(mes, _process_file(uf, ano, mes))
+
+    faltando = sorted(set(esperados) - set(coletados))
+    if faltando:
+        raise FalhaDeColeta(
+            f"{uf} {ano}: meses {faltando} publicados no FTP e não coletados; "
+            "checkpoint NÃO gravado")
+
     adf = pd.DataFrame([(r, ag, c[0], c[1], c[2], round(c[3], 2), c[4], c[5], round(c[6], 2))
                         for (r, ag), c in agravo.items()],
                        columns=["municipio_cod", "agravo", "internacoes", "obitos", "dias_permanencia",
@@ -229,9 +243,10 @@ def _process_uf(uf: str, ano: int, workers: int):
                        columns=["cnes", "municipio_cod", "capitulo_cid", "internacoes", "obitos",
                                 "dias_permanencia", "valor_total", "aih_continuacao",
                                 "dias_permanencia_normal", "valor_normal"])
-    adf.to_parquet(ack, compression="zstd", index=False)
-    hdf.to_parquet(hck, compression="zstd", index=False)
-    print(f"[agravo] {uf} {ano}: {int(adf['internacoes'].sum()):,} intern. em agravos | {hdf['cnes'].nunique():,} hospitais", flush=True)
+    gravar_checkpoint(adf, ack, coletados)
+    gravar_checkpoint(hdf, hck, coletados)
+    print(f"[agravo] {uf} {ano}: {int(adf['internacoes'].sum()):,} intern. em agravos | "
+          f"{hdf['cnes'].nunique():,} hospitais ({len(coletados)} de 12 meses)", flush=True)
     return adf, hdf
 
 

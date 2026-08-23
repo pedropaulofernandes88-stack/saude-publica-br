@@ -142,6 +142,62 @@ O item 4 lê o **OpenAPI do próprio PostgREST**, não uma lista escrita à mão
 tabela nova aparece sozinha e passa a exigir explicação. É o item que teria
 pego o defeito original — 14 tabelas servidas sem arquivo, por dois meses.
 
+## Integridade da coleta
+
+A validação entre camadas confere que o Parquet, o Storage e o Postgres contam
+a mesma história. Ela **não** confere que a história está completa: se o mês de
+fevereiro nunca entrou no cálculo, as três camadas concordam em um número
+errado.
+
+Foi o que aconteceu. Os pipelines do SIH tinham, todos, esta forma:
+
+```python
+try:
+    ftp.size(f"{FTP_DIR}/{nome}.dbc")
+except Exception:
+    return None          # "mês inexistente"
+```
+
+Qualquer falha — recusa de conexão, timeout, DBC truncado — virava o mesmo
+`None` de um mês que ainda não foi publicado, e o laço seguia adiante. Como o
+FTP do DataSUS recusa conexões concorrentes e o pipeline abria seis, meses
+inteiros sumiam. O checkpoint era gravado como se o ano estivesse completo, e
+checkpoint não se refaz: a perda ficava congelada.
+
+Medido em 2026-08-23, comparando os checkpoints de julho com os de 11 de agosto:
+
+| checkpoint | perda | causa |
+|---|---|---|
+| fluxo/ICSAP `MA 2023` | −41% (198.854 internações) | 5 meses |
+| fluxo/ICSAP `AM 2024` | −17% (37.799) | 2 meses |
+| demanda `PB 2022` | −18% | meses 05 e 06 |
+| demanda `PE 2022` | −8% | mês 11 |
+| demanda `GO 2023` | −8% | mês 02 |
+| agravo `RR 2022` | −7% | 1 mês |
+
+Nada disso disparou alarme: os pipelines terminaram com código 0 e números
+plausíveis. O que denunciou foi um resíduo — 210 pares de fluxo que existiam no
+Postgres e não no Parquet recalculado. A investigação começou supondo revisão do
+DataSUS; a fonte estava intacta, quem perdia dado era o nosso lado.
+
+`scripts/_datasus_ftp.py` fecha isso com três invariantes:
+
+1. **ausência e falha são exceções diferentes.** `ArquivoAusente` quando o nome
+   não está na listagem do diretório (competência futura — pular é correto);
+   `FalhaDeColeta` quando ele está e a coleta falhou, depois de 4 tentativas com
+   espera crescente.
+2. **o ano só fecha completo.** Os meses vêm da listagem do FTP, não de
+   `range(1, 13)`; o que falhar em paralelo é refeito em série (uma conexão
+   costuma passar onde seis foram recusadas); e se ainda faltar um mês
+   publicado, o pipeline levanta exceção **sem gravar checkpoint**.
+3. **o checkpoint declara de quantos meses veio.** A lista fica nos metadados
+   Arrow do próprio arquivo — como a linhagem, viaja com os bytes. Na execução
+   seguinte, um checkpoint que não cobre os meses hoje publicados é recalculado
+   em vez de reaproveitado; é assim que a competência nova entra sozinha.
+
+Checkpoints anteriores a essa guarda não têm o carimbo e seguem válidos — quem
+quer certeza apaga o arquivo e deixa refazer.
+
 ## Esquema
 
 `migrations/` **não reproduz** este banco. Das 57 migrações aplicadas em

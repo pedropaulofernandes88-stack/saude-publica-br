@@ -21,7 +21,6 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import math
 import os
@@ -31,12 +30,12 @@ import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import date, datetime
-from ftplib import FTP
 from pathlib import Path
 
 import pandas as pd
 import requests
 
+from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar
 from _supabase_key import chave_escrita
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -79,24 +78,17 @@ def _process_uf_ano(uf: str, ano: int) -> pd.DataFrame:
     import dbfread
 
     nome = f"DN{uf}{ano}"
+    # Ausência e falha eram o mesmo `DataFrame()` vazio: uma UF que falhasse
+    # no download sumia do ano sem alarme. Ver `_datasus_ftp`.
     try:
-        ftp = FTP(FTP_HOST, timeout=180)
-        ftp.login()
-        try:
-            ftp.size(f"{FTP_DIR}/{nome}.dbc")
-        except Exception:
-            ftp.quit()
-            return pd.DataFrame()  # ano inexistente p/ a UF
-        buf = io.BytesIO()
-        ftp.retrbinary(f"RETR {FTP_DIR}/{nome}.dbc", buf.write)
-        ftp.quit()
-    except Exception:
-        return pd.DataFrame()
+        dados = baixar(FTP_DIR, f"{nome}.dbc")
+    except ArquivoAusente:
+        return pd.DataFrame()      # ano inexistente p/ a UF
 
     tmp = Path(tempfile.gettempdir())
     dbc = tmp / f"{nome}.dbc"
     dbf = tmp / f"{nome}.dbf"
-    dbc.write_bytes(buf.getvalue())
+    dbc.write_bytes(dados)
     dbf.unlink(missing_ok=True)
     ok = False
     for _ in range(3):
@@ -109,7 +101,7 @@ def _process_uf_ano(uf: str, ano: int) -> pd.DataFrame:
         dbf.unlink(missing_ok=True)
     if not ok:
         dbc.unlink(missing_ok=True)
-        return pd.DataFrame()
+        raise FalhaDeColeta(f"{nome}: 3 tentativas de descompactar falharam")
 
     agg: dict = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
     # [nascidos, baixo_peso, prematuro, prenatal7, idade_mae_soma, idade_mae_n]

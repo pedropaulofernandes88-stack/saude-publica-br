@@ -56,20 +56,27 @@ Checkpoint por UF (resumível). Uso:
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import os
 import sys
-import tempfile
 import time
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from ftplib import FTP
 from pathlib import Path
 
 import pandas as pd
 import requests
 
+from _datasus_ftp import (
+    ArquivoAusente,
+    FalhaDeColeta,
+    baixar,
+    checkpoint_utilizavel,
+    gravar_checkpoint,
+    meses_publicados,
+    registros_dbc,
+)
+from _publicacao import acumular_parquet
 from _metricas_aih import capitulo as _capitulo
 
 from _varredura import varrer_orfaos
@@ -145,23 +152,15 @@ def load_env() -> dict[str, str]:
 
 
 def _process_file(uf: str, ano: int, mes: int):
-    """Um RD mensal → (hsmr_nac, hsmr_hosp, los_nac, los_hosp, demanda_mensal). None se ausente."""
-    import datasus_dbc
-    import dbfread
+    """Um RD mensal → (hsmr_nac, hsmr_hosp, los_nac, los_hosp, demanda_mensal).
+
+    Levanta `ArquivoAusente` (competência não publicada) ou `FalhaDeColeta`
+    (existe e falhou). Ver `_datasus_ftp`: com `return None` para os dois casos,
+    PB 2022 perdeu maio e junho e GO 2023 perdeu fevereiro sem nenhum alarme.
+    """
     yymm = f"{ano % 100:02d}{mes:02d}"
     nome = f"RD{uf}{yymm}"
-    try:
-        ftp = FTP(FTP_HOST, timeout=180); ftp.login()
-        try:
-            ftp.size(f"{FTP_DIR}/{nome}.dbc")
-        except Exception:
-            ftp.quit(); return None
-        buf = io.BytesIO(); ftp.retrbinary(f"RETR {FTP_DIR}/{nome}.dbc", buf.write); ftp.quit()
-    except Exception:
-        return None
-    tmp = Path(tempfile.gettempdir())
-    dbc = tmp / f"{nome}.dbc"; dbf = tmp / f"{nome}.dbf"
-    dbc.write_bytes(buf.getvalue())
+    dados = baixar(FTP_DIR, f"{nome}.dbc")
 
     hsmr_nac: dict = defaultdict(lambda: [0, 0])          # (faixa, capitulo) -> [n, obitos]
     hsmr_hosp: dict = defaultdict(lambda: [0, 0])          # (cnes, faixa, capitulo) -> [n, obitos]
@@ -169,52 +168,46 @@ def _process_file(uf: str, ano: int, mes: int):
     los_hosp: dict = defaultdict(lambda: [0] * 8)            # (cnes, cid3) -> [contagem por bin]
     demanda: dict = defaultdict(lambda: [0, 0, 0.0])         # (cnes, ano_mes) -> [n, obitos, valor]
 
-    try:
-        datasus_dbc.decompress(str(dbc), str(dbf))
-        for rec in dbfread.DBF(str(dbf), encoding="latin-1", char_decode_errors="replace", load=False):
-            cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
-            if not cid:
-                continue
-            cnes = (str(rec.get("CNES") or "")).strip()
-            if not cnes or cnes == "0000000":
-                continue
-            try:
-                dias = int(rec.get("DIAS_PERM") or 0)
-            except (ValueError, TypeError):
-                dias = 0
-            try:
-                val = float(rec.get("VAL_TOT") or 0)
-            except (ValueError, TypeError):
-                val = 0.0
-            morte = 1 if str(rec.get("MORTE") or "0").strip() == "1" else 0
-            faixa = _faixa_etaria(rec.get("IDADE"), rec.get("COD_IDADE"))
-            cap = _capitulo(cid)
-            # AIH de continuação (IDENT=5): a mesma internação prolongada emite várias
-            # linhas. HSMR e LOS são métricas POR EPISÓDIO — contar as continuações
-            # infla o denominador com linhas de mortalidade quase nula e fraciona a
-            # permanência. A demanda mensal, que mede produção, segue com todas as AIHs.
-            cont = str(rec.get("IDENT") or "").strip() == "5"
+    for rec in registros_dbc(dados, nome):
+        cid = (str(rec.get("DIAG_PRINC") or "")).strip().upper()[:3]
+        if not cid:
+            continue
+        cnes = (str(rec.get("CNES") or "")).strip()
+        if not cnes or cnes == "0000000":
+            continue
+        try:
+            dias = int(rec.get("DIAS_PERM") or 0)
+        except (ValueError, TypeError):
+            dias = 0
+        try:
+            val = float(rec.get("VAL_TOT") or 0)
+        except (ValueError, TypeError):
+            val = 0.0
+        morte = 1 if str(rec.get("MORTE") or "0").strip() == "1" else 0
+        faixa = _faixa_etaria(rec.get("IDADE"), rec.get("COD_IDADE"))
+        cap = _capitulo(cid)
+        # AIH de continuação (IDENT=5): a mesma internação prolongada emite várias
+        # linhas. HSMR e LOS são métricas POR EPISÓDIO — contar as continuações
+        # infla o denominador com linhas de mortalidade quase nula e fraciona a
+        # permanência. A demanda mensal, que mede produção, segue com todas as AIHs.
+        cont = str(rec.get("IDENT") or "").strip() == "5"
 
-            if not cont:
-                # --- HSMR: nacional + por hospital ---
-                n = hsmr_nac[(faixa, cap)]; n[0] += 1; n[1] += morte
-                h = hsmr_hosp[(cnes, faixa, cap)]; h[0] += 1; h[1] += morte
+        if not cont:
+            # --- HSMR: nacional + por hospital ---
+            n = hsmr_nac[(faixa, cap)]; n[0] += 1; n[1] += morte
+            h = hsmr_hosp[(cnes, faixa, cap)]; h[0] += 1; h[1] += morte
 
-                # --- LOS: nacional + por hospital, por diagnóstico (CID-3) ---
-                b = _los_bin(max(dias, 0))
-                los_nac[cid][b] += 1
-                los_hosp[(cnes, cid)][b] += 1
+            # --- LOS: nacional + por hospital, por diagnóstico (CID-3) ---
+            b = _los_bin(max(dias, 0))
+            los_nac[cid][b] += 1
+            los_hosp[(cnes, cid)][b] += 1
 
-            # --- demanda mensal (produção: todas as AIHs aprovadas) ---
-            ano_mes = f"{ano}-{mes:02d}"
-            d = demanda[(cnes, ano_mes)]
-            d[0] += 1; d[1] += morte; d[2] += val
+        # --- demanda mensal (produção: todas as AIHs aprovadas) ---
+        ano_mes = f"{ano}-{mes:02d}"
+        d = demanda[(cnes, ano_mes)]
+        d[0] += 1; d[1] += morte; d[2] += val
 
-        return dict(hsmr_nac), dict(hsmr_hosp), dict(los_nac), dict(los_hosp), dict(demanda)
-    except Exception:
-        return None
-    finally:
-        dbc.unlink(missing_ok=True); dbf.unlink(missing_ok=True)
+    return dict(hsmr_nac), dict(hsmr_hosp), dict(los_nac), dict(los_hosp), dict(demanda)
 
 
 def _process_uf(uf: str, ano: int, workers: int):
@@ -222,7 +215,10 @@ def _process_uf(uf: str, ano: int, workers: int):
     # sufixo _v2: checkpoints antigos incluíam a AIH de continuação em HSMR/LOS
     paths = {k: CKPT / f"{k}_{uf}_{ano}_v2.parquet" for k in
              ("hsmr_nac", "hsmr_hosp", "los_nac", "los_hosp", "demanda")}
-    if all(p.exists() for p in paths.values()):
+    esperados = meses_publicados(FTP_DIR, f"RD{uf}", ano)
+    if not esperados:
+        raise FalhaDeColeta(f"o FTP não publica nenhum mês de RD{uf} em {ano}")
+    if all(checkpoint_utilizavel(p, esperados) for p in paths.values()):
         return {k: pd.read_parquet(p) for k, p in paths.items()}
 
     hsmr_nac: dict = defaultdict(lambda: [0, 0])
@@ -231,25 +227,43 @@ def _process_uf(uf: str, ano: int, workers: int):
     los_hosp: dict = defaultdict(lambda: [0] * 8)
     demanda: dict = defaultdict(lambda: [0, 0, 0.0])
 
+    coletados: list[int] = []
+    falhas: list[int] = []
+
+    def acumular(mes: int, res) -> None:
+        coletados.append(mes)
+        hn, hh, ln, lh, dm = res
+        for k, v in hn.items():
+            t = hsmr_nac[k]; t[0] += v[0]; t[1] += v[1]
+        for k, v in hh.items():
+            t = hsmr_hosp[k]; t[0] += v[0]; t[1] += v[1]
+        for k, v in ln.items():
+            t = los_nac[k]
+            for i in range(8): t[i] += v[i]
+        for k, v in lh.items():
+            t = los_hosp[k]
+            for i in range(8): t[i] += v[i]
+        for k, v in dm.items():
+            t = demanda[k]; t[0] += v[0]; t[1] += v[1]; t[2] += v[2]
+
     with ThreadPoolExecutor(max_workers=workers) as ex:
-        futs = {ex.submit(_process_file, uf, ano, m): m for m in range(1, 13)}
+        futs = {ex.submit(_process_file, uf, ano, m): m for m in esperados}
         for fut in as_completed(futs):
-            res = fut.result()
-            if not res:
-                continue
-            hn, hh, ln, lh, dm = res
-            for k, v in hn.items():
-                t = hsmr_nac[k]; t[0] += v[0]; t[1] += v[1]
-            for k, v in hh.items():
-                t = hsmr_hosp[k]; t[0] += v[0]; t[1] += v[1]
-            for k, v in ln.items():
-                t = los_nac[k]
-                for i in range(8): t[i] += v[i]
-            for k, v in lh.items():
-                t = los_hosp[k]
-                for i in range(8): t[i] += v[i]
-            for k, v in dm.items():
-                t = demanda[k]; t[0] += v[0]; t[1] += v[1]; t[2] += v[2]
+            mes = futs[fut]
+            try:
+                acumular(mes, fut.result())
+            except (ArquivoAusente, FalhaDeColeta):
+                falhas.append(mes)
+
+    # segunda passada em série: o FTP do DataSUS recusa conexões concorrentes
+    for mes in sorted(falhas):
+        acumular(mes, _process_file(uf, ano, mes))
+
+    faltando = sorted(set(esperados) - set(coletados))
+    if faltando:
+        raise FalhaDeColeta(
+            f"{uf} {ano}: meses {faltando} publicados no FTP e não coletados; "
+            "checkpoint NÃO gravado")
 
     out = {
         "hsmr_nac": pd.DataFrame([(f, c, n[0], n[1]) for (f, c), n in hsmr_nac.items()],
@@ -264,9 +278,10 @@ def _process_uf(uf: str, ano: int, workers: int):
                                  columns=["cnes", "ano_mes", "internacoes", "obitos", "valor_total"]),
     }
     for k, p in paths.items():
-        out[k].to_parquet(p, compression="zstd", index=False)
+        gravar_checkpoint(out[k], p, coletados)
     print(f"[hospitalar] {uf} {ano}: {int(out['demanda']['internacoes'].sum()):,} internações | "
-          f"{out['demanda']['cnes'].nunique():,} hospitais", flush=True)
+          f"{out['demanda']['cnes'].nunique():,} hospitais "
+          f"({len(coletados)} de 12 meses)", flush=True)
     return out
 
 
@@ -368,9 +383,18 @@ def main() -> None:
                        "ano_mes", "internacoes", "obitos", "valor_total"]]
 
     MARTS.mkdir(exist_ok=True)
-    hsmr.to_parquet(MARTS / "mart_hsmr_hospital.parquet", compression="zstd", index=False)
-    los.to_parquet(MARTS / "mart_los_hospital.parquet", compression="zstd", index=False)
-    demanda.to_parquet(MARTS / "mart_demanda_mensal_hospital.parquet", compression="zstd", index=False)
+    # O pipeline roda UM ANO por execução. Gravar direto sobrescrevia a série
+    # inteira com a última fatia processada — era por isso que estas três
+    # tabelas viviam em `postgres-bootstrap`: o arquivo nunca continha o
+    # histórico, só o banco continha. `acumular_parquet` funde a competência
+    # com a mesma semântica do upsert, usando a PK do schema.sql.
+    for df, nome in ((hsmr, "mart_hsmr_hospital"),
+                     (los, "mart_los_hospital"),
+                     (demanda, "mart_demanda_mensal_hospital")):
+        _, antes, depois = acumular_parquet(
+            df, MARTS / f"{nome}.parquet", nome,
+            origem="pipeline", produtor="scripts/pipeline_sih_hospitalar.py")
+        print(f"[acumulado] {nome}: {antes:,} -> {depois:,} linhas", flush=True)
     print(f"[hospitalar] mart_hsmr: {len(hsmr):,} | mart_los: {len(los):,} | "
           f"mart_demanda: {len(demanda):,}", flush=True)
 
