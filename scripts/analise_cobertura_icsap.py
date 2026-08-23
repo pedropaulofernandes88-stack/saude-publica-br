@@ -32,6 +32,13 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
+# A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
+# Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
+# que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
+# ninguem verificou.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _publicacao import escrever_parquet  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -151,7 +158,9 @@ def main() -> None:
               "ivs_score"]].copy()
     out["ano"] = ANO
     out["qt_esf"] = out["qt_esf"].round(1)
-    out.to_parquet(MARTS / "mart_cobertura_icsap_municipio.parquet", compression="zstd", index=False)
+    escrever_parquet(
+        out, MARTS / "mart_cobertura_icsap_municipio.parquet",
+        origem="pipeline", produtor="scripts/analise_cobertura_icsap.py")
     print(f"\n[mart] mart_cobertura_icsap_municipio: {len(out):,} municipios")
 
 

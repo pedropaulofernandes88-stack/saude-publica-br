@@ -85,6 +85,7 @@ from _series_forecast import (  # noqa: E402
     serie_regular,
     tendencia_linear,
 )
+from _publicacao import escrever_parquet  # noqa: E402
 from _supabase_key import chave_escrita  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -302,8 +303,8 @@ def main() -> None:
     ]]
 
     MARTS.mkdir(exist_ok=True)
-    forecast.to_parquet(MARTS / "mart_forecast_demanda_hospital.parquet",
-                        compression="zstd", index=False)
+    escrever_parquet(forecast, MARTS / "mart_forecast_demanda_hospital.parquet",
+                     origem="pipeline", produtor="scripts/forecast_demanda_hospitalar.py")
 
     por_status = forecast.groupby("status_validacao").cnes.nunique().to_dict()
     print(f"[forecast] {len(forecast):,} previsões · {forecast.cnes.nunique():,} hospitais", flush=True)

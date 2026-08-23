@@ -33,6 +33,13 @@ import requests
 
 from _supabase_key import chave_escrita
 
+# A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
+# Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
+# que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
+# ninguem verificou.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _publicacao import escrever_parquet  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -112,7 +119,9 @@ def main() -> None:
           f"Q4 (mais vulnerável) ex.: {out.nlargest(3,'ivs_score')['municipio_nome'].tolist()}")
 
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
-    out.to_parquet(MARTS_DIR / "dim_ivs.parquet", compression="zstd", index=False)
+    escrever_parquet(
+        out, MARTS_DIR / "dim_ivs.parquet",
+        origem="pipeline", produtor="scripts/pipeline_ivs.py")
 
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}",

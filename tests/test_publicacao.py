@@ -283,3 +283,89 @@ def test_chaves_primarias_saem_do_schema_versionado() -> None:
     assert pks["mart_mortalidade_municipio"] == [
         "municipio_cod", "ano", "capitulo_cid", "sexo"]
     assert all(isinstance(v, list) and v for v in pks.values())
+
+
+# ---------------------------------------------------------------------------
+# Linhagem gravada no arquivo
+# ---------------------------------------------------------------------------
+
+def test_proveniencia_viaja_com_os_bytes(tmp_path: Path) -> None:
+    """A origem vai DENTRO do Parquet, não num sidecar ao lado.
+
+    `data/marts/.origem.json` é ignorado pelo git e some quando alguém limpa o
+    diretório ou publica de outra máquina. Quem recebe o arquivo precisa poder
+    dizer de onde ele veio olhando só para ele.
+    """
+    import _publicacao
+
+    caminho = tmp_path / "t.parquet"
+    df = pd.DataFrame({"a": [1, 2, 3]})
+    _publicacao.escrever_parquet(df, caminho, "pipeline", "scripts/x.py")
+
+    assert _publicacao.origem_do_parquet(caminho) == "pipeline"
+    # E o conteúdo continua intacto e legível por quem não sabe do metadado.
+    assert len(pd.read_parquet(caminho)) == 3
+
+
+def test_parquet_sem_metadado_nao_mente_origem(tmp_path: Path) -> None:
+    """Arquivo sem proveniência declarada devolve None, nunca 'pipeline'.
+
+    Assumir pipeline por omissão foi o defeito real:
+    `mart_demanda_mensal_hospital` foi BAIXADO do Postgres e entrou no manifesto
+    rotulado como produzido pelo pipeline.
+    """
+    import _publicacao
+
+    caminho = tmp_path / "sem_meta.parquet"
+    pd.DataFrame({"a": [1]}).to_parquet(caminho, index=False)
+    assert _publicacao.origem_do_parquet(caminho) is None
+    assert _publicacao.ORIGEM_DESCONHECIDA != "pipeline"
+
+
+def test_acumular_funde_competencia_sem_duplicar(tmp_path: Path, monkeypatch) -> None:
+    """O arquivo passa a acumular como o banco acumula por upsert.
+
+    Os pipelines do SIH processam um ano por execução e SOBRESCREVIAM o
+    Parquet. Medido antes da correção: `mart_internacoes_agravo` tinha 52.861
+    linhas no arquivo contra 158.041 no banco. Era esta a razão estrutural de o
+    arquivo não poder ser canônico.
+    """
+    import _publicacao
+
+    monkeypatch.setattr(_publicacao, "chaves_primarias",
+                        lambda: {"mart_x": ["municipio_cod", "ano"]})
+    destino = tmp_path / "mart_x.parquet"
+
+    a2022 = pd.DataFrame({"municipio_cod": ["350000", "330000"],
+                          "ano": [2022, 2022], "v": [1, 2]})
+    _, antes, depois = _publicacao.acumular_parquet(
+        a2022, destino, "mart_x", "pipeline")
+    assert (antes, depois) == (0, 2)
+
+    a2023 = pd.DataFrame({"municipio_cod": ["350000", "330000"],
+                          "ano": [2023, 2023], "v": [3, 4]})
+    _, antes, depois = _publicacao.acumular_parquet(
+        a2023, destino, "mart_x", "pipeline")
+    assert (antes, depois) == (2, 4), "a competência nova tem de somar, não substituir"
+
+    # Reprocessar 2022 SUBSTITUI aquele ano, não duplica — semântica do upsert.
+    a2022_corrigido = pd.DataFrame({"municipio_cod": ["350000", "330000"],
+                                    "ano": [2022, 2022], "v": [10, 20]})
+    _, antes, depois = _publicacao.acumular_parquet(
+        a2022_corrigido, destino, "mart_x", "pipeline")
+    assert (antes, depois) == (4, 4)
+    final = pd.read_parquet(destino)
+    assert final[(final.ano == 2022) & (final.municipio_cod == "350000")].v.iloc[0] == 10
+    assert _publicacao.origem_do_parquet(destino) == "pipeline"
+
+
+def test_acumular_exige_chave_completa(tmp_path: Path, monkeypatch) -> None:
+    """Sem a chave inteira não há como saber o que substituir."""
+    import _publicacao
+
+    monkeypatch.setattr(_publicacao, "chaves_primarias",
+                        lambda: {"mart_x": ["municipio_cod", "ano"]})
+    with pytest.raises(RuntimeError, match="chave completa"):
+        _publicacao.acumular_parquet(
+            pd.DataFrame({"municipio_cod": ["1"]}), tmp_path / "x.parquet",
+            "mart_x", "pipeline")

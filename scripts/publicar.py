@@ -45,6 +45,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _publicacao import (  # noqa: E402
     MARTS,
+    ORIGEM_DESCONHECIDA,
     Manifesto,
     baixar_do_storage,
     carregar_env,
@@ -57,6 +58,7 @@ from _publicacao import (  # noqa: E402
     enviar_ao_storage,
     exportar_do_postgres,
     novo_id_publicacao,
+    origem_do_parquet,
     origem_registrada,
     registrar_origem,
 )
@@ -165,7 +167,13 @@ def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
         import pandas as pd
         n_local = len(pd.read_parquet(local))
         if n_local == n_banco:
-            return local, origem_registrada(tabela) or "pipeline"
+            # Ordem de confiança: o que o ARQUIVO declara, depois o sidecar,
+            # depois "desconhecida". Nunca "pipeline" por omissão — foi assim
+            # que um Parquet baixado do Postgres entrou no manifesto rotulado
+            # como produzido por pipeline.
+            return local, (origem_do_parquet(local)
+                           or origem_registrada(tabela)
+                           or ORIGEM_DESCONHECIDA)
         if not quieto:
             print(f"   ! {tabela}: parquet local tem {n_local:,} linhas e o banco "
                   f"{n_banco:,} — desatualizado", flush=True)
@@ -255,8 +263,14 @@ def main() -> None:
         )
         if igual_ao_anterior:
             # Conteúdo idêntico: herda a publicação de origem e não duplica bytes.
+            #
+            # `publicada_em` É propriedade do CONTEÚDO — aponta para onde os bytes
+            # estão, e por isso se herda. `origem` NÃO é: descreve como o arquivo
+            # foi obtido, e pode ser corrigida quando se aprende a verdade.
+            # Herdá-la congelava rótulo errado: `mart_demanda_mensal_hospital`
+            # foi baixado do Postgres e continuava marcado `pipeline` a cada
+            # publicação, porque o conteúdo não mudava.
             t.publicada_em = anterior.tabelas[tabela].publicada_em
-            t.origem = anterior.tabelas[tabela].origem
             manifesto.tabelas[tabela] = t
             herdadas.append(tabela)
             if not args.quieto:

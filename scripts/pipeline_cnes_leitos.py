@@ -44,6 +44,13 @@ import requests
 
 from _supabase_key import chave_escrita
 
+# A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
+# Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
+# que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
+# ninguem verificou.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _publicacao import escrever_parquet  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -209,7 +216,9 @@ def main() -> None:
     print(f"  mediana leitos_sus_por_mil: {ultimo.leitos_sus_por_mil.median():.2f}")
 
     MARTS.mkdir(exist_ok=True)
-    out.to_parquet(MARTS / "mart_leitos_municipio.parquet", compression="zstd", index=False)
+    escrever_parquet(
+        out, MARTS / "mart_leitos_municipio.parquet",
+        origem="pipeline", produtor="scripts/pipeline_cnes_leitos.py")
 
     if args.no_upload:
         return

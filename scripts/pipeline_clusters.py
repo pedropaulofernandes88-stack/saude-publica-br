@@ -28,6 +28,13 @@ import requests
 from _supabase_key import chave_escrita
 from scipy.cluster.vq import kmeans2, whiten  # noqa: F401
 
+# A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
+# Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
+# que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
+# ninguem verificou.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _publicacao import escrever_parquet  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -93,7 +100,9 @@ def main() -> None:
               "taxa_padronizada_100k", "ivs_score", "internacoes_100k"]].copy()
     out["ivs_score"] = out["ivs_score"].round(1)
     MARTS.mkdir(exist_ok=True)
-    out.to_parquet(MARTS / "dim_cluster_municipio.parquet", compression="zstd", index=False)
+    escrever_parquet(
+        out, MARTS / "dim_cluster_municipio.parquet",
+        origem="pipeline", produtor="scripts/pipeline_clusters.py")
 
     print("[cluster] distribuição:")
     for c in sorted(out.cluster.unique()):

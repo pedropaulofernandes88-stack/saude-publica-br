@@ -38,6 +38,13 @@ import requests
 from _varredura import varrer_orfaos
 from _supabase_key import chave_escrita
 
+# A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
+# Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
+# que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
+# ninguem verificou.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _publicacao import acumular_parquet  # noqa: E402
+
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
 # unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
 # no meio do processamento. Forca UTF-8 na saida.
@@ -233,8 +240,14 @@ def main() -> None:
                    "aih_continuacao_icsap", "pct_icsap", "populacao", "icsap_100k"]]
 
     MARTS.mkdir(exist_ok=True)
-    fluxo.to_parquet(MARTS / "mart_fluxo_intermunicipal.parquet", compression="zstd", index=False)
-    icsap.to_parquet(MARTS / "mart_icsap_municipio.parquet", compression="zstd", index=False)
+    _, _antes, _depois = acumular_parquet(
+        fluxo, MARTS / "mart_fluxo_intermunicipal.parquet", "mart_fluxo_intermunicipal",
+        origem="pipeline", produtor="scripts/pipeline_sih_fluxo.py")
+    print(f"[acumulado] mart_fluxo_intermunicipal: {_antes:,} -> {_depois:,} linhas", flush=True)
+    _, _antes, _depois = acumular_parquet(
+        icsap, MARTS / "mart_icsap_municipio.parquet", "mart_icsap_municipio",
+        origem="pipeline", produtor="scripts/pipeline_sih_fluxo.py")
+    print(f"[acumulado] mart_icsap_municipio: {_antes:,} -> {_depois:,} linhas", flush=True)
     print(f"[fluxo] mart_fluxo: {len(fluxo):,} | mart_icsap: {len(icsap):,} | "
           f"ICSAP médio {icsap.pct_icsap.mean():.1f}%")
 

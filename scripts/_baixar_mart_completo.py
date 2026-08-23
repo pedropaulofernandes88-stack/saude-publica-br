@@ -17,6 +17,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent))
+
 import pandas as pd
 import requests
 
@@ -70,6 +73,11 @@ def main() -> None:
     MARTS.mkdir(exist_ok=True)
     df.to_parquet(MARTS / f"{table}.parquet", compression="zstd", index=False)
     print(f"[baixar] {table}: {len(df):,} linhas salvas em data/marts/{table}.parquet", flush=True)
+    # Este arquivo veio do POSTGRES, nao de pipeline. Registrar a
+    # origem impede que o publicador o rotule como produzido pelo
+    # pipeline -- foi o que aconteceu com mart_demanda_mensal_hospital.
+    from _publicacao import registrar_origem
+    registrar_origem(table, "postgres-bootstrap")
 
 
 if __name__ == "__main__":

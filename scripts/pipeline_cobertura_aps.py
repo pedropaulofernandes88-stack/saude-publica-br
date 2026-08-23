@@ -40,6 +40,13 @@ import requests
 
 from _supabase_key import chave_escrita
 
+# A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
+# Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
+# que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
+# ninguem verificou.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _publicacao import escrever_parquet  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -156,7 +163,9 @@ def main() -> None:
                            "qt_eapp20", "qt_eapp30", "capacidade_equipe", "cobertura_pct"]]
 
     MARTS.mkdir(exist_ok=True)
-    cobertura.to_parquet(MARTS / "mart_cobertura_aps_municipio.parquet", compression="zstd", index=False)
+    escrever_parquet(
+        cobertura, MARTS / "mart_cobertura_aps_municipio.parquet",
+        origem="pipeline", produtor="scripts/pipeline_cobertura_aps.py")
     print(f"[cobertura_aps] mart final: {len(cobertura):,} linhas | "
           f"{cobertura.municipio_cod.nunique():,} municipios | "
           f"{cobertura.mes_competencia.nunique():,} competencias", flush=True)

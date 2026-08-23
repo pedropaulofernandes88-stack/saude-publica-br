@@ -255,6 +255,109 @@ def publicacoes_existentes() -> list[str]:
 ORIGENS = MARTS / ".origem.json"
 
 
+#: Chave da proveniência gravada DENTRO do Parquet.
+#:
+#: O sidecar `.origem.json` é frágil: mora em `data/marts/`, que é ignorado pelo
+#: git, e some quando alguém limpa o diretório ou publica de outra máquina. A
+#: proveniência precisa viajar com os BYTES — quem recebe o arquivo tem de poder
+#: dizer de onde ele veio sem depender de um arquivo ao lado.
+CHAVE_ORIGEM = b"saude_em_dado.origem"
+CHAVE_PRODUTOR = b"saude_em_dado.produtor"
+
+#: Rótulo para arquivo sem proveniência declarada.
+#:
+#: NÃO é "pipeline". Assumir pipeline para qualquer arquivo local afirma uma
+#: linhagem que ninguém verificou — e foi o que aconteceu:
+#: `mart_demanda_mensal_hospital` foi BAIXADO do Postgres por
+#: `_baixar_mart_completo.py` e entrou no manifesto rotulado `pipeline`.
+ORIGEM_DESCONHECIDA = "desconhecida"
+
+
+def escrever_parquet(df: pd.DataFrame, destino: Path, origem: str,
+                     produtor: str | None = None) -> Path:
+    """Grava um Parquet declarando quem o produziu, no próprio arquivo.
+
+    Usado pelos pipelines no lugar de `df.to_parquet(...)`. O custo é uma
+    dependência a mais (pyarrow, que já vem com o pandas do projeto) e alguns
+    bytes de metadado; o ganho é que a linhagem deixa de depender de um sidecar
+    que pode sumir.
+    """
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    tabela_arrow = pa.Table.from_pandas(df, preserve_index=False)
+    meta = dict(tabela_arrow.schema.metadata or {})
+    meta[CHAVE_ORIGEM] = origem.encode()
+    if produtor:
+        meta[CHAVE_PRODUTOR] = produtor.encode()
+    tabela_arrow = tabela_arrow.replace_schema_metadata(meta)
+    destino.parent.mkdir(parents=True, exist_ok=True)
+    pq.write_table(tabela_arrow, destino, compression=COMPRESSAO)
+    return destino
+
+
+def acumular_parquet(df_novo: pd.DataFrame, destino: Path, tabela: str,
+                     origem: str, produtor: str | None = None) -> tuple[Path, int, int]:
+    """Funde uma competência no Parquet existente, como o banco faz por upsert.
+
+    POR QUE ISTO EXISTE
+    -------------------
+    Os pipelines do SIH processam **um ano por execução** (`--ano`, padrão 2024)
+    e SOBRESCREVIAM o Parquet local. O Postgres, recebendo upsert com
+    `merge-duplicates`, acumulava; o arquivo não. Resultado medido:
+
+        mart_internacoes_agravo     52.861 no arquivo  ×  158.041 no banco
+        mart_fluxo_intermunicipal   43.179             ×  156.663
+        mart_icsap_municipio         5.570             ×   22.280
+
+    Era esta a razão estrutural de 17 tabelas ficarem em `postgres-bootstrap`: o
+    arquivo NÃO PODIA ser canônico, porque só continha a última fatia
+    processada. Reexportar do banco era o único jeito de obter a série inteira —
+    e reexportar do banco é justamente devolver o eixo a ele.
+
+    Aqui o arquivo passa a acumular com a mesma semântica do upsert: linha com
+    a mesma chave primária é substituída, o resto é preservado. A chave sai do
+    `schema.sql` versionado, não de uma lista escrita à mão.
+
+    Devolve (caminho, linhas_antes, linhas_depois).
+    """
+    pk = chaves_primarias().get(tabela)
+    if not pk:
+        raise RuntimeError(
+            f"{tabela}: sem chave primária em schema.sql — acumular sem chave "
+            "duplicaria linhas a cada execução")
+    presentes = [c for c in pk if c in df_novo.columns]
+    if len(presentes) != len(pk):
+        raise RuntimeError(
+            f"{tabela}: o DataFrame não traz a chave completa "
+            f"({'+'.join(pk)}); faltam {set(pk) - set(presentes)}")
+
+    antes = 0
+    if destino.exists():
+        anterior = pd.read_parquet(destino)
+        antes = len(anterior)
+        if all(c in anterior.columns for c in pk):
+            chaves_novas = set(map(tuple, df_novo[pk].astype(str).itertuples(index=False)))
+            manter = ~anterior[pk].astype(str).apply(tuple, axis=1).isin(chaves_novas)
+            df_novo = pd.concat([anterior[manter], df_novo], ignore_index=True)
+
+    conferir_chave_unica(tabela, df_novo, pk)
+    escrever_parquet(df_novo, destino, origem, produtor)
+    return destino, antes, len(df_novo)
+
+
+def origem_do_parquet(caminho: Path) -> str | None:
+    """Lê a proveniência gravada no arquivo, ou None se ele não declarar."""
+    try:
+        import pyarrow.parquet as pq
+
+        meta = pq.read_schema(caminho).metadata or {}
+        valor = meta.get(CHAVE_ORIGEM)
+        return valor.decode() if valor else None
+    except Exception:
+        return None
+
+
 def registrar_origem(tabela: str, origem: str) -> None:
     MARTS.mkdir(parents=True, exist_ok=True)
     d = json.loads(ORIGENS.read_text(encoding="utf-8")) if ORIGENS.exists() else {}

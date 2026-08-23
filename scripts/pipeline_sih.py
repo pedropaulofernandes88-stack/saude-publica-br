@@ -71,6 +71,13 @@ from _metricas_aih import (MEDIDAS, aplica_metricas_por_episodio,
 from _varredura import varrer_orfaos
 from _supabase_key import chave_escrita
 
+# A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
+# Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
+# que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
+# ninguem verificou.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _publicacao import acumular_parquet  # noqa: E402
+
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
 # unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
 # no meio do processamento. Forca UTF-8 na saida.
@@ -286,7 +293,10 @@ def main() -> None:
     mart, _ = build(anos, args.workers)
 
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
-    mart.to_parquet(MARTS_DIR / "mart_internacoes_municipio.parquet", compression="zstd", index=False)
+    _, _antes, _depois = acumular_parquet(
+        mart, MARTS_DIR / "mart_internacoes_municipio.parquet", "mart_internacoes_municipio",
+        origem="pipeline", produtor="scripts/pipeline_sih.py")
+    print(f"[acumulado] mart_internacoes_municipio: {_antes:,} -> {_depois:,} linhas", flush=True)
 
     if args.no_upload:
         return
