@@ -53,6 +53,7 @@ from _publicacao import (  # noqa: E402
     chaves_primarias,
     commit_atual,
     conferir_chave_unica,
+    conferir_nao_nulos,
     contar_no_postgres,
     descrever,
     enviar_ao_storage,
@@ -249,10 +250,13 @@ def main() -> None:
         # Parquet do pipeline ou herdado do Storage também pode estar corrompido,
         # e publicar arquivo com PK repetida é publicar dado errado com checksum
         # certo.
+        import pandas as pd
+        df_conf = pd.read_parquet(caminho)
         pk = chaves_primarias().get(tabela)
         if pk:
-            import pandas as pd
-            conferir_chave_unica(tabela, pd.read_parquet(caminho), pk)
+            conferir_chave_unica(tabela, df_conf, pk)
+        conferir_nao_nulos(tabela, df_conf)
+        del df_conf
 
         t = descrever(tabela, caminho, origem, id_pub)
 

@@ -489,6 +489,53 @@ def exportar_do_postgres(tabela: str, env: dict[str, str], destino: Path,
     return destino
 
 
+def colunas_obrigatorias() -> dict[str, list[str]]:
+    """Colunas `not null` de cada tabela, lidas do `schema.sql` versionado."""
+    arquivo = ROOT / "migrations" / "schema" / "schema.sql"
+    if not arquivo.exists():
+        return {}
+    obrig: dict[str, list[str]] = {}
+    texto = arquivo.read_text(encoding="utf-8")
+    for m in re.finditer(
+        r"create table if not exists public\.(\w+)\s*\((.*?)\n\);", texto, re.S
+    ):
+        cols = []
+        for linha in m.group(2).splitlines():
+            linha = linha.strip().rstrip(",")
+            if not linha or linha.lower().startswith("constraint"):
+                continue
+            if " not null" in linha.lower():
+                cols.append(linha.split()[0].strip('"'))
+        if cols:
+            obrig[m.group(1)] = cols
+    return obrig
+
+
+def conferir_nao_nulos(tabela: str, df: pd.DataFrame) -> None:
+    """Recusa Parquet com NULL em coluna declarada `not null` no destino.
+
+    Terceira guarda, e a que faltava. Contagem de linhas e unicidade de chave
+    não bastam: `mart_saude_suplementar_municipio` passou nas duas e falhou ao
+    ser recarregado, porque `razao_implausivel` — `not null default false` no
+    esquema — saía com NULL em 4 municípios (`NA > 100` devolve NA quando a
+    razão não pôde ser calculada).
+
+    Um arquivo que não recarrega no esquema que ele diz representar não é uma
+    cópia canônica; é uma cópia parecida.
+    """
+    obrigatorias = colunas_obrigatorias().get(tabela, [])
+    problemas = {
+        c: int(df[c].isna().sum())
+        for c in obrigatorias
+        if c in df.columns and df[c].isna().any()
+    }
+    if problemas:
+        detalhe = ", ".join(f"{c}={n:,}" for c, n in sorted(problemas.items()))
+        raise RuntimeError(
+            f"{tabela}: NULL em coluna(s) declarada(s) `not null` no schema.sql "
+            f"({detalhe}). O arquivo não recarregaria no banco e NÃO será publicado.")
+
+
 def conferir_chave_unica(tabela: str, df: pd.DataFrame, pk: list[str]) -> None:
     """Recusa um DataFrame cuja chave primária tenha repetição.
 

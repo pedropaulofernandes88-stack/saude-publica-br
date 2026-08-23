@@ -163,7 +163,12 @@ def processar_ano(ano: int) -> pd.DataFrame:
     # Razao > 100 e aritmeticamente possivel (vinculo != pessoa; municipio = endereco do
     # contrato), mas sinaliza que aquele municipio nao suporta leitura como cobertura
     # populacional. Camada de confiabilidade, mesmo padrao de mart_qualidade_registro_municipio.
-    df["razao_implausivel"] = df["vinculos_plano_por_100_hab"] > 100
+    # `.fillna(False)`: quando a razao nao pode ser calculada (populacao ou
+    # vinculos ausentes), `NA > 100` devolve NA -- e razao DESCONHECIDA nao e
+    # razao implausivel. A coluna e `not null default false` no esquema, e sem
+    # isto 4 municipios saiam com NULL: o Parquet passava nas guardas de
+    # contagem e de chave, e so falhava ao ser recarregado no banco.
+    df["razao_implausivel"] = (df["vinculos_plano_por_100_hab"] > 100).fillna(False)
     df["populacao"] = df["populacao"].round().astype("Int64")
     df["ano"] = ano
     return df
