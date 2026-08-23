@@ -190,6 +190,33 @@ def _parquet(nome: str, env: dict) -> pd.DataFrame:
     return pd.read_parquet(io.BytesIO(baixar_do_storage(f"{nome}.parquet", env)))
 
 
+#: Tipos inteiros do Postgres. Coluna com NULL vira float64 ao ser lida pelo
+#: pandas, e o CSV sai com "22853.0" — que o COPY rejeita para integer. Foi
+#: assim que o primeiro rebuild com esquema aplicado quebrou.
+INTEIROS = {"smallint", "integer", "bigint"}
+
+
+def _coagir_tipos(cur, tabela: str, df: pd.DataFrame) -> pd.DataFrame:
+    """Ajusta os tipos do DataFrame ao que a coluna de destino aceita.
+
+    A coerção é guiada pelo BANCO, não por heurística sobre o Parquet: é o
+    destino que define o que é válido. Usar o tipo inteiro anulável do pandas
+    (`Int64`) preserva o NULL, que um `astype(int)` cru destruiria.
+
+    Se um valor tiver parte fracionária de verdade, o `astype` levanta — e
+    levantar é o certo: significa que o Parquet e a coluna discordam sobre o
+    que aquele dado é.
+    """
+    cur.execute(
+        "select column_name, data_type from information_schema.columns "
+        "where table_schema = 'public' and table_name = %s", (tabela,))
+    tipos = dict(cur.fetchall())
+    for coluna in df.columns:
+        if tipos.get(coluna) in INTEIROS and df[coluna].dtype.kind == "f":
+            df[coluna] = df[coluna].astype("Int64")
+    return df
+
+
 def carregar_dados(cur, man, env: dict, amostra: int | None, quieto: bool) -> int:
     tabelas = sorted(man.tabelas)
     if amostra:
@@ -207,6 +234,7 @@ def carregar_dados(cur, man, env: dict, amostra: int | None, quieto: bool) -> in
             continue
 
         df = _parquet(nome, env)
+        df = _coagir_tipos(cur, nome, df)
         buf = io.StringIO()
         df.to_csv(buf, index=False, header=False, na_rep=NULO)
         buf.seek(0)
