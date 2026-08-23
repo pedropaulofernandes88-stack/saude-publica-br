@@ -149,8 +149,9 @@ produção, 47 foram feitas ad-hoc, sem arquivo no repositório; 13 arquivos do
 repositório nunca foram aplicados. Quem clonar e aplicar `migrations/` em ordem
 obtém **outro banco**.
 
-O artefato confiável é `migrations/schema/schema.sql` — **126 objetos** (36
-tabelas, 17 índices, 36 RLS, 36 policies, 1 view), extraídos do catálogo:
+O artefato confiável é `migrations/schema/schema.sql` — **200 objetos** dos
+schemas `public` e `alertas` (37 tabelas, 20 índices, 10 funções, 37 RLS, 36
+policies, 1 view e 58 comentários), extraídos do catálogo:
 
 ```bash
 python scripts/gerar_schema.py             # regera o arquivo
@@ -159,8 +160,13 @@ python scripts/gerar_schema.py --conferir  # falha se o banco divergiu do git
 
 A extração é **por script, não manual** — passo manual é exatamente o que
 produziu as 47 migrações ad-hoc. Ela chama `public.gerar_schema_ddl()`
-(migração V028), uma função `SECURITY DEFINER` com `search_path` fixo, sem
+(migrações V028–V030), uma função `SECURITY DEFINER` com `search_path` fixo, sem
 parâmetros e executável apenas por `service_role`.
+
+Ela cobre **apenas estrutura, nenhuma linha de dado** — inclusive em `alertas`,
+cuja tabela de assinantes tem o esquema reproduzido e o conteúdo não. As três
+lacunas que o preparo do rebuild revelou (opções da view, comentários e funções)
+entraram nas V029 e V030.
 
 `--conferir` é o modo de CI: compara o arquivo versionado com o banco e emite um
 diff unificado da divergência. Verificado injetando uma coluna fantasma no
@@ -176,13 +182,28 @@ vem de `schema.sql`; o conteúdo vem dos Parquet descritos em
 
 ## No CI
 
-`validate-data.yml` roda três jobs:
+`validate-data.yml` roda quatro jobs:
 
 | job | credencial | o que garante |
 |---|---|---|
 | `dados` | nenhuma | invariantes da base publicada |
 | `camadas` | nenhuma (4 de 5 checagens) | coerência manifesto × Storage × Postgres × sdata |
 | `esquema` | `SUPABASE_SERVICE_ROLE_KEY` | `schema.sql` corresponde ao banco |
+| `reconstrucao` | nenhuma | **o repositório reconstrói o banco** |
+
+### O rebuild
+
+`scripts/reconstruir.py` levanta um Postgres 17 descartável no runner, aplica as
+200 instruções do `schema.sql` e carrega os Parquet do manifesto. Em **48
+segundos** ele verifica 4,2 milhões de linhas em 36 tabelas, mais 36 policies,
+58 comentários, 10 funções, 37 tabelas com RLS, o schema `alertas` e o
+`security_invoker` da view.
+
+As expectativas são **derivadas do próprio `schema.sql` aplicado**, não de
+constantes: a checagem acompanha o esquema em vez de envelhecer com ele.
+
+Guardas: recusa destino que contenha o identificador de produção ou pareça
+Supabase gerenciado, e recusa banco que já tenha tabelas.
 
 **O repositório não tem nenhum segredo configurado hoje** (`gh api …/secrets`
 devolve `total_count: 0`). Por isso o job `camadas` foi desenhado para rodar sem
@@ -210,8 +231,7 @@ modelagem, com namespace disjunto e **zero objetos materializados** nos schemas
 | item | estado |
 |---|---|
 | pipelines escrevendo Parquet canônico direto | parcial — 3 de 36 (`pipeline`); 17 em `postgres-bootstrap`, 16 em `storage-legado` |
-| rebuild do Postgres a partir dos Parquet | **não implementado** — é o que provaria a reprodutibilidade de ponta a ponta |
-| redução do banco | não iniciada — depende do rebuild |
+| redução do banco | não iniciada — agora é decisão, não bloqueio: o rebuild prova que o Postgres é reconstruível |
 | segredo `SUPABASE_SERVICE_ROLE_KEY` no CI | ausente: cobertura e deriva de esquema não rodam em CI |
 | `snapshot_publicacao` (V026) | continua sem aplicar — o histórico agora vem das publicações, e a tabela precisa ser reavaliada ou aposentada |
 | dbt | decisão pendente; incompatível com fonte canônica única |
