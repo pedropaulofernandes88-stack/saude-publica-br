@@ -70,7 +70,11 @@ jobs:
         run: echo "::warning::SUPABASE_SERVICE_ROLE_KEY ausente — a checagem de COBERTURA (tabela servida sem arquivo publicado) não rodou"
 
   esquema:
-    name: schema.sql corresponde ao banco
+    # O nome descreve o JOB, não o resultado. "schema.sql corresponde ao banco"
+    # aparecia com ✓ mesmo quando a checagem era pulada por falta de segredo --
+    # um check verde afirmando algo que não foi verificado, que é o mesmo
+    # defeito de validate_data.py e alertas-envio corrigido nesta série.
+    name: Deriva de esquema (exige chave de serviço)
     runs-on: ubuntu-latest
     env:
       SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
@@ -82,7 +86,7 @@ jobs:
           python-version: "3.12"
       - run: pip install requests
 
-      - name: Conferir deriva de esquema
+      - name: Conferir se schema.sql ainda corresponde ao banco
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         run: python scripts/gerar_schema.py --conferir
 
