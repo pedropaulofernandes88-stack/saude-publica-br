@@ -50,6 +50,18 @@ HOST_PADRAO = "ftp.datasus.gov.br"
 FTP_DIR_SIH = "/dissemin/publicos/SIHSUS/200801_/Dados"
 CHAVE_MESES = "saude_em_dado.meses"
 
+# Uma queda de DNS de poucos minutos nao pode derrubar uma execucao de horas:
+# a coleta inteira aborta e o ano-UF em andamento se perde. Dez tentativas com
+# espera crescente ate 60 s dao ~6,5 minutos de tolerancia por arquivo, o que
+# cobre a oscilacao de rede sem mascarar falha de verdade -- arquivo que nao
+# existe e detectado pela LISTAGEM, nunca pela retentativa.
+TENTATIVAS = 10
+
+
+def espera(tentativa: int) -> float:
+    return min(60.0, 10.0 * (tentativa + 1))
+
+
 _listagens: dict[tuple[str, str], set[str]] = {}
 _trava = threading.Lock()
 
@@ -66,7 +78,7 @@ class FalhaDeColeta(Exception):  # noqa: N818 — idem
     """
 
 
-def listar(diretorio: str, host: str = HOST_PADRAO, tentativas: int = 4) -> set[str]:
+def listar(diretorio: str, host: str = HOST_PADRAO, tentativas: int = TENTATIVAS) -> set[str]:
     """Nomes de arquivo do diretório, em MAIÚSCULAS. Uma listagem por processo."""
     chave = (host, diretorio)
     with _trava:
@@ -89,7 +101,7 @@ def listar(diretorio: str, host: str = HOST_PADRAO, tentativas: int = 4) -> set[
             return nomes
         except Exception as e:      # noqa: BLE001 — reempacotada abaixo
             erro = e
-            time.sleep(3 * (tentativa + 1))
+            time.sleep(espera(tentativa))
     raise FalhaDeColeta(f"não consegui listar {host}{diretorio}: {erro}")
 
 
@@ -98,7 +110,7 @@ def existe(diretorio: str, nome: str, host: str = HOST_PADRAO) -> bool:
 
 
 def baixar(diretorio: str, nome: str, host: str = HOST_PADRAO,
-           tentativas: int = 4) -> bytes:
+           tentativas: int = TENTATIVAS) -> bytes:
     """Bytes do arquivo. `ArquivoAusente` se não existe, `FalhaDeColeta` se falhou."""
     if not existe(diretorio, nome, host):
         raise ArquivoAusente(f"{nome} não está em {diretorio}")
@@ -119,7 +131,7 @@ def baixar(diretorio: str, nome: str, host: str = HOST_PADRAO,
             return dados
         except Exception as e:      # noqa: BLE001 — reempacotada abaixo
             erro = e
-            time.sleep(3 * (tentativa + 1))
+            time.sleep(espera(tentativa))
     raise FalhaDeColeta(f"{nome}: {tentativas} tentativas falharam ({erro})")
 
 

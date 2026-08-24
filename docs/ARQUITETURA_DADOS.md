@@ -198,6 +198,30 @@ DataSUS; a fonte estava intacta, quem perdia dado era o nosso lado.
 Checkpoints anteriores a essa guarda não têm o carimbo e seguem válidos — quem
 quer certeza apaga o arquivo e deixa refazer.
 
+### A reconstrução total, e o que ela provou
+
+Em 2026-08-24 os **351 anos-UF** das quatro famílias foram refeitos do zero:
+cada arquivo RD de 2021–2024 baixado de novo, nenhum estado anterior
+reaproveitado. Doze horas de coleta, e o resultado é o seguinte:
+
+| comparação | resultado |
+|---|---|
+| checkpoints refeitos × backup | **459 de 459 idênticos** |
+| marts reconstruídos × publicados | 8 de 8 com conteúdo idêntico |
+| anos-UF com carimbo de 12 meses | 351 de 351 |
+
+Nenhuma divergência. Isso encerra a dúvida que a conferência cruzada só
+podia indicar por inferência: **fora os seis anos-UF corrigidos em 2026-08-23,
+não havia outra perda silenciosa na base**. E, como todo checkpoint passou a
+declarar de que meses veio, a garantia deixa de depender de comparação com um
+backup — passa a ser propriedade do próprio arquivo.
+
+Os marts refeitos **não** foram republicados: o conteúdo é o mesmo, e trocar
+bytes idênticos invalidaria os SHA-256 já divulgados sem entregar nada. A única
+diferença encontrada foi cosmética — em `mart_internacoes_municipio`, a coluna
+`populacao` saiu como `Int64` em vez de `Float64`, com valores iguais.
+
+
 ## Esquema
 
 `migrations/` **não reproduz** este banco. Das 57 migrações aplicadas em
