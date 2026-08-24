@@ -49,6 +49,7 @@ import pyarrow.parquet as pq
 HOST_PADRAO = "ftp.datasus.gov.br"
 FTP_DIR_SIH = "/dissemin/publicos/SIHSUS/200801_/Dados"
 CHAVE_MESES = "saude_em_dado.meses"
+CHAVE_FONTE = "saude_em_dado.fonte"
 
 # Uma queda de DNS de poucos minutos nao pode derrubar uma execucao de horas:
 # a coleta inteira aborta e o ano-UF em andamento se perde. Dez tentativas com
@@ -155,6 +156,32 @@ def registros_dbc(dados: bytes, nome: str) -> Iterator[dict]:
         dbf.unlink(missing_ok=True)
 
 
+def tamanho(diretorio: str, nome: str, host: str = HOST_PADRAO,
+            tentativas: int = TENTATIVAS) -> int:
+    """Bytes do arquivo no FTP, sem baixa-lo.
+
+    E o detector de revisao mais barato que existe para arquivo anual gigante
+    como o DENGBR: o DataSUS reescreve o arquivo preliminar, e o tamanho muda.
+    Nao pega reescrita que preserve o tamanho -- para isso so o conteudo.
+    """
+    if not existe(diretorio, nome, host):
+        raise ArquivoAusente(f"{nome} nao esta em {diretorio}")
+    erro: Exception | None = None
+    for tentativa in range(tentativas):
+        try:
+            ftp = FTP(host, timeout=180)
+            ftp.login()
+            try:
+                return int(ftp.size(f"{diretorio}/{nome}") or 0)
+            finally:
+                with contextlib.suppress(Exception):
+                    ftp.quit()
+        except Exception as e:      # noqa: BLE001 — reempacotada abaixo
+            erro = e
+            time.sleep(espera(tentativa))
+    raise FalhaDeColeta(f"nao consegui medir {nome}: {erro}")
+
+
 def meses_publicados(diretorio: str, prefixo: str, ano: int,
                      host: str = HOST_PADRAO, extensao: str = "dbc") -> list[int]:
     """Meses do ano que o FTP publica para `{prefixo}{aa}{mm}.{extensao}`."""
@@ -165,11 +192,20 @@ def meses_publicados(diretorio: str, prefixo: str, ano: int,
 
 # -- checkpoint que sabe se está completo -----------------------------------
 
-def gravar_checkpoint(df: pd.DataFrame, caminho: Path, meses: list[int]) -> None:
-    """Grava o checkpoint carimbando os meses que o produziram."""
+def gravar_checkpoint(df: pd.DataFrame, caminho: Path, meses: list[int] | None = None,
+                      fonte: str | None = None) -> None:
+    """Grava o checkpoint carimbando de onde ele veio.
+
+    `meses` para as bases mensais (SIH); `fonte` para as anuais (SINAN), onde
+    a unidade nao e o mes e sim a VERSAO do arquivo — o DataSUS reescreve o
+    preliminar, e um checkpoint mudo seria reaproveitado para sempre.
+    """
     tabela = pa.Table.from_pandas(df, preserve_index=False)
     md = dict(tabela.schema.metadata or {})
-    md[CHAVE_MESES.encode()] = ",".join(str(m) for m in sorted(meses)).encode()
+    if meses is not None:
+        md[CHAVE_MESES.encode()] = ",".join(str(m) for m in sorted(meses)).encode()
+    if fonte is not None:
+        md[CHAVE_FONTE.encode()] = fonte.encode()
     caminho.parent.mkdir(parents=True, exist_ok=True)
     pq.write_table(tabela.replace_schema_metadata(md), caminho, compression="zstd")
 
@@ -183,6 +219,15 @@ def meses_do_checkpoint(caminho: Path) -> set[int] | None:
     if not bruto:
         return None
     return {int(x) for x in bruto.decode().split(",") if x}
+
+
+def fonte_do_checkpoint(caminho: Path) -> str | None:
+    """A fonte carimbada no checkpoint, ou None se ele e anterior ao carimbo."""
+    if not caminho.exists():
+        return None
+    md = pq.ParquetFile(caminho).schema_arrow.metadata or {}
+    bruto = md.get(CHAVE_FONTE.encode())
+    return bruto.decode() if bruto else None
 
 
 def checkpoint_utilizavel(caminho: Path, esperados: list[int]) -> bool:

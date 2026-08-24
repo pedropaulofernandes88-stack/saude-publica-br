@@ -27,7 +27,6 @@ Uso:
 from __future__ import annotations
 
 import argparse
-import io
 import json
 import math
 import os
@@ -36,12 +35,20 @@ import tempfile
 import time
 from collections import defaultdict
 from datetime import date, datetime
-from ftplib import FTP
 from pathlib import Path
 
 import pandas as pd
 import requests
 
+from _datasus_ftp import (
+    ArquivoAusente,
+    baixar,
+    fonte_do_checkpoint,
+    gravar_checkpoint,
+    listar,
+    tamanho,
+)
+from _publicacao import escrever_parquet
 from _supabase_key import chave_escrita
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -73,24 +80,37 @@ def load_env() -> dict[str, str]:
     return env
 
 
-def _download_dbc(ano: int) -> Path:
+def _fonte(ano: int) -> tuple[str, str, int]:
+    """Onde mora o DENGBR do ano e quantos bytes ele tem AGORA.
+
+    A escolha entre FINAIS e PRELIM sai da listagem do diretorio, nao de uma
+    excecao: erro de rede nao pode ser confundido com "nao esta em FINAIS" e
+    empurrar o pipeline para o preliminar sem ninguem perceber.
+    """
+    nome = f"DENGBR{ano % 100:02d}.dbc"
+    for base in (FTP_FINAIS, FTP_PRELIM):
+        if nome.upper() in listar(base):
+            return base, nome, tamanho(base, nome)
+    raise ArquivoAusente(f"{nome} nao esta em FINAIS nem em PRELIM")
+
+
+def _marca_da_fonte(base: str, nome: str, bytes_: int) -> str:
+    return f"{base.rsplit('/', 1)[-1]}/{nome} bytes={bytes_}"
+
+
+def _download_dbc(ano: int, base: str, nome: str, bytes_: int) -> Path:
+    """Baixa o DENGBR do ano; reaproveita o cache SO se tiver o tamanho atual.
+
+    O cache antigo comparava contra 100 KB, entao um arquivo que o DataSUS
+    reescreveu continuava valendo para sempre.
+    """
     RAW.mkdir(parents=True, exist_ok=True)
-    yy = f"{ano % 100:02d}"
-    dest = RAW / f"DENGBR{yy}.dbc"
-    if dest.exists() and dest.stat().st_size > 100_000:
+    dest = RAW / nome
+    if dest.exists() and dest.stat().st_size == bytes_:
+        print(f"[download] {nome} em cache ({bytes_ // 1_000_000} MB, tamanho confere)", flush=True)
         return dest
-    ftp = FTP(FTP_HOST, timeout=180)
-    ftp.login()
-    buf = io.BytesIO()
-    base = FTP_FINAIS
-    try:
-        ftp.size(f"{base}/DENGBR{yy}.dbc")
-    except Exception:
-        base = FTP_PRELIM
-    print(f"[download] DENGBR{yy}.dbc ({base.split('/')[-1]})...", flush=True)
-    ftp.retrbinary(f"RETR {base}/DENGBR{yy}.dbc", buf.write)
-    ftp.quit()
-    dest.write_bytes(buf.getvalue())
+    print(f"[download] {nome} ({base.rsplit('/', 1)[-1]}, {bytes_ // 1_000_000} MB)...", flush=True)
+    dest.write_bytes(baixar(base, nome))
     print(f"[download]   {dest.stat().st_size // 1_000_000} MB", flush=True)
     return dest
 
@@ -103,14 +123,19 @@ def _aggregate_year(ano: int) -> pd.DataFrame:
     Resiliente: salva checkpoint parquet por ano; re-runs pulam anos prontos."""
     CKPT.mkdir(parents=True, exist_ok=True)
     ckpt = CKPT / f"dengue_{ano}.parquet"
-    if ckpt.exists():
-        print(f"[dengue {ano}] checkpoint encontrado, pulando", flush=True)
+    base, nome, bytes_ = _fonte(ano)
+    marca = _marca_da_fonte(base, nome, bytes_)
+    if ckpt.exists() and fonte_do_checkpoint(ckpt) == marca:
+        print(f"[dengue {ano}] checkpoint da fonte atual ({marca}), pulando", flush=True)
         return pd.read_parquet(ckpt)
+    if ckpt.exists():
+        anterior = fonte_do_checkpoint(ckpt) or "sem carimbo"
+        print(f"[dengue {ano}] fonte mudou ({anterior} -> {marca}), refazendo", flush=True)
 
     import subprocess
     import dbfread
 
-    dbc = _download_dbc(ano)
+    dbc = _download_dbc(ano, base, nome, bytes_)
     dbf = Path(tempfile.gettempdir()) / f"DENG{ano}.dbf"
     # SEMPRE descomprime do zero (um .dbf truncado de um run morto produz contagem errada).
     # Descompressão em subprocesso isola eventual segfault do datasus_dbc.
@@ -164,8 +189,8 @@ def _aggregate_year(ano: int) -> pd.DataFrame:
         [(m, ae, s, c[0], c[1], c[2]) for (m, ae, s), c in counts.items()],
         columns=["municipio_cod", "ano_epi", "semana_epi", "casos_provaveis", "casos_graves", "obitos"],
     )
-    df.to_parquet(ckpt, compression="zstd", index=False)
-    print(f"[dengue {ano}] {n:,} registros processados → checkpoint", flush=True)
+    gravar_checkpoint(df, ckpt, fonte=marca)
+    print(f"[dengue {ano}] {n:,} registros processados → checkpoint ({marca})", flush=True)
     return df
 
 
@@ -259,8 +284,9 @@ def main() -> None:
     semana, anual, _ = build(anos)
 
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
-    semana.to_parquet(MARTS_DIR / "mart_dengue_semana.parquet", compression="zstd", index=False)
-    anual.to_parquet(MARTS_DIR / "mart_dengue_municipio_ano.parquet", compression="zstd", index=False)
+    for df, nome_mart in ((semana, "mart_dengue_semana"), (anual, "mart_dengue_municipio_ano")):
+        escrever_parquet(df, MARTS_DIR / f"{nome_mart}.parquet", origem="pipeline",
+                         produtor="scripts/pipeline_sinan.py")
 
     if args.no_upload:
         return
