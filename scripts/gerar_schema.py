@@ -17,8 +17,8 @@ POR QUE ESTE ARQUIVO EXISTE
     repositório;
   * 22 das 57 são apenas abre/fecha de permissão de escrita, não esquema;
   * 13 arquivos do repositório nunca foram aplicados — entre eles V007–V015, que
-    criam as tabelas de microdado da arquitetura antiga, e V026, cuja tabela
-    `snapshot_publicacao` não existe em produção.
+    criam as tabelas de microdado da arquitetura antiga. A V026 também nunca foi
+    aplicada e agora está aposentada em `migrations/archive/`.
 
 Quem clonar o repositório e aplicar `migrations/` em ordem obtém **outro banco**.
 

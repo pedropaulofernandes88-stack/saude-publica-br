@@ -292,9 +292,12 @@ credencial: quatro checagens usam só a chave pública de leitura, já embutida 
 PostgREST — se anuncia como **PULADA** em vez de falhar ou de passar em
 silêncio, e o job emite um `::warning::`.
 
-Enquanto `SUPABASE_SERVICE_ROLE_KEY` não for configurado como segredo, a
-checagem de cobertura e a de deriva de esquema **não rodam em CI** — só na
-máquina de quem publica.
+`SUPABASE_SERVICE_ROLE_KEY` foi configurado como segredo em **2026-08-24**, e a
+primeira execução do job de esquema — que até então vivia **pulado** — falhou na
+hora: ele instalava só `requests`, e `gerar_schema.py` importa `_publicacao`, que
+importa pandas. O job estava quebrado desde que foi escrito, e ninguém podia
+saber, porque nunca tinha executado. **Job que não roda não é job que passa** —
+vale reler isso antes de confiar em qualquer check condicional.
 
 ## Consequências
 
@@ -344,12 +347,32 @@ As três primeiras são decisões de produto, não de engenharia: mudam o que a
 plataforma entrega. Ficam registradas com o número ao lado para que a escolha
 seja informada.
 
+## Medir a revisão da fonte
+
+O DataSUS revisa dado já publicado, e nenhuma fonte pública guarda a série das
+próprias revisões: o TABNET entrega o número de hoje e não tem memória. Saber
+**quanto** um preliminar ainda se move era o objetivo da V026
+`snapshot_publicacao`, escrita quando cada publicação sobrescrevia a anterior.
+
+Com o eixo invertido, a tabela virou cópia pior de algo que já existe. Toda
+publicação deixa uma cópia imutável em `dados/hist/{id}/{tabela}.parquet`, e
+isso é a série de snapshots — sem perda (guarda a tabela inteira, não um
+agregado escolhido de antemão), sem segunda via de escrita que possa divergir
+do arquivo, e retroativa. A análise de revisão passa a ser uma **leitura** sobre
+o histórico, não uma tabela nova. A V026 foi aposentada em
+`migrations/archive/`, com o raciocínio preservado.
+
+O que ainda falta para a resposta ser honesta é tempo: em 2026-08-24 são 10
+publicações, quase todas do mesmo par de dias. A diferença é que agora **haverá**
+o que observar — os checkpoints carimbam a versão da fonte e se invalidam
+sozinhos quando ela é reescrita, então reingerir produz diferença real em vez de
+repetir o valor anterior.
+
 ## O que ainda não está pronto
 
 | item | estado |
 |---|---|
-| pipelines escrevendo Parquet canônico direto | parcial — 3 de 36 (`pipeline`); 17 em `postgres-bootstrap`, 16 em `storage-legado` |
-| pipelines escrevendo Parquet canônico direto | parcial — 3 de 36 |
-| segredo `SUPABASE_SERVICE_ROLE_KEY` no CI | ausente: cobertura e deriva de esquema não rodam em CI |
-| `snapshot_publicacao` (V026) | continua sem aplicar — o histórico agora vem das publicações, e a tabela precisa ser reavaliada ou aposentada |
+| pipelines escrevendo Parquet canônico direto | **19 de 36** em `pipeline`; 2 em `postgres-bootstrap`, 14 em `storage-legado` |
+| segredo `SUPABASE_SERVICE_ROLE_KEY` no CI | **configurado** em 2026-08-24; os quatro jobs rodam de verdade |
+| `snapshot_publicacao` (V026) | **aposentada** — ver `migrations/archive/README.md` |
 | dbt | decisão pendente; incompatível com fonte canônica única |

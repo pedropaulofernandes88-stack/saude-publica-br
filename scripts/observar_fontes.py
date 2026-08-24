@@ -5,7 +5,8 @@ O projeto media desfecho e nunca mediu a PRÓPRIA FONTE. Um arquivo publicado
 pode ser reescrito anos depois, e não há aviso: quem citou o número de ontem não
 tem como saber que ele mudou.
 
-A primeira tentativa (backfill_snapshot.py) quis reconstruir isso do histórico
+A primeira tentativa (hoje em migrations/archive/backfill_snapshot.py) quis
+reconstruir isso do histórico
 do site e falhou — o site não reingere, então nunca observou revisão. A saída é
 observar a fonte diretamente. E não precisa baixar nada:
 
