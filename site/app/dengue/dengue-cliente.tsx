@@ -10,14 +10,14 @@ import { VerMais } from "@/components/ver-mais";
 import { UFS, fmtDec, fmtInt, rest, sdata, type DengueAno, type DengueSemana } from "@/lib/api";
 import { ALERTA, EIXO, GRADE, REFERENCIA } from "@/lib/tokens";
 
-const ANOS_DENGUE = [2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];
+const ANOS_DENGUE = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];
 const CORES_ANO: Record<number, string> = {
-  2024: ALERTA, 2023: "#e07a1f", 2022: "#1fb87b", 2021: EIXO, 2019: REFERENCIA,
+  2025: "#7b5cd6", 2024: ALERTA, 2023: "#e07a1f", 2022: "#1fb87b", 2021: EIXO, 2019: REFERENCIA,
 };
 
 export function DengueCliente() {
   const [uf, setUf] = useState("Brasil");
-  const [ano, setAno] = useState(2024);
+  const [ano, setAno] = useState(2025);
   const [semana, setSemana] = useState<DengueSemana[] | null>(null);
   const [anual, setAnual] = useState<DengueAno[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -124,8 +124,8 @@ export function DengueCliente() {
       <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink-950">Dengue no Brasil</h1>
       <p className="mt-2 max-w-3xl text-ink-600">
         Casos prováveis, gravidade, óbitos e incidência da dengue (SINAN/DataSUS,
-        2015–2024) por município e semana epidemiológica. Inclui a epidemia
-        recorde de 2024.
+        2015–2025) por município e semana epidemiológica. Inclui a epidemia
+        recorde de 2024 e o refluxo de 2025.
       </p>
 
       <div className="card mt-6 grid gap-4 sm:grid-cols-2">
@@ -161,7 +161,7 @@ export function DengueCliente() {
           Curva sazonal — casos por semana epidemiológica
         </h2>
         <p className="mt-1 text-sm text-ink-500">
-          Sobreposição de anos: o pico do verão (semanas 1–20) e a magnitude de 2024 vs. anos anteriores.
+          Sobreposição de anos: o pico do verão (semanas 1–20) e a magnitude de 2024 vs. os anos vizinhos.
         </p>
         <div className="mt-4">
           {sazonal ? (
@@ -174,9 +174,9 @@ export function DengueCliente() {
                        tickFormatter={(v) => (v as number).toLocaleString("pt-BR", { notation: "compact" })} />
                 <Tooltip formatter={(v, n) => [fmtInt(v as number), String(n).replace("a", "")]}
                          contentStyle={{ borderRadius: 8, borderColor: GRADE, fontSize: 13 }} />
-                {[2024, 2023, 2022, 2019].map((a) => (
+                {[2025, 2024, 2023, 2022].map((a) => (
                   <Line key={a} type="monotone" dataKey={`a${a}`} name={`a${a}`}
-                        stroke={CORES_ANO[a] ?? "#b1bac9"} strokeWidth={a === 2024 ? 2.8 : 1.8} dot={false} />
+                        stroke={CORES_ANO[a] ?? "#b1bac9"} strokeWidth={a === 2025 ? 2.8 : 1.8} dot={false} />
                 ))}
                 <Legend formatter={(v) => String(v).replace("a", "")} />
               </LineChart>

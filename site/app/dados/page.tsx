@@ -1,5 +1,32 @@
+import { readFileSync } from "node:fs";
+import path from "node:path";
+
 import type { Metadata } from "next";
 import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/api";
+
+type TabelaPublicada = { nome: string; linhas: number; bytes: number; sha256: string };
+
+/**
+ * Lê o manifesto da publicação corrente no momento do build.
+ *
+ * Esta tabela já foi uma lista de tamanhos e SHA-256 escrita à mão, e envelheceu
+ * em silêncio: `mart_internacoes_municipio` aparecia com 6,0 MB quando o arquivo
+ * publicado tinha 9,4 MB, e o hash não conferia com nada. Página que promete
+ * verificação de integridade não pode inventar o hash — agora ela lê o mesmo
+ * manifesto que o publicador escreve.
+ */
+function arquivosPublicados(): TabelaPublicada[] {
+  const dir = path.join(process.cwd(), "..", "data", "publicacoes");
+  const atual = JSON.parse(readFileSync(path.join(dir, "atual.json"), "utf8")) as { arquivo: string };
+  const manifesto = JSON.parse(readFileSync(path.join(dir, atual.arquivo), "utf8")) as {
+    tabelas: Record<string, TabelaPublicada>;
+  };
+  return Object.values(manifesto.tabelas).sort((a, b) => b.bytes - a.bytes);
+}
+
+function emMB(bytes: number): string {
+  return `${(bytes / 1e6).toFixed(bytes < 1e5 ? 2 : 1).replace(".", ",")} MB`;
+}
 
 export const metadata: Metadata = {
   title: "Dados & API pública",
@@ -362,38 +389,20 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
           </tr>
         </thead>
         <tbody>
-          {[
-            ["mart_mortalidade_municipio.parquet", "14,2 MB", "748310975375de33d289cb72a54c7d52d63a7118af8df2b2a7477f0bc97c3071"],
-            ["mart_mortalidade_uf_mes.parquet", "1,6 MB", "3958450095820478e582ee30fae57be1c49e6c9f91e174865e00bd0ed9f06db3"],
-            ["mart_mortalidade_causa.parquet", "0,7 MB", "c51f2c553810eaf92d996aa52fb7b436da2a80a971526d060c7beacc341fa4ad"],
-            ["mart_excesso_uf_mes.parquet", "0,04 MB", "3954a0838a18a96394002ff07c9ad3428697312d11356a4c572c8edd262b0c5f"],
-            ["mart_dengue_semana.parquet", "1,1 MB", "4e9eb4d9a87efc8ded2f3d692252b24d59091ca62ae4f29c1163b996d78d113f"],
-            ["mart_dengue_municipio_ano.parquet", "0,3 MB", "1bf5f4d31d395428219b065ea80d68fa138cd8476d3dda1b9734ddfbedb40fcb"],
-            ["mart_internacoes_municipio.parquet", "6,0 MB", "09d129d5bbe344f1e3fc12ed9ee9413035e7600b0e1dd9ce6dbdb868857c56d3"],
-            ["mart_icsap_municipio.parquet", "0,2 MB", "90b65857b3717e1479310ff68a1f717bbbb91fef8c3aae55599e45c97ebd2efd"],
-            ["mart_fluxo_intermunicipal.parquet", "0,3 MB", "233d3ec76916fd9efb73fafe2dbeb33419816d032e5c8dfcc2e4dd54fd313b29"],
-            ["mart_internacoes_agravo.parquet", "1,2 MB", "8690e2df0586337a34f66fe493b7c443ee4e931d4d8fcef8aeabf4719baafe35"],
-            ["mart_internacoes_hospital.parquet", "0,2 MB", "31e39b7793d5e811f784a9da3578ea7fecd3e8d51c862e2da0b3ab0b2158c58c"],
-            ["mart_natalidade_municipio.parquet", "0,2 MB", "d6f064c2230322368bdf11553b89c9439b86240a2bf223f309ee82a0d25f5294"],
-            ["mart_mortalidade_infantil_uf.parquet", "0,01 MB", "73665f2f9cce2adec1a0431ff67c7ee1ec5a92412baca1ac838bdeb8b7d40732"],
-            ["mart_qualidade_registro_municipio.parquet", "0,13 MB", "32f0827acaa90887753557b469eff65af254ae2313944d6e9391ff031214c0ee"],
-            ["dim_ivs.parquet", "0,12 MB", "76f386873403eb7aad4d1099eceb05169a737f80083f57d1ba45ecec774517d2"],
-            ["dim_cluster_municipio.parquet", "0,05 MB", "f02e5be4fd3efccefb18cd671742f1ab5090c22a6d44bed21179caa2ea081646"],
-            ["dim_municipio.parquet", "0,09 MB", "a7f3f66aad10ef9bd99f6d1f0dc919f9017dcc3ae7e55de9da65344790e2d7e4"],
-            ["dim_populacao.parquet", "0,29 MB", "c88335c58dc4e45c46a91512d749cc6f40d00d4659cdcb289921a54467c0456d"],
-            ["dim_pop_faixa.parquet", "0,13 MB", "a7aaa140fd70bfea6f18c77ec5ebdeb25a26bd26437ca8289b355ba3e05c3b0a"],
-            ["dim_pop_padrao.parquet", "0,01 MB", "bee34904f471812432ac2d047ed56a4eed5a88d905a28a55c24c02fb0153aebc"],
-            ["dim_cid10_categoria.parquet", "0,04 MB", "3202eca9d645ae8bdb6ba98aa4dda940a1e878fc267bb6d6a711629fcc4ebf3f"],
-          ].map(([nome, tamanho, sha]) => (
+          {arquivosPublicados().map(({ nome, bytes, sha256, linhas }) => (
             <tr key={nome}>
               <td>
-                <a href={`${SUPABASE_URL}/storage/v1/object/public/dados/${nome}`} download>
-                  {nome}
+                <a href={`${SUPABASE_URL}/storage/v1/object/public/dados/${nome}.parquet`} download>
+                  {nome}.parquet
                 </a>
+                <br />
+                <span style={{ fontSize: "0.78em", opacity: 0.7 }}>
+                  {linhas.toLocaleString("pt-BR")} linhas
+                </span>
               </td>
-              <td>{tamanho}</td>
+              <td>{emMB(bytes)}</td>
               <td>
-                <code style={{ fontSize: "0.7em", wordBreak: "break-all" }}>{sha}</code>
+                <code style={{ fontSize: "0.7em", wordBreak: "break-all" }}>{sha256}</code>
               </td>
             </tr>
           ))}
@@ -450,7 +459,7 @@ mg.nlargest(10, "taxa_padronizada_100k")`}</code>
         <tbody>
           <tr><td>Mortalidade</td><td>SIM</td><td>2015–2024</td><td>2024 preliminar</td></tr>
           <tr><td>Internações</td><td>SIH/AIH</td><td>2022–2024</td><td>2024 preliminar; só rede SUS</td></tr>
-          <tr><td>Dengue</td><td>SINAN</td><td>2015–2024</td><td>2024 em classificação</td></tr>
+          <tr><td>Dengue</td><td>SINAN</td><td>2015–2025</td><td>2025 fechado (FINAIS)</td></tr>
           <tr><td>Nascimentos</td><td>SINASC</td><td>2021–2023</td><td>2024 não liberado pelo MS</td></tr>
           <tr><td>Vulnerabilidade / população</td><td>IBGE Censo 2022 + estimativas</td><td>2022 (2023 interpolado)</td><td>renda municipal 2022 ainda não liberada</td></tr>
         </tbody>
