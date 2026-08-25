@@ -47,6 +47,8 @@ import numpy as np
 import pandas as pd
 import requests
 
+from _datasus_ftp import CHAVE_FONTE, baixar, fonte_do_checkpoint, tamanho
+from _publicacao import escrever_parquet
 from _supabase_key import chave_escrita
 from scipy.stats import gamma as gamma_dist
 
@@ -149,10 +151,19 @@ def download_csv_open(anos: list[int]) -> None:
         if ano not in ANOS_CSV:
             continue
         dest = RAW / f"DO{str(ano)[2:]}OPEN.csv"
-        if dest.exists() and dest.stat().st_size > 1_000_000:
-            print(f"[cache] {dest.name}")
-            continue
         url = f"{S3_SIM}/DO{str(ano)[2:]}OPEN.csv"
+        # O cache valia por "existe e tem mais de 1 MB", ou seja, para sempre. O
+        # OpenDataSUS reescreve arquivo publicado; o HEAD custa uma requisicao e
+        # diz se o que esta em disco ainda e o que a fonte serve.
+        remoto = requests.head(url, timeout=60, allow_redirects=True)
+        remoto.raise_for_status()
+        bytes_remoto = int(remoto.headers.get("content-length") or 0)
+        if dest.exists() and bytes_remoto and dest.stat().st_size == bytes_remoto:
+            print(f"[cache] {dest.name} ({bytes_remoto/1e6:.0f} MB, tamanho confere)")
+            continue
+        if dest.exists():
+            print(f"[fonte] {dest.name} mudou: {dest.stat().st_size:,} -> {bytes_remoto:,} bytes",
+                  flush=True)
         print(f"[download] {url}")
         with requests.get(url, stream=True, timeout=120) as r:
             r.raise_for_status()
@@ -167,24 +178,24 @@ def _dbc_to_parquet(uf: str, ano: int) -> tuple[str, int, str | None]:
     import dbfread
     import pyarrow as pa
     import pyarrow.parquet as pq
-    import io, tempfile
+    import tempfile
 
     out = RAW_DBC / f"DO{uf}{ano}.parquet"
-    if out.exists() and out.stat().st_size > 1000:
-        return (f"{uf}{ano}", -1, None)  # cache
-
+    nome = f"DO{uf}{ano}.dbc"
     cols = ["TIPOBITO", "DTOBITO", "IDADE", "SEXO", "CODMUNRES", "LOCOCOR", "CAUSABAS"]
     try:
-        ftp = FTP(FTP_HOST, timeout=120)
-        ftp.login()
-        buf = io.BytesIO()
-        ftp.retrbinary(f"RETR {FTP_DIR}/DO{uf}{ano}.dbc", buf.write)
-        ftp.quit()
+        # O cache valia por "existe e tem mais de 1 KB" e nunca era revisitado.
+        # Agora ele carrega, nos metadados Arrow, a VERSAO do .dbc que o
+        # produziu; se o DataSUS reescrever o arquivo, o tamanho muda e o cache
+        # deixa de servir sozinho. Mesmo carimbo do SIH e do SINAN.
+        marca = f"{nome} bytes={tamanho(FTP_DIR, nome)}"
+        if out.exists() and fonte_do_checkpoint(out) == marca:
+            return (f"{uf}{ano}", -1, None)  # cache da versao atual
 
         tmp = Path(tempfile.gettempdir())
-        dbc = tmp / f"DO{uf}{ano}.dbc"
+        dbc = tmp / nome
         dbf = tmp / f"DO{uf}{ano}.dbf"
-        dbc.write_bytes(buf.getvalue())
+        dbc.write_bytes(baixar(FTP_DIR, nome))
         datasus_dbc.decompress(str(dbc), str(dbf))
 
         rows = []
@@ -194,6 +205,7 @@ def _dbc_to_parquet(uf: str, ano: int) -> tuple[str, int, str | None]:
         dbf.unlink(missing_ok=True)
 
         table = pa.table({c: [r[i] for r in rows] for i, c in enumerate(cols)})
+        table = table.replace_schema_metadata({CHAVE_FONTE: marca})
         out.parent.mkdir(parents=True, exist_ok=True)
         pq.write_table(table, out, compression="zstd")
         return (f"{uf}{ano}", len(rows), None)
@@ -206,7 +218,11 @@ def download_dbc(anos: list[int], workers: int = 4) -> None:
     if not alvos:
         return
     RAW_DBC.mkdir(parents=True, exist_ok=True)
-    pend = [(u, a) for u, a in alvos if not (RAW_DBC / f"DO{u}{a}.parquet").exists()]
+    # Existir nao basta: o parquet precisa DECLARAR de qual versao do .dbc veio.
+    # `fonte_do_checkpoint` devolve None tanto para arquivo ausente quanto para
+    # arquivo sem carimbo, entao um criterio so cobre os dois casos.
+    pend = [(u, a) for u, a in alvos
+            if fonte_do_checkpoint(RAW_DBC / f"DO{u}{a}.parquet") is None]
     print(f"[dbc] {len(alvos)} arquivos alvo, {len(pend)} a baixar (FTP DataSUS)")
     erros = []
     done = 0
@@ -787,8 +803,8 @@ def main() -> None:
     if cid_cat is not None:
         exports["dim_cid10_categoria"] = cid_cat
     for name, df in exports.items():
-        out = MARTS_DIR / f"{name}.parquet"
-        df.to_parquet(out, compression="zstd", index=False)
+        out = escrever_parquet(df, MARTS_DIR / f"{name}.parquet", origem="pipeline",
+                               produtor="scripts/pipeline_v2.py")
         print(f"[export] {out.name}: {out.stat().st_size/1e6:.1f} MB")
 
     if args.no_upload:
