@@ -36,6 +36,7 @@ import pandas as pd
 import requests
 
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar
+from _publicacao import escrever_parquet
 from _supabase_key import chave_escrita
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -232,8 +233,9 @@ def main():
 
     nat, tmi = build(anos, args.workers)
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
-    nat.to_parquet(MARTS_DIR / "mart_natalidade_municipio.parquet", compression="zstd", index=False)
-    tmi.to_parquet(MARTS_DIR / "mart_mortalidade_infantil_uf.parquet", compression="zstd", index=False)
+    for df_, nome_ in ((nat, "mart_natalidade_municipio"), (tmi, "mart_mortalidade_infantil_uf")):
+        escrever_parquet(df_, MARTS_DIR / f"{nome_}.parquet", origem="pipeline",
+                         produtor="scripts/pipeline_sinasc.py")
     if args.no_upload:
         return
 

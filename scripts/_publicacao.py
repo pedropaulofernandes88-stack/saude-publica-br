@@ -271,6 +271,23 @@ CHAVE_PRODUTOR = b"saude_em_dado.produtor"
 #: `mart_demanda_mensal_hospital` foi BAIXADO do Postgres por
 #: `_baixar_mart_completo.py` e entrou no manifesto rotulado `pipeline`.
 ORIGEM_DESCONHECIDA = "desconhecida"
+ORIGEM_VIEW = "view"
+
+
+def views_do_esquema() -> set[str]:
+    """Nomes das VIEWs do `schema.sql` versionado.
+
+    View nao tem produtor de arquivo: ela e derivada no banco, e o Parquet dela
+    so pode sair de uma exportacao. Rotula-la como `postgres-bootstrap` sugere
+    divida a pagar; nao ha divida, ha uma natureza diferente. O nome sai do
+    esquema versionado, nunca de lista escrita a mao.
+    """
+    arquivo = ROOT / "migrations" / "schema" / "schema.sql"
+    if not arquivo.exists():
+        return set()
+    # o schema.sql gerado emite "create or replace view public.x with (...)"
+    return set(re.findall(r"create (?:or replace )?view public\.(\w+)",
+                          arquivo.read_text(encoding="utf-8"), re.I))
 
 
 def escrever_parquet(df: pd.DataFrame, destino: Path, origem: str,

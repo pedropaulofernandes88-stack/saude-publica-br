@@ -793,8 +793,15 @@ def main() -> None:
     if args.medir:
         return
 
+    # Vinha sendo apenas ENVIADA ao banco, nunca exportada: por isso o Parquet
+    # dela so podia vir de reexportacao do Postgres. E derivada da constante
+    # CID10_CAPITULOS, entao nao depende de nenhuma fonte externa.
+    cap_df = pd.DataFrame([(c, n, f"{i}-{f}", d) for c, n, i, f, d in CID10_CAPITULOS],
+                          columns=["capitulo", "capitulo_num", "faixa", "descricao"])
+
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
     exports = {
+        "dim_cid10_capitulo": cap_df,
         "dim_municipio": municipios, "dim_populacao": populacao,
         "dim_pop_faixa": pop_faixa, "dim_pop_padrao": pop_padrao,
         "mart_mortalidade_municipio": mart_mun, "mart_mortalidade_uf_mes": mart_ufm,
@@ -815,8 +822,6 @@ def main() -> None:
         sys.exit("Defina SUPABASE_URL e SUPABASE_ANON_KEY no .env")
     loader = SupabaseLoader(url, key)
 
-    cap_df = pd.DataFrame([(c, n, f"{i}-{f}", d) for c, n, i, f, d in CID10_CAPITULOS],
-                          columns=["capitulo", "capitulo_num", "faixa", "descricao"])
     loader.load_df("dim_cid10_capitulo", cap_df)
     loader.load_df("dim_municipio", municipios)
     loader.load_df("dim_populacao", populacao)

@@ -74,6 +74,7 @@ import requests
 
 from _supabase_key import chave_escrita
 from _varredura import varrer_orfaos
+from _publicacao import escrever_parquet
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -268,7 +269,8 @@ def main() -> None:
 
     df = build(args.anos)
     MARTS.mkdir(exist_ok=True)
-    df.to_parquet(MARTS / "mart_siops_municipio.parquet", compression="zstd", index=False)
+    escrever_parquet(df, MARTS / "mart_siops_municipio.parquet", origem="pipeline",
+                     produtor="scripts/pipeline_siops.py")
 
     print(f"\n[siops] mart_siops_municipio: {len(df):,} linhas "
           f"({df.municipio_cod.nunique():,} municípios × {df.ano.nunique()} anos)")

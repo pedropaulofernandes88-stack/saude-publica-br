@@ -46,6 +46,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _publicacao import (  # noqa: E402
     MARTS,
     ORIGEM_DESCONHECIDA,
+    ORIGEM_VIEW,
     Manifesto,
     baixar_do_storage,
     carregar_env,
@@ -60,6 +61,7 @@ from _publicacao import (  # noqa: E402
     exportar_do_postgres,
     novo_id_publicacao,
     origem_do_parquet,
+    views_do_esquema,
     origem_registrada,
     registrar_origem,
 )
@@ -173,6 +175,7 @@ def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
             # que um Parquet baixado do Postgres entrou no manifesto rotulado
             # como produzido por pipeline.
             return local, (origem_do_parquet(local)
+                           or (ORIGEM_VIEW if tabela in views_do_esquema() else None)
                            or origem_registrada(tabela)
                            or ORIGEM_DESCONHECIDA)
         if not quieto:
