@@ -53,7 +53,7 @@ export default function Home() {
       <section className="border-b border-ink-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
           <p className="text-sm font-semibold uppercase tracking-widest text-accent-700">
-            Dados abertos · SIM · SINAN · SIH · DataSUS · IBGE
+            Dados abertos · nove fontes oficiais do SUS e do IBGE
           </p>
           <h1 className="mt-3 max-w-3xl font-serif text-4xl font-semibold leading-tight tracking-tight text-ink-950 sm:text-5xl">
             A saúde do Brasil em dados, acessível para a pesquisa.
@@ -100,6 +100,44 @@ export default function Home() {
             detalhe="Pipeline aberto e auditável"
           />
         </div>
+
+        {/* Sinais de maturidade — o que sustenta os números acima.
+            Ficavam só na metodologia e no repositório; quem chega pela home
+            via o painel e não via por que confiar nele. */}
+        <section className="mt-8 rounded-lg border border-ink-200 bg-white p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="font-serif text-lg font-semibold text-ink-900">
+              Por que estes números são conferíveis
+            </h2>
+            <a href="/metodologia/" className="text-sm text-accent-700 underline">
+              metodologia completa
+            </a>
+          </div>
+          <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              ["36 tabelas · 9 fontes",
+               "publicadas em Parquet com SHA-256 por arquivo e DOI citável"],
+              ["547 testes",
+               "automatizados a cada alteração, com o banco reconstruído do zero no CI"],
+              ["351 anos-UF refeitos",
+               "reprocessados da fonte para conferência: 459 de 459 checkpoints idênticos"],
+              ["Procedência nos bytes",
+               "cada arquivo declara quem o produziu e de qual versão da fonte veio"],
+            ].map(([n, d]) => (
+              <div key={n}>
+                <p className="font-serif text-base font-semibold text-ink-900">{n}</p>
+                <p className="mt-1 text-sm leading-snug text-ink-600">{d}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm text-ink-600">
+            Um defeito de coleta que publicava competências incompletas em silêncio foi encontrado e corrigido —
+            o Maranhão de 2023 estava com 41% das internações a menos. A correção, o método de detecção e a
+            reconstrução completa estão descritos na{" "}
+            <a href="/metodologia/" className="text-accent-700 underline">metodologia</a> e no{" "}
+            <a href="/dados/" className="text-accent-700 underline">repositório de dados</a>.
+          </p>
+        </section>
 
         {/* Série nacional */}
         <div className="card mt-8">

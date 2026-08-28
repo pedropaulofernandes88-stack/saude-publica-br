@@ -149,7 +149,14 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
           </tr>
           <tr>
             <td><code>dim_cluster_municipio</code></td>
-            <td>arquétipos de saúde por k-means (mortalidade × vulnerabilidade × internações, 2023)</td>
+            <td>
+              agrupamento municipal por k-means (mortalidade × vulnerabilidade × internações, 2023).{" "}
+              <strong>Em revisão metodológica:</strong> a estabilidade foi medida e reprovada — a silhueta cai a
+              partir de K=2 e o índice de Rand ajustado entre reamostragens fica em 0,571, de modo que 16% dos
+              municípios trocam de grupo sem que o dado deles mude. A versão atual segue publicada para não quebrar
+              quem já a consome, mas <strong>não deve ser usada para classificar município</strong> até a
+              substituição por estratificação determinística.
+            </td>
             <td>~1,7 mil</td>
           </tr>
           <tr>
