@@ -33,7 +33,18 @@ export interface SecaoMetodologia {
   grupo: string;
 }
 
-const TITULOS: [grupo: string, titulos: string[]][] = [
+/**
+ * Um título pode vir sozinho (o slug sai dele) ou como par
+ * `[título, slugFixo]`. O par existe para quando o TÍTULO precisa mudar sem
+ * levar a âncora junto — foi o caso de "Arquétipos de saúde municipal
+ * (k-means)" em 2026-08-29: o método deixou de ser k-means, então o título
+ * mentia, mas o slug já circulava em citação. Corrigir o texto e preservar o
+ * endereço são duas necessidades legítimas, e sem esta forma só dá para
+ * atender uma.
+ */
+type EntradaTitulo = string | [titulo: string, slugFixo: string];
+
+const TITULOS: [grupo: string, titulos: EntradaTitulo[]][] = [
   [
     "Método base",
     [
@@ -62,7 +73,7 @@ const TITULOS: [grupo: string, titulos: string[]][] = [
   [
     "Análises derivadas",
     [
-      "Arquétipos de saúde municipal (k-means)",
+      ["Arquétipos de saúde municipal", "arquetipos-de-saude-municipal-k-means"],
       "Distância até os pares em internações evitáveis (ICSAP)",
       "Estabelecimentos de saúde (CNES)",
       "Leitos × ICSAP: o indicador responde à oferta hospitalar",
@@ -74,7 +85,10 @@ const TITULOS: [grupo: string, titulos: string[]][] = [
 ];
 
 export const SECOES: SecaoMetodologia[] = TITULOS.flatMap(([grupo, titulos]) =>
-  titulos.map((titulo) => ({ titulo, grupo, slug: slugify(titulo), n: 0 })),
+  titulos.map((entrada) => {
+    const [titulo, slugFixo] = Array.isArray(entrada) ? entrada : [entrada, undefined];
+    return { titulo, grupo, slug: slugFixo ?? slugify(titulo), n: 0 };
+  }),
 ).map((s, i) => ({ ...s, n: i + 1 }));
 
 /** Seção pelo número exibido (1-based); lança se o número não existir. */

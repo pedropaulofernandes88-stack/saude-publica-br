@@ -7,6 +7,61 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [3.5.0] — 2026-08-29 — O agrupamento que mudava sozinho saiu do ar
+
+> Um município que abrisse o boletim duas vezes podia ler dois arquétipos
+> diferentes, sem que um único dado dele tivesse mudado. A causa não era bug de
+> código: era o método. K-means impõe partição a dados que não têm partição, e a
+> partição imposta depende da vizinhança, da semente e da amostra. Medimos,
+> reprovamos e trocamos por algo que não pode variar.
+
+### Alterado
+
+- **Arquétipos de saúde: k-means substituído por estratificação determinística.**
+  O agrupamento anterior (k=5, z-score, semente 42) foi submetido a teste de
+  estabilidade e reprovado: silhueta caindo monotonicamente a partir de K=2 —
+  sinal de que os dados formam um contínuo, não cinco grumos —, índice de Rand
+  ajustado de **0,571** entre reamostragens e **280 municípios (16%)
+  reclassificados sem que o dado deles mudasse**. No lugar entra o cruzamento
+  dos tercis das mesmas três dimensões, com os **cortes congelados no
+  repositório** (`scripts/pipeline_estratos.py`): 27 estratos, todos ocupados, o
+  menor com 40 municípios. Rand ajustado **1,000 por construção**. Reamostrando
+  a base e recalculando os próprios cortes — teste mais duro —, 0,899, com 10
+  municípios (0,6%) de fronteira. `dim_cluster_municipio` ganha `estrato_cod`
+  (`M3V2I3`), e `cluster` passa a ser id determinístico de 1 a 27; os nomes de
+  tabela e coluna ficaram porque são contrato do MCP publicado no PyPI.
+- **Pares de ICSAP passam a ser o estrato.** `mart_icsap_pares` agrupa por
+  estrato em vez de cluster: grupos menores (mediana de 276 pares, mínimo 160) e
+  mais homogêneos. Efeito medido em 2024: municípios acima da mediana dos pares
+  vão de 3.023 para 3.032, e o excedente de internações de 372.836 para 383.445
+  (+2,8%). O pipeline agora **aborta** se o rótulo em palavras deixar de
+  identificar um único estrato, e se a base derivar mais de 10% dos cortes
+  congelados — nesse caso re-congelar é decisão humana, não recálculo silencioso.
+
+### Corrigido
+
+- **Parquet de view publicado estava velho desde 24/08.** `mart_icsap_pares` teve
+  suas bases (`mart_icsap_municipio`, `mart_internacoes_agravo`) regeneradas em
+  24/08, mas os bytes publicados continuaram os de 23/08 — e passaram por todas
+  as publicações seguintes porque a guarda do `publicar.py` compara **contagem de
+  linhas**, que não mudou (22.280 antes e depois). Reexportado com ordenação
+  explícita: **9.346 das 22.280 linhas tinham `n_pares` diferente**. É a mesma
+  família de defeito registrada em `guardas-de-integridade-de-dado`: contagem não
+  detecta corrupção de conteúdo.
+- **Referência cruzada errada na metodologia.** A seção de ICSAP apontava os
+  arquétipos como "seção 14"; são a 16.
+
+### Notas
+
+- A âncora `#arquetipos-de-saude-municipal-k-means` foi **preservada** mesmo com o
+  título da seção mudando, via slug fixo em `metodologia-secoes.ts`: o texto
+  precisava ser corrigido, mas o endereço já circulava em citação.
+- **Fica em aberto, deliberadamente:** a mediana dos pares em `mart_icsap_pares`
+  ainda agrupa 2021–2024 juntos, e a mediana nacional de `pct_icsap` foi 16,53 em
+  2021 contra ~20 nos anos seguintes — o ano de pandemia puxa a referência para
+  baixo e infla o excedente dos demais anos. Corrigir junto com a troca de método
+  tornaria impossível medir o efeito de cada mudança.
+
 ## [3.4.0] — 2026-08-22 — Previsão validada, e uma explicação causal retirada de circulação
 
 > Duas frentes, um mesmo princípio: número publicado precisa de evidência que o

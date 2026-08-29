@@ -304,17 +304,17 @@ def detectar_anomalias(municipio_cod: str) -> dict:
 @mcp.tool()
 def comparar_com_pares(municipio_cod: str) -> dict:
     """ANÁLISE: compara um município (6 dígitos) com seus PARES — municípios do mesmo
-    arquétipo de saúde (k-means: mortalidade × vulnerabilidade × internações, 2023).
+    estrato de saúde (tercis fixos de mortalidade × vulnerabilidade × internações, 2023).
     Retorna, para cada métrica, o valor do município, a mediana dos pares e o percentil
     do município no grupo (0–100; alto = pior em mortalidade/vulnerabilidade).
     Comparação legítima: pares têm perfil estrutural semelhante, não só a mesma UF.
     Cobre ~1.700 municípios maiores; nos demais, retorna aviso."""
     alvo = sd._get("dim_cluster_municipio",
-                   {"select": "municipio_cod,municipio_nome,uf_sigla,regiao,cluster,perfil,"
+                   {"select": "municipio_cod,municipio_nome,uf_sigla,regiao,cluster,estrato_cod,perfil,"
                               "taxa_padronizada_100k,ivs_score,internacoes_100k",
                     "municipio_cod": f"eq.{municipio_cod}"})
     if not alvo:
-        return {"erro": "município fora da base de arquétipos (cobre ~1.700 municípios "
+        return {"erro": "município fora da base de estratos (cobre ~1.700 municípios "
                         "maiores). Use municipios_indicadores para os indicadores diretos."}
     m = alvo[0]
     pares = sd._get("dim_cluster_municipio",
@@ -338,7 +338,7 @@ def comparar_com_pares(municipio_cod: str) -> dict:
     )[:5]
     return {
         "municipio": m["municipio_nome"], "uf": m["uf_sigla"], "codigo": municipio_cod,
-        "arquetipo": m["perfil"], "n_pares": len(pares),
+        "arquetipo": m["perfil"], "estrato_cod": m.get("estrato_cod"), "n_pares": len(pares),
         "metricas": {
             "taxa_padronizada_100k": _stats("taxa_padronizada_100k"),
             "ivs_score": _stats("ivs_score"),
@@ -348,7 +348,9 @@ def comparar_com_pares(municipio_cod: str) -> dict:
             {"municipio": p["municipio_nome"], "uf": p["uf_sigla"],
              "taxa_padronizada_100k": p["taxa_padronizada_100k"]} for p in proximos
         ],
-        "fonte": "SIM/SIH/DataSUS + IBGE Censo 2022; clusters k-means 2023 (dim_cluster_municipio)",
+        "fonte": ("SIM/SIH/DataSUS + IBGE Censo 2022; estratos determinísticos por tercis fixos, "
+                  "2023 (dim_cluster_municipio). O k-means anterior foi reprovado em teste de "
+                  "estabilidade e substituído em 2026-08-29."),
     }
 
 
@@ -361,7 +363,7 @@ def icsap_distancia_dos_pares(municipio_cod: str = "", uf: str = "", top: int = 
     Retorna: pct_icsap do município, mediana dos pares, diferença em pontos
     percentuais, e a tradução — internacoes_acima_pares, leitos_equivalentes_ano
     (leitos que ficariam ocupados o ano inteiro) e custo_associado_reais.
-    Pares = municípios do mesmo arquétipo k-means; sem arquétipo, mesma faixa
+    Pares = municípios do mesmo estrato de saúde; sem estrato, mesma faixa
     populacional e região. Comparar com a média nacional seria injusto.
 
     AO RELATAR, estas ressalvas são obrigatórias — sem elas o número engana:

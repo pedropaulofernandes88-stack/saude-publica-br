@@ -716,14 +716,30 @@ export default function Metodologia() {
 
       <H2 n={16} />
       <p>
-        Agrupamos municípios (população ≥ 20 mil) em cinco perfis por <strong>k-means</strong>
-        sobre três dimensões padronizadas por z-score: mortalidade padronizada por idade (2023),
+        Classificamos municípios (população ≥ 20 mil) em <strong>27 estratos</strong> pelo
+        cruzamento dos tercis de três dimensões: mortalidade padronizada por idade (2023),
         vulnerabilidade-proxy (Censo 2022) e internações por 100 mil hab. (2023). Cada município
-        recebe um rótulo interpretável (ex.: "mortalidade alta, vulnerabilidade média, muita
-        internação"), exibido no boletim. Método de normalização z-score + k-means inspirado no LabSUS.
+        recebe um rótulo interpretável (ex.: &quot;mortalidade alta, vulnerabilidade média, muita
+        internação&quot;), exibido no boletim, e um código legível (<code>M3V2I3</code>). Os cortes
+        dos tercis estão <strong>congelados no repositório</strong>: o estrato de um município é
+        função apenas dos três valores dele, e não da companhia que ele tem na base.
       </p>
       <p>
-        <strong>Cuidado com a falácia ecológica:</strong> clusters, o cruzamento
+        <strong>Por que não é mais k-means.</strong> Até 28 de agosto de 2026 esta seção descrevia
+        um agrupamento por k-means (k=5). Ele foi submetido a teste de estabilidade e reprovado: a
+        silhueta cai monotonicamente a partir de K=2 — sinal de que os dados não têm grumos, e sim
+        um contínuo que o algoritmo era obrigado a cortar em algum lugar —, o índice de Rand
+        ajustado entre reamostragens ficou em <strong>0,571</strong> e{" "}
+        <strong>280 municípios (16%) trocavam de grupo sem que o dado deles mudasse</strong>. Quem
+        consultasse o boletim duas vezes podia ler dois arquétipos diferentes. A estratificação por
+        tercis fixos tem Rand ajustado <strong>1,000 por construção</strong>. Reamostrando a base e
+        recalculando os próprios cortes — teste mais duro, que pergunta o quanto o corte depende da
+        amostra — o Rand ajustado fica em 0,899 e apenas 10 municípios (0,6%) trocariam de estrato
+        em mais da metade das reamostragens. Esses continuam sendo municípios de fronteira; a
+        diferença é que agora eles não se movem sozinhos entre duas visitas.
+      </p>
+      <p>
+        <strong>Cuidado com a falácia ecológica:</strong> estratos, o cruzamento
         vulnerabilidade × mortalidade e demais associações desta base são{" "}
         <em>municipais</em> (agregadas). Uma associação no nível do município não implica
         relação no nível do indivíduo, nem causalidade — servem para descrever padrões e
@@ -744,9 +760,9 @@ export default function Metodologia() {
         ocorreram, quantas eram evitáveis?&quot; — e é bem menos sensível a isso.
       </p>
       <p>
-        <strong>Pares.</strong> A referência é a mediana do <em>arquétipo de saúde</em>
-        do município (agrupamento k-means por mortalidade × vulnerabilidade × internações,
-        seção 14); onde não há arquétipo, usa-se faixa populacional × região. Comparar
+        <strong>Pares.</strong> A referência é a mediana do <em>estrato de saúde</em>
+        do município (tercis fixos de mortalidade × vulnerabilidade × internações,
+        seção 16); onde não há estrato, usa-se faixa populacional × região. Comparar
         com a média nacional seria injusto: municípios diferem em estrutura, não apenas
         em gestão. Municípios com menos de 100 internações no ano ficam fora do cálculo
         da mediana do grupo (proporção instável), mas recebem a própria comparação

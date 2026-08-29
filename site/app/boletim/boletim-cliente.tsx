@@ -69,7 +69,7 @@ function BoletimInner() {
       municipio_cod: `eq.${cod}`,
     }).then((r) => setIvs(r[0] ?? null)).catch(() => {});
     rest<ClusterMunicipio>("dim_cluster_municipio", {
-      select: "municipio_cod,cluster,perfil",
+      select: "municipio_cod,cluster,estrato_cod,perfil",
       municipio_cod: `eq.${cod}`,
     }).then((r) => setCluster(r[0] ?? null)).catch(() => {});
     setIcsap(null);
@@ -183,10 +183,13 @@ function BoletimInner() {
               </p>
               {cluster && (
                 <p className="mt-3 border-t border-ink-200 pt-3 text-sm text-ink-700">
-                  <span className="font-semibold">Arquétipo de saúde:</span> {cluster.perfil}
-                  <span className="ml-2 rounded bg-ink-100 px-2 py-0.5 text-xs text-ink-600">grupo {cluster.cluster + 1}/5</span>
+                  <span className="font-semibold">Estrato de saúde:</span> {cluster.perfil}
+                  <span className="ml-2 rounded bg-ink-100 px-2 py-0.5 text-xs text-ink-600">
+                    {cluster.estrato_cod ? `${cluster.estrato_cod} · ` : ""}estrato {cluster.cluster}/27
+                  </span>
                   <span className="mt-1 block text-xs text-ink-500">
-                    Agrupamento k-means de municípios semelhantes (mortalidade × vulnerabilidade × internações), 2023.
+                    Cruzamento dos tercis de mortalidade × vulnerabilidade × internações (2023), com cortes
+                    fixos. O estrato depende só dos valores deste município — não muda entre consultas.
                   </span>
                 </p>
               )}

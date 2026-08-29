@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-08-23 11:12 UTC
--- Objetos: 201
+-- Extraído em: 2026-08-29 22:25 UTC
+-- Objetos: 204
 -- =============================================================================
 
 
@@ -66,6 +66,7 @@ create table if not exists public.dim_cluster_municipio (
     taxa_padronizada_100k numeric(10,2),
     ivs_score numeric(6,1),
     internacoes_100k numeric(10,1),
+    estrato_cod text,
     constraint dim_cluster_municipio_pkey PRIMARY KEY (municipio_cod)
 );
 
@@ -1127,7 +1128,7 @@ create policy leitura_publica on public.meta_dataset for select to anon, authent
 
 -- ── Views ───────────────────────────────────────────────────────
 
-create or replace view public.mart_icsap_pares with (security_invoker=true) as  WITH parametros AS (
+create or replace view public.mart_icsap_pares with (security_invoker=on) as  WITH parametros AS (
          SELECT sum(mart_internacoes_agravo.valor_normal) / NULLIF(sum(mart_internacoes_agravo.aih_normal), 0)::numeric AS custo_medio,
             sum(mart_internacoes_agravo.dias_permanencia_normal) / NULLIF(sum(mart_internacoes_agravo.aih_normal), 0)::numeric AS permanencia_media
            FROM mart_internacoes_agravo
@@ -1146,7 +1147,7 @@ create or replace view public.mart_icsap_pares with (security_invoker=true) as  
             c.cluster,
             c.perfil,
                 CASE
-                    WHEN c.cluster IS NOT NULL THEN 'k'::text || c.cluster
+                    WHEN c.estrato_cod IS NOT NULL THEN 'estrato:'::text || c.estrato_cod
                     ELSE (i.regiao || '_'::text) ||
                     CASE
                         WHEN i.populacao < 10000 THEN 'ate10k'::text
@@ -1157,7 +1158,7 @@ create or replace view public.mart_icsap_pares with (security_invoker=true) as  
                     END
                 END AS grupo_id,
                 CASE
-                    WHEN c.cluster IS NOT NULL THEN 'arquétipo de saúde (k-means)'::text
+                    WHEN c.estrato_cod IS NOT NULL THEN 'estrato de saúde (tercis fixos)'::text
                     ELSE 'faixa populacional × região'::text
                 END AS criterio_pares
            FROM mart_icsap_municipio i
@@ -1232,7 +1233,13 @@ comment on table public.dim_cid10_capitulo is 'Capítulos da CID-10 (causa bási
 
 comment on table public.dim_cid10_categoria is 'Descrições das categorias CID-10 (3 caracteres).';
 
-comment on table public.dim_cluster_municipio is 'Arquétipos de saúde municipal por k-means (z-score de mortalidade padronizada, vulnerabilidade-proxy e internações/100k hab.). Método inspirado no LabSUS (UFT). Ano de referência: 2023.';
+comment on table public.dim_cluster_municipio is 'Arquétipo (estrato) de saúde municipal: tercis de mortalidade padronizada (SIM 2023), vulnerabilidade-proxy (Censo 2022) e internações/100k (SIH 2023), com cortes congelados no repositório. Determinístico: o estrato depende apenas dos valores do próprio município. Substituiu o k-means em 2026-08-29, reprovado em teste de estabilidade.';
+
+comment on column public.dim_cluster_municipio.cluster is 'Id do estrato, 1..27, derivado como (tercil_mortalidade-1)*9 + (tercil_vulnerabilidade-1)*3 + tercil_internacao. NÃO é rótulo de k-means — o nome da coluna é mantido por compatibilidade de contrato.';
+
+comment on column public.dim_cluster_municipio.estrato_cod is 'Código legível do estrato, ex. M2V3I1 = mortalidade no tercil 2, vulnerabilidade no 3, internação no 1.';
+
+comment on column public.dim_cluster_municipio.perfil is 'Rótulo do estrato em palavras. É 1-para-1 com cluster/estrato_cod — o pipeline aborta se deixar de ser.';
 
 comment on table public.dim_ivs is 'Vulnerabilidade social municipal (PROXY, Censo 2022/IBGE): composição z-score de analfabetismo (t/9543) e falta de água encanada (t/6803). NÃO é o IVS oficial do IPEA. Método z-score inspirado no LabSUS (UFT).';
 
@@ -1290,7 +1297,7 @@ comment on table public.mart_icsap_municipio is 'Internações por Condições S
 
 comment on column public.mart_icsap_municipio.aih_continuacao is 'AIHs de continuacao (IDENT=5) dentro de internacoes_total. Efeito no pct_icsap e pequeno (+0,93% relativo na amostra de 2024): so I69 e G40 da lista brasileira geram continuacao em volume.';
 
-comment on view public.mart_icsap_pares is 'Pares de municipios comparaveis para ICSAP. security_invoker=true: le com a permissao de quem consulta, nao com a do dono (ver V025).';
+comment on view public.mart_icsap_pares is 'Distância de cada município até a mediana dos seus pares em internações sensíveis à atenção primária (ICSAP). Pares = estrato de saúde (tercis fixos de mortalidade × vulnerabilidade × internação); sem estrato, faixa populacional × região. security_invoker=true: lê com a permissão de quem consulta (ver V025). NÃO é economia garantida: alcançar a mediana exige investimento em atenção primária, nem toda ICSAP é evitável, e a associação é ecológica (municipal), não individual.';
 
 comment on table public.mart_internacoes_municipio is 'Internações SUS (SIH/AIH) por município, ano e capítulo CID-10: volume, permanência média, mortalidade intra-hospitalar e custo médio. Fonte: SIH/DataSUS + IBGE.';
 

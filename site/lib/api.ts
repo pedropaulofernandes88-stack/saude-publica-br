@@ -422,10 +422,17 @@ export interface IcsapPares {
   amostra_pequena: boolean;
 }
 
+/**
+ * Estrato de saúde municipal. O nome da tabela e da coluna `cluster` ficou por
+ * compatibilidade — o MCP publicado depende deles —, mas desde 29/08/2026 não
+ * há k-means aqui: `cluster` é o id determinístico do estrato (1..27) e
+ * `estrato_cod` é a leitura em claro dos três tercis (ex.: "M3V2I3").
+ */
 export interface ClusterMunicipio {
   municipio_cod: string;
   uf_sigla: string;
   cluster: number;
+  estrato_cod: string | null;
   perfil: string;
   taxa_padronizada_100k: number | null;
   ivs_score: number | null;

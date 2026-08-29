@@ -150,12 +150,12 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
           <tr>
             <td><code>dim_cluster_municipio</code></td>
             <td>
-              agrupamento municipal por k-means (mortalidade × vulnerabilidade × internações, 2023).{" "}
-              <strong>Em revisão metodológica:</strong> a estabilidade foi medida e reprovada — a silhueta cai a
-              partir de K=2 e o índice de Rand ajustado entre reamostragens fica em 0,571, de modo que 16% dos
-              municípios trocam de grupo sem que o dado deles mude. A versão atual segue publicada para não quebrar
-              quem já a consome, mas <strong>não deve ser usada para classificar município</strong> até a
-              substituição por estratificação determinística.
+              estrato de saúde municipal: cruzamento dos tercis de mortalidade × vulnerabilidade ×
+              internações (2023), em 27 grupos, com os cortes congelados no repositório.{" "}
+              <strong>Determinístico:</strong> o estrato depende só dos valores do próprio município, então
+              a mesma consulta devolve sempre a mesma resposta. Substituiu em 29/08/2026 o agrupamento por
+              k-means, que foi medido e reprovado (índice de Rand ajustado 0,571 entre reamostragens; 16% dos
+              municípios trocavam de grupo sem que o dado deles mudasse).
             </td>
             <td>~1,7 mil</td>
           </tr>
