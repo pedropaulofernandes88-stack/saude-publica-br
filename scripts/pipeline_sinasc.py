@@ -21,9 +21,11 @@ Uso:
 from __future__ import annotations
 
 import argparse
+import io
 import json
 import math
 import os
+import re
 import sys
 import tempfile
 import time
@@ -35,7 +37,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
-from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar
+from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, gravar_checkpoint, listar
 from _publicacao import escrever_parquet
 from _supabase_key import chave_escrita
 
@@ -49,6 +51,23 @@ CKPT = ROOT / "data" / "raw" / "SINASC" / "ckpt"
 
 FTP_HOST = "ftp.datasus.gov.br"
 FTP_DIR = "/dissemin/publicos/SINASC/NOV/DNRES"
+
+# Os DEFINITIVOS por UF param em 2022 no FTP; o PRELIM só tem 2025 e 2026.
+# 2023 e 2024 existem, mas apenas como CSV nacional no portal de dados abertos
+# — mesmo desenho que o SIM já usa (ver pipeline_v2.py). Adivinhar o nome do
+# arquivo deu 403 em quatro tentativas; o caminho certo é ler o recurso na
+# página do conjunto, e não presumir o padrão.
+S3_SINASC = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SINASC/csv"
+
+# UF pelo prefixo do código IBGE. Não depende do arquivo de referência: um
+# município ausente de refs ainda cai na UF certa, em vez de sumir do ano.
+UF_POR_CODIGO = {
+    "11": "RO", "12": "AC", "13": "AM", "14": "RR", "15": "PA", "16": "AP",
+    "17": "TO", "21": "MA", "22": "PI", "23": "CE", "24": "RN", "25": "PB",
+    "26": "PE", "27": "AL", "28": "SE", "29": "BA", "31": "MG", "32": "ES",
+    "33": "RJ", "35": "SP", "41": "PR", "42": "SC", "43": "RS", "50": "MS",
+    "51": "MT", "52": "GO", "53": "DF",
+}
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
 
@@ -68,12 +87,145 @@ def load_env() -> dict[str, str]:
     return env
 
 
-def _process_uf_ano(uf: str, ano: int) -> pd.DataFrame:
+def anos_definitivos_no_ftp() -> set[int]:
+    """Anos com arquivo DEFINITIVO por UF no FTP, lidos da listagem.
+
+    Constante escrita a mao envelhece em silencio: no dia em que o DATASUS
+    publicar o definitivo de 2023, o pipeline tem de migrar sozinho do CSV para
+    o FTP, sem ninguem lembrar de editar um numero.
+    """
+    padrao = re.compile(r"DN[A-Z]{2}(\d{4})\.dbc$", re.IGNORECASE)
+    return {int(m.group(1)) for n in listar(FTP_DIR) if (m := padrao.match(n))}
+
+
+def _agregar_registro(agg: dict, mun: str, peso: str, sem: str, gest: str,
+                      cons: str, consc: str, idm: str) -> None:
+    """Uma DN -> contadores do municipio. Mesma regra para DBC e para CSV.
+
+    Existe para que as duas fontes nao divirjam em definicao: se o criterio de
+    baixo peso mudar aqui, muda para os dois caminhos ao mesmo tempo.
+    """
+    c = agg[mun]
+    c[0] += 1
+    if peso.isdigit() and 0 < int(peso) < 2500:
+        c[1] += 1
+    if sem.isdigit() and 0 < int(sem) < 37:
+        c[2] += 1
+    elif gest in ("1", "2", "3"):        # 1..5 (<22..>=42); 1-3 = <37 sem
+        c[2] += 1
+    if cons.isdigit() and int(cons) >= 7:
+        c[3] += 1
+    elif consc == "4":                   # 4 = 7+ consultas
+        c[3] += 1
+    if idm.isdigit() and 10 <= int(idm) <= 60:
+        c[4] += int(idm)
+        c[5] += 1
+
+
+def preparar_ano_csv(ano: int) -> None:
+    """Baixa o CSV nacional do ano e escreve os MESMOS checkpoints por UF-ano.
+
+    Assim o resto do pipeline nao sabe de onde o ano veio: `build` continua
+    lendo checkpoint por UF, e a conferencia cruzada continua valendo.
+    """
+    CKPT.mkdir(parents=True, exist_ok=True)
+    faltando = [uf for uf in UFS if not (CKPT / f"sinasc_{uf}_{ano}.parquet").exists()]
+    if not faltando:
+        print(f"[sinasc] {ano}: checkpoints de todas as UFs ja existem", flush=True)
+        return
+
+    import csv as _csv
+    import zipfile
+
+    _csv.field_size_limit(10_000_000)
+    url = f"{S3_SINASC}/SINASC_{ano}_csv.zip"
+    cab = requests.head(url, allow_redirects=True, timeout=60)
+    if cab.status_code == 404:
+        raise ArquivoAusente(f"SINASC_{ano}_csv.zip nao existe na origem")
+    cab.raise_for_status()
+    esperado = int(cab.headers["Content-Length"])
+
+    destino = Path(tempfile.gettempdir()) / f"SINASC_{ano}_csv.zip"
+    # Retomada por Range: conexao caida nao pode custar o que ja foi baixado.
+    for tentativa in range(1, 5):
+        ja = destino.stat().st_size if destino.exists() else 0
+        if ja == esperado:
+            break
+        if ja > esperado:
+            destino.unlink()
+            ja = 0
+        try:
+            cabecalho = {"Range": f"bytes={ja}-"} if ja else {}
+            with requests.get(url, stream=True, timeout=600, headers=cabecalho) as r:
+                r.raise_for_status()
+                # 200 a um pedido com Range = servidor ignorou a retomada.
+                modo = "ab" if (ja and r.status_code == 206) else "wb"
+                with open(destino, modo) as fh:
+                    for bloco in r.iter_content(chunk_size=1 << 20):
+                        fh.write(bloco)
+        except (requests.RequestException, OSError) as e:
+            print(f"[sinasc] {ano}: download interrompido ({type(e).__name__}), "
+                  f"tentativa {tentativa}", flush=True)
+    if destino.stat().st_size != esperado:
+        tamanho = destino.stat().st_size
+        destino.unlink(missing_ok=True)
+        raise FalhaDeColeta(f"SINASC {ano}: baixou {tamanho} de {esperado} bytes")
+    print(f"[sinasc] {ano}: CSV nacional {esperado / 1e6:.0f} MB", flush=True)
+
+    agg: dict = defaultdict(lambda: [0, 0, 0, 0, 0, 0])
+    linhas = 0
+    with zipfile.ZipFile(destino) as z:
+        nome = z.namelist()[0]
+        with z.open(nome) as bruto:
+            leitor = _csv.DictReader(
+                io.TextIOWrapper(bruto, encoding="latin-1", newline=""), delimiter=";")
+            for rec in leitor:
+                linhas += 1
+                mun = (rec.get("CODMUNRES") or "").strip()[:6]
+                if len(mun) < 6:
+                    continue
+                _agregar_registro(
+                    agg, mun,
+                    (rec.get("PESO") or "").strip(),
+                    (rec.get("SEMAGESTAC") or "").strip(),
+                    (rec.get("GESTACAO") or "").strip(),
+                    (rec.get("CONSPRENAT") or "").strip(),
+                    (rec.get("CONSULTAS") or "").strip(),
+                    (rec.get("IDADEMAE") or "").strip())
+    destino.unlink(missing_ok=True)
+
+    df = pd.DataFrame(
+        [(m, ano, c[0], c[1], c[2], c[3], c[4], c[5]) for m, c in agg.items()],
+        columns=["municipio_cod", "ano", "nascidos", "baixo_peso", "prematuro",
+                 "prenatal_7mais", "idade_mae_soma", "idade_mae_n"])
+    df["uf"] = df.municipio_cod.str[:2].map(UF_POR_CODIGO)
+    sem_uf = int(df[df.uf.isna()].nascidos.sum())
+    if sem_uf:
+        print(f"[sinasc] {ano}: {sem_uf:,} nascidos com codigo de UF desconhecido",
+              flush=True)
+
+    fonte = f"SINASC_{ano}.csv bytes={esperado}"
+    for uf in UFS:
+        parte = df[df.uf == uf].drop(columns="uf")
+        if parte.empty:
+            # UF sem nenhum nascido no arquivo nacional e defeito do arquivo,
+            # nao ausencia legitima -- nao gravar checkpoint vazio por cima.
+            raise FalhaDeColeta(f"SINASC {ano}: {uf} sem registro no CSV nacional")
+        gravar_checkpoint(parte, CKPT / f"sinasc_{uf}_{ano}.parquet", fonte=fonte)
+    print(f"[sinasc] {ano}: {linhas:,} DN lidas -> {int(df.nascidos.sum()):,} nascidos "
+          f"em {len(UFS)} checkpoints (fonte CSV)", flush=True)
+
+
+def _process_uf_ano(uf: str, ano: int, via_csv: bool = False) -> pd.DataFrame:
     """Um DN{UF}{ANO}.dbc → df agregado por município. Checkpoint resumível."""
     CKPT.mkdir(parents=True, exist_ok=True)
     ckpt = CKPT / f"sinasc_{uf}_{ano}.parquet"
     if ckpt.exists():
         return pd.read_parquet(ckpt)
+    if via_csv:
+        # O CSV nacional ja deveria ter escrito este checkpoint. Faltar aqui e
+        # falha, nao ausencia: devolver vazio sumiria com a UF do ano.
+        raise FalhaDeColeta(f"SINASC {ano}: checkpoint de {uf} nao veio do CSV")
 
     import subprocess
     import dbfread
@@ -148,9 +300,15 @@ def _process_uf_ano(uf: str, ano: int) -> pd.DataFrame:
 
 def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     partes = []
+    no_ftp = anos_definitivos_no_ftp()
+    print(f"[sinasc] definitivos no FTP: {min(no_ftp)}-{max(no_ftp)}", flush=True)
     for a in anos:
+        via_csv = a not in no_ftp
+        if via_csv:
+            print(f"[sinasc] {a}: sem definitivo no FTP, usando o CSV nacional", flush=True)
+            preparar_ano_csv(a)
         with ThreadPoolExecutor(max_workers=workers) as ex:
-            futs = {ex.submit(_process_uf_ano, uf, a): uf for uf in UFS}
+            futs = {ex.submit(_process_uf_ano, uf, a, via_csv): uf for uf in UFS}
             for fut in as_completed(futs):
                 d = fut.result()
                 if not d.empty:
@@ -243,7 +401,7 @@ def main():
     ld.load("mart_natalidade_municipio", nat)
     ld.load("mart_mortalidade_infantil_uf", tmi)
     meta = pd.DataFrame([
-        ("fonte_sinasc", "SINASC/DataSUS — DN (nascidos vivos), FTP NOV/DNRES"),
+        ("fonte_sinasc", "SINASC/DataSUS — DN (nascidos vivos): FTP NOV/DNRES por UF até o último ano definitivo; CSV nacional do portal de dados abertos nos anos ainda sem definitivo"),
         ("sinasc_cobertura", f"{min(anos)}–{max(anos)}"),
         ("sinasc_definicoes", "Nascidos por residência (CODMUNRES); baixo peso<2500g; prematuro<37sem; pré-natal 7+ consultas; TMI=óbitos<1ano(SIM)/nascidos*1000"),
         ("gerado_em", datetime.now().isoformat(timespec="seconds")),
