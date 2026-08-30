@@ -68,6 +68,7 @@ const TITULOS: [grupo: string, titulos: EntradaTitulo[]][] = [
       "Agravos traçadores e visão hospitalar (SIH 2024)",
       "Mortalidade ajustada (HSMR), permanência esperada e projeção de demanda",
       "Cobertura da Atenção Primária (e-Gestor AB)",
+      "Vacinação (PNI/RNDS) e os limites da cobertura municipal",
     ],
   ],
   [

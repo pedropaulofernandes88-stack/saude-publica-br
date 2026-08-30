@@ -138,6 +138,33 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>54</td>
           </tr>
           <tr>
+            <td><code>mart_vacinacao_municipio</code></td>
+            <td>
+              doses aplicadas do PNI por município, ano e imunobiológico (2023–2026, alimentado pela RNDS).{" "}
+              <strong>É contagem, não cobertura:</strong> a taxa por município foi construída, testada e
+              reprovada — a cobertura mediana cai de 102,7% nos municípios com 50 a 100 nascidos para 86,2%
+              nos com mais de 5 mil, o que é viés de denominador, não variação real.
+            </td>
+            <td>~933 mil</td>
+          </tr>
+          <tr>
+            <td><code>mart_vacinacao_uf_mes</code></td>
+            <td>
+              doses aplicadas por competência mensal, UF e imunobiológico. É a série mais atual do
+              projeto — vai até o mês passado.
+            </td>
+            <td>~72 mil</td>
+          </tr>
+          <tr>
+            <td><code>mart_cobertura_vacinal_uf</code></td>
+            <td>
+              cobertura vacinal em menores de 1 ano por UF e ano, só onde há nascidos vivos definitivos
+              (2023–2024) e só para cinco indicadores da atenção básica. BCG e hepatite B ao nascer ficam
+              de fora: aplicadas na maternidade, não têm denominador adequado nem por UF.
+            </td>
+            <td>270</td>
+          </tr>
+          <tr>
             <td><code>mart_qualidade_registro_municipio</code></td>
             <td>índice de confiabilidade do registro de óbitos por município (% causas mal-definidas, 2022–2024) com classificação Bom/Regular/Ruim</td>
             <td>5.595</td>

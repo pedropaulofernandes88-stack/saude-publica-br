@@ -112,6 +112,13 @@ TABELAS = [
     "mart_vazio_assistencial_municipio",
     "mart_cobertura_icsap_municipio",
     "mart_equidade_aps_municipio",
+    # Vacinacao (V033). O recorte municipal e CONTAGEM de doses, nao taxa:
+    # cobertura municipal foi construida, testada e reprovada por vies
+    # sistematico de denominador. Cobertura so por UF, e so em cinco
+    # indicadores da atencao basica.
+    "mart_vacinacao_municipio",
+    "mart_vacinacao_uf_mes",
+    "mart_cobertura_vacinal_uf",
     "dim_municipio",
     "dim_populacao",
     "dim_pop_faixa",

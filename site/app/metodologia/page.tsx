@@ -716,6 +716,74 @@ export default function Metodologia() {
 
       <H2 n={16} />
       <p>
+        Doses aplicadas do <strong>Programa Nacional de Imunizações</strong>, alimentadas pela{" "}
+        <strong>Rede Nacional de Dados em Saúde (RNDS)</strong>. A RNDS em si não é fonte
+        consumível — exige CNES, certificado ICP-Brasil e credenciamento no DATASUS, e trafega
+        registro individual identificado. O que é aberto é o derivado: um arquivo mensal com
+        registro individual <em>pseudonimizado</em>, publicado no portal de dados abertos do SUS.
+        Processamos janeiro de 2023 a agosto de 2026 — <strong>638 milhões de doses</strong>, lidas
+        em streaming sem materializar os ~320 GB de CSV.
+      </p>
+      <p>
+        <strong>É a série mais atual do projeto.</strong> O arquivo de agosto de 2026 estava
+        disponível em agosto de 2026: cerca de um mês de defasagem, contra três anos da mortalidade
+        consolidada.
+      </p>
+      <p>
+        <strong>Integridade.</strong> Quarenta e quatro arquivos mensais independentes, cada um
+        conferido: zero documentos duplicados dentro do mês, zero duplicados entre competências
+        distintas, zero registros fora da própria competência, e os 5.571 municípios presentes em
+        todos os meses. Entre 1,11% e 1,81% das doses por mês não trazem município do paciente.
+      </p>
+      <p>
+        <strong>Limpeza do vocabulário.</strong> O campo de imunobiológico traz 115 rótulos e nem
+        todos são vacina: 11 são diluentes (<code>DILBCG</code>, <code>NaCl 0,9%</code>) e 18 são
+        soros e imunoglobulinas (<code>SAT</code>, <code>IGHAT</code>), que são profilaxia
+        pós-exposição. Outros três (<code>FTp</code>, <code>Fta</code>, <code>Tétano</code>) não
+        classificamos com segurança e ficam de fora, listados em vez de sumirem em silêncio. Ao
+        todo 1,47% das doses saem da contagem de vacinação.
+      </p>
+      <p>
+        <strong>Cobertura vacinal municipal: testada e reprovada.</strong> É a tabela que se
+        esperaria aqui, e ela não existe de propósito. O critério foi fixado antes de olhar o
+        resultado: correlação abaixo de 0,50 entre 2023 e 2024 significaria ruído. Deu{" "}
+        <strong>0,591</strong>. O detalhe por porte mostra o motivo — a cobertura mediana cai de
+        102,7% nos municípios com 50 a 100 nascidos para 86,2% nos com mais de 5 mil. Ruído não tem
+        direção; isso é viés sistemático de denominador. Mesmo acima de 300 nascidos, onde a
+        correlação passa de 0,70, quase 30% dos municípios seguem acima de 100%: onde o indicador é
+        estável, o nível continua errado.
+      </p>
+      <p>
+        A hipótese óbvia foi testada e <em>refutada</em>. Suspeitávamos de descasamento geográfico —
+        o numerador conta a dose pela residência declarada na vacinação, o denominador conta o
+        nascimento pela residência da mãe no parto. A mediana dos municípios aplica 15,8% das doses
+        dos seus residentes fora do próprio território, mas a correlação disso com o excesso de
+        cobertura é <strong>+0,002</strong>. Não explica nada, porque o numerador já é por
+        residência. Também comparamos BCG (aplicada na maternidade) com pentavalente (aplicada na
+        unidade básica): se o problema fosse o local de nascimento, a diferença cresceria nos
+        municípios pequenos — ela fica entre 0,8 e 2,6 pontos em todas as faixas de porte.
+      </p>
+      <p>
+        Por isso o recorte municipal publicado é <strong>contagem de doses</strong>, não taxa.
+        Contagem não depende de denominador e não herda nada disso. Cobertura sai apenas{" "}
+        <strong>por UF</strong>, apenas nos anos com nascidos vivos definitivos (2023 e 2024) e
+        apenas para cinco indicadores da atenção básica. Cada indicador declara qual tipo de dose
+        conta: somar tipos diferentes conta a mesma criança duas vezes, e um conjunto genérico
+        produziu 110,6% de cobertura de BCG. Cobertura acima de 100% é usada como guarda automática.
+        BCG e hepatite B ao nascer ficam de fora mesmo por UF — aplicadas na maternidade, chegam a
+        127,8% no Ceará e 121,0% em Alagoas em 2024, enquanto as cinco de atenção básica ficam
+        contidas em 104,2%.
+      </p>
+      <p>
+        <strong>Incerteza que permanece.</strong> A composição do indicador move o número: incluir
+        hexavalente e pentavalente acelular na cobertura de pentavalente levou 2024 de 92,2% para
+        96,4% — quatro pontos por uma decisão de rótulo. E o arquivo inclui doses de
+        estabelecimentos privados integrados à RNDS, sem que saibamos se a cobertura oficial as
+        considera. As duas ficam registradas em vez de escolhidas em silêncio.
+      </p>
+
+      <H2 n={17} />
+      <p>
         Classificamos municípios (população ≥ 20 mil) em <strong>27 estratos</strong> pelo
         cruzamento dos tercis de três dimensões: mortalidade padronizada por idade (2023),
         vulnerabilidade-proxy (Censo 2022) e internações por 100 mil hab. (2023). Cada município
@@ -746,7 +814,7 @@ export default function Metodologia() {
         levantar hipóteses, não para inferir risco individual.
       </p>
 
-      <H2 n={17} />
+      <H2 n={18} />
       <p>
         Traduz o indicador ICSAP na pergunta que um gestor de fato faz: <em>quanto
         estou acima de municípios comparáveis, e o que isso representa?</em>
@@ -762,7 +830,7 @@ export default function Metodologia() {
       <p>
         <strong>Pares.</strong> A referência é a mediana do <em>estrato de saúde</em>
         do município (tercis fixos de mortalidade × vulnerabilidade × internações,
-        seção 16); onde não há estrato, usa-se faixa populacional × região. Comparar
+        seção 17); onde não há estrato, usa-se faixa populacional × região. Comparar
         com a média nacional seria injusto: municípios diferem em estrutura, não apenas
         em gestão. Municípios com menos de 100 internações no ano ficam fora do cálculo
         da mediana do grupo (proporção instável), mas recebem a própria comparação
@@ -806,7 +874,7 @@ export default function Metodologia() {
           <em>direção oposta</em> e por outro mecanismo: ter leito local{" "}
           <strong>quase dobra</strong> a internação por ICSAP (+85% no 3º quartil de porte)
           sem alterar as demais. Não é a eletiva que some — é a internação sensível que
-          <em> aparece</em> quando existe leito na cidade. Detalhes na seção 19.
+          <em> aparece</em> quando existe leito na cidade. Detalhes na seção 20.
         </li>
       </ul>
       <p>
@@ -814,7 +882,7 @@ export default function Metodologia() {
         municipal e na ferramenta MCP <code>icsap_distancia_dos_pares</code>.
       </p>
 
-      <H2 n={18} />
+      <H2 n={19} />
       <p>
         Exibido como KPI no <a href="/mapa/">mapa</a>. É a primeira camada de{" "}
         <strong>oferta</strong> da plataforma: até aqui todos os indicadores contavam{" "}
@@ -899,7 +967,7 @@ export default function Metodologia() {
         Reprodutível em <code>scripts/pipeline_cnes_leitos.py</code>.
       </p>
 
-      <H2 n={19} />
+      <H2 n={20} />
       <p>
         Com a camada de leitos (§18) foi possível testar uma advertência que esta
         metodologia carregava desde o início <em>sem nunca ter sido medida</em>: a de que
@@ -965,7 +1033,7 @@ export default function Metodologia() {
         <code>mart_leitos_icsap_municipio</code>.
       </p>
 
-      <H2 n={20} />
+      <H2 n={21} />
       <p>
         1.994 municípios (35,8% em 2023) não têm nenhum leito hospitalar local. A pergunta
         óbvia — isso mata mais gente? — exige separar duas hipóteses com implicações opostas:
@@ -1007,7 +1075,7 @@ export default function Metodologia() {
         <code>mart_vazio_assistencial_municipio</code>.
       </p>
 
-      <H2 n={21} />
+      <H2 n={22} />
       <p>
         Até aqui a plataforma media <em>desfecho</em> (mortalidade, ICSAP, HSMR) e{" "}
         <em>oferta física</em> (leitos), nunca o <strong>insumo financeiro</strong>. O{" "}
@@ -1063,7 +1131,7 @@ export default function Metodologia() {
         , cap. SIOPS.
       </p>
 
-      <H2 n={22} />
+      <H2 n={23} />
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas

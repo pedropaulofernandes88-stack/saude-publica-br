@@ -53,7 +53,7 @@ export default function Home() {
       <section className="border-b border-ink-200 bg-white">
         <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 sm:py-20">
           <p className="text-sm font-semibold uppercase tracking-widest text-accent-700">
-            Dados abertos · nove fontes oficiais do SUS e do IBGE
+            Dados abertos · dez fontes oficiais do SUS e do IBGE
           </p>
           <h1 className="mt-3 max-w-3xl font-serif text-4xl font-semibold leading-tight tracking-tight text-ink-950 sm:text-5xl">
             A saúde do Brasil em dados, acessível para a pesquisa.
@@ -115,7 +115,7 @@ export default function Home() {
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["36 tabelas · 9 fontes",
+              ["39 tabelas · 10 fontes",
                "publicadas em Parquet com SHA-256 por arquivo e DOI citável"],
               ["547 testes",
                "automatizados a cada alteração, com o banco reconstruído do zero no CI"],
