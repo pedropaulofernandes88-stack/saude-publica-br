@@ -222,6 +222,7 @@ def carregar_dados(cur, man, env: dict, amostra: int | None, quieto: bool) -> in
     if amostra:
         tabelas = tabelas[:amostra]
     total = 0
+    carregadas = 0
     for nome in tabelas:
         if not man.tabelas[nome].servida:
             # Publicada em Parquet, fora do Postgres por desenho (ver V034).
@@ -250,9 +251,11 @@ def carregar_dados(cur, man, env: dict, amostra: int | None, quieto: bool) -> in
         ) as copy:
             copy.write(buf.read())
         total += len(df)
+        carregadas += 1
         if not quieto:
             print(f"      {nome}: {len(df):,} linhas", flush=True)
-    print(f"[3/4] dados carregados: {total:,} linhas em {len(tabelas)} tabelas", flush=True)
+    print(f"[3/4] dados carregados: {total:,} linhas em {carregadas} tabelas "
+          f"({len(tabelas)} no manifesto: view e não servidas não carregam)", flush=True)
     return total
 
 

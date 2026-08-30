@@ -274,10 +274,15 @@ vem de `schema.sql`; o conteúdo vem dos Parquet descritos em
 ### O rebuild
 
 `scripts/reconstruir.py` levanta um Postgres 17 descartável no runner, aplica as
-200 instruções do `schema.sql` e carrega os Parquet do manifesto. Em **48
-segundos** ele verifica 4,2 milhões de linhas em 36 tabelas, mais 36 policies,
-58 comentários, 10 funções, 37 tabelas com RLS, o schema `alertas` e o
+213 instruções do `schema.sql` e carrega os Parquet do manifesto. Em **51
+segundos** ele verifica 4,37 milhões de linhas, mais 38 policies, 63
+comentários, 11 funções, 39 tabelas com RLS, o schema `alertas` e o
 `security_invoker` da view.
+
+O manifesto tem 39 tabelas e o rebuild carrega 37: `mart_icsap_pares` é view e
+se materializa sozinha, e `mart_vacinacao_municipio` é publicada sem ser
+servida (V034). Para essas duas a checagem se inverte — a view precisa
+materializar linhas, e a não servida precisa **não** existir no esquema.
 
 As expectativas são **derivadas do próprio `schema.sql` aplicado**, não de
 constantes: a checagem acompanha o esquema em vez de envelhecer com ele.
