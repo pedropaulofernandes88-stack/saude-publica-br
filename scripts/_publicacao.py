@@ -156,6 +156,13 @@ class Tabela:
     publicada_em: str                # id da publicação onde este sha entrou
     competencia_min: str | None = None
     competencia_max: str | None = None
+    # Publicada NÃO implica servida. O eixo canônico do projeto é o Parquet
+    # datado; o Postgres é cache reconstruível e tem orçamento finito (a guarda
+    # do diagnóstico corta em 700 MB). Uma tabela grande cujo valor está no
+    # download — e que nenhuma tela consulta — cabe no manifesto, no Storage e
+    # no checksum sem ocupar o cache. `servida=False` diz isso explicitamente,
+    # em vez de deixar a ausência parecer defeito para quem confere as camadas.
+    servida: bool = True
 
     def caminho_historico(self) -> str:
         return f"hist/{self.publicada_em}/{self.nome}.parquet"
@@ -413,10 +420,18 @@ def _competencias(df: pd.DataFrame) -> tuple[str | None, str | None]:
     return None, None
 
 
+# Publicadas em Parquet, mas deliberadamente FORA do Postgres.
+# mart_vacinacao_municipio custa 119 MB servida (68 MB de heap, 45 MB de
+# índices) e empurrava o banco de 622 MB para 779 MB, acima do limite de 700.
+# Nenhuma tela a consulta; o valor dela é o download e o checksum. Ver V034.
+NAO_SERVIDAS = frozenset({"mart_vacinacao_municipio"})
+
+
 def descrever(nome: str, caminho: Path, origem: str, id_pub: str) -> Tabela:
     df = pd.read_parquet(caminho)
     cmin, cmax = _competencias(df)
     return Tabela(
+        servida=nome not in NAO_SERVIDAS,
         nome=nome,
         linhas=len(df),
         bytes=caminho.stat().st_size,

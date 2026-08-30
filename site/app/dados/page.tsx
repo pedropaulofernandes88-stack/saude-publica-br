@@ -141,6 +141,9 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td><code>mart_vacinacao_municipio</code></td>
             <td>
               doses aplicadas do PNI por município, ano e imunobiológico (2023–2026, alimentado pela RNDS).{" "}
+              <strong>Só por download</strong> — é a maior das três e nenhuma tela a consulta, então fica
+              fora do banco servido pela API para caber no orçamento de armazenamento; o Parquet, o
+              checksum e o histórico continuam completos.{" "}
               <strong>É contagem, não cobertura:</strong> a taxa por município foi construída, testada e
               reprovada — a cobertura mediana cai de 102,7% nos municípios com 50 a 100 nascidos para 86,2%
               nos com mais de 5 mil, o que é viés de denominador, não variação real.

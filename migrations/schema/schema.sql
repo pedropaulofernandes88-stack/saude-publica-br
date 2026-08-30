@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-08-30 17:46 UTC
--- Objetos: 219
+-- Extraído em: 2026-08-30 22:20 UTC
+-- Objetos: 213
 -- =============================================================================
 
 
@@ -572,17 +572,6 @@ create table if not exists public.mart_siops_municipio (
     constraint mart_siops_municipio_pkey PRIMARY KEY (municipio_cod, ano)
 );
 
-create table if not exists public.mart_vacinacao_municipio (
-    municipio_cod text not null,
-    municipio_nome text,
-    uf_sigla text not null,
-    regiao text,
-    ano smallint not null,
-    imunobiologico text not null,
-    doses integer not null,
-    constraint mart_vacinacao_municipio_pkey PRIMARY KEY (municipio_cod, ano, imunobiologico)
-);
-
 create table if not exists public.mart_vacinacao_uf_mes (
     competencia text not null,
     uf_sigla text not null,
@@ -662,10 +651,6 @@ CREATE INDEX idx_nat_uf_ano ON public.mart_natalidade_municipio USING btree (uf_
 CREATE INDEX idx_siops_ano_gasto ON public.mart_siops_municipio USING btree (ano, gasto_proprio_saude_hab);
 
 CREATE INDEX idx_siops_uf_ano ON public.mart_siops_municipio USING btree (uf_sigla, ano);
-
-CREATE INDEX idx_vac_mun_imuno ON public.mart_vacinacao_municipio USING btree (imunobiologico, ano);
-
-CREATE INDEX idx_vac_mun_uf_ano ON public.mart_vacinacao_municipio USING btree (uf_sigla, ano);
 
 CREATE INDEX idx_vac_ufmes_comp ON public.mart_vacinacao_uf_mes USING btree (competencia);
 
@@ -1083,8 +1068,6 @@ alter table public.mart_saude_suplementar_municipio enable row level security;
 
 alter table public.mart_siops_municipio enable row level security;
 
-alter table public.mart_vacinacao_municipio enable row level security;
-
 alter table public.mart_vacinacao_uf_mes enable row level security;
 
 alter table public.mart_vazio_assistencial_municipio enable row level security;
@@ -1163,8 +1146,6 @@ create policy leitura_publica on public.mart_qualidade_registro_municipio for se
 create policy leitura_publica on public.mart_saude_suplementar_municipio for select to public using (true);
 
 create policy siops_leitura_publica on public.mart_siops_municipio for select to public using (true);
-
-create policy leitura_publica on public.mart_vacinacao_municipio for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_vacinacao_uf_mes for select to anon, authenticated using (true);
 
@@ -1393,8 +1374,6 @@ comment on column public.mart_siops_municipio.abaixo_do_minimo_ec29 is 'TRUE se 
 comment on column public.mart_siops_municipio.gasto_proprio_saude_hab is 'Despesa com recursos proprios em saude por habitante (R$). Oscila muito em municipio pequeno.';
 
 comment on column public.mart_siops_municipio.pct_receita_propria_saude is 'Percentual da receita propria aplicado em ASPS. Piso constitucional de 15% (EC 29 / LC 141).';
-
-comment on table public.mart_vacinacao_municipio is 'Doses aplicadas do PNI (alimentado pela RNDS) por municipio, ano e imunobiologico. CONTAGEM, nao taxa: cobertura municipal foi testada e reprovada por vies sistematico de denominador (V033).';
 
 comment on table public.mart_vacinacao_uf_mes is 'Doses aplicadas do PNI por competencia mensal, UF e imunobiologico. Fonte mais atual do projeto, com cerca de um mes de defasagem.';
 

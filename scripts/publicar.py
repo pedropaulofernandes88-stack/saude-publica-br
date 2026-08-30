@@ -47,6 +47,7 @@ from _publicacao import (  # noqa: E402
     MARTS,
     ORIGEM_DESCONHECIDA,
     ORIGEM_VIEW,
+    NAO_SERVIDAS,
     Manifesto,
     baixar_do_storage,
     carregar_env,
@@ -171,6 +172,16 @@ def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
     para todo arquivo local afirmaria uma linhagem falsa.
     """
     local = MARTS / f"{tabela}.parquet"
+
+    if tabela in NAO_SERVIDAS:
+        # Publicada em Parquet, fora do Postgres por desenho (V034). Conferir
+        # contra o banco aqui seria conferir contra o que não existe — e a
+        # comparação de linhas, que é a guarda para as demais, não se aplica.
+        if not local.exists():
+            return None
+        return local, (origem_do_parquet(local) or origem_registrada(tabela)
+                       or ORIGEM_DESCONHECIDA)
+
     n_banco = contar_no_postgres(tabela, env)
 
     if local.exists():

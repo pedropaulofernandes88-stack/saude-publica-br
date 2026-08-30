@@ -1,0 +1,40 @@
+-- =============================================================================
+-- V034 — mart_vacinacao_municipio sai do Postgres (segue publicada em Parquet)
+-- =============================================================================
+--
+-- A V033 carregou as três tabelas de vacinação no banco. A guarda de tamanho do
+-- `diagnostico_banco.py` reprovou na primeira execução seguinte:
+--
+--     ❌ banco em 779 MB, acima do limite de 700 MB
+--
+-- A tabela municipal responde por 119 MB disso — 68 MB de heap e 45 MB de
+-- índices, para 932.654 linhas. O banco vinha de 622 MB.
+--
+-- A guarda estava certa, e silenciá-la subindo o limite trocaria uma restrição
+-- real por um número mais confortável. Então quem sai é a tabela.
+--
+-- POR QUE ESTA E NÃO OUTRA
+--
+-- O eixo canônico do projeto é o Parquet datado; o Postgres é cache
+-- reconstruível. `mart_vacinacao_municipio` é o caso que melhor se encaixa
+-- nisso: é a maior das três, nenhuma tela do site a consulta, e o valor dela
+-- está no download com checksum e DOI — que continuam existindo. As outras
+-- duas ficam: `mart_vacinacao_uf_mes` (7,4 MB) carrega a atualidade mensal, e
+-- `mart_cobertura_vacinal_uf` (96 kB) é minúscula.
+--
+-- Alternativas medidas e descartadas: cortar 2023 economizaria ~30 MB, remover
+-- as colunas desnormalizadas ~30 MB, e derrubar os dois índices secundários
+-- 13 MB. Nenhuma combinação chegava com folga aos 700 MB, e todas mutilavam o
+-- dado publicado em vez de mover onde ele é servido.
+--
+-- O manifesto passa a marcar a tabela como `servida: false`. Sem isso a
+-- ausência pareceria defeito para `validar_camadas.py` e `reconstruir.py`, que
+-- iteram o manifesto — os dois agora conferem o contrário: que ela NÃO está no
+-- banco. Se reaparecer, alguém a recarregou sem atualizar o contrato.
+--
+-- Reversão: recriar pela V033 e recarregar com
+--           scripts/pipeline_pni_marts.py — lembrando que o banco volta a
+--           passar de 700 MB.
+-- =============================================================================
+
+DROP TABLE IF EXISTS public.mart_vacinacao_municipio;

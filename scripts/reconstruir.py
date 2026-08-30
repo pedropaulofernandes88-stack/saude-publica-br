@@ -223,6 +223,11 @@ def carregar_dados(cur, man, env: dict, amostra: int | None, quieto: bool) -> in
         tabelas = tabelas[:amostra]
     total = 0
     for nome in tabelas:
+        if not man.tabelas[nome].servida:
+            # Publicada em Parquet, fora do Postgres por desenho (ver V034).
+            if not quieto:
+                print(f"      {nome}: publicada sem ser servida, não carregada", flush=True)
+            continue
         # A view é derivada: ela se materializa sozinha a partir das tabelas.
         # Tentar carregá-la seria escrever numa view sem trigger.
         cur.execute("select relkind from pg_class c join pg_namespace n "
@@ -289,6 +294,11 @@ def conferir(cur, man, amostra: int | None) -> None:
         cur.execute("select relkind from pg_class c join pg_namespace n "
                     "on n.oid=c.relnamespace where n.nspname='public' and c.relname=%s", (nome,))
         linha = cur.fetchone()
+        if not man.tabelas[nome].servida:
+            # O esquema NÃO deve criá-la: se existir, o contrato divergiu.
+            check(f"{nome}: ausente do esquema (não servida)", not linha,
+                  "existe no banco reconstruído" if linha else "ausente, como esperado")
+            continue
         if not check(f"{nome}: objeto existe", bool(linha)):
             continue
         if linha[0] != "r":

@@ -115,6 +115,18 @@ def conferir_storage(man, env: dict, rapido: bool) -> None:
 def conferir_postgres(man, env: dict) -> None:
     print("\n── manifesto → Postgres ─────────────────────────────────────")
     for nome, t in sorted(man.tabelas.items()):
+        if not t.servida:
+            # Ausência aqui é o estado DESEJADO, e por isso vira checagem
+            # positiva: se a tabela reaparecer na API, alguém a recarregou sem
+            # atualizar o contrato, e o orçamento do banco estoura em silêncio.
+            try:
+                n = contar_no_postgres(nome, env)
+            except Exception:
+                check(f"{nome}: publicada sem ser servida (esperado)", True, "ausente da API")
+                continue
+            check(f"{nome}: publicada sem ser servida (esperado)", False,
+                  f"reapareceu na API com {n:,} linhas")
+            continue
         try:
             n = contar_no_postgres(nome, env)
         except Exception as exc:
@@ -170,8 +182,13 @@ def conferir_cobertura(man, env: dict) -> None:
           not sem_arquivo,
           f"{len(sem_arquivo)} sem arquivo: {', '.join(sem_arquivo[:6])}"
           + ("…" if len(sem_arquivo) > 6 else ""))
+    # As marcadas `servida: false` estão fora da API de propósito (V034) e não
+    # são fantasmas: fantasma é a tabela que o manifesto promete servir e a API
+    # não tem. A checagem oposta — que elas continuem ausentes — é feita em
+    # `conferir_postgres`.
+    publicadas = {n for n, t in man.tabelas.items() if t.servida}
     fantasmas = sorted(publicadas - servidas)
-    check("toda tabela publicada existe na API", not fantasmas,
+    check("toda tabela publicada e servida existe na API", not fantasmas,
           f"{len(fantasmas)} fantasmas: {', '.join(fantasmas[:6])}")
 
 
