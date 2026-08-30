@@ -325,8 +325,15 @@ def conferir(cur, man, amostra: int | None) -> None:
     (opts,) = cur.fetchone() or (None,)
     # A V025 impôs security_invoker; um rebuild que o perdesse desfaria a
     # correção sem falhar em nada mais.
-    check("view mantém security_invoker", bool(opts) and "security_invoker=true" in opts,
-          str(opts))
+    #
+    # Compara o VALOR, não a grafia: o Postgres guarda a opção booleana como
+    # foi escrita, e `on`, `true` e `1` protegem igual. A V032 recriou a view
+    # escrevendo `on`, e a checagem literal reprovou um banco que estava
+    # correto — falso positivo é tão caro quanto falso negativo numa guarda.
+    ligado = bool(opts) and any(
+        o.split("=", 1)[1].lower() in ("on", "true", "1")
+        for o in opts if o.startswith("security_invoker="))
+    check("view mantém security_invoker", ligado, str(opts))
 
     cur.execute("select count(*) from pg_description d join pg_class c on c.oid=d.objoid "
                 "join pg_namespace n on n.oid=c.relnamespace "
