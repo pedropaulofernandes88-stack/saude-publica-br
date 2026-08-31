@@ -376,7 +376,34 @@ export default function Metodologia() {
           indicador-proxy da qualidade da atenção básica: quanto maior, mais internações que
           bom acesso à atenção primária poderia ter evitado. A aproximação por 3 caracteres
           difere marginalmente da lista oficial (que tem exceções em 4 caracteres) e tende a
-          incluir um pouco a mais (leve sobrecontagem).
+          incluir um pouco a mais (leve sobrecontagem) — <code>G00</code>, por exemplo, abrange
+          toda meningite bacteriana onde a portaria pede apenas <code>G00.0</code>.
+        </li>
+        <li>
+          <strong>Correção de 30 de agosto de 2026.</strong> O grupo 1 da lista estava
+          incompleto: faltavam catorze códigos — tuberculose pulmonar e outras
+          (<code>A15</code>, <code>A16</code>, <code>A18</code>), sífilis
+          (<code>A51</code>–<code>A53</code>), malária (<code>B50</code>–<code>B54</code>) e
+          febre reumática (<code>I00</code>–<code>I02</code>). Medido antes de corrigir, a
+          lista antiga capturava só <strong>20,7% do grupo 1 em São Paulo e 14,3% no Rio de
+          Janeiro</strong> em 2024, porque tuberculose pulmonar sozinha é cerca de 65% do
+          grupo. O efeito no %ICSAP total é pequeno — entre <strong>+1,04% e +1,21%</strong>
+          relativos, conforme o ano —, mas é espacialmente estruturado (tuberculose urbana,
+          malária amazônica), então os achados publicados foram <em>refeitos</em> sobre o dado
+          corrigido, não presumidos: leitos × %ICSAP passou de +0,32 para <strong>+0,319</strong>
+          (parcial, de +0,34 para +0,340) e cobertura da APS × ICSAP de +0,004 para
+          <strong>+0,002</strong>. Nenhuma conclusão muda. Todos os checkpoints foram
+          recontados da fonte, porque acrescentar código sem recontar deixaria a série antiga
+          por baixo.
+        </li>
+        <li>
+          <strong>Grupo 1 — imunopreveníveis</strong> (<code>internacoes_g1</code>,
+          <code>g1_100k</code>): internações por doenças preveníveis por imunização e condições
+          sensíveis, publicadas em separado desde a mesma data. São <strong>1,3% a 1,5% do
+          ICSAP</strong> (38.535 internações em 2024) e existem para permitir o cruzamento com
+          as doses aplicadas do PNI — o desfecho populacional do lado da vacinação. Como todo
+          o resto desta base, a associação é <em>municipal</em> e não sustenta inferência
+          individual.
         </li>
         <li>
           <strong>Gasto potencialmente evitável (estimativa):</strong> nº de internações ICSAP

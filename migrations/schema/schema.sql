@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-08-30 22:20 UTC
--- Objetos: 213
+-- Extraído em: 2026-08-31 18:32 UTC
+-- Objetos: 215
 -- =============================================================================
 
 
@@ -332,6 +332,8 @@ create table if not exists public.mart_icsap_municipio (
     icsap_100k numeric(10,1),
     aih_continuacao integer,
     aih_continuacao_icsap integer,
+    internacoes_g1 integer,
+    g1_100k numeric(10,1),
     constraint mart_icsap_municipio_pkey PRIMARY KEY (municipio_cod, ano)
 );
 
@@ -1326,6 +1328,10 @@ comment on column public.mart_hsmr_hospital.significancia is 'acima / abaixo / e
 comment on table public.mart_icsap_municipio is 'Internações por Condições Sensíveis à Atenção Primária (aproximação da Lista Brasileira de ICSAP, CID-10 3 caracteres) por município (SIH, 2024). Proporção alta sugere fragilidade da atenção básica.';
 
 comment on column public.mart_icsap_municipio.aih_continuacao is 'AIHs de continuacao (IDENT=5) dentro de internacoes_total. Efeito no pct_icsap e pequeno (+0,93% relativo na amostra de 2024): so I69 e G40 da lista brasileira geram continuacao em volume.';
+
+comment on column public.mart_icsap_municipio.g1_100k is 'Internacoes do grupo 1 por 100 mil habitantes. E o lado populacional do impacto vacinal, cruzavel com as doses aplicadas do PNI.';
+
+comment on column public.mart_icsap_municipio.internacoes_g1 is 'Internacoes do grupo 1 da Lista Brasileira de ICSAP: doencas preveniveis por imunizacao e condicoes sensiveis (tuberculoses, tetano, difteria, coqueluche, sifilis, febre amarela, sarampo, rubeola, hepatite B, parotidite, malaria, ascaridiase, meningite, febre reumatica). Subconjunto de internacoes_icsap.';
 
 comment on view public.mart_icsap_pares is 'Distância de cada município até a mediana dos seus pares em internações sensíveis à atenção primária (ICSAP). Pares = estrato de saúde (tercis fixos de mortalidade × vulnerabilidade × internação); sem estrato, faixa populacional × região. security_invoker=true: lê com a permissão de quem consulta (ver V025). NÃO é economia garantida: alcançar a mediana exige investimento em atenção primária, nem toda ICSAP é evitável, e a associação é ecológica (municipal), não individual.';
 

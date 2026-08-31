@@ -66,10 +66,45 @@ FTP_DIR = "/dissemin/publicos/SIHSUS/200801_/Dados"
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
 
+# Grupo 1 da Lista Brasileira: doenças preveníveis por imunização e condições
+# sensíveis. Fica em constante própria porque é publicado como indicador — é o
+# lado populacional do impacto vacinal, cruzável com as doses do PNI.
+#
+# CORREÇÃO DE 2026-08-30. A versão anterior tinha 14 códigos a menos: faltavam
+# as tuberculoses pulmonar e outras (A15, A16, A18), a sífilis (A51–A53), a
+# malária (B50–B54) e a febre reumática (I00–I02). Medido antes de corrigir:
+# a lista antiga capturava só **20,7% do grupo 1 em SP e 14,3% no RJ** em 2024,
+# porque tuberculose pulmonar (A15) sozinha é ~65% do grupo — e era justamente
+# ela que faltava. Um indicador de "doenças preveníveis por vacina" sem a que a
+# BCG previne não é impreciso, é o contrário do que o nome afirma.
+#
+# No %ICSAP total o efeito é pequeno: +1,48% relativo (19,08% → 19,37% em
+# AM+RJ+SP+MA, 2024), porque o grupo 1 é fração pequena do total. Pequeno não é
+# nulo, e a correção é espacialmente estruturada — tuberculose urbana, malária
+# amazônica —, então as correlações publicadas foram refeitas, não presumidas.
+ICSAP_G1 = {
+    "A15","A16","A17","A18","A19",   # tuberculoses (pulmonar, outras, miliar, meníngea)
+    "A33","A34","A35",               # tétano (neonatal, obstétrico, outros)
+    "A36",                           # difteria
+    "A37",                           # coqueluche
+    "A51","A52","A53",               # sífilis
+    "A95",                           # febre amarela
+    "B05","B06","B16","B26",         # sarampo, rubéola, hepatite B, parotidite
+    "B50","B51","B52","B53","B54",   # malária
+    "B77",                           # ascaridíase
+    "G00",                           # meningite bacteriana
+    "I00","I01","I02",               # febre reumática aguda
+}
+
 # Lista Brasileira de ICSAP (aproximação por CID-10 de 3 caracteres)
+#
+# A aproximação de 3 caracteres permanece e é mais larga que a portaria em
+# alguns pontos — G00 inclui toda meningite bacteriana quando a lista pede só
+# G00.0 (Haemophilus). Estreitar isso mudaria TODOS os 19 grupos e é outra
+# decisão; aqui o que se corrigiu foi ausência de código, não granularidade.
 ICSAP3 = {
-    # 1 imunizáveis e preveníveis
-    "A33","A34","A35","A36","A37","B05","B06","B16","B26","A95","B77","G00","A17","A19",
+    # 1 imunizáveis e preveníveis — ver ICSAP_G1 acima
+    *ICSAP_G1,
     # 2 gastroenterites e desidratação
     "A00","A01","A02","A03","A04","A05","A06","A07","A08","A09","E86",
     # 3 anemia
@@ -134,7 +169,8 @@ def _process_file(uf: str, ano: int, mes: int):
     nome = f"RD{uf}{yymm}"
     dados = baixar(FTP_DIR, f"{nome}.dbc")
     fluxo: dict = defaultdict(int)
-    icsap: dict = defaultdict(lambda: [0, 0, 0, 0])  # mun_res -> [total, icsap, cont, icsap_cont]
+    # mun_res -> [total, icsap, cont, icsap_cont, g1]
+    icsap: dict = defaultdict(lambda: [0, 0, 0, 0, 0])
     for rec in registros_dbc(dados, nome):
         res = (str(rec.get("MUNIC_RES") or "")).strip()[:6]
         mov = (str(rec.get("MUNIC_MOV") or "")).strip()[:6]
@@ -148,6 +184,8 @@ def _process_file(uf: str, ano: int, mes: int):
         c = icsap[res]; c[0] += 1; c[2] += cont
         if cid in ICSAP3:
             c[1] += 1; c[3] += cont
+        if cid in ICSAP_G1:
+            c[4] += 1
         if len(mov) == 6 and mov != res:
             fluxo[(res, mov)] += 1
     return dict(fluxo), dict(icsap)
@@ -155,9 +193,11 @@ def _process_file(uf: str, ano: int, mes: int):
 
 def _process_uf(uf: str, ano: int, workers: int):
     CKPT.mkdir(parents=True, exist_ok=True)
-    # sufixo _v2: checkpoints antigos nao tinham a contagem de AIH de continuacao
-    fck = CKPT / f"fluxo_{uf}_{ano}_v2.parquet"
-    ick = CKPT / f"icsap_{uf}_{ano}_v2.parquet"
+    # sufixo _v3: a Lista Brasileira foi corrigida (14 codigos do grupo 1 que
+    # faltavam) e o contador ganhou a coluna do grupo 1. Todo checkpoint _v2 tem
+    # contagem de ICSAP errada — nao basta acrescentar coluna, tem de recontar.
+    fck = CKPT / f"fluxo_{uf}_{ano}_v3.parquet"
+    ick = CKPT / f"icsap_{uf}_{ano}_v3.parquet"
     esperados = meses_publicados(FTP_DIR, f"RD{uf}", ano)
     if not esperados:
         raise FalhaDeColeta(f"o FTP não publica nenhum mês de RD{uf} em {ano}")
@@ -165,7 +205,7 @@ def _process_uf(uf: str, ano: int, workers: int):
         return pd.read_parquet(fck), pd.read_parquet(ick)
 
     fluxo: dict = defaultdict(int)
-    icsap: dict = defaultdict(lambda: [0, 0, 0, 0])
+    icsap: dict = defaultdict(lambda: [0, 0, 0, 0, 0])
     coletados: list[int] = []
     falhas: list[int] = []
 
@@ -176,7 +216,7 @@ def _process_uf(uf: str, ano: int, workers: int):
             fluxo[k] += v
         for mun, c in ic.items():
             t = icsap[mun]
-            for i in range(4):
+            for i in range(len(c)):
                 t[i] += c[i]
 
     with ThreadPoolExecutor(max_workers=workers) as ex:
@@ -204,9 +244,9 @@ def _process_uf(uf: str, ano: int, workers: int):
 
     fdf = pd.DataFrame([(ano, r, m, n) for (r, m), n in fluxo.items()],
                        columns=["ano", "municipio_res", "municipio_mov", "internacoes"])
-    idf = pd.DataFrame([(mun, ano, c[0], c[1], c[2], c[3]) for mun, c in icsap.items()],
+    idf = pd.DataFrame([(mun, ano, c[0], c[1], c[2], c[3], c[4]) for mun, c in icsap.items()],
                        columns=["municipio_cod", "ano", "internacoes_total", "internacoes_icsap",
-                                "aih_continuacao", "aih_continuacao_icsap"])
+                                "aih_continuacao", "aih_continuacao_icsap", "internacoes_g1"])
     gravar_checkpoint(fdf, fck, coletados)
     gravar_checkpoint(idf, ick, coletados)
     print(f"[fluxo] {uf} {ano}: {len(fdf):,} pares de fluxo, "
@@ -251,15 +291,17 @@ def main() -> None:
     icsap = pd.concat(iparts, ignore_index=True).groupby(
         ["municipio_cod", "ano"], as_index=False)[
         ["internacoes_total", "internacoes_icsap", "aih_continuacao",
-         "aih_continuacao_icsap"]].sum()
+         "aih_continuacao_icsap", "internacoes_g1"]].sum()
     icsap = icsap.merge(mref, on="municipio_cod", how="left").merge(pop, on="municipio_cod", how="left")
     icsap["uf_sigla"] = icsap["uf_sigla"].fillna("ND")
     icsap["pct_icsap"] = (icsap.internacoes_icsap / icsap.internacoes_total * 100).round(2)
     icsap["icsap_100k"] = (icsap.internacoes_icsap / icsap.populacao * 100000).round(1)
+    icsap["g1_100k"] = (icsap.internacoes_g1 / icsap.populacao * 100000).round(1)
     icsap["populacao"] = icsap["populacao"].astype("Int64")
     icsap = icsap[["municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
                    "internacoes_total", "internacoes_icsap", "aih_continuacao",
-                   "aih_continuacao_icsap", "pct_icsap", "populacao", "icsap_100k"]]
+                   "aih_continuacao_icsap", "internacoes_g1", "pct_icsap", "populacao",
+                   "icsap_100k", "g1_100k"]]
 
     MARTS.mkdir(exist_ok=True)
     _, _antes, _depois = acumular_parquet(
