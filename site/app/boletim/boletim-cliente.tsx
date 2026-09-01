@@ -99,6 +99,12 @@ function BoletimInner() {
         + "internacoes_acima_pares,internacoes_acima_p25,custo_associado_reais,leitos_dia_associados,"
         + "leitos_equivalentes_ano,custo_medio_icsap_ref,permanencia_media_icsap_ref,amostra_pequena",
       municipio_cod: `eq.${cod}`,
+      // Sem ORDER BY o PostgREST devolve as linhas em ordem indefinida, e o
+      // cartão mostrava um ano ARBITRÁRIO — Penápolis exibia 2022 enquanto
+      // 2024 existia. Ficou invisível enquanto a view tinha um ano só; a
+      // extensão do ICSAP para 2021–2024 expôs.
+      order: "ano.desc",
+      limit: "1",
     }).then((r) => setIcsap(r[0] ?? null)).catch(() => {});
   }, [cod]);
 
