@@ -9,7 +9,8 @@ import {
   Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { IcsapPares } from "@/components/icsap-pares";
-import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Ivs, type LinhaMunicipio } from "@/lib/api";
+import { Imunopreveniveis as CardImuno } from "@/components/imunopreveniveis";
+import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Imunopreveniveis, type Ivs, type LinhaMunicipio } from "@/lib/api";
 import { ehCodigoAgregado } from "@/lib/municipios";
 import { EIXO, GRADE, REFERENCIA, SERIE } from "@/lib/tokens";
 
@@ -40,6 +41,7 @@ function BoletimInner() {
   const [ivs, setIvs] = useState<Ivs | null>(null);
   const [cluster, setCluster] = useState<ClusterMunicipio | null>(null);
   const [icsap, setIcsap] = useState<TIcsapPares | null>(null);
+  const [imuno, setImuno] = useState<{ mun: Imunopreveniveis; uf: Imunopreveniveis[] } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -72,6 +74,24 @@ function BoletimInner() {
       select: "municipio_cod,cluster,estrato_cod,perfil",
       municipio_cod: `eq.${cod}`,
     }).then((r) => setCluster(r[0] ?? null)).catch(() => {});
+    // Grupo 1 do ICSAP: o município e os demais da mesma UF, para o número
+    // ter contra o que ser lido. Taxa municipal isolada não diz se é alta.
+    setImuno(null);
+    rest<Imunopreveniveis>("mart_icsap_municipio", {
+      select: "municipio_cod,uf_sigla,ano,internacoes_g1,g1_100k,internacoes_icsap",
+      municipio_cod: `eq.${cod}`,
+      order: "ano.desc",
+      limit: "1",
+    }).then(async (r) => {
+      const mun = r[0];
+      if (!mun) return;
+      const uf = await rest<Imunopreveniveis>("mart_icsap_municipio", {
+        select: "municipio_cod,uf_sigla,ano,internacoes_g1,g1_100k,internacoes_icsap",
+        uf_sigla: `eq.${mun.uf_sigla}`,
+        ano: `eq.${mun.ano}`,
+      });
+      setImuno({ mun, uf });
+    }).catch(() => {});
     setIcsap(null);
     rest<TIcsapPares>("mart_icsap_pares", {
       select: "municipio_cod,municipio_nome,uf_sigla,ano,populacao,internacoes_total,internacoes_icsap,"
@@ -197,6 +217,8 @@ function BoletimInner() {
           )}
 
           {icsap && <IcsapPares dados={icsap} />}
+
+          {imuno && <CardImuno mun={imuno.mun} uf={imuno.uf} />}
 
           <div className="card mt-6">
             <h2 className="font-serif text-xl font-semibold text-ink-900">Taxas de mortalidade, 2015–{atual.ano}</h2>

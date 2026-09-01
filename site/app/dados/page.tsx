@@ -191,7 +191,7 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
           </tr>
           <tr>
             <td><code>mart_icsap_municipio</code></td>
-            <td>internações evitáveis (ICSAP) por município, 2021–2024: total, ICSAP, % e por 100k hab. Inclui o <strong>grupo 1 da Lista Brasileira</strong> — doenças preveníveis por imunização (<code>internacoes_g1</code>, <code>g1_100k</code>), cruzável com as doses do PNI.</td>
+            <td>internações evitáveis (ICSAP) por município, 2021–2024: total, ICSAP, % e por 100k hab. Inclui o <strong>grupo 1 da Lista Brasileira</strong> — doenças preveníveis por imunização (<code>internacoes_g1</code>, <code>g1_100k</code>), exibido no boletim municipal e cruzável com as doses do PNI.</td>
             <td>~5,5 mil</td>
           </tr>
           <tr>

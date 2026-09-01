@@ -395,6 +395,17 @@ export interface CruzVulnMort {
 }
 
 /** Distância até a mediana dos pares em internações evitáveis (ICSAP). */
+/** Grupo 1 da Lista Brasileira de ICSAP: internações por doença prevenível
+ *  por imunização. Vem de mart_icsap_municipio, publicado desde 2026-08-31. */
+export interface Imunopreveniveis {
+  municipio_cod: string;
+  uf_sigla: string;
+  ano: number;
+  internacoes_g1: number | null;
+  g1_100k: number | null;
+  internacoes_icsap: number | null;
+}
+
 export interface IcsapPares {
   municipio_cod: string;
   municipio_nome: string | null;
