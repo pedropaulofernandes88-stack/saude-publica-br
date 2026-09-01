@@ -1140,6 +1140,49 @@ export default function Metodologia() {
         <a href="#">oferta hospitalar local</a> (§19).
       </p>
       <p>
+        <strong>A armadilha do agregado: um gradiente que não existe.</strong> Vale registrar uma leitura que <em>parece</em> contradizer o achado nulo da
+        vulnerabilidade, porque quem refizer as contas vai encontrá-la. Somando internações em
+        vez de comparar municípios, o %ICSAP por quartil de vulnerabilidade fica monotônico e
+        forte:
+      </p>
+      <div className="rolo">
+        <table>
+          <thead>
+            <tr><th>%ICSAP por quartil de IVS (2024)</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>mediana entre municípios — <em>o que publicamos</em></td>
+              <td>19,1%</td><td>21,1%</td><td>20,6%</td><td>19,8%</td></tr>
+            <tr><td>agregado, ponderado por internação</td>
+              <td>18,1%</td><td>21,0%</td><td>22,5%</td><td>23,7%</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        A segunda linha sobe do menos para o mais vulnerável nos quatro anos da série, e é
+        tentador lê-la como a desigualdade que a primeira não mostra.{" "}
+        <strong>Ela não é isso.</strong> O quartil menos vulnerável concentra{" "}
+        <strong>59,7% de todas as internações do país em 25,2% dos municípios</strong> — é onde
+        estão as cidades grandes, com população mediana de 20.512 contra cerca de 10 mil nos
+        demais quartis. E município grande tem %ICSAP baixo, pelo motivo já medido na §19: o
+        indicador responde a porte e oferta hospitalar. O agregado, ao ponderar por internação,
+        mede <strong>porte disfarçado de vulnerabilidade</strong>.
+      </p>
+      <p>
+        O teste que desmonta é o padrão-ouro do projeto — comparar dentro da mesma faixa de
+        porte. O sinal <em>troca de direção</em>: ρ = <strong>−0,054</strong> nos municípios com
+        menos de 20 mil habitantes (n = 3.794), <strong>+0,166</strong> entre 20 e 100 mil
+        (n = 1.411) e +0,048 acima de 100 mil (n = 336, p = 0,38, não significativo). Não há
+        gradiente consistente; há paradoxo de Simpson.
+      </p>
+      <p>
+        Publicamos as duas linhas de propósito. Esconder a segunda não a impediria de existir —
+        qualquer pessoa que baixe <code>mart_icsap_municipio</code> e some as colunas chega nela
+        em dois minutos. O que evita a leitura errada não é omitir o número, é mostrar de onde
+        ele vem.
+      </p>
+
+      <p>
         <strong>Limitações declaradas.</strong> O dado é <strong>autodeclarado</strong> pelo
         ente e homologado pelo gestor — não há verificação externa das transações. É despesa{" "}
         <strong>empenhada</strong>, que difere de liquidada e paga. Per capita em município
