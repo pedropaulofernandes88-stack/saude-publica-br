@@ -100,6 +100,61 @@ def test_fontes_sao_consistentes_entre_as_declaracoes_do_site():
     )
 
 
+# ── coeficientes ─────────────────────────────────────────────────────────────
+# Um coeficiente publicado tem duas formas de envelhecer, e a segunda é a que
+# passou despercebida: (a) alguém edita o texto e erra, ou (b) o DADO muda e a
+# análise não é refeita. A correção da Lista Brasileira de ICSAP em 2026-08-31
+# foi o caso (b) — os coeficientes descreviam um dado que deixara de existir.
+#
+# O valor de verdade vem de `data/marts/achados.json`, gravado pelos próprios
+# scripts de análise (ver scripts/_achados.py). Recalcular aqui duplicaria a
+# lógica da análise, e duas cópias divergem.
+COEFICIENTES = {
+    # chave em achados.json -> (arquivo do site, regex, casas decimais)
+    "aps_x_icsap_bruta": (SOBRE, r"ρ = ([+-]\d,\d+); [+-]\d,\d+ controlando", 3),
+    "aps_x_icsap_parcial": (SOBRE, r"ρ = [+-]\d,\d+; ([+-]\d,\d+) controlando", 3),
+}
+
+
+def _achados() -> dict:
+    caminho = RAIZ / "data" / "marts" / "achados.json"
+    if not caminho.exists():
+        pytest.skip("sem achados.json — rode os scripts de análise")
+    return json.loads(caminho.read_text(encoding="utf-8"))
+
+
+@pytest.mark.parametrize("chave", sorted(COEFICIENTES))
+def test_coeficiente_publicado_bate_com_a_analise(chave):
+    reg = _achados().get(chave)
+    if reg is None:
+        pytest.skip(f"{chave} ainda não foi registrado por nenhuma análise")
+    caminho, padrao, casas = COEFICIENTES[chave]
+    m = re.search(padrao, _texto(caminho))
+    assert m, f"não achei {chave} em {caminho.name} com o padrão {padrao!r}"
+    declarado = float(m.group(1).replace(",", "."))
+    real = round(reg["valor"], casas)
+    assert abs(declarado - real) < 10 ** -casas / 2, (
+        f"{chave}: o site declara {declarado:+.3f} e a análise calculou {real:+.3f}. "
+        f"Recalculado em {reg['calculado_em']}."
+    )
+
+
+def test_nenhuma_analise_ficou_atras_do_dado():
+    """O defeito que motivou tudo isto: mart regravado, análise não refeita.
+
+    Não confere valor — confere FRESCOR. Um coeficiente pode estar copiado
+    corretamente e ainda assim descrever dado que não existe mais.
+    """
+    sys.path.insert(0, str(RAIZ / "scripts"))
+    from _achados import desatualizados  # noqa: PLC0415
+
+    atrasados = desatualizados()
+    assert not atrasados, (
+        "análise mais velha que o mart que ela leu — rodar de novo os scripts "
+        f"analise_*.py: {'; '.join(atrasados)}"
+    )
+
+
 def _coletar_testes() -> int:
     """Conta os testes que o pytest coleta, num processo separado.
 

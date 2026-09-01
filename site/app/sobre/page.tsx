@@ -110,7 +110,7 @@ export default function Sobre() {
           <strong>A cobertura da atenção primária mede porte, não atenção primária.</strong> A
           cobertura potencial da APS satura acima de 100% em 86% dos municípios e correlaciona-se
           com a população (ρ = −0,54), mas praticamente nada com internações evitáveis
-          (ρ = +0,004; +0,018 controlando porte e vulnerabilidade). Publicamos o dado com a
+          (ρ = +0,002; +0,017 controlando porte e vulnerabilidade). Publicamos o dado com a
           limitação no topo da página, não em rodapé. Ver{" "}
           <a href="/atencao-basica/" className="font-medium text-accent-700 hover:underline">página</a>.
         </li>

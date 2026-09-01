@@ -39,6 +39,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _publicacao import escrever_parquet  # noqa: E402
 
+from _achados import registrar  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -107,6 +109,10 @@ def main() -> None:
     for nome, col in [("cobertura bruta", "cobertura_pct"), ("cobertura efetiva", "cobertura_efetiva")]:
         r, n = spearman(df[col], df["icsap_100k"])
         print(f"  {nome:18s} x ICSAP/100k : rho = {r:+.3f}  (n={n:,})")
+        if nome == "cobertura bruta":
+            registrar("aps_x_icsap_bruta", r, fontes=["mart_icsap_municipio",
+                      "mart_cobertura_aps_municipio"],
+                      descricao="Spearman bruto cobertura APS x ICSAP/100k")
         r2, _ = spearman(df[col], df["pct_icsap"])
         print(f"  {nome:18s} x %ICSAP     : rho = {r2:+.3f}")
 
@@ -122,6 +128,10 @@ def main() -> None:
         ctrl = df[["populacao"]].assign(ivs_score=df["ivs_score"])
         r, n = partial_spearman(df["icsap_100k"], df[col], ctrl)
         print(f"  {nome:18s} x ICSAP/100k | pop, IVS : rho_parcial = {r:+.3f}  (n={n:,})")
+        if nome.strip() == "cobertura bruta":
+            registrar("aps_x_icsap_parcial", r, fontes=["mart_icsap_municipio",
+                      "mart_cobertura_aps_municipio", "dim_ivs"],
+                      descricao="Spearman parcial cobertura APS x ICSAP/100k")
 
     print("\n=== 4. Estratificado por porte populacional ===")
     faixas = [(0, 10_000), (10_000, 50_000), (50_000, 200_000), (200_000, 10**9)]

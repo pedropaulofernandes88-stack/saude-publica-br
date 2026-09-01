@@ -390,9 +390,10 @@ export default function Metodologia() {
           grupo. O efeito no %ICSAP total é pequeno — entre <strong>+1,04% e +1,21%</strong>
           relativos, conforme o ano —, mas é espacialmente estruturado (tuberculose urbana,
           malária amazônica), então os achados publicados foram <em>refeitos</em> sobre o dado
-          corrigido, não presumidos: leitos × %ICSAP passou de +0,32 para <strong>+0,319</strong>
-          (parcial, de +0,34 para +0,340) e cobertura da APS × ICSAP de +0,004 para
-          <strong>+0,002</strong>. Nenhuma conclusão muda. Todos os checkpoints foram
+          corrigido, não presumidos: leitos × %ICSAP ficou em <strong>+0,319</strong> (parcial,
+          <strong>+0,340</strong>) — os mesmos +0,32 e +0,34 quando arredondados a duas casas —
+          e cobertura da APS × ICSAP passou de +0,004 para <strong>+0,002</strong> (parcial, de
+          +0,018 para +0,017). Nenhuma conclusão muda. Todos os checkpoints foram
           recontados da fonte, porque acrescentar código sem recontar deixaria a série antiga
           por baixo.
         </li>
@@ -648,8 +649,8 @@ export default function Metodologia() {
       <p>
         <strong>Teste contra ICSAP.</strong> Testamos a hipótese de que maior cobertura implicaria
         menos internações evitáveis (§12). A correlação bruta com ICSAP por 100 mil habitantes é{" "}
-        <strong>ρ = +0,004</strong> — nula, e no sinal contrário ao esperado. Controlando porte
-        populacional e vulnerabilidade social, ρ parcial = +0,018. Estratificando, os municípios de
+        <strong>ρ = +0,002</strong> — nula, e no sinal contrário ao esperado. Controlando porte
+        populacional e vulnerabilidade social, ρ parcial = +0,017. Estratificando, os municípios de
         menor porte têm simultaneamente a <em>maior</em> cobertura mediana (167%) e o{" "}
         <em>maior</em> ICSAP. Conclusão: a cobertura potencial, como publicada, não sustenta
         comparação entre municípios nem inferência sobre qualidade da atenção básica. Publicamos o
@@ -1006,9 +1007,9 @@ export default function Metodologia() {
       <p>
         <strong>Direção oposta.</strong> A correlação entre leitos SUS por mil habitantes e
         %ICSAP é <strong>positiva</strong>: ρ = +0,32 bruta, +0,34 controlando porte e
-        vulnerabilidade, e entre +0,15 e +0,47 dentro de cada quartil de porte (positiva nos
+        vulnerabilidade, e entre +0,16 e +0,47 dentro de cada quartil de porte (positiva nos
         quatro). Municípios <em>sem</em> leito local têm %ICSAP <em>menor</em> (mediana
-        17,7%), não maior, que os municípios com leito (21,4%).
+        17,8%), não maior, que os municípios com leito (21,5%).
       </p>
       <p>
         <strong>Mecanismo: é o numerador, não o denominador.</strong> Decompondo as

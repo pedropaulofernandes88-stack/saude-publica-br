@@ -45,6 +45,8 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _publicacao import escrever_parquet  # noqa: E402
 
+from _achados import registrar  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -104,8 +106,14 @@ def main() -> None:
     print("\n=== 2. O mecanismo, parte (b): falta de leito eleva a FATIA de ICSAP? ===")
     r_b, n_b = spearman(df["leitos_sus_por_mil"], df["pct_icsap"])
     print(f"  leitos SUS/mil x %ICSAP: rho = {r_b:+.3f}  (n={n_b:,})")
+    registrar("leitos_x_pct_icsap", r_b, fontes=["mart_icsap_municipio",
+              "mart_leitos_municipio"], descricao="Spearman leitos SUS/mil x %ICSAP")
     com_p = df[~df.sem_leito].pct_icsap.median()
     sem_p = df[df.sem_leito].pct_icsap.median()
+    registrar("pct_icsap_com_leito", com_p, fontes=["mart_icsap_municipio",
+              "mart_leitos_municipio"], descricao="%ICSAP mediano, municipios COM leito local")
+    registrar("pct_icsap_sem_leito", sem_p, fontes=["mart_icsap_municipio",
+              "mart_leitos_municipio"], descricao="%ICSAP mediano, municipios SEM leito local")
     print(f"  %ICSAP mediana -- COM leito local: {com_p:.1f}% | SEM leito local: {sem_p:.1f}% "
           f"({sem_p-com_p:+.1f} p.p.)")
 
@@ -117,6 +125,9 @@ def main() -> None:
     ctrl = df[["populacao"]].assign(ivs_score=df["ivs_score"])
     r_p, n_p = partial_spearman(df["pct_icsap"], df["leitos_sus_por_mil"], ctrl)
     print(f"  leitos SUS/mil x %ICSAP | pop, IVS : rho_parcial = {r_p:+.3f}  (n={n_p:,})")
+    registrar("leitos_x_pct_icsap_parcial", r_p, fontes=["mart_icsap_municipio",
+              "mart_leitos_municipio", "dim_ivs"],
+              descricao="Spearman parcial leitos x %ICSAP, controlando porte e IVS")
 
     print("\n=== 4. Dentro do quartil de porte (padrao-ouro do projeto) ===")
     df["porte_quartil"] = pd.qcut(df["populacao"], 4, labels=["Q1 (menores)", "Q2", "Q3", "Q4 (maiores)"])
