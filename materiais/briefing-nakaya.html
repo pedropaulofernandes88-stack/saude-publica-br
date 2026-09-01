@@ -1,0 +1,355 @@
+<title>Conversa com Nakaya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap">
+
+<style>
+:root{
+  --fundo:#FBFCFD; --superficie:#FFFFFF; --superficie-2:#F1F4F6;
+  --tinta:#101820; --tinta-2:#2C3843; --cinza:#5C6874; --filete:#DCE3E8;
+  --petroleo:#0E4552; --petroleo-suave:#E3EEF1;
+  --barro:#9C4326; --barro-suave:#F7E9E3;
+  --sombra:0 1px 2px rgba(16,24,32,.05);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --fundo:#0A0F14; --superficie:#111921; --superficie-2:#18222C;
+    --tinta:#E7EDF2; --tinta-2:#C4CED8; --cinza:#8C9AA8; --filete:#22303B;
+    --petroleo:#6FBACB; --petroleo-suave:#0E2830;
+    --barro:#E09272; --barro-suave:#2A1912;
+    --sombra:0 1px 2px rgba(0,0,0,.4);
+  }
+}
+:root[data-theme="dark"]{
+  --fundo:#0A0F14; --superficie:#111921; --superficie-2:#18222C;
+  --tinta:#E7EDF2; --tinta-2:#C4CED8; --cinza:#8C9AA8; --filete:#22303B;
+  --petroleo:#6FBACB; --petroleo-suave:#0E2830;
+  --barro:#E09272; --barro-suave:#2A1912;
+  --sombra:0 1px 2px rgba(0,0,0,.4);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--fundo); color:var(--tinta);
+  font-family:Newsreader,Georgia,serif; font-size:17px; line-height:1.62;
+  -webkit-font-smoothing:antialiased;
+}
+.folha{max-width:44rem; margin:0 auto; padding:0 20px 72px}
+
+/* ── índice fixo ───────────────────────────────────────────── */
+.indice{
+  position:sticky; top:0; z-index:5; margin:0 -20px 26px; padding:9px 20px;
+  background:color-mix(in srgb, var(--fundo) 92%, transparent);
+  backdrop-filter:blur(8px); border-bottom:1px solid var(--filete);
+  display:flex; gap:7px; overflow-x:auto; scrollbar-width:none;
+}
+.indice::-webkit-scrollbar{display:none}
+.indice a{
+  flex:0 0 auto; font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:11px; letter-spacing:.06em; text-transform:uppercase;
+  text-decoration:none; color:var(--cinza);
+  padding:5px 10px; border:1px solid var(--filete); border-radius:2px;
+  background:var(--superficie);
+}
+.indice a:hover,.indice a:focus-visible{color:var(--petroleo); border-color:var(--petroleo)}
+
+/* ── cabeçalho ─────────────────────────────────────────────── */
+header{padding:26px 0 8px}
+.eixo{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+  letter-spacing:.16em; text-transform:uppercase; color:var(--petroleo);
+  margin:0 0 10px;
+}
+h1{
+  font-family:Archivo,system-ui,sans-serif; font-weight:700;
+  font-size:clamp(1.75rem,6.5vw,2.4rem); line-height:1.1; margin:0 0 12px;
+  letter-spacing:-.02em; text-wrap:balance;
+}
+.chamada{margin:0; color:var(--tinta-2); font-size:1.03rem}
+
+/* ── seções ────────────────────────────────────────────────── */
+section{margin-top:38px; scroll-margin-top:60px}
+h2{
+  font-family:Archivo,system-ui,sans-serif; font-weight:600;
+  font-size:1.16rem; line-height:1.3; margin:0 0 4px; letter-spacing:-.01em;
+  text-wrap:balance;
+}
+.sub{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:11px;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--cinza);
+  margin:0 0 14px;
+}
+p{margin:0 0 12px}
+strong{font-weight:600}
+em{font-style:italic}
+
+/* ── números ───────────────────────────────────────────────── */
+.numeros{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr));
+  gap:1px; background:var(--filete); border:1px solid var(--filete);
+  border-radius:3px; overflow:hidden; margin:16px 0 18px;
+}
+.numeros div{background:var(--superficie); padding:12px 14px}
+.numeros .n{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums;
+  font-size:1.3rem; font-weight:600; color:var(--petroleo); line-height:1.1;
+  display:block;
+}
+.numeros .r{display:block; font-size:.82rem; color:var(--cinza); margin-top:4px; line-height:1.4}
+
+/* ── falas ─────────────────────────────────────────────────── */
+.fala{
+  border-left:3px solid var(--petroleo); background:var(--petroleo-suave);
+  padding:13px 16px; margin:0 0 14px; border-radius:0 3px 3px 0;
+}
+.fala p{margin:0; font-size:1.02rem; color:var(--tinta)}
+.fala .quem{
+  font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px;
+  letter-spacing:.12em; text-transform:uppercase; color:var(--petroleo);
+  display:block; margin-bottom:6px;
+}
+
+/* ── sequência (só onde a ordem importa) ───────────────────── */
+ol.passos{list-style:none; counter-reset:p; padding:0; margin:0; display:grid; gap:18px}
+ol.passos li{counter-increment:p; display:grid; grid-template-columns:26px 1fr; gap:12px}
+ol.passos li::before{
+  content:counter(p); font-family:"IBM Plex Mono",ui-monospace,monospace;
+  font-size:.78rem; font-weight:600; color:var(--petroleo);
+  border:1px solid var(--filete); border-radius:2px;
+  height:24px; display:grid; place-items:center; background:var(--superficie);
+}
+ol.passos h3{
+  font-family:Archivo,system-ui,sans-serif; font-size:1rem; font-weight:600;
+  margin:2px 0 6px; line-height:1.3;
+}
+
+/* ── listas simples ────────────────────────────────────────── */
+ul.limpa{list-style:none; padding:0; margin:0; display:grid; gap:11px}
+ul.limpa li{display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:start}
+ul.limpa .marca{color:var(--petroleo); font-family:"IBM Plex Mono",monospace; font-size:.8rem; padding-top:3px}
+
+/* ── risco ─────────────────────────────────────────────────── */
+.risco{border-left:3px solid var(--barro); background:var(--barro-suave);
+  padding:12px 15px; border-radius:0 3px 3px 0}
+.risco p{margin:0 0 8px; font-size:.96rem}
+.risco p:last-child{margin:0}
+.risco b{color:var(--barro); font-weight:600}
+
+/* ── perguntas ─────────────────────────────────────────────── */
+.qa{display:grid; gap:0; border:1px solid var(--filete); border-radius:3px; overflow:hidden}
+.qa > div{padding:12px 15px; background:var(--superficie); border-bottom:1px solid var(--filete)}
+.qa > div:last-child{border-bottom:0}
+.qa .q{font-family:Archivo,system-ui,sans-serif; font-weight:600; font-size:.94rem; margin:0 0 5px}
+.qa .a{margin:0; font-size:.95rem; color:var(--tinta-2)}
+
+/* ── tabela ────────────────────────────────────────────────── */
+.rolo{overflow-x:auto; margin:14px 0}
+table{border-collapse:collapse; width:100%; font-size:.9rem; min-width:22rem}
+th,td{text-align:left; padding:8px 12px 8px 0; border-bottom:1px solid var(--filete)}
+th{font-family:"IBM Plex Mono",ui-monospace,monospace; font-size:10px;
+   letter-spacing:.09em; text-transform:uppercase; color:var(--cinza); font-weight:500}
+td.n{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
+td.quieto{color:var(--cinza)}
+tbody tr:last-child td{border-bottom:0}
+
+.nota{font-size:.88rem; color:var(--cinza); margin-top:14px;
+  border-top:1px solid var(--filete); padding-top:12px}
+a{color:var(--petroleo)}
+:focus-visible{outline:2px solid var(--petroleo); outline-offset:2px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important; animation:none!important}}
+</style>
+
+<div class="folha">
+
+<nav class="indice" aria-label="Seções">
+  <a href="#ele">Ele</a>
+  <a href="#voce">Você tem</a>
+  <a href="#ordem">A conversa</a>
+  <a href="#pontes">3 pontes</a>
+  <a href="#limites">Limites</a>
+  <a href="#perguntas">Perguntas</a>
+  <a href="#pedido">O pedido</a>
+  <a href="#riscos">Riscos</a>
+</nav>
+
+<header>
+  <p class="eixo">Briefing · Saúde em Dado</p>
+  <h1>Conversa com Nakaya</h1>
+  <p class="chamada">Ele já demonstrou interesse. O objetivo não é convencer — é sair com
+  um próximo passo datado.</p>
+</header>
+
+<section id="ele">
+  <h2>Quem ele é, no que importa</h2>
+  <p class="sub">Fontes públicas, conferidas</p>
+  <p>Pesquisador sênior no <strong>Einstein</strong>, professor na FCF-USP, PI no
+  <strong>CRID</strong> (CEPID FAPESP, doenças inflamatórias), cofundador de quatro startups.
+  Um dos fundadores da <strong>vacinologia de sistemas</strong> — <em>Nature Immunology</em> 2011
+  (influenza), <em>Immunity</em> 2015, assinaturas de cinco vacinas, febre amarela como prova
+  de conceito.</p>
+  <div class="fala">
+    <span class="quem">O objetivo declarado do projeto FAPESP dele</span>
+    <p>“Analisar bases de dados epidemiológicos, mapear hotspots de transmissão de doenças.”</p>
+  </div>
+  <p>Isso não é inferência sobre onde você se encaixa. Está escrito no projeto dele.</p>
+  <p class="nota">O trabalho recente sobre xenotransplante não conecta com sua base. Se ele
+  puxar, ouça — não force ponte.</p>
+</section>
+
+<section id="voce">
+  <h2>O que você tem</h2>
+  <p class="sub">Números para usar sem consultar</p>
+  <div class="numeros">
+    <div><span class="n">10</span><span class="r">fontes integradas, 39 tabelas, 5.570 municípios</span></div>
+    <div><span class="n">638 mi</span><span class="r">doses aplicadas, 2023 a agosto de 2026</span></div>
+    <div><span class="n">38.535</span><span class="r">internações por doença imunoprevenível, 2024</span></div>
+    <div><span class="n">1 mês</span><span class="r">de defasagem na vacinação — a fonte mais atual</span></div>
+  </div>
+  <p>DOI versionado no Zenodo, dados CC BY 4.0, código MIT, API pública sem cadastro,
+  servidor MCP para acesso por modelo de linguagem. Custo de infraestrutura: <strong>zero</strong>.</p>
+</section>
+
+<section id="ordem">
+  <h2>A conversa, na ordem</h2>
+  <p class="sub">Sequência — a ordem importa</p>
+  <ol class="passos">
+    <li><div>
+      <h3>Abra pelo problema</h3>
+      <p>O microdado do SUS é público há décadas; o indicador reprodutível não é. Cada grupo
+      refaz o pipeline e chega a um número diferente, e nenhum é conferível contra o outro.</p>
+    </div></li>
+    <li><div>
+      <h3>Credibilidade vem dos erros, não dos recursos</h3>
+      <div class="fala">
+        <span class="quem">Diga assim</span>
+        <p>“Encontrei um defeito no meu próprio coletor que publicava competências incompletas
+        com código de saída zero. O Maranhão de 2023 estava com 41% das internações a menos.
+        Corrigi, refiz 351 anos-UF do zero, e 459 de 459 checkpoints bateram idênticos.”</p>
+      </div>
+      <p>Um sênior reconhece isso na hora. É a diferença entre um site e um instrumento.</p>
+    </div></li>
+    <li><div>
+      <h3>Os achados — comece pelos nulos</h3>
+      <p><strong>Leito cria internação evitável.</strong> ρ = +0,32, positiva nos quatro
+      quartis de porte. Sem leito local, %ICSAP <em>menor</em> (17,8%) que com leito (21,5%).
+      O efeito está no numerador: ICSAP sobe 51–85% quando há leito; não-ICSAP, 1–11%.
+      Consequência: município que abre hospital pequeno “piora” pelo indicador.</p>
+      <p><strong>Cobertura da atenção primária não explica.</strong> ρ = +0,002, testado em
+      seis desenhos.</p>
+    </div></li>
+    <li><div>
+      <h3>A armadilha de Simpson — o trecho que mais fala com ele</h3>
+      <div class="rolo">
+        <table>
+          <thead><tr><th>%ICSAP por quartil de vulnerabilidade</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr></thead>
+          <tbody>
+            <tr><td>mediana entre municípios — publicado</td><td class="n">19,1</td><td class="n">21,1</td><td class="n">20,6</td><td class="n">19,8</td></tr>
+            <tr><td class="quieto">agregado por internação</td><td class="n quieto">18,1</td><td class="n quieto">21,0</td><td class="n quieto">22,5</td><td class="n quieto">23,7</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>A segunda linha parece a desigualdade que a primeira não mostra. Não é: o quartil menos
+      vulnerável concentra <strong>59,7% das internações em 25,2% dos municípios</strong> — é onde
+      estão as cidades grandes, e cidade grande tem %ICSAP baixo. Dentro da mesma faixa de porte
+      o sinal troca de direção: ρ = −0,054 abaixo de 20 mil habitantes, +0,166 entre 20 e 100 mil.</p>
+      <p>Publiquei <strong>as duas linhas com o mecanismo</strong>, porque quem baixa a tabela
+      chega na errada em dois minutos.</p>
+    </div></li>
+    <li><div>
+      <h3>Termine pelo que falta</h3>
+      <p>Não pelo que tem. O que falta é a pergunta biológica — e é ela que ele tem.</p>
+    </div></li>
+  </ol>
+</section>
+
+<section id="pontes">
+  <h2>As três pontes</h2>
+  <p class="sub">Da mais forte para a mais fraca</p>
+  <ul class="limpa">
+    <li><span class="marca">▸</span><div><strong>O elo que falta na vacinologia de sistemas.</strong>
+    O trabalho dele prevê resposta <em>individual</em>: assinatura no dia 7 prediz anticorpo no dia 28.
+    Falta o desfecho <em>populacional</em>. Você tem 638 milhões de doses e internação por doença
+    imunoprevenível, por município. São elos opostos da mesma corrente.</div></li>
+    <li><span class="marca">▸</span><div><strong>O território que as coortes dele não têm.</strong>
+    Estudo de imunologia tem N de dezenas, de um ou dois centros. A heterogeneidade fica sem
+    explicação porque falta contexto. Você tem camada municipal validada — mortalidade padronizada,
+    ICSAP, leitos, gasto, vulnerabilidade, cobertura da APS.</div></li>
+    <li><span class="marca">▸</span><div><strong>Epidemiologia digital com procedência.</strong>
+    Vigilância corrente e, o que é raro, <em>memória</em>: cada publicação datada, imutável, com
+    checksum. Responde “quanto esse número mudou desde que foi publicado” — nenhuma fonte pública
+    brasileira responde.</div></li>
+  </ul>
+</section>
+
+<section id="limites">
+  <h2>Diga os limites antes que ele pergunte</h2>
+  <p class="sub">Isto protege sua credibilidade mais que qualquer número</p>
+  <ul class="limpa">
+    <li><span class="marca">—</span><div><strong>Nada é individual.</strong> Tudo agregado municipal.
+    Não há vinculação de registros nem como fazer.</div></li>
+    <li><span class="marca">—</span><div><strong>Nada é molecular.</strong> É dado administrativo;
+    não substitui coorte.</div></li>
+    <li><span class="marca">—</span><div><strong>Desenho ecológico.</strong> Correlação municipal
+    não é efeito individual.</div></li>
+    <li><span class="marca">—</span><div><strong>Cobertura vacinal municipal não é publicável.</strong>
+    Construí, testei e reprovei: correlação de 0,591 entre dois anos, mediana caindo de 102,7% nos
+    municípios pequenos para 86,2% nos grandes. Viés de denominador. Publico contagem de doses, e
+    cobertura só por UF.</div></li>
+  </ul>
+  <p class="nota">O último importa porque ele pode <em>esperar</em> cobertura municipal. Melhor você
+  dizer que testou e reprovou do que ele descobrir depois.</p>
+</section>
+
+<section id="perguntas">
+  <h2>O que ele vai perguntar</h2>
+  <p class="sub">Respostas prontas</p>
+  <div class="qa">
+    <div><p class="q">Dá para ligar à minha coorte?</p>
+      <p class="a">Só pelo contexto do município. Sem vinculação individual.</p></div>
+    <div><p class="q">Quão atual é?</p>
+      <p class="a">Vacinação até o mês passado. Mortalidade consolidada até 2024.</p></div>
+    <div><p class="q">Quem mantém?</p>
+      <p class="a">Eu — e é o maior risco do projeto. Por isso tudo é reprodutível por script
+      aberto, para não depender de mim. <strong>Responda isso primeiro e sem defesa.</strong></p></div>
+    <div><p class="q">Como sei se confio no dado daquele município?</p>
+      <p class="a">Tem tabela para isso: % de óbitos por causa mal definida, 2022–2024, com
+      classificação. 1.096 municípios são “Ruim”.</p></div>
+    <div><p class="q">É citável?</p>
+      <p class="a">DOI versionado no Zenodo, dados CC BY 4.0, código MIT.</p></div>
+  </div>
+</section>
+
+<section id="pedido">
+  <h2>O pedido</h2>
+  <p class="sub">Peça escolha, não opinião</p>
+  <div class="fala">
+    <span class="quem">Feche assim</span>
+    <p>“Vejo três frentes onde isso encontra seu trabalho: internação por doença imunoprevenível
+    como desfecho populacional de impacto vacinal; camada de contexto municipal para interpretar
+    heterogeneidade de coorte; e epidemiologia digital com procedência. Alguma delas é útil ao que
+    seu grupo está fazendo — e, se for, qual você atacaria primeiro?”</p>
+  </div>
+  <p><strong>Pedido menor, na manga:</strong> um aluno de pós dele usar a base num projeto piloto.
+  É barato para ele dizer sim e cria a colaboração pela porta de baixo.</p>
+  <p><strong>E pergunte:</strong> “o que te chamou atenção aqui?” A resposta orienta tudo que vem
+  depois, e vale mais que qualquer suposição sobre o que ele quer.</p>
+</section>
+
+<section id="riscos">
+  <h2>Quatro riscos</h2>
+  <p class="sub">Valem mais que os elogios</p>
+  <div class="risco">
+    <p><b>Interesse não é compromisso.</b> Sem próximo passo datado, evapora em três semanas.</p>
+    <p><b>Virar fornecedor de dado.</b> Se a conversa descambar para “me manda a tabela”, você
+    perde — vira infraestrutura de outra pessoa. A posição a defender é coautoria em pergunta
+    científica.</p>
+    <p><b>Sobrevender.</b> Se ele testar um limite e você esticar, todo o resto perde valor
+    retroativamente. Sua força é justamente dizer onde não vai.</p>
+    <p><b>Depender de uma pessoa.</b> Ele já viu. Diga primeiro.</p>
+  </div>
+  <p class="nota">O que ele provavelmente viu e você subestima: você trata a plataforma como o
+  produto e os achados como consequência. Para ele é o inverso — os achados e o método são o
+  produto, e a plataforma é a prova de que você executa.</p>
+</section>
+
+</div>

@@ -1,0 +1,474 @@
+<title>O leito que cria a internação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&display=swap">
+<style>
+:root{
+  --papel:#F5F6F8; --superficie:#FFFFFF; --superficie-2:#EBEEF3;
+  --tinta:#101521; --tinta-2:#3A4356; --neutro:#5A6478; --linha:#D3D9E3;
+  --indigo:#1F4FA8; --indigo-suave:#E4EAF7;
+  --brasa:#B8461E; --brasa-suave:#F8E9E2;
+  --verde:#1C6B4C; --verde-suave:#E3F0EA;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --papel:#0A0D14; --superficie:#121826; --superficie-2:#1A2131;
+    --tinta:#E6EAF2; --tinta-2:#C3CBDA; --neutro:#8D99B0; --linha:#252E40;
+    --indigo:#87A9F0; --indigo-suave:#15203A;
+    --brasa:#E4936B; --brasa-suave:#2C1D16;
+    --verde:#63B891; --verde-suave:#12251D;
+  }
+}
+:root[data-theme="dark"]{
+  --papel:#0A0D14; --superficie:#121826; --superficie-2:#1A2131;
+  --tinta:#E6EAF2; --tinta-2:#C3CBDA; --neutro:#8D99B0; --linha:#252E40;
+  --indigo:#87A9F0; --indigo-suave:#15203A;
+  --brasa:#E4936B; --brasa-suave:#2C1D16;
+  --verde:#63B891; --verde-suave:#12251D;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; background:var(--papel); color:var(--tinta);
+  font-family:"Public Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:clamp(15px,1.15vw,18px); line-height:1.6; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3{font-family:"Source Serif 4",Georgia,serif; text-wrap:balance; margin:0; letter-spacing:-.01em}
+h1{font-size:clamp(2.1rem,4.6vw,3.5rem); font-weight:700; line-height:1.05}
+h2{font-size:clamp(1.5rem,2.9vw,2.3rem); font-weight:600; line-height:1.18}
+h3{font-size:clamp(1.05rem,1.5vw,1.2rem); font-weight:600}
+p{margin:0}
+strong{font-weight:600}
+code,.mono{font-family:"IBM Plex Mono",ui-monospace,monospace; font-variant-numeric:tabular-nums}
+
+.regua{position:fixed; top:0; left:0; height:3px; background:var(--indigo); width:0; z-index:10;
+  transition:width .25s ease}
+.palco{height:100%; display:grid; place-items:center; padding:clamp(28px,5vh,64px) clamp(24px,6vw,88px)}
+.slide{display:none; width:100%; max-width:1060px; animation:entra .22s ease both}
+.slide[data-ativo]{display:block}
+@keyframes entra{from{opacity:0; transform:translateY(8px)} to{opacity:1; transform:none}}
+@media (prefers-reduced-motion:reduce){ .slide{animation:none} .regua{transition:none} }
+
+.eixo{display:flex; align-items:baseline; gap:12px; margin-bottom:clamp(14px,2.4vh,26px)}
+.eixo span{font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.16em;
+  text-transform:uppercase; color:var(--indigo)}
+.eixo span+span{color:var(--neutro)}
+
+.corpo{max-width:64ch; display:grid; gap:14px; margin-top:clamp(14px,2.4vh,24px); color:var(--tinta-2)}
+.corpo.largo{max-width:none}
+.destaque{color:var(--tinta)}
+
+.rodape{position:fixed; bottom:16px; left:clamp(24px,6vw,88px); right:clamp(24px,6vw,88px);
+  display:flex; justify-content:space-between; align-items:center; gap:16px;
+  font-family:"IBM Plex Mono",monospace; font-size:.68rem; letter-spacing:.08em;
+  color:var(--neutro); text-transform:uppercase}
+.rodape b{color:var(--tinta); font-weight:500}
+
+.numerao{display:flex; flex-wrap:wrap; gap:clamp(18px,3vw,44px); margin-top:clamp(16px,3vh,30px)}
+.numerao div{display:grid; gap:4px}
+.numerao .n{font-family:"IBM Plex Mono",monospace; font-size:clamp(1.7rem,3.6vw,2.9rem);
+  font-weight:600; line-height:1; color:var(--brasa)}
+.numerao .n.calmo{color:var(--indigo)}
+.numerao .r{font-size:.82rem; color:var(--neutro); max-width:22ch; line-height:1.45}
+
+.rolo{overflow-x:auto; margin-top:clamp(16px,3vh,28px)}
+table{border-collapse:collapse; width:100%; font-size:.92rem; min-width:520px}
+th,td{text-align:left; padding:10px 18px 10px 0; border-bottom:1px solid var(--linha)}
+th{font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.1em; text-transform:uppercase;
+  color:var(--neutro); font-weight:500}
+td.n{font-family:"IBM Plex Mono",monospace; font-variant-numeric:tabular-nums; white-space:nowrap}
+td.alvo{color:var(--brasa); font-weight:600}
+td.quieto{color:var(--neutro)}
+tbody tr:last-child td{border-bottom:none}
+
+.selo{display:inline-flex; font-family:"IBM Plex Mono",monospace; font-size:.64rem; letter-spacing:.1em;
+  text-transform:uppercase; padding:3px 10px; border-radius:2px; border:1px solid currentColor}
+.selo.nulo{color:var(--indigo); background:var(--indigo-suave)}
+.selo.ok{color:var(--verde); background:var(--verde-suave)}
+.selo.risco{color:var(--brasa); background:var(--brasa-suave)}
+
+.citacao{border-left:3px solid var(--brasa); padding:12px 0 12px 20px; max-width:60ch;
+  font-family:"Source Serif 4",Georgia,serif; font-size:clamp(1.05rem,1.7vw,1.35rem); line-height:1.4;
+  color:var(--tinta)}
+
+.lista{list-style:none; padding:0; margin:0; display:grid; gap:12px; max-width:66ch}
+.lista li{display:grid; grid-template-columns:auto 1fr; gap:12px; align-items:start; color:var(--tinta-2)}
+.lista .m{color:var(--indigo); font-family:"IBM Plex Mono",monospace; font-size:.78rem; padding-top:4px}
+
+.duplo{display:grid; gap:clamp(18px,3vw,40px); grid-template-columns:repeat(auto-fit,minmax(260px,1fr));
+  margin-top:clamp(16px,3vh,28px)}
+.caixa{background:var(--superficie); border:1px solid var(--linha); border-radius:4px; padding:18px 20px}
+.caixa h3{margin-bottom:8px}
+.caixa p{font-size:.9rem; color:var(--neutro)}
+
+.capa .autor{margin-top:clamp(22px,4vh,40px); display:grid; gap:3px; font-size:.9rem; color:var(--neutro)}
+.capa .autor b{color:var(--tinta); font-weight:600; font-size:1rem}
+.dica{margin-top:26px; font-family:"IBM Plex Mono",monospace; font-size:.66rem; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--neutro)}
+
+.nav{position:fixed; bottom:12px; right:clamp(24px,6vw,88px); display:flex; gap:6px; z-index:11}
+.nav button{font:inherit; font-size:.8rem; line-height:1; padding:7px 11px; cursor:pointer;
+  background:var(--superficie); color:var(--tinta-2); border:1px solid var(--linha); border-radius:3px}
+.nav button:hover{border-color:var(--indigo); color:var(--indigo)}
+.nav button:focus-visible{outline:2px solid var(--indigo); outline-offset:2px}
+
+@media print{
+  .regua,.nav{display:none}
+  body{background:#fff; color:#000}
+  .palco{display:block; height:auto; padding:0}
+  .slide{display:block !important; page-break-after:always; max-width:none; padding:40px 0; animation:none}
+  .rodape{position:static; margin-top:24px}
+}
+</style>
+
+<div class="regua" id="regua"></div>
+<main class="palco" id="palco">
+
+<section class="slide capa" data-ativo data-eixo="Abertura">
+  <div class="eixo"><span>Saúde em Dado</span><span>saudeemdado.com</span></div>
+  <h1>O leito que cria<br>a internação</h1>
+  <p class="corpo destaque" style="font-size:1.1rem">Uma plataforma aberta de indicadores do SUS — e três achados
+  que contrariam a leitura corrente sobre atenção primária, com o método que os tornou possíveis.</p>
+  <div class="autor">
+    <b>Pedro Paulo Fernandes</b>
+    <span>Mestrando em Saúde Coletiva · IAMSPE</span>
+    <span>Pós-graduando em IA e Ciência de Dados em Saúde · Hospital Sírio-Libanês</span>
+    <span>Diretoria de TI · Prefeitura de Penápolis · ORCID 0009-0008-6248-2486</span>
+  </div>
+  <p class="dica">setas ou espaço para avançar</p>
+</section>
+
+<section class="slide" data-eixo="O problema">
+  <div class="eixo"><span>O problema</span></div>
+  <h2>O microdado é público há décadas.<br>O indicador reprodutível, não.</h2>
+  <div class="corpo">
+    <p>O SUS publica alguns dos maiores conjuntos de microdados de saúde abertos do mundo — SIM, SIH, SINAN,
+    SINASC. Qualquer pessoa pode baixar.</p>
+    <p class="destaque">O que quase ninguém consegue é sair do arquivo bruto para um indicador municipal
+    interpretável, versionado, com intervalo de confiança e com procedência auditável — e repetir isso
+    seis meses depois obtendo o mesmo número.</p>
+    <p>Sem isso, cada grupo refaz o pipeline, cada refazimento produz um número ligeiramente diferente, e nenhum
+    deles é conferível contra o outro.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Achado 1">
+  <div class="eixo"><span>Achado 1</span><span>SIH + CNES, 5.570 municípios</span></div>
+  <h2>A hipótese que a própria metodologia carregava — e que os dados derrubaram</h2>
+  <div class="corpo">
+    <p>A leitura corrente diz: <strong>onde faltam leitos, a internação eletiva desaparece e a fatia de ICSAP
+    sobe mecanicamente.</strong> Isso prevê menos leitos → mais %ICSAP.</p>
+    <p class="destaque">Medido, dá o contrário. Leitos SUS por mil habitantes × %ICSAP:
+    <strong>ρ = +0,32</strong> bruta, <strong>+0,34</strong> controlando porte e vulnerabilidade, e
+    <strong>+0,16 a +0,47</strong> dentro de cada quartil de porte — positiva nos quatro.</p>
+    <p>Municípios sem leito local têm %ICSAP <em>menor</em> (17,8%) que os com leito (21,5%).</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Achado 1">
+  <div class="eixo"><span>Achado 1</span><span>o teste decisivo: numerador ou denominador?</span></div>
+  <h2>O efeito está quase todo no numerador</h2>
+  <div class="rolo">
+    <table>
+      <thead><tr><th>Quartil de porte</th><th>Oferta local</th><th>ICSAP / 100 mil</th><th>Não-ICSAP / 100 mil</th></tr></thead>
+      <tbody>
+        <tr><td>Q2</td><td class="quieto">sem leito → com leito</td><td class="n alvo">1.156 → 1.745 &nbsp;(+51%)</td><td class="n quieto">5.483 → 5.887 (+7%)</td></tr>
+        <tr><td>Q3</td><td class="quieto">sem leito → com leito</td><td class="n alvo">961 → 1.782 &nbsp;(+85%)</td><td class="n quieto">5.145 → 5.728 (+11%)</td></tr>
+        <tr><td>Q4</td><td class="quieto">sem leito → com leito</td><td class="n alvo">877 → 1.343 &nbsp;(+53%)</td><td class="n quieto">5.604 → 5.571 (−1%)</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="corpo largo" style="max-width:70ch">
+    <p class="destaque">Não é a eletiva que some por falta de leito — é a internação sensível que
+    <strong>aparece</strong> quando há leito na cidade. Pneumonia, desidratação e descompensação de insuficiência
+    cardíaca são exatamente o que um hospital pequeno interna.</p>
+    <p style="font-size:.86rem">Ressalva declarada em toda a saída: ICSAP é por município de residência, leito por
+    município do estabelecimento. “Sem leito” significa sem oferta <em>local</em>, não sem acesso — o efeito opera
+    por barreira de deslocamento.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Achado 1">
+  <div class="eixo"><span>Achado 1</span><span>implicação</span></div>
+  <h2>Insumo e desfecho medem o município,<br>não o desempenho</h2>
+  <div class="citacao">Um município que abre um hospital pequeno vê seu %ICSAP subir e, pela leitura convencional
+  — “ICSAP alto = atenção básica fraca” —, seria classificado como tendo <em>piorado</em>.</div>
+  <div class="corpo">
+    <p>É oferta induzindo demanda, concentrada justamente nas internações discricionárias que o ICSAP se propõe
+    a medir. O indicador não deixa de servir; deixa de servir <strong>como ranking entre municípios de portes
+    e ofertas diferentes</strong>.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Achado 2">
+  <div class="eixo"><span>Achado 2</span><span>e-Gestor AB · SAPS, competência 2024</span></div>
+  <h2>A cobertura potencial da APS mede porte populacional</h2>
+  <div class="numerao">
+    <div><span class="n">86,1%</span><span class="r">dos municípios com cobertura acima de 100% (mediana 149,1%; máximo 803,21%)</span></div>
+    <div><span class="n calmo">−0,54</span><span class="r">correlação com população — forte</span></div>
+    <div><span class="n calmo">+0,002</span><span class="r">correlação com ICSAP/100k — bruta</span></div>
+    <div><span class="n calmo">+0,017</span><span class="r">parcial, controlando porte e vulnerabilidade</span></div>
+  </div>
+  <div class="corpo" style="margin-top:26px">
+    <p class="destaque">Municípios com menos de 10 mil habitantes têm ao mesmo tempo a maior cobertura mediana
+    (167,1%) e o maior ICSAP — o oposto da hipótese de política pública.</p>
+    <p>Robustez: trocando percentual por densidade de equipes por 10 mil, e ICSAP/100k por %ICSAP, comparando cada
+    município só aos pares do próprio quartil de porte, ρ fica entre −0,02 e +0,18. O achado nulo sobrevive ao
+    desenho mais estrito.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Achado 3">
+  <div class="eixo"><span>Achado 3</span><span>equidade</span></div>
+  <h2>O achado nulo que eu não queria encontrar <span class="selo nulo">nulo</span></h2>
+  <div class="rolo">
+    <table>
+      <thead><tr><th>Quartil de vulnerabilidade</th><th>Q1</th><th>Q2</th><th>Q3</th><th>Q4</th></tr></thead>
+      <tbody>
+        <tr><td>%ICSAP — mediana entre municípios</td><td class="n">19,1%</td><td class="n">21,1%</td><td class="n">20,6%</td><td class="n">19,8%</td></tr>
+        <tr><td class="quieto">%ICSAP — agregado, ponderado por internação</td><td class="n quieto">18,1%</td><td class="n quieto">21,0%</td><td class="n quieto">22,5%</td><td class="n quieto">23,7%</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="corpo">
+    <p>A primeira linha é plana. A segunda sobe do menos para o mais vulnerável, nos quatro anos da série — e
+    parece a desigualdade que a primeira não mostra. <strong>Não é.</strong> O quartil menos vulnerável concentra
+    59,7% das internações do país em 25,2% dos municípios: é onde estão as cidades grandes, e cidade grande tem
+    %ICSAP baixo. O agregado mede <em>porte disfarçado de vulnerabilidade</em>.</p>
+    <p>Dentro da mesma faixa de porte o sinal <em>troca de direção</em>: ρ = −0,054 abaixo de 20 mil habitantes,
+    +0,166 entre 20 e 100 mil, +0,048 acima de 100 mil (não significativo). Paradoxo de Simpson.</p>
+    <p class="destaque">Publico as duas linhas de propósito. Omitir a segunda não a impede de existir — qualquer
+    pessoa que baixe a tabela e some as colunas chega nela em dois minutos. O que evita a leitura errada não é
+    esconder o número, é mostrar de onde ele vem.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="A plataforma">
+  <div class="eixo"><span>A plataforma</span><span>consequência dos achados, não vitrine</span></div>
+  <h2>Os três achados só existem porque a base é reprodutível</h2>
+  <div class="numerao">
+    <div><span class="n calmo">10</span><span class="r">fontes integradas: SIM, SIH, SINAN, SINASC, PNI/RNDS, CNES, SIOPS, e-Gestor AB, ANS, Censo/IBGE</span></div>
+    <div><span class="n calmo">5,33 mi</span><span class="r">linhas publicadas em 39 tabelas · 48,1 MB em Parquet</span></div>
+    <div><span class="n calmo">R$ 0</span><span class="r">custo de infraestrutura — opera inteiramente em camadas gratuitas</span></div>
+  </div>
+  <div class="corpo largo" style="max-width:72ch">
+    <p>Mortalidade 2015–2024 · internações 2022–2024 · dengue 2015–2025 · nascimentos 2021–2024 · vacinação 2023 até o mês passado. Cinco domínios aparecem na interface; as demais tabelas ficam na API e nos downloads.</p>
+    <p class="destaque">Dado agregado em CC BY 4.0, código em MIT, SHA-256 de cada arquivo publicado,
+    DOI de conceito <span class="mono">10.5281/zenodo.20706845</span>. API REST pública sem cadastro e servidor
+    MCP no PyPI, para acesso nativo por modelos de linguagem.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Método">
+  <div class="eixo"><span>Método</span><span>excesso de mortalidade</span></div>
+  <h2>Um baseline imune ao erro do denominador</h2>
+  <div class="corpo">
+    <p>O baseline usual — média histórica escalada pela razão populacional — herda todo erro da projeção de
+    população. Troquei por <strong>tendência linear por mês civil</strong> ajustada a 2015–2019, que capta
+    envelhecimento e se apoia apenas nos óbitos observados.</p>
+  </div>
+  <div class="numerao">
+    <div><span class="n">505 mil</span><span class="r">excesso pandêmico pela variante padronizada por idade</span></div>
+    <div><span class="n calmo">643 mil</span><span class="r">pelo método de tendência, retido</span></div>
+  </div>
+  <div class="corpo" style="margin-top:22px">
+    <p class="destaque">A diferença não é preferência de método: a projeção populacional de 2018 superestima a
+    população e a série pós-Censo 2022 introduz descontinuidade. A padronização por idade herda os dois
+    problemas pelo denominador e <strong>subestima</strong> o excesso.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Método">
+  <div class="eixo"><span>Método</span><span>HSMR hospitalar</span></div>
+  <h2>Intervalo exato e correção para dez mil comparações</h2>
+  <div class="corpo">
+    <p>Padronização indireta por faixa etária × capítulo CID, intervalo de 95% por Poisson/gamma, e correção de
+    FDR para as comparações simultâneas entre hospitais.</p>
+  </div>
+  <div class="numerao">
+    <div><span class="n calmo">1,0000</span><span class="r">calibração nacional nos três anos — o esperado bate com o observado</span></div>
+    <div><span class="n calmo">757</span><span class="r">hospitais acima do esperado em 2024, após FDR (16,0%)</span></div>
+    <div><span class="n">282</span><span class="r">de 10.046 perdem significância <em>com</em> a correção — seriam apontados por acaso</span></div>
+  </div>
+  <div class="corpo" style="margin-top:22px">
+    <p class="destaque">Sem FDR, 282 hospitais entrariam num relatório público como “mortalidade acima do
+    esperado” sem que houvesse evidência. A correção não é rigor decorativo; é a diferença entre acusar e medir.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Método">
+  <div class="eixo"><span>Método</span><span>previsão de demanda hospitalar</span></div>
+  <h2>A validação reprovou o modelo que eu preferia <span class="selo ok">backtest</span></h2>
+  <div class="rolo">
+    <table>
+      <thead><tr><th>Horizonte</th><th>MASE do modelo publicado</th><th>MASE dos modelos sazonais</th><th>Cobertura do IC “95%”</th></tr></thead>
+      <tbody>
+        <tr><td>1 mês</td><td class="n">0,810</td><td class="n quieto" rowspan="3" style="vertical-align:middle">1,03 – 1,11<br><span style="font-size:.8em">piores que o ingênuo</span></td><td class="n alvo" rowspan="3" style="vertical-align:middle">85% observada<br><span style="font-size:.8em">z recalibrado: 2,42 / 2,64 / 2,80</span></td></tr>
+        <tr><td>2 meses</td><td class="n">0,867</td></tr>
+        <tr><td>3 meses</td><td class="n">0,922</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <div class="corpo largo" style="max-width:72ch">
+    <p><em>Rolling-origin</em> em <strong>4.445 hospitais</strong>. MASE abaixo de 1 significa superar o ingênuo
+    sazonal calculado dentro do treino.</p>
+    <p class="destaque">Os modelos sazonais pareciam melhores no agregado nacional e saíram <strong>piores por
+    unidade</strong>. E o intervalo declarado como 95% cobria de fato 85% — recalibrado empiricamente em vez de
+    confiar na normalidade.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Método">
+  <div class="eixo"><span>Método</span><span>integridade da coleta</span></div>
+  <h2>O defeito que a contagem de linhas não pega <span class="selo risco">corrigido</span></h2>
+  <div class="corpo">
+    <p>Os pipelines tratavam <strong>“o download falhou”</strong> como <strong>“esse mês não existe”</strong>.
+    Seis anos-UF entraram no ar incompletos, com código de saída zero e números plausíveis.</p>
+  </div>
+  <div class="numerao">
+    <div><span class="n">−41%</span><span class="r">das internações do Maranhão em 2023, publicadas a menos</span></div>
+    <div><span class="n calmo">+67,6%</span><span class="r">correção aplicada na API pública: 293.243 → 491.355</span></div>
+    <div><span class="n calmo">459/459</span><span class="r">checkpoints idênticos ao refazer os 351 anos-UF do zero</span></div>
+  </div>
+  <div class="corpo" style="margin-top:22px">
+    <p class="destaque">A tese: contagem de linhas não detecta corrupção — duplicata e ausência se cancelam no
+    total. E checksum prova que o arquivo não mudou depois de escrito, não que foi escrito certo. A guarda que
+    funciona é recarregar o dado num banco vazio e deixar a chave primária reclamar.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Método">
+  <div class="eixo"><span>Método</span><span>proveniência</span></div>
+  <h2>A linhagem viaja dentro dos bytes</h2>
+  <div class="duplo">
+    <div class="caixa">
+      <h3>Cada arquivo se declara</h3>
+      <p>O Parquet carrega, nos próprios metadados, quem o produziu e de qual versão da fonte veio. Um arquivo
+      exportado do banco e um gerado pelo pipeline deixam de ser indistinguíveis.</p>
+    </div>
+    <div class="caixa">
+      <h3>Cada publicação é imutável</h3>
+      <p>Publicação datada, com manifesto versionado no git e cópia histórica preservada. O histórico de
+      publicações <em>é</em> a série de snapshots.</p>
+    </div>
+    <div class="caixa">
+      <h3>O checkpoint sabe se está completo</h3>
+      <p>Carimba de quais meses veio. Se o DataSUS reescrever a fonte, ele se invalida sozinho na execução
+      seguinte, em vez de ser reaproveitado para sempre.</p>
+    </div>
+  </div>
+  <div class="corpo" style="margin-top:24px">
+    <p class="destaque">Isso resolve uma pergunta que nenhuma fonte pública brasileira responde hoje:
+    <strong>preliminar quanto?</strong> O TABNET entrega o número de hoje e não tem memória.</p>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Limites">
+  <div class="eixo"><span>Limites</span><span>declarados em toda a saída</span></div>
+  <h2>O que esta plataforma não pode afirmar</h2>
+  <ul class="lista">
+    <li><span class="m">▸</span><div><strong>Desenho ecológico.</strong> Correlação municipal não é efeito
+      individual. Nenhum dos achados sustenta inferência sobre pessoas.</div></li>
+    <li><span class="m">▸</span><div><strong>Unidades diferentes nos dois lados.</strong> ICSAP é por residência;
+      leito, por estabelecimento.</div></li>
+    <li><span class="m">▸</span><div><strong>O ano mais recente é preliminar</strong> e sujeito a revisão pelo
+      Ministério.</div></li>
+    <li><span class="m">▸</span><div><strong>O índice de vulnerabilidade é proxy</strong> de dois indicadores do
+      Censo 2022 — não é o IVS oficial do IPEA.</div></li>
+    <li><span class="m">▸</span><div><strong>A clusterização municipal foi substituída.</strong> Medi a
+      estabilidade — silhueta caindo a partir de K=2, ARI 0,571, 16% dos municípios trocando de grupo sem que o
+      dado deles mudasse — e troquei o k-means por estratificação em tercis com cortes congelados no repositório.
+      Agora a atribuição depende só dos valores do próprio município.</div></li>
+    <li><span class="m">▸</span><div><strong>Cobertura vacinal municipal não é publicada.</strong> Construída,
+      testada e reprovada: correlação de 0,591 entre dois anos, e cobertura mediana caindo de 102,7% nos
+      municípios com 50 a 100 nascidos para 86,2% nos com mais de 5 mil — viés de denominador, não variação real.
+      Publico contagem de doses por município e cobertura só por UF.</div></li>
+  </ul>
+</section>
+
+<section class="slide" data-eixo="Futuro">
+  <div class="eixo"><span>Futuro</span><span>convite, não promessa</span></div>
+  <h2>O que está a um passo de existir</h2>
+  <div class="duplo">
+    <div class="caixa">
+      <h3>ICSAP de causas imunizáveis</h3>
+      <p>O grupo 1 da Lista Brasileira — coqueluche, difteria, tétano, sarampo, rubéola, hepatite B, caxumba,
+      febre amarela, meningite, tuberculose — já está codificado no pipeline, mas <strong>ainda não é publicado
+      em separado</strong>. O outro lado do cruzamento já existe: 638 milhões de doses aplicadas, de 2023 ao mês
+      passado. Falta publicar a internação evitável por doença imunoprevenível ao lado dela.</p>
+    </div>
+    <div class="caixa">
+      <h3>Camada populacional para estudos individuais</h3>
+      <p>Contexto municipal validado — mortalidade padronizada, ICSAP, oferta de leitos, gasto em saúde — para
+      situar coortes e interpretar heterogeneidade.</p>
+    </div>
+    <div class="caixa">
+      <h3>Medir a revisão da fonte</h3>
+      <p>Quanto um número preliminar ainda se move, por competência e UF. Hoje impossível em qualquer fonte
+      pública brasileira.</p>
+    </div>
+    <div class="caixa">
+      <h3>SRAG e nowcasting</h3>
+      <p>SIVEP-Gripe como próxima fonte; o boletim semanal já consome o nowcasting do InfoDengue.</p>
+    </div>
+  </div>
+</section>
+
+<section class="slide" data-eixo="Encerramento">
+  <div class="eixo"><span>Encerramento</span><span>a pergunta</span></div>
+  <h2>O que eu vim propor</h2>
+  <div class="corpo">
+    <p class="destaque" style="font-size:1.05rem">A plataforma já entrega, hoje, um desfecho populacional
+    validado e reprodutível para 5.570 municípios. O que ela não tem é a pergunta biológica.</p>
+    <p>Vejo três frentes onde isso encontra o seu trabalho: <strong>internação por doença prevenível por
+    vacina</strong> como desfecho populacional de impacto vacinal; <strong>epidemiologia digital</strong> com
+    procedência auditável para preparação a epidemias; e a <strong>camada de contexto municipal</strong> para
+    estudos de sistemas que hoje têm N pequeno e território pobre.</p>
+    <p class="destaque">Minha pergunta é direta: alguma dessas frentes é útil ao que o seu grupo está fazendo —
+    e, se for, qual delas você atacaria primeiro?</p>
+  </div>
+  <div class="corpo" style="margin-top:26px; font-size:.86rem">
+    <p><span class="mono">saudeemdado.com</span> · <span class="mono">pedropaulofernandes88@gmail.com</span> ·
+    ORCID <span class="mono">0009-0008-6248-2486</span> · dados CC BY 4.0 · código MIT</p>
+  </div>
+</section>
+
+</main>
+
+<div class="rodape"><span id="eixoRodape">Abertura</span><span><b id="atual">1</b> / <span id="total">16</span></span></div>
+<nav class="nav" aria-label="Navegação dos slides">
+  <button type="button" id="voltar" aria-label="Slide anterior">←</button>
+  <button type="button" id="avancar" aria-label="Próximo slide">→</button>
+</nav>
+
+<script>
+(function(){
+  var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
+  var i = 0;
+  var regua = document.getElementById("regua");
+  var atual = document.getElementById("atual");
+  var eixo = document.getElementById("eixoRodape");
+  document.getElementById("total").textContent = slides.length;
+
+  function mostrar(n){
+    i = Math.max(0, Math.min(slides.length - 1, n));
+    slides.forEach(function(s, k){
+      if (k === i) { s.setAttribute("data-ativo", ""); } else { s.removeAttribute("data-ativo"); }
+    });
+    regua.style.width = ((i + 1) / slides.length * 100) + "%";
+    atual.textContent = i + 1;
+    eixo.textContent = slides[i].getAttribute("data-eixo") || "";
+    if (location.hash !== "#" + (i + 1)) { history.replaceState(null, "", "#" + (i + 1)); }
+  }
+  document.addEventListener("keydown", function(e){
+    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") { e.preventDefault(); mostrar(i + 1); }
+    else if (e.key === "ArrowLeft" || e.key === "PageUp") { e.preventDefault(); mostrar(i - 1); }
+    else if (e.key === "Home") { mostrar(0); }
+    else if (e.key === "End") { mostrar(slides.length - 1); }
+  });
+  document.getElementById("avancar").addEventListener("click", function(){ mostrar(i + 1); });
+  document.getElementById("voltar").addEventListener("click", function(){ mostrar(i - 1); });
+  var inicial = parseInt((location.hash || "").replace("#", ""), 10);
+  mostrar(isNaN(inicial) ? 0 : inicial - 1);
+})();
+</script>
