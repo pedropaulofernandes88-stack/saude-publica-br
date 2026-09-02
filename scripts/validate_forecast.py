@@ -70,6 +70,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _achados import registrar  # noqa: E402
 from _series_forecast import (  # noqa: E402
     BASELINE_MASE,
     MODELO_ATUAL,
@@ -87,6 +88,27 @@ SAIDA = ROOT / "data" / "validacao"
 FONTE = MARTS / "mart_demanda_mensal_hospital.parquet"
 
 Z95 = 1.959963984540054
+
+#: A régua de publicação, agora APLICADA e não só declarada.
+#:
+#: O cabeçalho deste arquivo sempre disse que "um modelo que não a passa não
+#: deveria ser publicado". Até 2026-09-02 isso era uma frase: o script media,
+#: escrevia o relatório e saía com código 0 qualquer que fosse o resultado.
+#: Ninguém o executava — nem o CI, nem a suíte —, e a última validação era
+#: TREZE HORAS mais velha que o forecast publicado. Ou seja: o modelo no ar
+#: nunca tinha passado pela régua que o próprio projeto definiu.
+#:
+#: Agora falhar aqui derruba a execução, e as métricas vão para `achados.json`
+#: listando `mart_forecast_demanda_hospital` como fonte — o que coloca esta
+#: validação sob a mesma guarda de frescor dos coeficientes do site: regerar o
+#: forecast sem revalidar passa a reprovar em `tests/test_numeros_do_site.py`.
+MASE_MAXIMO = 1.0
+
+#: Cobertura nominal do intervalo. NÃO é critério de reprovação — a régua
+#: declarada do projeto é o MASE. Entra em `achados.json` e é impressa em
+#: destaque porque a subcobertura é real e a decisão sobre ela é científica,
+#: não automatizável: apertar o intervalo muda o que a plataforma promete.
+COBERTURA_NOMINAL = 95.0
 
 # Treino mínimo antes da primeira origem. 24 = dois ciclos anuais, o mínimo para
 # que um modelo sazonal seja sequer identificável; usar menos compararia modelos
@@ -415,6 +437,64 @@ def escrever_relatorio(
 
 # ---------------------------------------------------------------------------
 
+def conferir_regua(linhas_geral: list[dict], horizontes: tuple[int, ...]) -> None:
+    """Aplica a régua declarada e registra as métricas sob guarda de frescor.
+
+    Duas coisas que antes não aconteciam. A primeira é sair com código ≠ 0
+    quando o modelo publicado não supera o baseline — sem isso, "não deveria ser
+    publicado" era uma opinião no cabeçalho. A segunda é gravar em
+    `achados.json` citando o mart do forecast: a partir daí, regerar o forecast
+    sem rodar esta validação faz a suíte reprovar, que é o defeito real
+    encontrado — a validação estava treze horas mais velha que o artefato que
+    ela julga, e nada acusava.
+    """
+    publicado = {x["horizonte_meses"]: x for x in linhas_geral
+                 if x["modelo"] == MODELO_ATUAL}
+    if not publicado:
+        raise SystemExit(
+            f"o modelo publicado ({MODELO_ATUAL}) não aparece nos resultados — "
+            "a validação não julgou o que está no ar")
+
+    fontes = ["mart_demanda_mensal_hospital", "mart_forecast_demanda_hospital"]
+    reprovados, subcobertos = [], []
+    for h in horizontes:
+        x = publicado.get(h)
+        if not x:
+            continue
+        mase, cob = float(x["mase"]), float(x["cobertura_ic95_pct"])
+        registrar(f"forecast_mase_h{h}", mase, fontes=fontes,
+                  descricao=f"MASE do modelo publicado ({MODELO_ATUAL}) no horizonte de "
+                            f"{h} mês(es), backtest por origem móvel. Abaixo de "
+                            f"{MASE_MAXIMO} supera o ingênuo sazonal")
+        registrar(f"forecast_cobertura_ic95_h{h}", cob, fontes=fontes,
+                  descricao=f"cobertura empírica do IC95% no horizonte de {h} mês(es); "
+                            f"o nominal é {COBERTURA_NOMINAL:.0f}%")
+        if not np.isfinite(mase) or mase >= MASE_MAXIMO:
+            reprovados.append((h, mase))
+        if cob < COBERTURA_NOMINAL - 5:
+            subcobertos.append((h, cob))
+
+    if subcobertos:
+        print(f"\n[atenção] o IC95% entrega menos que promete em "
+              f"{len(subcobertos)} horizonte(s):", flush=True)
+        for h, cob in subcobertos:
+            print(f"[atenção]   {h}m: {cob:.1f}% de cobertura, nominal "
+                  f"{COBERTURA_NOMINAL:.0f}%", flush=True)
+        print("[atenção] não reprova aqui — a régua declarada do projeto é o MASE. "
+              "Apertar o intervalo muda o que a plataforma promete, e é decisão "
+              "científica, não automática.", flush=True)
+
+    if reprovados:
+        detalhe = ", ".join(f"{h}m: MASE={m:.3f}" for h, m in reprovados)
+        raise SystemExit(
+            f"\n[REPROVADO] {MODELO_ATUAL} não supera o baseline em {detalhe}. "
+            f"O critério é MASE < {MASE_MAXIMO}, declarado no cabeçalho deste "
+            "arquivo. Um modelo que não passa não deveria estar publicado — "
+            "troque o modelo ou retire o forecast do ar.")
+    print(f"\n[ok] {MODELO_ATUAL} supera o baseline em todos os horizontes "
+          f"(MASE < {MASE_MAXIMO})", flush=True)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__.split("\n")[1])
     ap.add_argument("--horizontes", type=int, nargs="+", default=list(HORIZONTES_PADRAO))
@@ -481,6 +561,7 @@ def main() -> None:
             print(f"  {x['modelo']:20s} MAE={x['mae']:9,.1f}  sMAPE={x['smape_pct']:6.2f}%  "
                   f"MASE={x['mase']:.3f}  cobertura={x['cobertura_ic95_pct']:5.1f}%{marca}")
     print(f"\n[ok] relatório em {(SAIDA / 'forecast_backtest.md').relative_to(ROOT)}")
+    conferir_regua(linhas_geral, horizontes)
 
 
 if __name__ == "__main__":

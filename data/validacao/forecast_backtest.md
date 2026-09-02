@@ -5,8 +5,8 @@
 
 | | |
 |---|---|
-| Gerado em | 2026-08-22 19:28 UTC |
-| Commit | `3f0d313` |
+| Gerado em | 2026-09-02 09:36 UTC |
+| Commit | `ca6cb80` |
 | Fonte | `mart_demanda_mensal_hospital` |
 | Período | 2022-01 a 2024-12 |
 | Hospitais na fonte | 5,083 |
