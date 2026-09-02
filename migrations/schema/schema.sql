@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-02 01:53 UTC
--- Objetos: 244
+-- Extraído em: 2026-09-02 09:20 UTC
+-- Objetos: 237
 -- =============================================================================
 
 
@@ -234,16 +234,6 @@ create table if not exists public.mart_contexto_social_municipio (
     hosp_por_10k numeric,
     log_pop numeric,
     constraint mart_contexto_social_municipio_pkey PRIMARY KEY (municipio_cod)
-);
-
-create table if not exists public.mart_correlacao_causas (
-    grupo smallint not null,
-    cid_a text not null,
-    cid_b text not null,
-    r numeric not null,
-    p numeric not null,
-    significativo boolean not null default false,
-    constraint mart_correlacao_causas_pkey PRIMARY KEY (grupo, cid_a, cid_b)
 );
 
 create table if not exists public.mart_demanda_mensal_hospital (
@@ -706,8 +696,6 @@ CREATE INDEX idx_cluster_uf ON public.dim_cluster_municipio USING btree (uf_sigl
 
 CREATE INDEX idx_anomalia_causa_ano ON public.mart_anomalia_causa_municipio USING btree (causabas_3, ano);
 
-CREATE INDEX idx_corr_causas_sig ON public.mart_correlacao_causas USING btree (grupo, significativo) WHERE significativo;
-
 CREATE INDEX idx_dengueano_uf ON public.mart_dengue_municipio_ano USING btree (uf_sigla, ano_epi);
 
 CREATE INDEX idx_dengue_uf_ano ON public.mart_dengue_semana USING btree (uf_sigla, ano_epi);
@@ -1116,8 +1104,6 @@ alter table public.mart_cobertura_vacinal_uf enable row level security;
 
 alter table public.mart_contexto_social_municipio enable row level security;
 
-alter table public.mart_correlacao_causas enable row level security;
-
 alter table public.mart_demanda_mensal_hospital enable row level security;
 
 alter table public.mart_dengue_municipio_ano enable row level security;
@@ -1204,8 +1190,6 @@ create policy leitura_publica on public.mart_cobertura_icsap_municipio for selec
 create policy leitura_publica on public.mart_cobertura_vacinal_uf for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_contexto_social_municipio for select to anon, authenticated using (true);
-
-create policy leitura_publica on public.mart_correlacao_causas for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_demanda_mensal_hospital for select to public using (true);
 
@@ -1400,12 +1384,6 @@ comment on table public.mart_cobertura_vacinal_uf is 'Cobertura vacinal em menor
 comment on table public.mart_contexto_social_municipio is 'Eixos de contexto social e de sistema de saude por municipio (15 variaveis: IVS, APS, leitos, SIOPS, suplementar, CNES, natalidade, porte). Os quatro eixos somam 61,5% da variancia. O maior |r| com os eixos de perfil de causas e 0,46 — as duas leituras sao parcialmente redundantes (V040).';
 
 comment on column public.mart_contexto_social_municipio.spc1 is 'Eixo de vulnerabilidade: positivo em IVS, analfabetismo e cobertura de APS; negativo em plano de saude, estabelecimentos per capita e gasto proprio. Correlaciona -0,46 com o PC1 de mortalidade.';
-
-comment on table public.mart_correlacao_causas is 'Correlacao contemporanea entre pares de CID nas series mensais 2015-2024, sem tendencia e sem efeito de mes civil, com marca de FDR 1%. Uma linha por par POR RECORTE. Controle positivo: A90 x A91 (dengue), o par de maior |r| da matriz (V039).';
-
-comment on column public.mart_correlacao_causas.grupo is 'Recorte de municipios: -1 = nacional; 0,1,2 = os grupos de mart_perfil_mortalidade_municipio. O numero de pares significativos difere MUITO entre grupos (2.632, 7.937 e 8.636), e acompanha o indice de inespecificidade de codificacao de cada grupo.';
-
-comment on column public.mart_correlacao_causas.r is 'Correlacao no lag ZERO. A versao defasada foi testada e NAO se sustenta: o pico de |r| se concentra nas bordas da janela de -6 a +6 meses, assinatura de busca sobreajustada.';
 
 comment on table public.mart_demanda_mensal_hospital is 'Série mensal de internações por estabelecimento (CNES): volume, óbitos e valor aprovado. Base para a projeção de demanda (mart_forecast_demanda_hospital). Fonte: SIH/DataSUS.';
 

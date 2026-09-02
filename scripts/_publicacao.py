@@ -437,6 +437,11 @@ NAO_SERVIDAS = frozenset({
     "mart_mortalidade_causa_municipio",
     "mart_mortalidade_causa_municipio_mes",
     "mart_mortalidade_causa_municipio_faixa",
+    # Matriz de correlação: 164.164 pares, 21 MB no banco, ZERO buscas no
+    # índice desde que foi criada. O consumidor dela — artigo/gerar_tabelas.py
+    # — já lê o Parquet. Terceira vez que o teto de 700 MB morde, terceira vez
+    # que sai a tabela e não o limite. Ver V041.
+    "mart_correlacao_causas",
 })
 
 

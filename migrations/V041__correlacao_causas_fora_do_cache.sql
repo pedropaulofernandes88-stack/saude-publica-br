@@ -1,0 +1,52 @@
+-- =============================================================================
+-- V041 — mart_correlacao_causas sai do Postgres (segue publicada em Parquet)
+-- =============================================================================
+--
+-- A V039 alargou `mart_correlacao_causas` para uma linha por par POR RECORTE:
+-- 41.041 pares × 4 recortes (nacional e os três grupos) = 164.164 linhas. A
+-- guarda de tamanho do `diagnostico_banco.py` reprovou na execução seguinte:
+--
+--     ❌ banco em 703 MB, acima do limite de 700 MB
+--
+-- A tabela responde por 21 MB disso — 12 MB de heap e 8,8 MB de índices. O
+-- banco vinha de 682 MB.
+--
+-- É a terceira vez que este limite morde, e a terceira vez que a resposta é a
+-- mesma: quem sai é a tabela, não o limite. Ver V034 (vacinação municipal) e
+-- V036 (as três de mortalidade por causa). Subir o teto trocaria uma restrição
+-- real — o free tier — por um número mais confortável, e o número não paga a
+-- conta.
+--
+-- POR QUE ESTA E NÃO OUTRA
+--
+-- Três razões, e todas já eram verdade quando ela entrou:
+--
+--   * **ninguém a consulta.** `idx_corr_causas_sig` acumulou ZERO buscas desde
+--     que foi criado. Nenhuma tela do site a lê, e a ferramenta MCP não a expõe;
+--   * **o consumidor dela já usa o Parquet.** `artigo/gerar_tabelas.py`, que
+--     produz as tabelas 4 e 5 do manuscrito, lê
+--     `data/marts/mart_correlacao_causas.parquet` — não a API. Tirá-la do banco
+--     não muda uma linha desse script;
+--   * **o uso é de matriz, não de linha.** Uma matriz de correlação existe para
+--     ser carregada inteira e ordenada, filtrada ou plotada em memória. Servi-la
+--     pelo PostgREST, que devolve 1.000 linhas por requisição, seriam 165
+--     requisições para reproduzir um arquivo de poucos MB.
+--
+-- O manifesto passa a marcá-la como `servida: false`. Sem isso a ausência
+-- pareceria defeito para `validar_camadas.py` e `reconstruir.py`, que iteram o
+-- manifesto — os dois agora conferem o contrário: que ela NÃO está no banco. Se
+-- reaparecer, alguém a recarregou sem atualizar o contrato.
+--
+-- O QUE NÃO MUDA
+--
+-- O Parquet datado continua publicado, com SHA-256 e cópia imutável por
+-- publicação. O DDL da V038/V039 fica versionado no repositório: é ele que
+-- descreve a tabela para quem baixa o arquivo, e é por ele que se recria o
+-- cache se um dia houver orçamento.
+--
+-- Reversão: recriar pela V038 + V039 e recarregar com
+--           scripts/analise_perfil_mortalidade.py — lembrando que o banco volta
+--           a passar de 700 MB.
+-- =============================================================================
+
+DROP TABLE IF EXISTS public.mart_correlacao_causas;
