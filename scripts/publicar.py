@@ -81,6 +81,15 @@ ROOT = Path(__file__).resolve().parents[1]
 #: A ordem é a de tamanho decrescente, para que uma execução interrompida já
 #: tenha resolvido o que custa mais.
 TABELAS = [
+    # Mortalidade por CAUSA e municipio: as duas maiores tabelas do projeto em
+    # linhas (3,6 e 7,7 milhoes) e das menores em bytes (9,9 e 14,2 MB). Ficam
+    # FORA do Postgres por desenho — ver NAO_SERVIDAS em _publicacao.py e V036.
+    "mart_mortalidade_causa_municipio_mes",
+    "mart_mortalidade_causa_municipio",
+    # Analises derivadas das duas acima (V037/V038). Pequenas e servidas.
+    "mart_correlacao_causas",
+    "mart_perfil_mortalidade_municipio",
+    "mart_anomalia_causa_municipio",
     "mart_mortalidade_municipio",
     "mart_internacoes_municipio",
     "mart_dengue_semana",
@@ -128,6 +137,7 @@ TABELAS = [
     "dim_cluster_municipio",
     "dim_cid10_categoria",
     "dim_cid10_capitulo",
+    "dim_cid10_informativo",
 ]
 
 

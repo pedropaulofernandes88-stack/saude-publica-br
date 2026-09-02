@@ -61,3 +61,11 @@ tqdm>=4.66.0
 # o piso é zero e a análise completa está em docs/SECURITY_AUDIT.md.
 cryptography>=50.0.0     # PYSEC-2026-3552/3553/3554
 starlette>=1.3.1         # PYSEC-2026-249 (limites ignorados em urlencoded)
+
+# --- Analise nao supervisionada (scripts/analise_perfil_mortalidade.py) ---
+# scipy ja era usado por pipeline_v2 (IC95% gamma) sem estar declarado aqui;
+# scikit-learn entra com a analise de perfil de mortalidade (k-means, ARI,
+# silhueta). Ambos passam a ser explicitos: dependencia usada e nao declarada
+# quebra o CI no dia em que um teste toca o modulo que a importa.
+scipy>=1.11.0
+scikit-learn>=1.4.0

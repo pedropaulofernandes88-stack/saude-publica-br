@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-08-31 18:32 UTC
--- Objetos: 215
+-- Extraído em: 2026-09-02 01:12 UTC
+-- Objetos: 238
 -- =============================================================================
 
 
@@ -54,6 +54,21 @@ create table if not exists public.dim_cid10_categoria (
     causabas_3 text not null,
     descricao text not null,
     constraint dim_cid10_categoria_pkey PRIMARY KEY (causabas_3)
+);
+
+create table if not exists public.dim_cid10_informativo (
+    causabas_3 text not null,
+    capitulo_cid text not null,
+    obitos_total integer not null,
+    municipios_com_registro integer not null,
+    ano_min smallint not null,
+    ano_max smallint not null,
+    prevalencia_municipal numeric not null,
+    is_mal_definida boolean not null default false,
+    is_covid boolean not null default false,
+    informativo boolean not null default false,
+    descricao text,
+    constraint dim_cid10_informativo_pkey PRIMARY KEY (causabas_3)
 );
 
 create table if not exists public.dim_cluster_municipio (
@@ -114,6 +129,23 @@ create table if not exists public.dim_populacao (
     populacao integer not null,
     fonte text,
     constraint dim_populacao_pkey PRIMARY KEY (municipio_cod, ano)
+);
+
+create table if not exists public.mart_anomalia_causa_municipio (
+    municipio_cod text not null,
+    ano smallint not null,
+    causabas_3 text not null,
+    municipio_nome text not null,
+    uf_sigla text not null,
+    obitos integer not null,
+    esperado numeric not null,
+    esperado_relativo numeric not null,
+    razao numeric not null,
+    p_proprio numeric not null,
+    p_relativo numeric not null,
+    excesso_proprio boolean not null default false,
+    excesso_relativo boolean not null default false,
+    constraint mart_anomalia_causa_municipio_pkey PRIMARY KEY (municipio_cod, ano, causabas_3)
 );
 
 create table if not exists public.mart_cnes_municipio (
@@ -183,6 +215,15 @@ create table if not exists public.mart_cobertura_vacinal_uf (
     nascidos integer not null,
     cobertura_pct numeric(5,1),
     constraint mart_cobertura_vacinal_uf_pkey PRIMARY KEY (uf_sigla, ano, indicador)
+);
+
+create table if not exists public.mart_correlacao_causas (
+    cid_a text not null,
+    cid_b text not null,
+    r numeric not null,
+    p numeric not null,
+    significativo boolean not null default false,
+    constraint mart_correlacao_causas_pkey PRIMARY KEY (cid_a, cid_b)
 );
 
 create table if not exists public.mart_demanda_mensal_hospital (
@@ -289,8 +330,8 @@ create table if not exists public.mart_forecast_demanda_hospital (
     treinado_em date,
     commit_codigo text,
     constraint mart_forecast_demanda_hospital_pkey PRIMARY KEY (cnes, ano_mes_previsto),
-    constraint forecast_status_validacao_valido CHECK (((status_validacao IS NULL) OR (status_validacao = ANY (ARRAY['A'::text, 'B'::text, 'C'::text])))),
-    constraint mart_forecast_demanda_hospital_confianca_check CHECK ((confianca = ANY (ARRAY['adequada'::text, 'baixa'::text])))
+    constraint mart_forecast_demanda_hospital_confianca_check CHECK ((confianca = ANY (ARRAY['adequada'::text, 'baixa'::text]))),
+    constraint forecast_status_validacao_valido CHECK (((status_validacao IS NULL) OR (status_validacao = ANY (ARRAY['A'::text, 'B'::text, 'C'::text]))))
 );
 
 create table if not exists public.mart_hsmr_hospital (
@@ -532,6 +573,23 @@ create table if not exists public.mart_natalidade_municipio (
     constraint mart_natalidade_municipio_pkey PRIMARY KEY (municipio_cod, ano)
 );
 
+create table if not exists public.mart_perfil_mortalidade_municipio (
+    municipio_cod text not null,
+    municipio_nome text not null,
+    uf_sigla text not null,
+    regiao text not null,
+    obitos_periodo integer not null,
+    grupo smallint not null,
+    indice_inespecificidade numeric not null,
+    pc1 numeric,
+    pc2 numeric,
+    pc3 numeric,
+    pc4 numeric,
+    pc5 numeric,
+    pc6 numeric,
+    constraint mart_perfil_mortalidade_municipio_pkey PRIMARY KEY (municipio_cod)
+);
+
 create table if not exists public.mart_qualidade_registro_municipio (
     municipio_cod text not null,
     municipio_nome text,
@@ -620,9 +678,15 @@ CREATE UNIQUE INDEX assinantes_token_canc_idx ON alertas.assinantes USING btree 
 
 CREATE UNIQUE INDEX assinantes_token_conf_idx ON alertas.assinantes USING btree (token_confirmacao);
 
+CREATE INDEX dim_cid10_informativo_informativo_idx ON public.dim_cid10_informativo USING btree (informativo) WHERE informativo;
+
 CREATE INDEX idx_cluster_perfil ON public.dim_cluster_municipio USING btree (cluster);
 
 CREATE INDEX idx_cluster_uf ON public.dim_cluster_municipio USING btree (uf_sigla);
+
+CREATE INDEX idx_anomalia_causa_ano ON public.mart_anomalia_causa_municipio USING btree (causabas_3, ano);
+
+CREATE INDEX idx_corr_causas_sig ON public.mart_correlacao_causas USING btree (significativo) WHERE significativo;
 
 CREATE INDEX idx_dengueano_uf ON public.mart_dengue_municipio_ano USING btree (uf_sigla, ano_epi);
 
@@ -649,6 +713,8 @@ CREATE INDEX idx_mm_uf_ano ON public.mart_mortalidade_municipio USING btree (uf_
 CREATE INDEX idx_mum_comp ON public.mart_mortalidade_uf_mes USING btree (mes_competencia);
 
 CREATE INDEX idx_nat_uf_ano ON public.mart_natalidade_municipio USING btree (uf_sigla, ano);
+
+CREATE INDEX idx_perfil_mort_grupo ON public.mart_perfil_mortalidade_municipio USING btree (grupo);
 
 CREATE INDEX idx_siops_ano_gasto ON public.mart_siops_municipio USING btree (ano, gasto_proprio_saude_hab);
 
@@ -1004,6 +1070,8 @@ alter table public.dim_cid10_capitulo enable row level security;
 
 alter table public.dim_cid10_categoria enable row level security;
 
+alter table public.dim_cid10_informativo enable row level security;
+
 alter table public.dim_cluster_municipio enable row level security;
 
 alter table public.dim_ivs enable row level security;
@@ -1016,6 +1084,8 @@ alter table public.dim_pop_padrao enable row level security;
 
 alter table public.dim_populacao enable row level security;
 
+alter table public.mart_anomalia_causa_municipio enable row level security;
+
 alter table public.mart_cnes_municipio enable row level security;
 
 alter table public.mart_cobertura_aps_municipio enable row level security;
@@ -1023,6 +1093,8 @@ alter table public.mart_cobertura_aps_municipio enable row level security;
 alter table public.mart_cobertura_icsap_municipio enable row level security;
 
 alter table public.mart_cobertura_vacinal_uf enable row level security;
+
+alter table public.mart_correlacao_causas enable row level security;
 
 alter table public.mart_demanda_mensal_hospital enable row level security;
 
@@ -1064,6 +1136,8 @@ alter table public.mart_mortalidade_uf_mes enable row level security;
 
 alter table public.mart_natalidade_municipio enable row level security;
 
+alter table public.mart_perfil_mortalidade_municipio enable row level security;
+
 alter table public.mart_qualidade_registro_municipio enable row level security;
 
 alter table public.mart_saude_suplementar_municipio enable row level security;
@@ -1083,6 +1157,8 @@ create policy leitura_publica on public.dim_cid10_capitulo for select to anon, a
 
 create policy leitura_publica on public.dim_cid10_categoria for select to anon, authenticated using (true);
 
+create policy leitura_publica on public.dim_cid10_informativo for select to anon, authenticated using (true);
+
 create policy leitura_publica on public.dim_cluster_municipio for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.dim_ivs for select to anon, authenticated using (true);
@@ -1095,6 +1171,8 @@ create policy leitura_publica on public.dim_pop_padrao for select to anon, authe
 
 create policy leitura_publica on public.dim_populacao for select to anon, authenticated using (true);
 
+create policy leitura_publica on public.mart_anomalia_causa_municipio for select to anon, authenticated using (true);
+
 create policy leitura_publica on public.mart_cnes_municipio for select to public using (true);
 
 create policy leitura_publica on public.mart_cobertura_aps_municipio for select to public using (true);
@@ -1102,6 +1180,8 @@ create policy leitura_publica on public.mart_cobertura_aps_municipio for select 
 create policy leitura_publica on public.mart_cobertura_icsap_municipio for select to public using (true);
 
 create policy leitura_publica on public.mart_cobertura_vacinal_uf for select to anon, authenticated using (true);
+
+create policy leitura_publica on public.mart_correlacao_causas for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_demanda_mensal_hospital for select to public using (true);
 
@@ -1142,6 +1222,8 @@ create policy leitura_publica on public.mart_mortalidade_municipio for select to
 create policy leitura_publica on public.mart_mortalidade_uf_mes for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_natalidade_municipio for select to anon, authenticated using (true);
+
+create policy leitura_publica on public.mart_perfil_mortalidade_municipio for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_qualidade_registro_municipio for select to anon, authenticated using (true);
 
@@ -1263,6 +1345,8 @@ comment on table public.dim_cid10_capitulo is 'Capítulos da CID-10 (causa bási
 
 comment on table public.dim_cid10_categoria is 'Descrições das categorias CID-10 (3 caracteres).';
 
+comment on table public.dim_cid10_informativo is 'Vocabulario das 1.571 categorias da CID-10 presentes no SIM 2015-2024, com prevalencia municipal e as marcas is_mal_definida, is_covid e informativo. B34 e COVID-19 neste dado: o SIM brasileiro nunca usou U07 (V036).';
+
 comment on table public.dim_cluster_municipio is 'Arquétipo (estrato) de saúde municipal: tercis de mortalidade padronizada (SIM 2023), vulnerabilidade-proxy (Censo 2022) e internações/100k (SIH 2023), com cortes congelados no repositório. Determinístico: o estrato depende apenas dos valores do próprio município. Substituiu o k-means em 2026-08-29, reprovado em teste de estabilidade.';
 
 comment on column public.dim_cluster_municipio.cluster is 'Id do estrato, 1..27, derivado como (tercil_mortalidade-1)*9 + (tercil_vulnerabilidade-1)*3 + tercil_internacao. NÃO é rótulo de k-means — o nome da coluna é mantido por compatibilidade de contrato.';
@@ -1281,11 +1365,17 @@ comment on table public.dim_pop_padrao is 'População padrão para padronizaç�
 
 comment on table public.dim_populacao is 'População residente por município e ano (IBGE — estimativas e Censo 2022).';
 
+comment on table public.mart_anomalia_causa_municipio is 'Celulas municipio x CID x ano (2020-2024) com excesso sobre a historia propria 2015-2019, por binomial negativa com FDR 1%. Controles positivos: COVID em 2020-2021 e dengue apenas em 2024 (V037).';
+
 comment on table public.mart_cobertura_aps_municipio is 'Cobertura potencial da Atencao Primaria (ESF/EAP/eSFR/eCR/EAPP) por municipio e mes, 2021-atual. Fonte: API publica do relatorio de Cobertura da APS (Ministerio da Saude / e-Gestor AB), relatorioaps.saude.gov.br. cobertura_pct pode superar 100% em municipios pequenos (capacidade instalada por equipe supera a populacao local) — comportamento documentado do indicador oficial, nao erro.';
 
 comment on table public.mart_cobertura_icsap_municipio is 'Painel cruzado: cobertura potencial da APS x internacoes por condicoes sensiveis a atencao primaria (ICSAP), por municipio, 2024. ACHADO: a associacao entre os dois e praticamente nula (Spearman +0,004 bruto; +0,018 controlando porte e vulnerabilidade). A cobertura potencial satura acima de 100% em 86% dos municipios e correlaciona-se fortemente com o PORTE (rho -0,54 com populacao) — e, empiricamente, mais um proxy de tamanho do municipio do que uma medida de forca da atencao primaria. Nao usar para ranquear municipios.';
 
 comment on table public.mart_cobertura_vacinal_uf is 'Cobertura vacinal em menores de 1 ano por UF e ano, apenas para cinco indicadores da atencao basica e apenas nos anos com nascidos vivos definitivos. BCG e hepatite B ao nascer excluidas: aplicadas na maternidade, sem denominador adequado.';
+
+comment on table public.mart_correlacao_causas is 'Correlacao contemporanea entre pares de CID nas series mensais nacionais 2015-2024, sem tendencia e sem efeito de mes civil, com marca de FDR 1%. Controle positivo: A90 x A91 (dengue) e o par de maior |r| da matriz, +0,97 (V037).';
+
+comment on column public.mart_correlacao_causas.r is 'Correlacao no lag ZERO. A versao defasada foi testada e NAO se sustenta: o pico de |r| se concentra nas bordas da janela de -6 a +6 meses, assinatura de busca sobreajustada, e os pares revelados sao clinicamente implausiveis.';
 
 comment on table public.mart_demanda_mensal_hospital is 'Série mensal de internações por estabelecimento (CNES): volume, óbitos e valor aprovado. Base para a projeção de demanda (mart_forecast_demanda_hospital). Fonte: SIH/DataSUS.';
 
@@ -1366,6 +1456,12 @@ comment on column public.mart_mortalidade_municipio.taxa_padronizada_100k is 'Ta
 comment on table public.mart_mortalidade_uf_mes is 'Série mensal de óbitos por UF, capítulo CID-10, sexo e faixa etária. Fonte: SIM/DataSUS.';
 
 comment on table public.mart_natalidade_municipio is 'Nascidos vivos (SINASC/DataSUS) por município e ano: volume, % baixo peso (<2500g), % prematuro (<37 sem), % com 7+ consultas pré-natal, idade média da mãe.';
+
+comment on table public.mart_perfil_mortalidade_municipio is 'Coordenadas do perfil de causas de morte por municipio (2015-2024), apos remover porte, estrutura etaria, qualidade do registro e COVID. Seis componentes acima do nulo multinomial (V037).';
+
+comment on column public.mart_perfil_mortalidade_municipio.grupo is 'Discretizacao declarada de um continuo, NAO tipologia: ARI 0,93 entre subamostras mas silhueta 0,17. Use pc1..pc6 para analise; use grupo apenas para exposicao.';
+
+comment on column public.mart_perfil_mortalidade_municipio.indice_inespecificidade is 'Fracao dos obitos codificada em CID impreciso (NE/NCOP/SOE), excluido B34 que e COVID. Correlaciona -0,54 com o PC1 e apenas +0,37 com o indicador classico de causas mal definidas.';
 
 comment on column public.mart_saude_suplementar_municipio.razao_implausivel is 'TRUE quando vinculos_plano_por_100_hab > 100 - o municipio nao suporta leitura como cobertura populacional (provavel artefato de endereco de contrato).';
 
