@@ -424,7 +424,19 @@ def _competencias(df: pd.DataFrame) -> tuple[str | None, str | None]:
 # mart_vacinacao_municipio custa 119 MB servida (68 MB de heap, 45 MB de
 # índices) e empurrava o banco de 622 MB para 779 MB, acima do limite de 700.
 # Nenhuma tela a consulta; o valor dela é o download e o checksum. Ver V034.
-NAO_SERVIDAS = frozenset({"mart_vacinacao_municipio"})
+#
+# As duas de mortalidade por causa entram pelo mesmo contrato e por uma razão
+# mais nítida ainda: 3,6 e 7,7 milhões de linhas ocupam 9,9 e 14,2 MB em Parquet
+# — e centenas de MB em heap e índices no Postgres, num banco que já está em
+# 646 MB de 700. São tabelas de ANÁLISE, feitas para ser baixadas inteiras e
+# lidas em memória; nenhuma tela do site consulta linha a linha. A dimensão
+# `dim_cid10_informativo`, que é o vocabulário e cabe em 1.571 linhas, essa sim
+# é servida. Ver V036.
+NAO_SERVIDAS = frozenset({
+    "mart_vacinacao_municipio",
+    "mart_mortalidade_causa_municipio",
+    "mart_mortalidade_causa_municipio_mes",
+})
 
 
 def descrever(nome: str, caminho: Path, origem: str, id_pub: str) -> Tabela:

@@ -49,6 +49,12 @@ import requests
 
 from _datasus_ftp import CHAVE_FONTE, baixar, fonte_do_checkpoint, tamanho
 from _publicacao import escrever_parquet
+from _sim_obitos import (  # noqa: E402
+    ANOS_CSV,
+    CID10_CAPITULOS,
+    criar_obitos_t,
+    criar_tabela_capitulos,
+)
 from _supabase_key import chave_escrita
 from scipy.stats import gamma as gamma_dist
 
@@ -84,7 +90,6 @@ S3_SIM = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SIM"
 FTP_HOST = "ftp.datasus.gov.br"
 FTP_DIR = "/dissemin/publicos/SIM/CID10/DORES"
 
-ANOS_CSV = {2022, 2023, 2024}          # OpenDataSUS CSV nacional
 ANO_DETALHE = 2022                      # >= : grão demográfico completo
 BASELINE = (2015, 2019)                 # excesso de mortalidade
 
@@ -105,30 +110,6 @@ SIDRA_FAIXA = {
     "75+":   [93098, 49108, 49109, 60040, 60041, 6653],
 }
 
-CID10_CAPITULOS = [
-    ("I",     1, "A00", "B99", "Algumas doenças infecciosas e parasitárias"),
-    ("II",    2, "C00", "D48", "Neoplasias (tumores)"),
-    ("III",   3, "D50", "D89", "Doenças do sangue e dos órgãos hematopoéticos e transtornos imunitários"),
-    ("IV",    4, "E00", "E90", "Doenças endócrinas, nutricionais e metabólicas"),
-    ("V",     5, "F00", "F99", "Transtornos mentais e comportamentais"),
-    ("VI",    6, "G00", "G99", "Doenças do sistema nervoso"),
-    ("VII",   7, "H00", "H59", "Doenças do olho e anexos"),
-    ("VIII",  8, "H60", "H95", "Doenças do ouvido e da apófise mastóide"),
-    ("IX",    9, "I00", "I99", "Doenças do aparelho circulatório"),
-    ("X",    10, "J00", "J99", "Doenças do aparelho respiratório"),
-    ("XI",   11, "K00", "K93", "Doenças do aparelho digestivo"),
-    ("XII",  12, "L00", "L99", "Doenças da pele e do tecido subcutâneo"),
-    ("XIII", 13, "M00", "M99", "Doenças do sistema osteomuscular e do tecido conjuntivo"),
-    ("XIV",  14, "N00", "N99", "Doenças do aparelho geniturinário"),
-    ("XV",   15, "O00", "O99", "Gravidez, parto e puerpério"),
-    ("XVI",  16, "P00", "P96", "Algumas afecções originadas no período perinatal"),
-    ("XVII", 17, "Q00", "Q99", "Malformações congênitas, deformidades e anomalias cromossômicas"),
-    ("XVIII",18, "R00", "R99", "Sintomas, sinais e achados anormais não classificados em outra parte"),
-    ("XIX",  19, "S00", "T98", "Lesões, envenenamento e algumas outras consequências de causas externas"),
-    ("XX",   20, "V01", "Y98", "Causas externas de morbidade e de mortalidade"),
-    ("XXI",  21, "Z00", "Z99", "Fatores que influenciam o estado de saúde e o contato com os serviços de saúde"),
-    ("XXII", 22, "U00", "U99", "Códigos para propósitos especiais (inclui COVID-19: U07)"),
-]
 
 
 def load_env() -> dict[str, str]:
@@ -419,84 +400,13 @@ def fetch_cid10_categorias() -> pd.DataFrame | None:
 
 # ───────────────────────────── Transformação ────────────────────────────────
 def build(con: duckdb.DuckDBPyConnection, anos: list[int]) -> None:
-    anos_csv = sorted(set(anos) & ANOS_CSV)
-    anos_dbc = sorted(set(anos) - ANOS_CSV)
-
-    con.execute("CREATE OR REPLACE TABLE cid10_cap (capitulo TEXT, capitulo_num SMALLINT, ini TEXT, fim TEXT, descricao TEXT)")
-    con.executemany("INSERT INTO cid10_cap VALUES (?,?,?,?,?)", CID10_CAPITULOS)
-
-    fontes = []
-    if anos_csv:
-        files = ", ".join(f"'{RAW / f'DO{str(a)[2:]}OPEN.csv'}'" for a in anos_csv)
-        fontes.append(f"""
-            SELECT TIPOBITO, DTOBITO, IDADE, SEXO, CODMUNRES, LOCOCOR, CAUSABAS
-            FROM read_csv([{files}], delim=';', header=true, quote='"',
-                          all_varchar=true, union_by_name=true)""")
-    if anos_dbc:
-        globs = ", ".join(f"'{RAW_DBC}/DO??{a}.parquet'" for a in anos_dbc)
-        fontes.append(f"""
-            SELECT TIPOBITO, DTOBITO, IDADE, SEXO, CODMUNRES, LOCOCOR, CAUSABAS
-            FROM read_parquet([{globs}])""")
-    union = " UNION ALL ".join(fontes)
+    criar_tabela_capitulos(con)
 
     print("[duckdb] derivando colunas (todas as fontes)...")
-    con.execute(f"""
-        CREATE OR REPLACE TABLE obitos_t AS
-        WITH t AS (
-            SELECT
-                lpad(DTOBITO, 8, '0')                           AS dt,
-                COALESCE(NULLIF(trim(CODMUNRES), ''), '000000') AS municipio_cod,
-                upper(COALESCE(trim(CAUSABAS), ''))             AS causabas,
-                trim(COALESCE(SEXO, ''))                        AS sexo_raw,
-                trim(COALESCE(LOCOCOR, ''))                     AS lococor,
-                trim(COALESCE(IDADE, ''))                       AS idade_raw
-            FROM ({union})
-            WHERE COALESCE(NULLIF(trim(TIPOBITO), ''), '2') <> '1'
-        ),
-        d AS (
-            SELECT
-                TRY_CAST(substr(dt, 5, 4) AS SMALLINT)  AS ano,
-                TRY_CAST(substr(dt, 3, 2) AS SMALLINT)  AS mes,
-                municipio_cod,
-                substr(causabas, 1, 3)                  AS causabas_3,
-                CASE sexo_raw WHEN '1' THEN 'M' WHEN '2' THEN 'F'
-                              WHEN 'M' THEN 'M' WHEN 'F' THEN 'F'
-                              ELSE 'I' END              AS sexo,
-                lococor,
-                CASE
-                    WHEN idade_raw = '' THEN NULL
-                    WHEN substr(lpad(idade_raw, 3, '0'), 1, 1) = '4'
-                        THEN TRY_CAST(substr(lpad(idade_raw, 3, '0'), 2, 2) AS INT)
-                    WHEN substr(lpad(idade_raw, 3, '0'), 1, 1) = '5'
-                        THEN 100 + COALESCE(TRY_CAST(substr(lpad(idade_raw, 3, '0'), 2, 2) AS INT), 0)
-                    WHEN substr(lpad(idade_raw, 3, '0'), 1, 1) IN ('0','1','2','3') THEN 0
-                    ELSE NULL
-                END                                     AS idade_anos
-            FROM t
-        )
-        SELECT
-            d.ano, d.mes,
-            make_date(d.ano, d.mes, 1)                  AS mes_competencia,
-            d.municipio_cod, d.causabas_3,
-            COALESCE(c.capitulo, 'N/D')                 AS capitulo_cid,
-            d.sexo,
-            CASE
-                WHEN d.idade_anos IS NULL THEN 'IGN'
-                WHEN d.idade_anos < 1   THEN '<1'
-                WHEN d.idade_anos <= 4  THEN '1-4'
-                WHEN d.idade_anos <= 14 THEN '5-14'
-                WHEN d.idade_anos <= 29 THEN '15-29'
-                WHEN d.idade_anos <= 44 THEN '30-44'
-                WHEN d.idade_anos <= 59 THEN '45-59'
-                WHEN d.idade_anos <= 74 THEN '60-74'
-                ELSE '75+'
-            END                                         AS faixa_etaria,
-            (d.lococor = '1')                           AS is_hospital,
-            (d.lococor = '3')                           AS is_domicilio
-        FROM d
-        LEFT JOIN cid10_cap c ON d.causabas_3 >= c.ini AND d.causabas_3 <= c.fim
-        WHERE d.ano IN ({','.join(str(a) for a in anos)}) AND d.mes BETWEEN 1 AND 12
-    """)
+    # A derivacao mora em `_sim_obitos.py` para que
+    # `pipeline_mortalidade_causa_municipio.py` use a MESMA definicao de
+    # obito em vez de reescreve-la. Duas copias divergiriam em silencio.
+    criar_obitos_t(con, anos)
     n = con.execute("SELECT count(*) FROM obitos_t").fetchone()[0]
     print(f"[duckdb] óbitos não fetais {min(anos)}–{max(anos)}: {n:,}")
     for ano, cnt in con.execute("SELECT ano, count(*) FROM obitos_t GROUP BY 1 ORDER BY 1").fetchall():
