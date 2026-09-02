@@ -102,7 +102,11 @@ jobs:
       # aprende a ignorar.
       - name: Medir tamanho e inchaço do banco
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
-        run: python scripts/diagnostico_banco.py --limite-mb 700
+        # Sem --limite-mb: o teto e o padrao do script (LIMITE_PADRAO_MB).
+        # Repetir 700 aqui criaria uma segunda definicao que pode divergir da
+        # primeira em silencio -- e o CI passaria a checar um limite que o
+        # projeto ja abandonou.
+        run: python scripts/diagnostico_banco.py
 
       - name: Avisar quando a chave de serviço não está configurada
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY == '' }}

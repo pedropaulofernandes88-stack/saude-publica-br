@@ -2,8 +2,8 @@
 diagnostico_banco.py — mede o tamanho do banco e avisa quando ele incha
 =======================================================================
 
-    python scripts/diagnostico_banco.py
-    python scripts/diagnostico_banco.py --limite-mb 700
+    python scripts/diagnostico_banco.py              # mede E reprova acima de 700 MB
+    python scripts/diagnostico_banco.py --limite-mb 0  # só mede, sem veredito
     python scripts/diagnostico_banco.py --json
 
 POR QUE ESTE ARQUIVO EXISTE
@@ -47,6 +47,22 @@ if hasattr(sys.stdout, "reconfigure"):
 #: começa a compensar o bloqueio exclusivo que o VACUUM FULL tira.
 PCT_INCHACO_RELEVANTE = 15.0
 
+#: Teto do banco, e o PADRÃO da flag `--limite-mb`.
+#:
+#: Ser padrão, e não opção, é o ponto. Enquanto o limite era opt-in, o CI o
+#: passava e a execução local não — e a assimetria cobrou: a tabela de
+#: correlação levou o banco a 703 MB, e o diagnóstico rodado à mão imprimiu o
+#: número sem veredito nenhum. Quem lia via "banco: 703 MB" e seguia adiante. O
+#: defeito só apareceu quando alguém rodou com a flag, dias depois. Ver V041.
+#:
+#: Guarda que só protege quando alguém lembra de pedir não é guarda. Agora ela
+#: vale por omissão nos dois lugares, e desligá-la exige dizer `--limite-mb 0`,
+#: que é um ato deliberado e visível no comando.
+#:
+#: O valor tem folga proposital sobre o uso corrente: alarme que toca por
+#: variação normal é alarme que se aprende a ignorar.
+LIMITE_PADRAO_MB = 700.0
+
 
 def mb(n: float) -> str:
     return f"{n / 1e6:,.0f} MB".replace(",", ".")
@@ -70,8 +86,9 @@ def obter(env: dict) -> list[dict]:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="Diagnóstico de tamanho do banco.")
-    ap.add_argument("--limite-mb", type=float, default=None,
-                    help="sai com código ≠ 0 se o banco passar deste tamanho")
+    ap.add_argument("--limite-mb", type=float, default=LIMITE_PADRAO_MB,
+                    help=f"sai com código ≠ 0 se o banco passar deste tamanho "
+                         f"(padrão: {LIMITE_PADRAO_MB:,.0f} MB; use 0 para só medir)")
     ap.add_argument("--json", action="store_true")
     args = ap.parse_args()
 
