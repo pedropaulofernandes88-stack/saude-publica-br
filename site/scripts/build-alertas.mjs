@@ -20,6 +20,8 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { selecionarEdicao } from "../lib/edicoes.ts";
+
 const DIR = path.join(import.meta.dirname, "..", "public", "sdata", "boletins");
 const NIVEL_MIN_ALERTA = 3; // laranja
 
@@ -27,18 +29,15 @@ const argEd = process.argv.indexOf("--edicao");
 const edicaoAlvo = argEd > -1 ? process.argv[argEd + 1] : null;
 
 const index = JSON.parse(await readFile(path.join(DIR, "index.json"), "utf8"));
-if (!index.length) {
-  console.error("[alertas] nenhuma edição publicada");
-  process.exit(1);
-}
 
-const iAtual = edicaoAlvo ? index.findIndex((e) => e.edicao === edicaoAlvo) : 0;
-if (iAtual < 0) {
-  console.error(`[alertas] edição ${edicaoAlvo} não encontrada`);
+// A seleção mora em lib/edicoes.ts para ser testável: `npm test` não alcança
+// scripts/, e as duas guardas abaixo nunca tinham sido vistas reprovando.
+const selecao = selecionarEdicao(index, edicaoAlvo);
+if (!selecao.ok) {
+  console.error(`[alertas] ${selecao.erro}`);
   process.exit(1);
 }
-const edAtual = index[iAtual].edicao;
-const edAnterior = index[iAtual + 1]?.edicao ?? null;
+const { atual: edAtual, anterior: edAnterior } = selecao;
 
 const ler = async (ed) => JSON.parse(await readFile(path.join(DIR, `${ed}.json`), "utf8"));
 const atual = await ler(edAtual);

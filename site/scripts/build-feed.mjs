@@ -20,6 +20,8 @@
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 
+import { exigirEdicoes } from "../lib/edicoes.ts";
+
 const DIR = path.join(import.meta.dirname, "..", "public", "sdata", "boletins");
 const OUT = path.join(import.meta.dirname, "..", "public");
 const SITE = "https://saudeemdado.com";
@@ -30,8 +32,9 @@ const escapar = (s) => String(s ?? "")
   .replace(/"/g, "&quot;").replace(/'/g, "&apos;");
 
 const index = JSON.parse(await readFile(path.join(DIR, "index.json"), "utf8"));
-if (!index.length) {
-  console.error("[feed] nenhuma edição publicada");
+const naoVazio = exigirEdicoes(index);
+if (!naoVazio.ok) {
+  console.error(`[feed] ${naoVazio.erro}`);
   process.exit(1);
 }
 
