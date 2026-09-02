@@ -18,6 +18,7 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { mesesIncompletosDaSerie } from "../lib/completude.ts";
+import { avaliar, criarVerificador } from "../lib/verificacao-boletim.ts";
 
 const BASE =
   process.env.NEXT_PUBLIC_SUPABASE_URL ?? "https://zekjhmxjamatlxpkykde.supabase.co";
@@ -81,13 +82,9 @@ const plural = (n, sing, plur) => `${fmtInt(n)} ${n === 1 ? sing : plur}`;
 // Estas verificações transformam degradação silenciosa em falha ruidosa. As
 // críticas derrubam a execução (exit != 0), o que faz o Actions notificar e
 // abrir issue; as não críticas apenas ficam registradas na edição.
-const verificacoes = [];
-function verificar(nome, ok, detalhe, { critico = false } = {}) {
-  verificacoes.push({ nome, ok, critico, detalhe });
-  const marca = ok ? "ok  " : critico ? "FALHA" : "aviso";
-  console.log(`[verif] ${marca} ${nome}: ${detalhe}`);
-  return ok;
-}
+// A logica mora em lib/verificacao-boletim.ts para poder ser TESTADA: aqui
+// dentro, exercitar a decisao exigiria rodar o build inteiro com tres APIs.
+const { verificacoes, registrar: verificar } = criarVerificador((l) => console.log(l));
 
 // ── Data da edição ──────────────────────────────────────────────────────────
 const argData = process.argv.indexOf("--data");
@@ -549,13 +546,12 @@ const boletim = {
  * Publicar em silêncio um boletim degradado é o único desfecho inaceitável.
  */
 function encerrar() {
-  const criticas = verificacoes.filter((v) => !v.ok && v.critico);
-  const avisos = verificacoes.filter((v) => !v.ok && !v.critico);
+  const { criticas, avisos, codigo } = avaliar(verificacoes);
   if (criticas.length) {
     console.error(`\n[verif] ${criticas.length} verificação(ões) CRÍTICA(s) falharam:`);
     for (const c of criticas) console.error(`  ✗ ${c.nome}: ${c.detalhe}`);
     console.error("[verif] a edição foi gravada, mas o boletim está degradado.");
-    process.exit(2);
+    process.exit(codigo);
   }
   if (avisos.length) console.warn(`\n[verif] ${avisos.length} aviso(s) não crítico(s).`);
   else console.log("\n[verif] todas as verificações passaram.");
