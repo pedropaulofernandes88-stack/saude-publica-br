@@ -25,6 +25,9 @@ on:
       - "scripts/validate_data.py"
       - "scripts/validar_camadas.py"
       - "scripts/gerar_schema.py"
+      # Faltava: mexer na guarda de tamanho nao disparava o workflow que a
+      # executa. Editar um guarda sem exercita-lo e como escreve-lo sem testar.
+      - "scripts/diagnostico_banco.py"
       - "scripts/reconstruir.py"
       - "scripts/_publicacao.py"
       - "data/publicacoes/**"
