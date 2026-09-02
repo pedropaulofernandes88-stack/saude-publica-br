@@ -4,7 +4,7 @@ import { SECOES, gruposOrdenados, secao } from "@/lib/metodologia-secoes";
 export const metadata: Metadata = {
   title: "Metodologia",
   description:
-    "Como cada indicador é produzido, em 22 seções com link permanente: fontes, critérios de inclusão, "
+    "Como cada indicador é produzido, em 24 seções com link permanente: fontes, critérios de inclusão, "
     + "taxa padronizada por idade, IC95%, excesso de mortalidade, validação automática e as limitações "
     + "conhecidas de cada base (SIM, SINAN, SIH, CNES, SINASC, SIOPS).",
   alternates: { canonical: "/metodologia/" },
@@ -1203,6 +1203,99 @@ export default function Metodologia() {
       </p>
 
       <H2 n={23} />
+      <p>
+        A pergunta que motiva esta seção veio de fora: tratar cada município como um ponto,
+        as coordenadas sendo a composição de causas de morte, e perguntar quem morre de forma
+        parecida. É análise não supervisionada clássica — e é justamente o tipo de análise que
+        sempre devolve alguma coisa. PCA sempre acha componentes; k-means sempre acha grupos.
+        Nada disso falha com erro: falha produzindo resultado bonito e vazio. Por isso cada
+        etapa aqui foi comparada com um <strong>nulo multinomial</strong>, em que cada município
+        sorteia os <em>seus</em> óbitos da composição nacional.
+      </p>
+      <p>
+        <strong>O grão que faltava.</strong> Até 2026-09, a base tinha município × capítulo da
+        CID (22 categorias) e CID de três caracteres × UF — nunca os dois cruzados. A tabela
+        nova tem 3.591.937 células município × CID × ano e 7.700.720 no grão mensal, e não
+        exigiu coleta: o grão já existia dentro do pipeline e era agregado para cima antes de
+        virar tabela. Ela reconcilia exatamente com a mortalidade já publicada — 14.378.827
+        óbitos, 55.938 pares município-ano, divergência zero.
+      </p>
+      <p>
+        <strong>B34 é COVID-19, não "infecção viral não especificada".</strong> O SIM brasileiro
+        nunca usou U07: são zero registros em dez anos. A COVID foi codificada como B34.2, que
+        truncada em três caracteres vira B34 — cuja descrição oficial na CID-10 é exatamente o
+        texto que um filtro de "causas inespecíficas" descartaria. Foram 60 a 240 óbitos por ano
+        entre 2015 e 2019, contra <strong>425.218 em 2021</strong>. Quem rodar esta análise sem
+        saber disso apaga a pandemia da matriz, ou a mantém e a interpreta errado.
+      </p>
+      <p>
+        <strong>Quatro confundidores saem antes de qualquer conclusão:</strong> log da população,
+        fração com 60 anos ou mais, percentual de causas mal definidas e fração de B34. Com os
+        quatro controles o primeiro componente cai de 6,3% para 3,3% da variância — quase metade
+        do que pareceria "padrão de mortalidade" era porte, idade, qualidade do registro e
+        pandemia. <strong>A estrutura sobrevive</strong>: seis componentes ainda superam duas
+        vezes o nulo.
+      </p>
+      <p>
+        <strong>Não há grupos discretos — há um contínuo estruturado.</strong> Duas medidas
+        discordam de um jeito que só tem uma leitura: o índice Rand ajustado entre partições de
+        subamostras de 80% é <strong>0,93</strong> (a partição se reproduz), enquanto a silhueta
+        média é <strong>0,17</strong> (os grupos não se separam). Partição reprodutível com
+        silhueta baixa é a assinatura de um gradiente: o mesmo corte reaparece porque a direção é
+        real, não porque existam ilhas. A fração de soma de quadrados não explicada também cai
+        sem cotovelo de k=2 a k=20. Por isso o produto publicado são as <em>coordenadas</em>, e o
+        rótulo de grupo vai declarado como discretização, não como tipologia descoberta.
+      </p>
+      <p>
+        <strong>O eixo principal é, em quase um terço, como se codifica.</strong> O polo negativo
+        do primeiro componente reúne I64, I10, E14 e V29; o positivo, C18, C34, C25 e C43. Lidos
+        como doença seriam "cerebrovascular e metabólico" contra "câncer". Lidos pelo texto da
+        CID, os quatro do lado negativo terminam em <em>NE — não especificado</em>, e os do
+        positivo são diagnósticos precisos. Construindo um índice de inespecificidade (fração dos
+        óbitos em CID cuja descrição traz NE, NCOP ou SOE, excluído o B34 por ser COVID), a
+        correlação com o primeiro componente é <strong>−0,54</strong> (r² = 0,29) — enquanto o
+        indicador clássico de qualidade, o percentual de causas mal definidas, correlaciona
+        apenas <strong>+0,37</strong> com esse índice. São coisas diferentes: um mede o balde do
+        R99, o outro mede a granularidade de todo o resto. Uma clusterização publicada sem esse
+        controle descreveria, em boa parte, cultura de codificação médica — e seria lida como
+        epidemiologia.
+      </p>
+      <p>
+        <strong>Correlação entre causas: o contemporâneo vale, a defasagem não.</strong> Nas
+        séries mensais nacionais (120 pontos), sem tendência e sem efeito de mês civil, o par de
+        maior correlação de toda a matriz é <strong>A90 × A91 = +0,97</strong> — dengue e dengue
+        hemorrágica, o único par do qual se pode afirmar de antemão que tem de correlacionar.
+        O controle positivo passa. Já a correlação <em>cruzada</em>, com defasagem de −6 a +6
+        meses, não se sustenta: o pico de |r| se empilha nas bordas da janela (4.413 pares contra
+        1.287 por lag intermediário), assinatura de busca sobreajustada, e os pares "revelados"
+        são clinicamente implausíveis. <strong>Publicado como achado negativo.</strong>
+      </p>
+      <p>
+        <strong>Detecção de mudança de padrão, e por que não é z-score.</strong> A mediana é de
+        77 óbitos por município-ano e a maioria das células é 0, 1 ou 2: a distribuição normal
+        não aproxima isso. O teste é binomial negativa, com dispersão estimada pela variação ano
+        a ano dentro do próprio município. Os controles positivos são dengue e COVID — e a dengue
+        aparece <strong>apenas em 2024</strong>, o ano da maior epidemia registrada, com São Paulo
+        marcando 422 óbitos contra 6,5 esperados. Mas o resultado mais útil é outro: sem descontar
+        a tendência nacional, o que mais aparece não são epidemias e sim <strong>deriva de
+        codificação</strong> — N39, E11, G30 e I10 encabeçam a lista, e os sinais crescem
+        monotonicamente de 203 em 2020 para 644 em 2024. Por isso a tabela traz dois escores, um
+        contra a própria história e outro descontando o que o Brasil fez.
+      </p>
+      <p>
+        <strong>Limitações declaradas.</strong> O desenho é ecológico e nada aqui é individual.
+        O corte de 500 óbitos no período deixa 3.430 dos 5.570 municípios — os menores ficam de
+        fora porque seu perfil é ruído multinomial, não porque não importem. A estrutura etária
+        entra pelo Censo 2022 e é tratada como estática. E o índice de inespecificidade depende
+        do texto da descrição da CID-10, não de uma classificação oficial de imprecisão.
+        Reprodutível em <code>scripts/pipeline_mortalidade_causa_municipio.py</code>,{" "}
+        <code>scripts/analise_perfil_mortalidade.py</code> e{" "}
+        <code>scripts/analise_anomalia_causas.py</code>; marts públicos{" "}
+        <code>mart_mortalidade_causa_municipio</code>,{" "}
+        <code>mart_perfil_mortalidade_municipio</code>,{" "}
+        <code>mart_correlacao_causas</code> e <code>mart_anomalia_causa_municipio</code>.
+      </p>
+      <H2 n={24} />
       <p>
         Nenhum microdado individual é publicado: o banco recebe apenas agregados
         (município × período × categoria). Não há registros individuais, datas exatas

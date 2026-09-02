@@ -80,6 +80,7 @@ const TITULOS: [grupo: string, titulos: EntradaTitulo[]][] = [
       "Leitos × ICSAP: o indicador responde à oferta hospitalar",
       "Vazio assistencial e mortalidade: um achado nulo, testado a fundo",
       "Gasto público em saúde (SIOPS) × ICSAP: o quarto achado nulo",
+      "Perfil de causas por município: seis eixos, nenhum grupo, e a codificação",
     ],
   ],
   ["Governança", ["Privacidade e células de contagem pequena"]],

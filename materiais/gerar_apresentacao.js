@@ -195,7 +195,7 @@ eixo(s, "A PLATAFORMA", "consequência dos achados, não vitrine");
 titulo(s, "Os três achados só existem porque a base é reprodutível");
 numeros(s, [
   { n: "10", r: "fontes integradas: mortalidade, internações, agravos, nascidos vivos, vacinação, estabelecimentos e leitos, gasto público, cobertura da atenção primária, saúde suplementar e censo demográfico", calmo: true },
-  { n: "5,33 milhões", r: "de linhas publicadas em 39 tabelas, somando 48,1 megabytes em formato colunar", calmo: true },
+  { n: "16,7 milhões", r: "de linhas publicadas em 45 tabelas, somando 73,3 megabytes em formato colunar", calmo: true },
   { n: "R$ 0", r: "de custo de infraestrutura: opera inteiramente em camadas gratuitas", calmo: true },
 ], 2.4);
 paragrafos(s, [
