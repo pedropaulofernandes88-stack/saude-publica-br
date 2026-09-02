@@ -436,6 +436,7 @@ NAO_SERVIDAS = frozenset({
     "mart_vacinacao_municipio",
     "mart_mortalidade_causa_municipio",
     "mart_mortalidade_causa_municipio_mes",
+    "mart_mortalidade_causa_municipio_faixa",
 })
 
 

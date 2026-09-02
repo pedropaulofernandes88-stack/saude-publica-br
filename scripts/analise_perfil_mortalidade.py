@@ -28,6 +28,33 @@ Composição de causa responde a coisas que não são o que se quer estudar:
     % mal definidas   qualidade do registro, que varia 23x entre municípios
     fração de B34     COVID-19, o maior choque do período
 
+POR QUE A IDADE ENTRA COMO COVARIÁVEL, E NÃO POR PADRONIZAÇÃO DIRETA
+---------------------------------------------------------------------
+`mart_mortalidade_causa_municipio_faixa` traz o grão etário, o que permitiria
+padronizar a composição de causas por idade em vez de residualizar sobre o
+percentual de 60 anos ou mais. Foi medido, e a padronização direta **não
+substitui a covariável**:
+
+    desenho                                    razão vs nulo   |r| com %60+
+    bruta + %60+ como covariável (o adotado)        5,23x          0,000
+    bruta, sem controle nenhum                      9,33x          0,710
+    padronizada por idade, sem covariável           7,69x          0,602
+    padronizada por idade + covariável              5,16x          0,001
+
+A padronização parece reter mais sinal (7,69 contra 5,23), e é ilusão: o PC1
+padronizado ainda correlaciona **0,602** com a estrutura etária. O ganho é
+confundimento NÃO removido, não epidemiologia preservada. Padronizar a
+composição pela distribuição etária dos ÓBITOS remove o efeito de quem morre,
+mas não o de municípios envelhecidos terem perfil distinto dentro de cada faixa
+— e a composição intra-faixa de um município jovem, com poucos óbitos em 75+, é
+ela própria ruidosa.
+
+Manter as duas (última linha) controla a idade tão bem quanto a covariável
+sozinha e deixa o achado de codificação um pouco mais forte (0,576 contra
+0,536), ao custo de um componente acima do nulo (5 em vez de 6). A diferença é
+pequena e o desenho publicado continua sendo o da primeira linha; a linha 4 é o
+caminho natural se o grão etário for incorporado.
+
 Cada proporção de CID é regredida nessas quatro e o que sobra é analisado. Medido:
 com os quatro controles, o PC1 cai de 6,3% para 3,3% da variância — quase metade
 do "padrão de mortalidade" municipal era idade, porte, registro e pandemia.

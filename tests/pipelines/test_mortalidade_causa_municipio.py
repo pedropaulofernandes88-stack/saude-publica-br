@@ -213,6 +213,58 @@ def test_u07_ausente_do_vocabulario_publicado():
 
 
 # --------------------------------------------------------------------------
+# 7b. o grão etário: o único que exclui óbito, e por isso o único com guarda própria
+# --------------------------------------------------------------------------
+def _etario(linhas: list[tuple]) -> pd.DataFrame:
+    return pd.DataFrame(linhas, columns=["municipio_cod", "ano", "causabas_3",
+                                         "faixa_etaria", "obitos"])
+
+
+def test_faixa_com_idade_ignorada_dentro_do_teto_passa():
+    anual = _anual([("350280", 2024, "I21", 1000)])
+    etario = _etario([("350280", 2024, "I21", "75+", 995)])
+    pm.conferir_faixa_etaria(anual, etario)      # 0,5% de ignorados
+
+
+def test_idade_ignorada_acima_do_teto_aborta():
+    """Alta de idade ignorada enviesa qualquer padronização — em silêncio."""
+    anual = _anual([("350280", 2024, "I21", 1000)])
+    etario = _etario([("350280", 2024, "I21", "75+", 900)])   # 10% sem idade
+    with pytest.raises(SystemExit, match="faixa etária"):
+        pm.conferir_faixa_etaria(anual, etario)
+
+
+def test_grao_etario_com_obitos_a_mais_aborta():
+    """Ele é subconjunto do anual: ter mais é impossível, logo é erro de join."""
+    anual = _anual([("350280", 2024, "I21", 100)])
+    etario = _etario([("350280", 2024, "I21", "75+", 150)])
+    with pytest.raises(SystemExit, match="A MAIS"):
+        pm.conferir_faixa_etaria(anual, etario)
+
+
+def test_excesso_em_um_municipio_aborta_mesmo_com_total_certo():
+    """Duplicar num município e faltar noutro fecha o TOTAL e corrompe o dado.
+
+    É o defeito que contagem de linhas não pega — o mesmo padrão que já
+    corrompeu `mart_internacoes_municipio` sem alterar o total.
+    """
+    anual = _anual([("350280", 2024, "I21", 100), ("353730", 2024, "I21", 100)])
+    etario = _etario([("350280", 2024, "I21", "75+", 150),
+                      ("353730", 2024, "I21", "75+", 50)])
+    with pytest.raises(SystemExit, match="mais óbitos no grão etário"):
+        pm.conferir_faixa_etaria(anual, etario)
+
+
+@pytest.mark.skipif(
+    not (MARTS / "mart_mortalidade_causa_municipio_faixa.parquet").exists(),
+    reason="grão etário ainda não gerado")
+def test_o_grao_etario_publicado_nao_tem_faixa_ignorada():
+    d = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio_faixa.parquet",
+                        columns=["faixa_etaria"])
+    assert "IGN" not in set(d.faixa_etaria.unique())
+
+
+# --------------------------------------------------------------------------
 # 6. integração: o que foi publicado fecha com o que já estava publicado
 # --------------------------------------------------------------------------
 @pytest.mark.skipif(

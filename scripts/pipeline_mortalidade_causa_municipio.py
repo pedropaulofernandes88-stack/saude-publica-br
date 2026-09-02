@@ -124,6 +124,10 @@ ANO_COVID_INICIO = 2020
 #: O corte é sugestão publicada, não filtro aplicado ao dado.
 PREVALENCIA_INFORMATIVO = 0.25
 
+#: Teto para óbitos sem faixa etária no grão etário. O medido em 2015–2024 é
+#: 0,17%; 1% já seria alta suficiente para enviesar padronização por idade.
+IGNORADO_MAXIMO = 0.01
+
 #: Parâmetros da guarda do modelo nulo. A semente é fixa porque a razão vai
 #: para `achados.json` e um número que muda a cada execução não é conferível.
 NULO_CORTE_OBITOS = 500
@@ -137,7 +141,7 @@ NULO_LIMIAR = 2.0
 # Construção
 # ---------------------------------------------------------------------------
 
-def construir(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def construir(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     con = duckdb.connect()
     criar_tabela_capitulos(con)
 
@@ -172,6 +176,19 @@ def construir(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame
         ORDER BY 1,3,4,6
     """).df()
 
+    print("[mart] etário: município × CID × ano × faixa...", flush=True)
+    # Óbito com idade ignorada (0,17% do total) fica FORA desta tabela e só
+    # dela: mantê-lo criaria uma faixa 'IGN' que nenhuma padronização sabe
+    # ponderar, e removê-lo das outras quebraria a reconciliação.
+    etario = con.execute("""
+        SELECT o.municipio_cod, m.uf_sigla, o.ano, o.causabas_3, o.faixa_etaria, o.sexo,
+               count(*)::INT AS obitos
+        FROM obitos_t o LEFT JOIN dim_municipio m USING (municipio_cod)
+        WHERE o.faixa_etaria <> 'IGN'
+        GROUP BY 1,2,3,4,5,6
+        ORDER BY 1,3,4,5
+    """).df()
+
     print("[dim] vocabulário de CID com prevalência...", flush=True)
     dimcid = con.execute("""
         SELECT o.causabas_3,
@@ -197,12 +214,12 @@ def construir(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame
     else:
         dimcid["descricao"] = None
 
-    for df in (anual, mensal):
+    for df in (anual, mensal, etario):
         df["uf_sigla"] = df["uf_sigla"].fillna("ND")
     anual["municipio_nome"] = anual["municipio_nome"].fillna("Não identificado")
     anual["regiao"] = anual["regiao"].fillna("ND")
     mensal["mes_competencia"] = pd.to_datetime(mensal["mes_competencia"]).dt.date
-    return anual, mensal, dimcid
+    return anual, mensal, etario, dimcid
 
 
 # ---------------------------------------------------------------------------
@@ -258,6 +275,46 @@ def conferir_covid(anual: pd.DataFrame) -> None:
             "centenas de milhares (COVID). A derivação provavelmente quebrou.")
     print(f"[guarda] B34 = COVID confirmado: {total:,} óbitos em 2020–2021, "
           "nenhum U07", flush=True)
+
+
+def conferir_faixa_etaria(anual: pd.DataFrame, etario: pd.DataFrame) -> None:
+    """Confere o grão etário contra o anual, descontando a idade ignorada.
+
+    O grão etário é o ÚNICO que exclui óbito sem idade, e é por isso que ele
+    não pode ser conferido pela igualdade simples que vale para os outros. A
+    diferença tem de ser exatamente a contagem de `IGN` — nem mais, nem menos.
+
+    Se a diferença crescer, ou o parser de idade quebrou ou o SIM passou a
+    registrar idade pior; nos dois casos a padronização por idade que esta
+    tabela existe para permitir fica enviesada, e em silêncio.
+    """
+    total_anual = int(anual.obitos.sum())
+    total_etario = int(etario.obitos.sum())
+    ignorados = total_anual - total_etario
+    fracao = ignorados / total_anual
+    print(f"[guarda] grão etário: {total_etario:,} óbitos, {ignorados:,} com idade "
+          f"ignorada ({fracao:.3%})", flush=True)
+    if ignorados < 0:
+        raise SystemExit(
+            f"grão etário tem {-ignorados:,} óbitos A MAIS que o anual — impossível, "
+            "já que ele é um subconjunto. A agregação está errada.")
+    if fracao > IGNORADO_MAXIMO:
+        raise SystemExit(
+            f"{fracao:.2%} dos óbitos sem faixa etária, acima do teto de "
+            f"{IGNORADO_MAXIMO:.2%}. O medido em 2015–2024 é 0,17%; uma alta "
+            "enviesaria qualquer padronização por idade.")
+
+    # E a reconciliação por município e ano, que é onde um erro de join apareceria.
+    a = anual.groupby(["municipio_cod", "ano"], as_index=False).obitos.sum()
+    e = etario.groupby(["municipio_cod", "ano"], as_index=False).obitos.sum()
+    j = a.merge(e, on=["municipio_cod", "ano"], how="outer",
+                suffixes=("_anual", "_etario")).fillna(0)
+    piores = j[j.obitos_etario > j.obitos_anual]
+    if len(piores):
+        print(piores.head(5).to_string(index=False), flush=True)
+        raise SystemExit(
+            f"{len(piores):,} pares município×ano têm mais óbitos no grão etário "
+            "que no anual. A tabela NÃO será publicada.")
 
 
 def conferir_vocabulario(dimcid: pd.DataFrame) -> None:
@@ -357,7 +414,7 @@ def main() -> None:
     args = ap.parse_args()
     anos = sorted(args.anos)
 
-    anual, mensal, dimcid = construir(anos)
+    anual, mensal, etario, dimcid = construir(anos)
 
     # Guardas antes de gravar: arquivo errado gravado já é arquivo errado.
     if anos == ANOS:
@@ -370,10 +427,14 @@ def main() -> None:
                          ["municipio_cod", "ano", "causabas_3"])
     conferir_chave_unica("mart_mortalidade_causa_municipio_mes", mensal,
                          ["municipio_cod", "ano", "mes", "causabas_3"])
+    conferir_chave_unica("mart_mortalidade_causa_municipio_faixa", etario,
+                         ["municipio_cod", "ano", "causabas_3", "faixa_etaria", "sexo"])
+    conferir_faixa_etaria(anual, etario)
     razao = guarda_modelo_nulo(anual, dimcid)
 
     for nome, df in (("mart_mortalidade_causa_municipio", anual),
                      ("mart_mortalidade_causa_municipio_mes", mensal),
+                     ("mart_mortalidade_causa_municipio_faixa", etario),
                      ("dim_cid10_informativo", dimcid)):
         escrever_parquet(df, MARTS / f"{nome}.parquet", origem="pipeline", produtor=PRODUTOR)
         mb = (MARTS / f"{nome}.parquet").stat().st_size / 1e6

@@ -279,7 +279,7 @@ segundos** ele verifica 4,37 milhões de linhas, mais 38 policies, 63
 comentários, 11 funções, 44 tabelas com RLS, o schema `alertas` e o
 `security_invoker` da view.
 
-O manifesto tem 46 tabelas e o rebuild carrega 37: `mart_icsap_pares` é view e
+O manifesto tem 47 tabelas e o rebuild carrega 37: `mart_icsap_pares` é view e
 se materializa sozinha, e `mart_vacinacao_municipio` é publicada sem ser
 servida (V034). Para essas duas a checagem se inverte — a view precisa
 materializar linhas, e a não servida precisa **não** existir no esquema.

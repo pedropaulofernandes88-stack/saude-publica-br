@@ -85,6 +85,7 @@ TABELAS = [
     # linhas (3,6 e 7,7 milhoes) e das menores em bytes (9,9 e 14,2 MB). Ficam
     # FORA do Postgres por desenho — ver NAO_SERVIDAS em _publicacao.py e V036.
     "mart_mortalidade_causa_municipio_mes",
+    "mart_mortalidade_causa_municipio_faixa",
     "mart_mortalidade_causa_municipio",
     # Analises derivadas das duas acima (V037/V038). Pequenas e servidas.
     "mart_correlacao_causas",

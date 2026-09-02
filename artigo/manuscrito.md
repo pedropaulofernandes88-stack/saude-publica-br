@@ -439,6 +439,7 @@ Todas as tabelas derivadas estão publicadas em formato Parquet, com SHA-256 por
 |---|---|
 | `mart_mortalidade_causa_municipio` | 3.591.937 células município × CID × ano |
 | `mart_mortalidade_causa_municipio_mes` | 7.700.720 células, grão mensal |
+| `mart_mortalidade_causa_municipio_faixa` | 6.485.073 células por faixa etária e sexo |
 | `dim_cid10_informativo` | dicionário de 1.571 categorias com prevalência e marcas |
 | `mart_perfil_mortalidade_municipio` | coordenadas dos seis componentes, por município |
 | `mart_correlacao_causas` | 164.164 linhas: 41.041 pares × 4 recortes (nacional e três grupos) |
@@ -461,7 +462,28 @@ A metodologia detalhada, com âncora citável por seção, está em **saudeemdad
 
 Itens conhecidos e não resolvidos, listados para que não sejam confundidos com decisões:
 
-- a estrutura etária poderia entrar de forma dinâmica, com estimativas anuais por faixa;
+- **estrutura etária — medido, e a saída óbvia não funciona.** O grão município × CID × ano × faixa foi construído (`mart_mortalidade_causa_municipio_faixa`, 6.485.073 células, 12 MB; apenas 0,17% dos óbitos sem idade). Ele permitiria padronizar a composição de causas por idade em vez de residualizar sobre o percentual de 60 anos ou mais. Testado, a padronização direta **não substitui a covariável**:
+
+| desenho | razão vs. nulo | \|r\| do PC1 com % 60+ |
+|---|---|---|
+| bruta + % 60+ como covariável (adotado) | 5,23× | **0,000** |
+| bruta, sem controle nenhum | 9,33× | 0,710 |
+| padronizada por idade, sem covariável | 7,69× | **0,602** |
+| padronizada por idade + covariável | 5,16× | 0,001 |
+
+A padronização parece reter mais sinal, e é ilusão: o componente padronizado ainda correlaciona 0,602 com a estrutura etária. Padronizar pela distribuição etária dos *óbitos* remove o efeito de quem morre, mas não o de municípios envelhecidos terem perfil distinto *dentro* de cada faixa — e a composição intra-faixa de um município jovem, com poucos óbitos acima de 75 anos, é ela própria ruidosa. Manter as duas (última linha) controla a idade tão bem quanto a covariável sozinha e deixa o achado de codificação um pouco mais forte (0,576 contra 0,536), ao custo de um componente acima do nulo. É o caminho natural, e a diferença é pequena;
+
+- **incluir todas as categorias da CID — viável, mas contraproducente.** A tabela publicada já traz as 1.571 categorias; o filtro de 287 existe só na análise. Afrouxá-lo degrada:
+
+| corte de prevalência | categorias | razão vs. nulo | componentes acima de 2× |
+|---|---|---|---|
+| ≥ 50% dos municípios | 200 | 4,92× | 6 |
+| ≥ 25% (adotado) | 357 | **5,02×** | **6** |
+| ≥ 10% | 589 | 4,79× | 6 |
+| ≥ 1% | 1.087 | 4,00× | 5 |
+| todas as presentes | 1.481 | 3,70× | 4 |
+
+Categorias raras entram como colunas quase inteiramente nulas e diluem o sinal. O patamar fica entre 25% e 50%, e o corte adotado está nele;
 - a resolução mensal por município é a única via plausível para reexaminar precedência temporal, e exige tratamento explícito de contagens pequenas;
 - a comparação entre grupos usa teste z de Fisher assumindo independência entre os recortes, o que é razoável por serem municípios distintos, mas ignora correlação espacial residual;
 - separar artefato de registro de acesso diagnóstico real exigiria informação individual sobre o processo de certificação do óbito, que a base não contém — é a limitação central da seção 3.11.

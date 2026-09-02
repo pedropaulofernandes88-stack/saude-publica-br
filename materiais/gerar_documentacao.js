@@ -132,7 +132,7 @@ add(P("Duas observações importantes sobre as fontes. A primeira: os arquivos d
 add(P("A décima fonte, a de vacinação, merece uma observação à parte, porque ilustra o critério que governa toda a plataforma. Dela seria natural derivar cobertura vacinal por município, que é o indicador que gestores procuram. Essa tabela foi construída, testada e reprovada: a correlação entre dois anos consecutivos ficou em zero vírgula cinquenta e nove, e a cobertura mediana cai de cento e dois vírgula sete por cento nos municípios com cinquenta a cem nascidos para oitenta e seis vírgula dois por cento nos com mais de cinco mil. Ruído não tem direção, e portanto isso é viés sistemático de denominador. A hipótese mais provável — descasamento entre o município onde a dose foi registrada e o município onde o nascimento foi declarado — foi medida e refutada, com correlação de zero vírgula zero zero dois. O que se publica, então, é contagem de doses por município, que não depende de denominador, e cobertura apenas por unidade da federação. O critério foi fixado antes de olhar o resultado.", { suave: true }));
 
 add(H2("3. O que a plataforma publica"));
-add(P("São quarenta e seis tabelas, somando dezesseis milhões setecentas e noventa e cinco mil setecentas e setenta e cinco linhas em setenta e cinco megabytes de formato colunar. Elas se organizam em quatro famílias."));
+add(P("São quarenta e sete tabelas, somando vinte e três milhões duzentas e oitenta mil oitocentas e quarenta e oito linhas em oitenta e seis vírgula nove megabytes de formato colunar. Elas se organizam em quatro famílias."));
 add(H3("3.1 Mortalidade"));
 add(LI([{ t: "Mortalidade municipal", forte: true }, { t: " — município por ano por capítulo da Classificação Internacional de Doenças por sexo, com taxa bruta, intervalo de confiança de noventa e cinco por cento e taxa padronizada por idade." }]));
 add(LI([{ t: "Mortalidade por unidade da federação e mês", forte: true }, { t: " — a série mensal que sustenta o cálculo de excesso de mortalidade." }]));
@@ -218,7 +218,7 @@ add(H3("6.3 Linhagem gravada nos bytes"));
 add(P("Cada arquivo declara, nos próprios metadados internos, quem o produziu e de qual versão da fonte veio. Isso resolve um problema concreto: um arquivo exportado do banco e um arquivo gerado pelo pipeline são visualmente idênticos, e sem essa marca o manifesto afirmaria uma procedência que ninguém verificou."));
 add(P("A escala de procedência tem quatro valores. O valor desejado é indicar que o arquivo saiu do pipeline que gera o dado. Os demais registram dívida declarada: reexportado do banco, publicado manualmente antes de existir pipeline de publicação, ou procedência desconhecida. Um quinto valor identifica visões do banco, que não têm produtor de arquivo por natureza."));
 add(P([{ t: "A evolução dessa medida ao longo do trabalho descrito neste documento: de doze tabelas com procedência de pipeline para " },
-       { t: "quarenta e cinco de quarenta e seis", forte: true },
+       { t: "quarenta e seis de quarenta e sete", forte: true },
        { t: ". As categorias de reexportação do banco, de publicação manual anterior ao pipeline e de procedência desconhecida foram todas zeradas: a única tabela que não declara produtor é a visão, que por natureza não tem arquivo próprio." }]));
 
 add(new Paragraph({ children: [new PageBreak()] }));
