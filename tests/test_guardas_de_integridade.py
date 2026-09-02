@@ -230,3 +230,151 @@ def test_matriz_sem_estrutura_impede_a_clusterizacao():
         contagens.div(contagens.sum(axis=1), axis=0).values, conf)
     with pytest.raises(SystemExit, match="não há o que agrupar"):
         ap.escolher_componentes(resid, contagens, conf)
+
+
+# ---------------------------------------------------------------------------
+# 7. as guardas que eu tinha chamado de "operacionais" — e duas não são
+# ---------------------------------------------------------------------------
+# Na primeira varredura deixei cinco de fora dizendo que testá-las exercitaria o
+# mock e não a lógica. Estava errado em pelo menos duas: "consulta devolveu zero
+# linhas" impede publicar uma tabela VAZIA, e o HTTP do SIOPS impede reportar
+# sucesso sem ter escrito nada. As duas são a classe de defeito que o projeto
+# mais teme — processo que termina com exit 0 tendo perdido o dado.
+#
+# As outras três são de credencial, e mesmo essas valem: a mensagem é o que
+# distingue "faltou configurar" de "está quebrado", e mensagem errada custa uma
+# investigação inteira no lugar errado.
+
+
+class _Resposta:
+    """Resposta HTTP mínima, no formato que o código consome."""
+
+    def __init__(self, status=200, corpo=None, texto=""):
+        self.status_code = status
+        self._corpo = corpo if corpo is not None else []
+        self.text = texto
+
+    def json(self):
+        return self._corpo
+
+    def raise_for_status(self):
+        if self.status_code >= 400:
+            raise RuntimeError(f"HTTP {self.status_code}")
+
+
+def test_exportar_tabela_sem_pk_aborta_antes_de_consultar(monkeypatch):
+    """Sem PK não há ORDER BY determinístico, e paginar assim corrompe.
+
+    É a guarda nascida do defeito que originou este projeto de integridade:
+    `mart_internacoes_municipio` saiu com 334.769 linhas e 212.893 chaves
+    distintas, e o TOTAL bateu com o banco porque as repetidas ocuparam o lugar
+    das que sumiram.
+    """
+    import _publicacao
+
+    monkeypatch.setattr(_publicacao, "chaves_primarias", lambda: {})
+    chamou = []
+    monkeypatch.setattr(_publicacao.requests, "get",
+                        lambda *a, **k: chamou.append(1) or _Resposta())
+    with pytest.raises(RuntimeError, match="sem chave primária conhecida"):
+        _publicacao.exportar_do_postgres(
+            "mart_x", {"SUPABASE_URL": "http://x", "SUPABASE_ANON_KEY": "k"},
+            Path("/tmp/x.parquet"))
+    assert not chamou, "abortou, mas ainda assim consultou o banco"
+
+
+def test_consulta_vazia_aborta_em_vez_de_gravar_parquet_vazio(tmp_path, monkeypatch):
+    """Tabela vazia gravada com sucesso é o pior resultado possível.
+
+    Ela passa em contagem (0 == 0), tem SHA-256 válido, e substitui um arquivo
+    bom por um vazio sem que nada acuse. É a mesma família de
+    "ausência tratada como sucesso" que fez MA/2023 perder cinco meses.
+    """
+    import _publicacao
+
+    monkeypatch.setattr(_publicacao, "chaves_primarias",
+                        lambda: {"mart_x": ["municipio_cod"]})
+    monkeypatch.setattr(_publicacao.requests, "get", lambda *a, **k: _Resposta(corpo=[]))
+    destino = tmp_path / "mart_x.parquet"
+    with pytest.raises(RuntimeError, match="zero linhas"):
+        _publicacao.exportar_do_postgres(
+            "mart_x", {"SUPABASE_URL": "http://x", "SUPABASE_ANON_KEY": "k"}, destino)
+    assert not destino.exists(), "abortou, mas o arquivo vazio foi gravado"
+
+
+def test_exportacao_normal_grava_e_ordena_pela_pk(tmp_path, monkeypatch):
+    """A guarda tem de deixar o caminho bom passar, e ordenado pela chave."""
+    import _publicacao
+
+    monkeypatch.setattr(_publicacao, "chaves_primarias",
+                        lambda: {"mart_x": ["municipio_cod"]})
+    parametros = {}
+
+    def _get(*a, **k):
+        parametros.update(k.get("params", {}))
+        return _Resposta(corpo=[{"municipio_cod": "350280", "v": 1}])
+
+    monkeypatch.setattr(_publicacao.requests, "get", _get)
+    destino = tmp_path / "mart_x.parquet"
+    _publicacao.exportar_do_postgres(
+        "mart_x", {"SUPABASE_URL": "http://x", "SUPABASE_ANON_KEY": "k"}, destino)
+    assert destino.exists()
+    assert parametros.get("order") == "municipio_cod.asc"
+
+
+def test_chave_de_escrita_ausente_aborta_a_publicacao():
+    """Subir ao Storage sem chave falharia adiante, com erro pior de ler."""
+    import _publicacao
+
+    with pytest.raises(SystemExit, match="chave de escrita"):
+        _publicacao._chave_escrita({})
+
+
+def test_cobertura_sem_chave_de_servico_aborta_e_explica_por_que(monkeypatch):
+    """A mensagem é a parte útil: sem ela alguém troca a chave certa por outra.
+
+    O OpenAPI do PostgREST só responde ao `service_role`; com a chave anônima a
+    resposta é um erro que NÃO parece de permissão.
+    """
+    import validar_camadas
+
+    with pytest.raises(RuntimeError, match="OpenAPI do PostgREST"):
+        validar_camadas.tabelas_servidas({"SUPABASE_URL": "http://x"})
+
+
+def test_upload_do_siops_com_erro_do_cliente_aborta_sem_repetir(monkeypatch):
+    """4xx não melhora com retentativa: repetir só atrasa o erro.
+
+    E o essencial é que ABORTE — um upload que falha e não levanta faz o
+    pipeline imprimir "concluído" tendo escrito nada.
+    """
+    import pipeline_siops
+
+    tentativas = []
+    monkeypatch.setattr(pipeline_siops, "chave_escrita", lambda env: "k")
+    monkeypatch.setattr(pipeline_siops.requests, "post",
+                        lambda *a, **k: tentativas.append(1) or _Resposta(400, texto="ruim"))
+    monkeypatch.setattr(pipeline_siops.time, "sleep", lambda s: None)
+    df = pd.DataFrame({"municipio_cod": ["350280"], "ano": [2024]})
+    with pytest.raises(RuntimeError, match="HTTP 400"):
+        pipeline_siops.publicar(df, {"SUPABASE_URL": "http://x"}, [2024])
+    assert len(tentativas) == 1, f"4xx não deve ser repetido, houve {len(tentativas)}"
+
+
+def test_upload_do_siops_repete_erro_de_servidor_e_desiste_no_limite(monkeypatch):
+    """5xx é transitório e merece retentativa — mas com fim.
+
+    Sem o limite, uma indisponibilidade prolongada travaria o pipeline em vez de
+    falhar. Quatro tentativas é o que o código promete.
+    """
+    import pipeline_siops
+
+    tentativas = []
+    monkeypatch.setattr(pipeline_siops, "chave_escrita", lambda env: "k")
+    monkeypatch.setattr(pipeline_siops.requests, "post",
+                        lambda *a, **k: tentativas.append(1) or _Resposta(503, texto="fora"))
+    monkeypatch.setattr(pipeline_siops.time, "sleep", lambda s: None)
+    df = pd.DataFrame({"municipio_cod": ["350280"], "ano": [2024]})
+    with pytest.raises(RuntimeError, match="HTTP 503"):
+        pipeline_siops.publicar(df, {"SUPABASE_URL": "http://x"}, [2024])
+    assert len(tentativas) == 4, f"esperado 4 tentativas, houve {len(tentativas)}"
