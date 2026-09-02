@@ -12,7 +12,10 @@ A derivação parece trivial — quatro `substr` e um filtro — e é exatamente
 isso que copiá-la seria perigoso. Ela codifica decisões que não são óbvias
 olhando o resultado:
 
-  * óbito fetal (`TIPOBITO = 1`) fica de fora, e ausente conta como não fetal;
+  * óbito fetal (`TIPOBITO = 1`) fica de fora, e ausente conta como não fetal —
+    filtro correto que HOJE não remove nada, porque as duas fontes trazem 100%
+    de `TIPOBITO = 2`; o óbito fetal está em `SIM/CID10/DOFET`, não coletado.
+    Vale como defesa, não como recorte ativo;
   * a causa básica é truncada em 3 caracteres, o grão de *categoria* da CID-10;
   * `CODMUNRES` vazio vira '000000' em vez de NULL, para não sumir num join;
   * a data vem de `DTOBITO` em DDMMAAAA, com `lpad` porque o campo perde o
@@ -120,6 +123,25 @@ def sql_uniao_fontes(anos: list[int]) -> str:
             SELECT {', '.join(COLUNAS)}
             FROM read_parquet([{globs}])""")
     return " UNION ALL ".join(fontes)
+
+
+def contar_fetais(con: duckdb.DuckDBPyConnection, anos: list[int]) -> int:
+    """Quantos registros das fontes são óbito fetal.
+
+    Existe para a metodologia não mentir por omissão. Ela afirma que a base não
+    tem óbito fetal, e a razão é a FONTE, não o filtro: o óbito fetal mora em
+    `SIM/CID10/DOFET`, arquivo separado que este projeto não coleta. Medido em
+    2026-09-02, os 14.378.827 registros das duas origens trazem 100% de
+    `TIPOBITO = 2`.
+
+    Se um dia isto devolver diferente de zero, a afirmação da metodologia passa
+    a ser sobre o filtro, e o texto precisa mudar junto. É o mesmo motivo de a
+    guarda de U07 existir em `pipeline_mortalidade_causa_municipio.py`.
+    """
+    union = sql_uniao_fontes(anos)
+    return int(con.execute(
+        f"SELECT count(*) FROM ({union}) WHERE trim(COALESCE(TIPOBITO,'')) = '1'"
+    ).fetchone()[0])
 
 
 def criar_obitos_t(con: duckdb.DuckDBPyConnection, anos: list[int],

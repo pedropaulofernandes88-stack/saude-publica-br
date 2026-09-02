@@ -108,7 +108,16 @@ export default function Metodologia() {
 
       <H2 n={2} />
       <ul>
-        <li>Óbitos fetais excluídos (<code>TIPOBITO=1</code>), convenção de mortalidade geral;</li>
+        <li>
+          <strong>Óbitos fetais fora da base — pela fonte, não pelo filtro.</strong> A
+          convenção de mortalidade geral exclui óbito fetal, e o pipeline mantém o filtro{" "}
+          <code>TIPOBITO ≠ 1</code>. Mas conferindo o campo nos 14.378.827 registros,{" "}
+          <strong>100% têm <code>TIPOBITO = 2</code></strong> nas duas fontes: o óbito
+          fetal vive num arquivo separado do DataSUS (<code>SIM/CID10/DOFET</code>) que
+          este projeto não coleta. Ou seja, a exclusão acontece na origem e o filtro
+          nunca removeu nenhum registro — ele existe como defesa, para o dia em que uma
+          fonte passar a misturar os dois;
+        </li>
         <li>Município de <strong>residência</strong> do falecido (<code>CODMUNRES</code>);</li>
         <li>Causa básica truncada à categoria CID-10 de 3 caracteres; capítulos (I–XXII) pelas faixas oficiais;</li>
         <li>

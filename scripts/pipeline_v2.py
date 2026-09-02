@@ -11,7 +11,10 @@ Fontes (todas oficiais e abertas):
                   6579/4709), população por faixa etária (Censo 2022, t/9514)
 
 Metodologia (documentada em saudeemdado.com/metodologia):
-  - Óbitos fetais excluídos (TIPOBITO=1)
+  - Óbitos fetais fora da base PELA FONTE: o filtro TIPOBITO<>1 existe e é
+    correto, mas nunca removeu nada — 100% dos 14.378.827 registros das duas
+    fontes têm TIPOBITO=2. O óbito fetal está em SIM/CID10/DOFET, que não é
+    coletado. O filtro fica como defesa contra fonte futura que os misture
   - Taxa padronizada por idade: método direto, padrão = Brasil Censo 2022,
     9 faixas; óbitos com idade ignorada redistribuídos pro-rata no município/ano
   - IC95% da taxa bruta: método gamma (Poisson exato)
@@ -749,7 +752,9 @@ def main() -> None:
         ("fonte_populacao", "IBGE — Censo 2022 (t/4709, t/9514) e Estimativas (t/6579); 2023 interpolado"),
         ("anos_cobertura", ", ".join(str(a) for a in anos)),
         ("ano_detalhe_completo", f"{ANO_DETALHE}+ (anos anteriores: totais e marginais)"),
-        ("exclusoes", "Óbitos fetais (TIPOBITO=1) excluídos de todos os marts"),
+        ("exclusoes", "Óbitos fetais ausentes de todos os marts. A exclusão vem da FONTE "
+                       "(DOFET é arquivo separado e não é coletado); o filtro TIPOBITO<>1 "
+                       "existe como defesa e não remove nenhum registro hoje."),
         ("padronizacao", "Taxa padronizada por idade: método direto, padrão Brasil Censo 2022, 9 faixas; idade ignorada redistribuída pro-rata"),
         ("ic95", "IC95% da taxa bruta: método gamma (Poisson exato)"),
         ("excesso_baseline", f"Esperado = tendência linear por mês civil ajustada a {BASELINE[0]}–{BASELINE[1]} "

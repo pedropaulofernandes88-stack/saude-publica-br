@@ -98,7 +98,11 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _achados import registrar  # noqa: E402
 from _publicacao import carregar_env, conferir_chave_unica, escrever_parquet  # noqa: E402
-from _sim_obitos import criar_obitos_t, criar_tabela_capitulos  # noqa: E402
+from _sim_obitos import (  # noqa: E402
+    contar_fetais,
+    criar_obitos_t,
+    criar_tabela_capitulos,
+)
 from _supabase_key import chave_escrita  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -148,7 +152,13 @@ def construir(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame
     print(f"[sim] derivando óbitos {min(anos)}–{max(anos)}...", flush=True)
     criar_obitos_t(con, anos)
     n = con.execute("SELECT count(*) FROM obitos_t").fetchone()[0]
-    print(f"[sim] {n:,} óbitos não fetais", flush=True)
+    fetais = contar_fetais(con, anos)
+    print(f"[sim] {n:,} óbitos não fetais | {fetais:,} fetais removidos pelo filtro",
+          flush=True)
+    if fetais:
+        print("[sim] ATENÇÃO: a metodologia afirma que a exclusão de óbito fetal vem da "
+              "FONTE, não do filtro. Isso deixou de ser verdade — corrija o texto em "
+              "site/app/metodologia/page.tsx e docs/preprint/.", flush=True)
 
     dim = pd.read_parquet(MARTS / "dim_municipio.parquet")
     con.register("dim_municipio", dim)

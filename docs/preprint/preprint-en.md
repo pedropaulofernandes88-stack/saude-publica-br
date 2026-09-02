@@ -67,7 +67,9 @@ platform.
 ### 2.1 Sources and processing
 
 - **Mortality (SIM):** 2015–2024 (national OpenDataSUS CSVs for 2022+; per-state
-  `.dbc` files for 2015–2021). Fetal deaths excluded (`TIPOBITO=1`); municipality
+  `.dbc` files for 2015–2021). No fetal deaths — excluded at the SOURCE, not by the
+  filter: 100% of records in both origins carry `TIPOBITO=2`, because fetal
+  deaths live in `SIM/CID10/DOFET`, which is not collected. Municipality
   of residence; ICD-10 underlying cause.
 - **Hospital admissions (SIH/AIH):** per-state monthly RD files, 2022–2024
   (SUS-funded network).

@@ -66,7 +66,8 @@ th:not(:first-child) { text-align:right; }
 <hr>
 <h2>2. Métodos</h2>
 <h3>2.1 Dados</h3>
-<p>Utilizamos a totalidade dos registros de óbito do Sistema de Informações sobre Mortalidade (SIM/DataSUS) entre 2015 e 2024, excluídos os óbitos fetais. Para 2022–2024 a fonte é o arquivo nacional em CSV do OpenDataSUS; para 2015–2021, os arquivos <code>.dbc</code> por unidade da federação do FTP do DataSUS. A causa básica foi truncada em três caracteres, o grão de <em>categoria</em> da CID-10, e a unidade geográfica é o município de residência.</p>
+<p>Utilizamos a totalidade dos registros de óbito do Sistema de Informações sobre Mortalidade (SIM/DataSUS) entre 2015 e 2024. Para 2022–2024 a fonte é o arquivo nacional em CSV do OpenDataSUS; para 2015–2021, os arquivos <code>.dbc</code> por unidade da federação do FTP do DataSUS. A causa básica foi truncada em três caracteres, o grão de <em>categoria</em> da CID-10, e a unidade geográfica é o município de residência.</p>
+<p>A base não contém óbitos fetais, e a exclusão vem da fonte: conferido o campo <code>TIPOBITO</code> nos 14.378.827 registros, <strong>100% são não fetais</strong> nas duas origens — o óbito fetal está num arquivo separado do DataSUS (<code>SIM/CID10/DOFET</code>) que não é coletado. O pipeline mantém o filtro <code>TIPOBITO ≠ 1</code>, que hoje não remove nenhum registro e existe como defesa.</p>
 <p>O grão município × categoria não existia previamente na plataforma que sustenta esta análise: havia município × capítulo (22 categorias) e categoria × unidade da federação, nunca os dois cruzados. A tabela construída soma 3.591.937 células no grão anual e 7.700.720 no mensal, e reconcilia exatamente — divergência zero em 55.938 pares município-ano — com a tabela de mortalidade por capítulo já publicada e verificada.</p>
 <p>Duas categorias inválidas (D96 e K99), somando dois óbitos em dez anos, foram mantidas para preservar essa reconciliação.</p>
 <h3>2.2 Recorte analítico</h3>

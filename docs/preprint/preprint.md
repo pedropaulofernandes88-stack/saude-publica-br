@@ -99,8 +99,10 @@ mortalidade que tem implicações além desta plataforma.
 ### 2.1 Fontes e processamento
 
 - **Mortalidade (SIM):** microdados 2015–2024 (CSVs nacionais do OpenDataSUS para
-  2022+; arquivos `.dbc` por UF/ano para 2015–2021). Óbitos fetais excluídos
-  (`TIPOBITO=1`); município de residência (`CODMUNRES`); causa básica em CID-10.
+  2022+; arquivos `.dbc` por UF/ano para 2015–2021). Sem óbitos fetais — a exclusão vem
+  da fonte, e não do filtro: 100% dos registros das duas origens trazem
+  `TIPOBITO=2`, porque o óbito fetal está em `SIM/CID10/DOFET`, não coletado.
+  Município de residência (`CODMUNRES`); causa básica em CID-10.
 - **Internações (SIH/AIH):** arquivos RD por UF/mês, 2022–2024 (rede SUS).
 - **Dengue (SINAN):** arquivos nacionais `DENGBR`, 2015–2024.
 - **Nascimentos (SINASC):** 2021–2023.
