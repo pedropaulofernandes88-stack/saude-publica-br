@@ -115,9 +115,9 @@ export default function Home() {
           </div>
           <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              ["45 tabelas · 10 fontes",
+              ["46 tabelas · 10 fontes",
                "publicadas em Parquet com SHA-256 por arquivo e DOI citável"],
-              ["594 testes",
+              ["600 testes",
                "automatizados a cada alteração, com o banco reconstruído do zero no CI"],
               ["351 anos-UF refeitos",
                "reprocessados da fonte para conferência: 459 de 459 checkpoints idênticos"],

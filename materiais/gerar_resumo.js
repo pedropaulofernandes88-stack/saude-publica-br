@@ -77,7 +77,7 @@ s.background = { color: TINTA };
 eixo(s, "SAÚDE EM DADO", "saudeemdado.com", true);
 s.addText("Indicadores do SUS,\nreprodutíveis e datados", { x: M, y: 1.55, w: L, h: 1.9,
   fontFace: SERIF, fontSize: 44, bold: true, color: PAPEL, margin: 0, lineSpacing: 50 });
-s.addText("Dez fontes oficiais integradas em 45 tabelas públicas, com procedência gravada em cada arquivo e histórico imutável de publicações. Resumo de escopo, método, limites e frentes de colaboração.",
+s.addText("Dez fontes oficiais integradas em 46 tabelas públicas, com procedência gravada em cada arquivo e histórico imutável de publicações. Resumo de escopo, método, limites e frentes de colaboração.",
   { x: M, y: 3.65, w: 9.4, h: 1.0, fontFace: SANS, fontSize: 15, color: CLARO, margin: 0, lineSpacing: 23 });
 s.addText([
   { text: "Preparado para o Dr. Helder Nakaya", options: { bold: true, color: PAPEL, fontSize: 14, breakLine: true } },
@@ -170,7 +170,7 @@ eixo(s, "ACESSO", "sem cadastro, sem custo");
 titulo(s, "Como usar, verificar e citar");
 cartoes(s, [
   { t: "API REST pública",
-    d: "PostgREST sobre as 45 tabelas, sem cadastro, com filtros por município, ano, causa e faixa etária. Chave pública de leitura documentada em saudeemdado.com/dados." },
+    d: "PostgREST sobre as 46 tabelas, sem cadastro, com filtros por município, ano, causa e faixa etária. Chave pública de leitura documentada em saudeemdado.com/dados." },
   { t: "Arquivos e checksum",
     d: "Parquet por tabela, com SHA-256 e histórico datado de cada publicação. Permite refazer qualquer número e comparar versões ao longo do tempo." },
   { t: "Servidor MCP",

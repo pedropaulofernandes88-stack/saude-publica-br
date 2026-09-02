@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-02 01:12 UTC
--- Objetos: 238
+-- Extraído em: 2026-09-02 01:53 UTC
+-- Objetos: 244
 -- =============================================================================
 
 
@@ -217,13 +217,33 @@ create table if not exists public.mart_cobertura_vacinal_uf (
     constraint mart_cobertura_vacinal_uf_pkey PRIMARY KEY (uf_sigla, ano, indicador)
 );
 
+create table if not exists public.mart_contexto_social_municipio (
+    municipio_cod text not null,
+    spc1 numeric,
+    spc2 numeric,
+    spc3 numeric,
+    spc4 numeric,
+    taxa_analfabetismo numeric,
+    ivs_score numeric,
+    estab_por_10k numeric,
+    vinculos_plano_por_100_hab numeric,
+    gasto_proprio_saude_hab numeric,
+    pct_prenatal_7mais numeric,
+    cobertura_pct numeric,
+    leitos_sus_por_mil numeric,
+    hosp_por_10k numeric,
+    log_pop numeric,
+    constraint mart_contexto_social_municipio_pkey PRIMARY KEY (municipio_cod)
+);
+
 create table if not exists public.mart_correlacao_causas (
+    grupo smallint not null,
     cid_a text not null,
     cid_b text not null,
     r numeric not null,
     p numeric not null,
     significativo boolean not null default false,
-    constraint mart_correlacao_causas_pkey PRIMARY KEY (cid_a, cid_b)
+    constraint mart_correlacao_causas_pkey PRIMARY KEY (grupo, cid_a, cid_b)
 );
 
 create table if not exists public.mart_demanda_mensal_hospital (
@@ -686,7 +706,7 @@ CREATE INDEX idx_cluster_uf ON public.dim_cluster_municipio USING btree (uf_sigl
 
 CREATE INDEX idx_anomalia_causa_ano ON public.mart_anomalia_causa_municipio USING btree (causabas_3, ano);
 
-CREATE INDEX idx_corr_causas_sig ON public.mart_correlacao_causas USING btree (significativo) WHERE significativo;
+CREATE INDEX idx_corr_causas_sig ON public.mart_correlacao_causas USING btree (grupo, significativo) WHERE significativo;
 
 CREATE INDEX idx_dengueano_uf ON public.mart_dengue_municipio_ano USING btree (uf_sigla, ano_epi);
 
@@ -1094,6 +1114,8 @@ alter table public.mart_cobertura_icsap_municipio enable row level security;
 
 alter table public.mart_cobertura_vacinal_uf enable row level security;
 
+alter table public.mart_contexto_social_municipio enable row level security;
+
 alter table public.mart_correlacao_causas enable row level security;
 
 alter table public.mart_demanda_mensal_hospital enable row level security;
@@ -1180,6 +1202,8 @@ create policy leitura_publica on public.mart_cobertura_aps_municipio for select 
 create policy leitura_publica on public.mart_cobertura_icsap_municipio for select to public using (true);
 
 create policy leitura_publica on public.mart_cobertura_vacinal_uf for select to anon, authenticated using (true);
+
+create policy leitura_publica on public.mart_contexto_social_municipio for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_correlacao_causas for select to anon, authenticated using (true);
 
@@ -1373,9 +1397,15 @@ comment on table public.mart_cobertura_icsap_municipio is 'Painel cruzado: cober
 
 comment on table public.mart_cobertura_vacinal_uf is 'Cobertura vacinal em menores de 1 ano por UF e ano, apenas para cinco indicadores da atencao basica e apenas nos anos com nascidos vivos definitivos. BCG e hepatite B ao nascer excluidas: aplicadas na maternidade, sem denominador adequado.';
 
-comment on table public.mart_correlacao_causas is 'Correlacao contemporanea entre pares de CID nas series mensais nacionais 2015-2024, sem tendencia e sem efeito de mes civil, com marca de FDR 1%. Controle positivo: A90 x A91 (dengue) e o par de maior |r| da matriz, +0,97 (V037).';
+comment on table public.mart_contexto_social_municipio is 'Eixos de contexto social e de sistema de saude por municipio (15 variaveis: IVS, APS, leitos, SIOPS, suplementar, CNES, natalidade, porte). Os quatro eixos somam 61,5% da variancia. O maior |r| com os eixos de perfil de causas e 0,46 — as duas leituras sao parcialmente redundantes (V040).';
 
-comment on column public.mart_correlacao_causas.r is 'Correlacao no lag ZERO. A versao defasada foi testada e NAO se sustenta: o pico de |r| se concentra nas bordas da janela de -6 a +6 meses, assinatura de busca sobreajustada, e os pares revelados sao clinicamente implausiveis.';
+comment on column public.mart_contexto_social_municipio.spc1 is 'Eixo de vulnerabilidade: positivo em IVS, analfabetismo e cobertura de APS; negativo em plano de saude, estabelecimentos per capita e gasto proprio. Correlaciona -0,46 com o PC1 de mortalidade.';
+
+comment on table public.mart_correlacao_causas is 'Correlacao contemporanea entre pares de CID nas series mensais 2015-2024, sem tendencia e sem efeito de mes civil, com marca de FDR 1%. Uma linha por par POR RECORTE. Controle positivo: A90 x A91 (dengue), o par de maior |r| da matriz (V039).';
+
+comment on column public.mart_correlacao_causas.grupo is 'Recorte de municipios: -1 = nacional; 0,1,2 = os grupos de mart_perfil_mortalidade_municipio. O numero de pares significativos difere MUITO entre grupos (2.632, 7.937 e 8.636), e acompanha o indice de inespecificidade de codificacao de cada grupo.';
+
+comment on column public.mart_correlacao_causas.r is 'Correlacao no lag ZERO. A versao defasada foi testada e NAO se sustenta: o pico de |r| se concentra nas bordas da janela de -6 a +6 meses, assinatura de busca sobreajustada.';
 
 comment on table public.mart_demanda_mensal_hospital is 'Série mensal de internações por estabelecimento (CNES): volume, óbitos e valor aprovado. Base para a projeção de demanda (mart_forecast_demanda_hospital). Fonte: SIH/DataSUS.';
 

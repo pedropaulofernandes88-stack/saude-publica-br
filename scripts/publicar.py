@@ -90,6 +90,7 @@ TABELAS = [
     "mart_correlacao_causas",
     "mart_perfil_mortalidade_municipio",
     "mart_anomalia_causa_municipio",
+    "mart_contexto_social_municipio",
     "mart_mortalidade_municipio",
     "mart_internacoes_municipio",
     "mart_dengue_semana",

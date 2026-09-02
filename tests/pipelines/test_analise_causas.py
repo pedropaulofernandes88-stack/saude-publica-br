@@ -222,3 +222,101 @@ def test_a_leitura_de_continuo_esta_registrada():
         pytest.skip("analise_perfil_mortalidade.py ainda não rodou")
     assert a["perfil_ari_k3"]["valor"] >= 0.90
     assert a["perfil_silhueta_k3"]["valor"] < 0.25
+
+
+# --------------------------------------------------------------------------
+# 8. correlação por grupo e a diferença entre grupos
+# --------------------------------------------------------------------------
+def test_diferenca_entre_grupos_nao_acha_nada_quando_sao_iguais():
+    """Dois grupos com a MESMA correlação não podem diferir em par nenhum."""
+    pares = pd.DataFrame({
+        "grupo": [0] * 50 + [1] * 50,
+        "cid_a": [f"A{i:02d}" for i in range(50)] * 2,
+        "cid_b": [f"B{i:02d}" for i in range(50)] * 2,
+        "r": list(np.linspace(-0.5, 0.5, 50)) * 2,
+    })
+    assert perfil.diferenca_entre_grupos(pares, [0, 1])[(0, 1)] == 0
+
+
+def test_diferenca_entre_grupos_acha_a_inversao_plantada():
+    """Um par que inverte de +0,9 para −0,9 tem de ser detectado."""
+    r0 = list(np.linspace(-0.3, 0.3, 49)) + [0.9]
+    r1 = list(np.linspace(-0.3, 0.3, 49)) + [-0.9]
+    pares = pd.DataFrame({
+        "grupo": [0] * 50 + [1] * 50,
+        "cid_a": [f"A{i:02d}" for i in range(50)] * 2,
+        "cid_b": [f"B{i:02d}" for i in range(50)] * 2,
+        "r": r0 + r1,
+    })
+    assert perfil.diferenca_entre_grupos(pares, [0, 1])[(0, 1)] >= 1
+
+
+@pytest.mark.skipif(not (MARTS / "mart_correlacao_causas.parquet").exists(),
+                    reason="mart de correlação ainda não gerado")
+def test_a_correlacao_publicada_tem_os_quatro_recortes():
+    """Nacional (−1) e os três grupos. Se sobrar só o nacional, a pergunta
+    'em cada grupo, quais CIDs se correlacionam?' voltou a ficar sem resposta."""
+    d = pd.read_parquet(MARTS / "mart_correlacao_causas.parquet")
+    assert set(d.grupo.unique()) == {-1, 0, 1, 2}
+    assert d.groupby("grupo").size().nunique() == 1, "os recortes têm de cobrir os mesmos pares"
+
+
+@pytest.mark.skipif(not (MARTS / "mart_correlacao_causas.parquet").exists()
+                    or not (MARTS / "mart_perfil_mortalidade_municipio.parquet").exists(),
+                    reason="marts ainda não gerados")
+def test_grupo_de_codificacao_mais_precisa_tem_menos_pares_correlacionados():
+    """O achado central, testado como relação e não como número.
+
+    Onde a codificação é mais precisa, as causas se movem de forma mais
+    independente. Fixar 2.632 quebraria a cada reprocessamento; a ORDEM entre
+    os grupos é o que precisa se manter.
+    """
+    corr = pd.read_parquet(MARTS / "mart_correlacao_causas.parquet")
+    perf = pd.read_parquet(MARTS / "mart_perfil_mortalidade_municipio.parquet")
+    sig = corr[corr.significativo & (corr.grupo >= 0)].groupby("grupo").size()
+    inesp = perf.groupby("grupo").indice_inespecificidade.median()
+    mais_preciso = int(inesp.idxmin())
+    assert sig[mais_preciso] == sig.min(), (
+        f"o grupo de codificação mais precisa ({mais_preciso}) deveria ter o menor "
+        f"número de pares correlacionados; tem {sig[mais_preciso]} contra {sig.min()}")
+
+
+# --------------------------------------------------------------------------
+# 9. contexto social
+# --------------------------------------------------------------------------
+@pytest.mark.skipif(not (MARTS / "mart_contexto_social_municipio.parquet").exists(),
+                    reason="mart de contexto social ainda não gerado")
+def test_inespecificidade_e_indiferente_ao_porte_e_ao_leito():
+    """As duas correlações NULAS são o que sustenta a interpretação.
+
+    Se o índice de inespecificidade correlacionasse com porte, ele seria um
+    proxy de tamanho — e o porte já foi removido do perfil. Se correlacionasse
+    forte com leito hospitalar, a leitura seria falta de equipamento. Nenhuma
+    das duas acontece, e é isso que deixa de pé a leitura socioeconômica.
+    """
+    ctx = pd.read_parquet(MARTS / "mart_contexto_social_municipio.parquet")
+    perf = (pd.read_parquet(MARTS / "mart_perfil_mortalidade_municipio.parquet")
+            .set_index("municipio_cod"))
+    ctx = ctx.set_index("municipio_cod")
+    inesp = perf.indice_inespecificidade.reindex(ctx.index).astype(float)
+    assert abs(np.corrcoef(inesp, ctx.log_pop.astype(float))[0, 1]) < 0.2
+    assert abs(np.corrcoef(inesp, ctx.hosp_por_10k.astype(float))[0, 1]) < 0.2
+    # e a correlação com analfabetismo é a que existe
+    assert np.corrcoef(inesp, ctx.taxa_analfabetismo.astype(float))[0, 1] > 0.4
+
+
+@pytest.mark.skipif(not (MARTS / "mart_contexto_social_municipio.parquet").exists(),
+                    reason="mart de contexto social ainda não gerado")
+def test_os_eixos_sociais_nao_sao_redundantes_com_os_de_mortalidade():
+    """Se |r| chegasse perto de 1, a análise de mortalidade seria dispensável;
+    se fosse 0, não haveria o que discutir. O achado é o meio-termo."""
+    ctx = (pd.read_parquet(MARTS / "mart_contexto_social_municipio.parquet")
+           .set_index("municipio_cod"))
+    perf = (pd.read_parquet(MARTS / "mart_perfil_mortalidade_municipio.parquet")
+            .set_index("municipio_cod"))
+    comum = ctx.index.intersection(perf.index)
+    maior = max(
+        abs(np.corrcoef(perf.loc[comum, f"pc{i}"].astype(float),
+                        ctx.loc[comum, f"spc{j}"].astype(float))[0, 1])
+        for i in range(1, 7) for j in range(1, 5))
+    assert 0.2 < maior < 0.8

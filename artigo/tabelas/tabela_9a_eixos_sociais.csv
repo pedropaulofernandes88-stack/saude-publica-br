@@ -1,0 +1,5 @@
+﻿Eixo,Variância (%),Polo negativo,Polo positivo
+SPC1,29.5,"vinculos_plano_por_100_hab, estab_por_10k, gasto_proprio_saude_hab","ivs_score, taxa_analfabetismo, cobertura_pct"
+SPC2,13.1,"hosp_por_10k, pct_prenatal_7mais, gasto_proprio_saude_hab","log_pop, pct_sem_agua, vinculos_plano_por_100_hab"
+SPC3,9.7,"pct_prematuro, pct_baixo_peso, hosp_por_10k","pct_prenatal_7mais, pct_receita_propria_saude, gasto_proprio_saude_hab"
+SPC4,9.2,"pct_receita_propria_saude, gasto_proprio_saude_hab, pct_sem_agua","leitos_sus_por_mil, transf_sus_hab, estab_por_10k"

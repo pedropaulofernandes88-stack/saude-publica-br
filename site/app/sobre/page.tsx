@@ -175,7 +175,7 @@ export default function Sobre() {
           </tr>
           <tr>
             <td><strong>Saúde em Dado</strong></td>
-            <td>API REST sem cadastro; painel, mapa e boletim imediatos; dez fontes integradas em 45 tabelas — mortalidade (SIM), dengue (SINAN), internações (SIH), nascimentos (SINASC), vacinação (PNI/RNDS), estabelecimentos e leitos (CNES), gasto público (SIOPS), cobertura da APS (e-Gestor AB) e saúde suplementar (ANS); taxa padronizada, IC95%, excesso de mortalidade e HSMR com correção de múltiplas comparações; pacote Python e servidor MCP; pipeline reproduzível com procedência gravada em cada arquivo</td>
+            <td>API REST sem cadastro; painel, mapa e boletim imediatos; dez fontes integradas em 46 tabelas — mortalidade (SIM), dengue (SINAN), internações (SIH), nascimentos (SINASC), vacinação (PNI/RNDS), estabelecimentos e leitos (CNES), gasto público (SIOPS), cobertura da APS (e-Gestor AB) e saúde suplementar (ANS); taxa padronizada, IC95%, excesso de mortalidade e HSMR com correção de múltiplas comparações; pacote Python e servidor MCP; pipeline reproduzível com procedência gravada em cada arquivo</td>
             <td>Cinco domínios expostos na interface (mortalidade, dengue, assistência hospitalar, atenção primária e nascimentos); vacinação e as demais tabelas ficam na API e nos downloads. Projeto de um autor só</td>
           </tr>
         </tbody>

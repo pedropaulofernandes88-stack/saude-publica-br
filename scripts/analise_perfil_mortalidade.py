@@ -146,6 +146,14 @@ FORA_DO_INDICE = {"B34"}
 
 LAGS = range(-6, 7)
 
+#: Rótulo do recorte nacional na tabela de pares. -1 e não NULL porque a coluna
+#: entra na chave primária, e NULL em chave não identifica linha.
+GRUPO_NACIONAL = -1
+
+#: Termos removidos da série antes da correlação: intercepto, tendência e onze
+#: indicadores de mês. Entram no ajuste dos graus de liberdade.
+TERMOS_REMOVIDOS = 13
+
 
 # ---------------------------------------------------------------------------
 # Matriz e confundidores
@@ -287,15 +295,56 @@ def _bh(p: np.ndarray, q: float = 0.01) -> np.ndarray:
     return ordem[:int(np.max(np.where(limite)[0]) + 1)]
 
 
-def correlacao_entre_causas(cids: list[str]) -> tuple[pd.DataFrame, dict]:
-    """Correlação contemporânea (com FDR) e o diagnóstico da versão defasada."""
+def diferenca_entre_grupos(pares: pd.DataFrame, grupos: list[int]) -> dict:
+    """Pares cuja correlação difere entre dois grupos, por teste z de Fisher.
+
+    Compara as correlações do MESMO par em dois recortes independentes de
+    municípios. Como as duas séries têm o mesmo comprimento, o erro padrão da
+    diferença de z é sqrt(2/(n-3)).
+
+    É o que transforma "quais CIDs se correlacionam em cada grupo" em pergunta
+    respondível: a lista por grupo, sozinha, é longa demais para interpretar —
+    o que informa é onde os grupos DISCORDAM.
+    """
     from math import erfc
 
+    n = 120 - TERMOS_REMOVIDOS - 1
+    chave = ["cid_a", "cid_b"]
+    saida: dict[tuple[int, int], int] = {}
+    for i, a in enumerate(grupos):
+        for b in grupos[i + 1:]:
+            ja = pares[pares.grupo == a].set_index(chave).r
+            jb = pares[pares.grupo == b].set_index(chave).r
+            comuns = ja.index.intersection(jb.index)
+            d = (np.arctanh(np.clip(ja.loc[comuns].values, -0.999, 0.999))
+                 - np.arctanh(np.clip(jb.loc[comuns].values, -0.999, 0.999)))
+            z = d / np.sqrt(2 / (n - 3))
+            p = np.array([erfc(abs(v) / np.sqrt(2)) for v in z])
+            saida[(a, b)] = len(_bh(p))
+    return saida
+
+
+def correlacao_entre_causas(cids: list[str],
+                            municipios: set[str] | None = None) -> tuple[pd.DataFrame, dict]:
+    """Correlação contemporânea (com FDR) e o diagnóstico da versão defasada.
+
+    `municipios` restringe a série a um subconjunto — é o que responde à pergunta
+    "em cada grupo de municípios, quais CIDs estão correlacionados?". Sem ele, a
+    série é nacional.
+    """
+    from math import erfc
+
+    colunas = ["ano", "mes", "causabas_3", "obitos"]
+    if municipios is not None:
+        colunas.insert(0, "municipio_cod")
     mensal = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio_mes.parquet",
-                             columns=["ano", "mes", "causabas_3", "obitos"])
+                             columns=colunas)
+    if municipios is not None:
+        mensal = mensal[mensal.municipio_cod.isin(municipios)]
     serie = (mensal[mensal.causabas_3.isin(set(cids))]
              .groupby(["ano", "mes", "causabas_3"]).obitos.sum()
              .unstack(fill_value=0).sort_index())
+    serie = serie.loc[:, serie.std() > 0]
     cids = [c for c in cids if c in serie.columns]
     resid = _sem_tendencia_nem_mes(serie[cids])
     z = (resid - resid.mean(axis=0)) / resid.std(axis=0)
@@ -304,7 +353,7 @@ def correlacao_entre_causas(cids: list[str]) -> tuple[pd.DataFrame, dict]:
     iu = np.triu_indices(len(cids), 1)
     r = corr[iu]
 
-    gl = n - 14                       # 1 + tendência + 11 meses
+    gl = n - TERMOS_REMOVIDOS - 1     # intercepto + tendência + 11 meses
     est = np.arctanh(np.clip(r, -0.999, 0.999)) * np.sqrt(gl - 3)
     p = np.array([erfc(abs(v) / np.sqrt(2)) for v in est])
     sig = _bh(p)
@@ -370,6 +419,7 @@ def main() -> None:
           f"%mal definidas × inespecificidade r={r_mal:+.3f}", flush=True)
 
     pares, diag = correlacao_entre_causas(list(composicao.columns))
+    pares["grupo"] = GRUPO_NACIONAL
     n_sig = int(pares.significativo.sum())
     print(f"[correlação] {len(pares):,} pares | {n_sig:,} significativos com FDR 1%",
           flush=True)
@@ -380,6 +430,24 @@ def main() -> None:
     print(f"[defasagem] pico nas bordas da janela: {diag['bordas']} pares, contra "
           f"{diag['meio_medio']:.0f} por lag intermediário — busca sobreajustada",
           flush=True)
+
+    # A pergunta original era "EM CADA GRUPO de municípios, quais CIDs estão
+    # correlacionados?". A resposta nacional não a responde — e a diferença
+    # entre os grupos acaba sendo o resultado mais informativo.
+    por_grupo = [pares]
+    for g in sorted(set(grupos)):
+        do_grupo = set(composicao.index[grupos == g])
+        p_g, _ = correlacao_entre_causas(list(composicao.columns), municipios=do_grupo)
+        p_g["grupo"] = int(g)
+        por_grupo.append(p_g)
+        print(f"[correlação] grupo {g} ({len(do_grupo):,} municípios): "
+              f"{int(p_g.significativo.sum()):,} pares significativos", flush=True)
+    pares = pd.concat(por_grupo, ignore_index=True)
+
+    diferencas = diferenca_entre_grupos(pares, sorted(set(int(g) for g in grupos)))
+    for (a, b), n_dif in diferencas.items():
+        print(f"[correlação] grupo {a} × {b}: {n_dif:,} pares com correlação diferente",
+              flush=True)
 
     mun = pd.read_parquet(MARTS / "dim_municipio.parquet").set_index("municipio_cod")
     saida = pd.DataFrame({
@@ -405,7 +473,7 @@ def main() -> None:
     # qualquer recorte sem reprocessar os 7,7 milhões de células mensais.
     pares = pares.sort_values("p").reset_index(drop=True)
     pares["r"] = pares.r.round(4)
-    conferir_chave_unica("mart_correlacao_causas", pares, ["cid_a", "cid_b"])
+    conferir_chave_unica("mart_correlacao_causas", pares, ["grupo", "cid_a", "cid_b"])
     escrever_parquet(pares, MARTS / "mart_correlacao_causas.parquet",
                      origem="pipeline", produtor=PRODUTOR)
     print(f"[parquet] mart_correlacao_causas: {len(pares):,} pares", flush=True)
