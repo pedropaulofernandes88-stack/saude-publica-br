@@ -376,3 +376,47 @@ def test_nenhuma_pagina_crava_o_periodo_da_base():
         "período da base cravado em texto — derive de ANOS/PERIODO (cliente) ou "
         "de cobertura() (servidor). Se for recorte fixo por metodologia, "
         "declare em RECORTES_FIXOS com o motivo:\n  " + "\n  ".join(ofensas))
+
+
+# --------------------------------------------------------------------------
+# Os anos que a interface OFERECE têm que ser os que a base TEM
+#
+# /nascimentos trazia `const ANOS = [2022, 2021]` dentro do próprio arquivo da
+# página, e `mart_natalidade_municipio` já publicava 2021–2024: dois anos
+# inteiros de dado publicado eram inalcançáveis por quem usava o site. Ao lado
+# do seletor, o texto anunciava um TERCEIRO intervalo, 2021–2023. Três
+# afirmações, nenhuma igual à outra, nenhuma igual ao dado.
+#
+# Nada quebrou, nada apareceu em log: um seletor com menos opções é apenas um
+# seletor com menos opções. Só comparando com a fonte dá para ver.
+# --------------------------------------------------------------------------
+#: vetor declarado em lib/api.ts -> mart de onde os anos têm de vir
+VETORES_DE_ANO = {
+    "ANOS": "mart_mortalidade_municipio",
+    "ANOS_SINASC": "mart_natalidade_municipio",
+}
+
+
+def _anos_do_vetor(nome: str) -> set[int]:
+    m = re.search(rf"export const {nome}(?::[^=]+)? = \[([^\]]+)\]",
+                  _texto(RAIZ / "site" / "lib" / "api.ts"))
+    assert m, f"{nome} sumiu de lib/api.ts — a guarda perdeu a referência"
+    return {int(a) for a in re.findall(r"\d{4}", m.group(1))}
+
+
+@pytest.mark.parametrize("vetor,mart", sorted(VETORES_DE_ANO.items()))
+def test_anos_declarados_batem_com_o_publicado(vetor: str, mart: str):
+    caminho = RAIZ / "data" / "marts" / f"{mart}.parquet"
+    if not caminho.exists():
+        pytest.skip(f"{mart}.parquet ausente")
+    import pandas as pd
+    tem = set(pd.read_parquet(caminho, columns=["ano"]).ano.unique().tolist())
+    oferece = _anos_do_vetor(vetor)
+    escondidos = sorted(tem - oferece)
+    inventados = sorted(oferece - tem)
+    assert not escondidos, (
+        f"{vetor} não oferece {escondidos}, que {mart} publica — "
+        "o site esconde dado que ele tem")
+    assert not inventados, (
+        f"{vetor} oferece {inventados}, que {mart} não tem — "
+        "o seletor levaria a uma tela vazia")

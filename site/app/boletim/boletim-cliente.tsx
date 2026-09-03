@@ -10,7 +10,7 @@ import {
 } from "recharts";
 import { IcsapPares } from "@/components/icsap-pares";
 import { Imunopreveniveis as CardImuno } from "@/components/imunopreveniveis";
-import { fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Imunopreveniveis, type Ivs, type LinhaMunicipio } from "@/lib/api";
+import { ehPreliminar, fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Imunopreveniveis, type Ivs, type LinhaMunicipio } from "@/lib/api";
 import { ehCodigoAgregado } from "@/lib/municipios";
 import { EIXO, GRADE, REFERENCIA, SERIE } from "@/lib/tokens";
 
@@ -168,13 +168,22 @@ function BoletimInner() {
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
-            <Kpi rotulo={`Óbitos em ${atual.ano}`} valor={fmtInt(atual.obitos)}
+            <Kpi rotulo={`Óbitos em ${atual.ano}${ehPreliminar(atual.ano) ? " (preliminar)" : ""}`} valor={fmtInt(atual.obitos)}
                  detalhe={`${fmtInt(atual.obitos_hospital)} em hospital · ${fmtInt(atual.obitos_domicilio)} em domicílio`} />
             <Kpi rotulo="Taxa bruta /100 mil" valor={fmtDec(atual.taxa_obitos_100k)}
                  detalhe={atual.ic95_inf != null ? `IC95%: ${fmtDec(atual.ic95_inf)}–${fmtDec(atual.ic95_sup)}` : undefined} />
             <Kpi rotulo="Taxa padronizada /100 mil" valor={fmtDec(atual.taxa_padronizada_100k)}
                  detalhe="ajustada por idade — comparável entre municípios" />
           </div>
+          {ehPreliminar(atual.ano) && (
+            <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
+              ⚠ {atual.ano} é <strong>preliminar</strong>: vem do diretório que o DataSUS
+              ainda não fechou (<code>SIM/PRELIM/DORES</code>) e será revisado. O que muda
+              ao consolidar não é só o total — a codificação também: entre as duas versões
+              de 2024, milhares de óbitos migraram de &quot;causa mal definida&quot; para
+              causas específicas. Para comparar com anos anteriores, use {atual.ano - 1}.
+            </p>
+          )}
           {(atual.populacao ?? 0) < 10_000 && (
             <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
               ⚠ Município com população pequena: taxas anuais são instáveis. Interprete com o IC95%.

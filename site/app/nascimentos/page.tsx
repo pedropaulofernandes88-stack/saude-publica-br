@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { ANOS_SINASC } from "@/lib/api";
 import { NascimentosCliente } from "./nascimentos-cliente";
 
 /**
@@ -9,11 +11,11 @@ import { NascimentosCliente } from "./nascimentos-cliente";
 export const metadata: Metadata = {
   title: "Nascimentos e mortalidade infantil por município",
   description:
-    "Nascidos vivos (SINASC/DataSUS, 2021–2023) por município — peso ao nascer, prematuridade e pré-natal — e a Taxa de Mortalidade Infantil por UF.",
+    `Nascidos vivos (SINASC/DataSUS, ${ANOS_SINASC[0]}–${ANOS_SINASC[ANOS_SINASC.length - 1]}) por município — peso ao nascer, prematuridade e pré-natal — e a Taxa de Mortalidade Infantil por UF.`,
   alternates: { canonical: "/nascimentos/" },
   openGraph: {
     title: "Nascimentos e mortalidade infantil por município — Saúde em Dado",
-    description: "Nascidos vivos (SINASC/DataSUS, 2021–2023) por município — peso ao nascer, prematuridade e pré-natal — e a Taxa de Mortalidade Infantil por UF.",
+    description: `Nascidos vivos (SINASC/DataSUS, ${ANOS_SINASC[0]}–${ANOS_SINASC[ANOS_SINASC.length - 1]}) por município — peso ao nascer, prematuridade e pré-natal — e a Taxa de Mortalidade Infantil por UF.`,
     url: "https://saudeemdado.com/nascimentos/",
     type: "website",
   },

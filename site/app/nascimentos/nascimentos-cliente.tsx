@@ -7,14 +7,13 @@ import { VerMais } from "@/components/ver-mais";
 import {
   UFS, fmtDec, fmtInt, rest,
   type MortalidadeInfantil, type Natalidade,
+  ANOS_SINASC,
 } from "@/lib/api";
 import { ALERTA } from "@/lib/tokens";
 
-const ANOS = [2022, 2021];
-
 export function NascimentosCliente() {
   const [uf, setUf] = useState("Brasil");
-  const [ano, setAno] = useState(Math.max(...ANOS));
+  const [ano, setAno] = useState(Math.max(...ANOS_SINASC));
   const [nat, setNat] = useState<Natalidade[] | null>(null);
   const [tmi, setTmi] = useState<MortalidadeInfantil[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -64,7 +63,7 @@ export function NascimentosCliente() {
         Nascimentos e mortalidade infantil
       </h1>
       <p className="mt-2 max-w-3xl text-ink-600">
-        Nascidos vivos (SINASC/DataSUS, 2021–2023) por município: peso ao nascer,
+        Nascidos vivos (SINASC/DataSUS, {ANOS_SINASC[0]}–{ANOS_SINASC[ANOS_SINASC.length - 1]}) por município: peso ao nascer,
         prematuridade e pré-natal; e a Taxa de Mortalidade Infantil por UF
         (óbitos &lt;1 ano do SIM ÷ nascidos vivos).
       </p>
@@ -80,7 +79,7 @@ export function NascimentosCliente() {
         <div>
           <label className="label" htmlFor="n-ano">Ano</label>
           <select id="n-ano" className="select" value={ano} onChange={(e) => setAno(Number(e.target.value))}>
-            {ANOS.map((a) => <option key={a} value={a}>{a}</option>)}
+            {[...ANOS_SINASC].reverse().map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </div>
       </div>

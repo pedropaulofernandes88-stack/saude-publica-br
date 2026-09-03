@@ -535,6 +535,20 @@ export const ehPreliminar = (ano: number) => ANOS_PRELIMINARES.includes(ano);
  */
 export const ANO_PADRAO: number = [...ANOS].reverse().find((a) => !ehPreliminar(a)) ?? ANOS[ANOS.length - 1];
 
+/**
+ * Anos do SINASC servidos por `mart_natalidade_municipio`.
+ *
+ * Estava como `const ANOS = [2022, 2021]` dentro da página, e a base já tinha
+ * 2021–2024: **dois anos publicados eram inalcançáveis pela interface**, e o
+ * texto ao lado do seletor anunciava um terceiro intervalo (2021–2023). Três
+ * afirmações, nenhuma igual à outra, nenhuma igual ao dado.
+ *
+ * Aqui porque `test_anos_declarados_batem_com_o_publicado` confere esta lista
+ * contra o manifesto — não havia como conferir uma constante escondida numa
+ * página.
+ */
+export const ANOS_SINASC = [2021, 2022, 2023, 2024] as const;
+
 /** "2015–2025" — o alcance da série, para texto corrido. */
 export const PERIODO = `${ANOS[0]}–${ANOS[ANOS.length - 1]}`;
 
