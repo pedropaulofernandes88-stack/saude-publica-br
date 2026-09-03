@@ -1,37 +1,37 @@
 ﻿Componente,Polo,CID,Descrição,Carga,Inespecífico
-PC1,negativo,I64,Acid vasc cerebr NE como hemorrag isquemico,-0.132,sim
-PC1,negativo,I10,Hipertensao essencial,-0.107,não
-PC1,negativo,E14,Diabetes mellitus NE,-0.104,sim
-PC1,negativo,V29,Motociclista traum outr acid transp e NE,-0.094,sim
-PC1,negativo,K92,Outr doenc do aparelho digestivo,-0.091,não
-PC1,negativo,D64,Outr anemias,-0.084,não
-PC1,positivo,C18,Neopl malig do colon,0.21,não
-PC1,positivo,C34,Neopl malig dos bronquios e dos pulmoes,0.198,não
-PC1,positivo,C25,Neopl malig do pancreas,0.187,não
-PC1,positivo,C43,Melanoma malig da pele,0.161,não
-PC1,positivo,V43,Ocup automov traum col auto pickup caminhon,0.15,não
-PC1,positivo,J44,Outr doenc pulmonares obstrutivas cronicas,0.149,não
-PC2,negativo,N39,Outr transt do trato urinario,-0.183,não
-PC2,negativo,J69,Pneumonite dev solidos e liquidos,-0.166,não
-PC2,negativo,Y34,Fatos ou eventos NE e intenc nao determinada,-0.159,sim
-PC2,negativo,N03,Sindr nefritica cronica,-0.155,não
-PC2,negativo,I67,Outr doenc cerebrovasculares,-0.154,não
-PC2,negativo,J18,Pneumonia p/microorg NE,-0.119,sim
-PC2,positivo,X99,Agressao objeto cortante ou penetrante,0.18,não
-PC2,positivo,E11,Diabetes mellitus nao-insulino-dependemte,0.147,não
-PC2,positivo,I63,Infarto cerebral,0.144,não
-PC2,positivo,C53,Neopl malig do colo do utero,0.134,não
-PC2,positivo,P24,Sindr de aspiracao neonatal,0.131,não
-PC2,positivo,X93,Agressao disparo de arma de fogo de mao,0.123,não
-PC3,negativo,J15,Pneumonia bacter NCOP,-0.182,sim
-PC3,negativo,J96,Insuf respirat NCOP,-0.178,sim
-PC3,negativo,A41,Outr septicemias,-0.174,não
-PC3,negativo,N17,Insuf renal aguda,-0.151,não
-PC3,negativo,I50,Insuf cardiaca,-0.148,não
-PC3,negativo,J18,Pneumonia p/microorg NE,-0.135,sim
-PC3,positivo,E14,Diabetes mellitus NE,0.198,sim
-PC3,positivo,F10,Transt mentais comport dev uso alcool,0.172,não
-PC3,positivo,F17,Transt mentais e comport dev uso de fumo,0.155,não
-PC3,positivo,V23,Motocicl traum colis automov pickup caminhon,0.145,não
-PC3,positivo,K70,Doenc alcoolica do figado,0.136,não
-PC3,positivo,X95,Agressao disparo outr arma de fogo ou NE,0.13,sim
+PC1,negativo,C18,Neopl malig do colon,-0.211,não
+PC1,negativo,C34,Neopl malig dos bronquios e dos pulmoes,-0.198,não
+PC1,negativo,C25,Neopl malig do pancreas,-0.187,não
+PC1,negativo,C43,Melanoma malig da pele,-0.161,não
+PC1,negativo,I35,Transt nao-reumaticos da valva aortica,-0.149,não
+PC1,negativo,V43,Ocup automov traum col auto pickup caminhon,-0.149,não
+PC1,positivo,I64,Acid vasc cerebr NE como hemorrag isquemico,0.132,sim
+PC1,positivo,I10,Hipertensao essencial,0.111,não
+PC1,positivo,E14,Diabetes mellitus NE,0.106,sim
+PC1,positivo,V29,Motociclista traum outr acid transp e NE,0.094,sim
+PC1,positivo,K92,Outr doenc do aparelho digestivo,0.09,não
+PC1,positivo,X95,Agressao disparo outr arma de fogo ou NE,0.086,sim
+PC2,negativo,X99,Agressao objeto cortante ou penetrante,-0.178,não
+PC2,negativo,E11,Diabetes mellitus nao-insulino-dependemte,-0.151,não
+PC2,negativo,I63,Infarto cerebral,-0.145,não
+PC2,negativo,C53,Neopl malig do colo do utero,-0.137,não
+PC2,negativo,P24,Sindr de aspiracao neonatal,-0.131,não
+PC2,negativo,E10,Diabetes mellitus insulino-dependente,-0.123,não
+PC2,positivo,N39,Outr transt do trato urinario,0.18,não
+PC2,positivo,J69,Pneumonite dev solidos e liquidos,0.166,não
+PC2,positivo,Y34,Fatos ou eventos NE e intenc nao determinada,0.156,sim
+PC2,positivo,N03,Sindr nefritica cronica,0.155,não
+PC2,positivo,I67,Outr doenc cerebrovasculares,0.153,não
+PC2,positivo,J18,Pneumonia p/microorg NE,0.12,sim
+PC3,negativo,E14,Diabetes mellitus NE,-0.198,sim
+PC3,negativo,F10,Transt mentais comport dev uso alcool,-0.172,não
+PC3,negativo,F17,Transt mentais e comport dev uso de fumo,-0.15,não
+PC3,negativo,X95,Agressao disparo outr arma de fogo ou NE,-0.136,sim
+PC3,negativo,V23,Motocicl traum colis automov pickup caminhon,-0.135,não
+PC3,negativo,K70,Doenc alcoolica do figado,-0.132,não
+PC3,positivo,J15,Pneumonia bacter NCOP,0.189,sim
+PC3,positivo,J96,Insuf respirat NCOP,0.178,sim
+PC3,positivo,A41,Outr septicemias,0.177,não
+PC3,positivo,N17,Insuf renal aguda,0.148,não
+PC3,positivo,I50,Insuf cardiaca,0.146,não
+PC3,positivo,J18,Pneumonia p/microorg NE,0.146,sim

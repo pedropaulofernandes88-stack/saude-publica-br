@@ -1,13 +1,13 @@
-﻿CID A,CID B,Descrição A,Descrição B,r no grupo 0 (mais preciso),r no grupo 1 (menos preciso)
-I63,I67,Infarto cerebral,Outr doenc cerebrovasculares,-0.77,0.38
-I63,Y29,Infarto cerebral,Contato obj contundente intenc n det,-0.43,0.5
-C21,Y29,Neopl malig do anus e do canal anal,Contato obj contundente intenc n det,-0.37,0.54
-E14,Y29,Diabetes mellitus NE,Contato obj contundente intenc n det,-0.41,0.44
-E11,I25,Diabetes mellitus nao-insulino-dependemte,Doenc isquemica cronica do coracao,0.68,-0.17
-W78,Y29,Inalacao do conteudo gastrico,Contato obj contundente intenc n det,-0.47,0.37
-I10,I25,Hipertensao essencial,Doenc isquemica cronica do coracao,0.43,-0.38
-E14,I64,Diabetes mellitus NE,Acid vasc cerebr NE como hemorrag isquemico,-0.15,0.66
-X70,Y29,Lesao autoprov intenc enforc estrang sufoc,Contato obj contundente intenc n det,-0.37,0.44
-W17,Y34,Outr quedas de um nivel a outr,Fatos ou eventos NE e intenc nao determinada,0.17,-0.61
-C16,I67,Neopl malig do estomago,Outr doenc cerebrovasculares,-0.09,0.66
-F10,Y29,Transt mentais comport dev uso alcool,Contato obj contundente intenc n det,-0.4,0.34
+﻿CID A,CID B,Descrição A,Descrição B,r no grupo 1 (mais preciso),r no grupo 0 (menos preciso)
+I63,I67,Infarto cerebral,Outr doenc cerebrovasculares,-0.83,0.29
+I46,Y34,Parada cardiaca,Fatos ou eventos NE e intenc nao determinada,0.43,-0.46
+I61,J12,Hemorragia intracerebral,Pneumonia viral NCOP,0.46,-0.39
+E11,I25,Diabetes mellitus nao-insulino-dependemte,Doenc isquemica cronica do coracao,0.33,-0.49
+I10,Y34,Hipertensao essencial,Fatos ou eventos NE e intenc nao determinada,0.54,-0.23
+C18,I63,Neopl malig do colon,Infarto cerebral,-0.46,0.3
+I61,J98,Hemorragia intracerebral,Outr transt respirat,0.27,-0.48
+C34,F32,Neopl malig dos bronquios e dos pulmoes,Episodios depressivos,0.2,-0.55
+W79,Y29,Inalacao ingest aliment caus obstr trat resp,Contato obj contundente intenc n det,0.48,-0.26
+I10,I61,Hipertensao essencial,Hemorragia intracerebral,0.54,-0.21
+E11,N39,Diabetes mellitus nao-insulino-dependemte,Outr transt do trato urinario,0.42,-0.32
+F17,I25,Transt mentais e comport dev uso de fumo,Doenc isquemica cronica do coracao,0.13,-0.59

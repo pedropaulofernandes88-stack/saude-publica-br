@@ -139,9 +139,31 @@ def download_csv_open(anos: list[int]) -> None:
         # O cache valia por "existe e tem mais de 1 MB", ou seja, para sempre. O
         # OpenDataSUS reescreve arquivo publicado; o HEAD custa uma requisicao e
         # diz se o que esta em disco ainda e o que a fonte serve.
-        remoto = requests.head(url, timeout=60, allow_redirects=True)
-        remoto.raise_for_status()
-        bytes_remoto = int(remoto.headers.get("content-length") or 0)
+        # FONTE INALCANCAVEL != FONTE INALTERADA.
+        #
+        # Em 2026-09-02 o bucket S3 inteiro do OpenDataSUS passou a responder 403
+        # — SIM, SINASC e SIH — enquanto o FTP do DataSUS seguia servindo. Um
+        # `raise_for_status()` aqui derrubava o pipeline mesmo com o CSV do ano
+        # inteiro ja em disco e conferido.
+        #
+        # A regra passa a distinguir os dois casos, como manda o principio de
+        # ausencia versus falha: sem arquivo local, fonte inalcancavel e FALHA e
+        # aborta; com arquivo local, segue e DIZ que nao pode verificar. O que
+        # nao se faz e o silencio — cache que se declara valido sem ter
+        # comparado com nada foi o defeito original desta funcao.
+        try:
+            remoto = requests.head(url, timeout=60, allow_redirects=True)
+            remoto.raise_for_status()
+            bytes_remoto = int(remoto.headers.get("content-length") or 0)
+        except requests.RequestException as exc:
+            if not dest.exists():
+                raise SystemExit(
+                    f"{dest.name}: fonte inalcancavel ({exc}) e nao ha copia local. "
+                    "Processar sem este ano publicaria recorte incompleto.") from exc
+            print(f"[ATENCAO] {dest.name}: fonte inalcancavel ({type(exc).__name__}); "
+                  f"usando a copia local de {dest.stat().st_size/1e6:.0f} MB SEM poder "
+                  "conferir se a origem mudou.", flush=True)
+            continue
         if dest.exists() and bytes_remoto and dest.stat().st_size == bytes_remoto:
             print(f"[cache] {dest.name} ({bytes_remoto/1e6:.0f} MB, tamanho confere)")
             continue

@@ -41,7 +41,23 @@ RAW = ROOT / "data" / "raw" / "SIM"
 RAW_DBC = RAW / "dbc"
 
 #: Anos servidos pelo CSV nacional do OpenDataSUS; os demais vêm de .dbc por UF.
-ANOS_CSV = {2022, 2023, 2024}
+#:
+#: 2024 SAIU daqui em 2026-09-02, e o motivo é dado faltando, não preferência.
+#: O `DO24OPEN.csv` que estava em disco trazia **1.426.346** óbitos; os 27
+#: arquivos `.dbc` do DORES trazem **1.532.015**. São 105.669 óbitos a menos,
+#: 6,9% do ano, e a diferença aparece SÓ em 2024 — 2015 a 2023 batem exatamente
+#: entre as duas rotas, o que descarta divergência de definição.
+#:
+#: O efeito não era cosmético. Com o CSV, 2024 ficava 0,6% ABAIXO da tendência
+#: 2015–2019 e parecia "volta ao normal" depois da pandemia; com o dado
+#: completo, fica 6,7% ACIMA, mais alto que 2023. A leitura epidemiológica se
+#: inverte.
+#:
+#: Some-se que o S3 do OpenDataSUS passou a responder 403 a HEAD e GET nesse
+#: caminho: a rota do CSV está quebrada de qualquer forma. 2022 e 2023 seguem
+#: aqui porque conferem exatamente com o `.dbc` e os arquivos já estão em disco;
+#: migrá-los é limpeza, não correção.
+ANOS_CSV = {2022, 2023}
 
 #: Colunas mínimas que a derivação exige das duas fontes.
 COLUNAS = ["TIPOBITO", "DTOBITO", "IDADE", "SEXO", "CODMUNRES", "LOCOCOR", "CAUSABAS"]

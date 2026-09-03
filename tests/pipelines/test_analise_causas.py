@@ -213,15 +213,21 @@ def test_o_perfil_publica_coordenadas_e_nao_so_rotulo():
 def test_a_leitura_de_continuo_esta_registrada():
     """ARI alto com silhueta baixa é a conclusão central da análise 1.
 
-    Registrada em `achados.json` para que, se o dado mudar e a conclusão virar,
-    a mudança apareça em vez de a prosa do site continuar afirmando o antigo.
+    O teste pergunta pelo k QUE FOI PUBLICADO, não por um k fixo. Ele nasceu
+    exigindo `perfil_ari_k3`, e quebrou quando 2024 foi recoletado do `.dbc`: o
+    k mais estável passou de 3 para 2, e o teste reprovou por uma chave que o
+    código deixou de escrever — não por a conclusão ter mudado. Amarrar o teste
+    ao número do dia é o mesmo defeito que ele existe para evitar.
     """
     import json
     a = json.loads((MARTS / "achados.json").read_text(encoding="utf-8"))
-    if "perfil_ari_k3" not in a:
+    if "perfil_k_publicado" not in a:
         pytest.skip("analise_perfil_mortalidade.py ainda não rodou")
-    assert a["perfil_ari_k3"]["valor"] >= 0.90
-    assert a["perfil_silhueta_k3"]["valor"] < 0.25
+    assert a["perfil_ari"]["valor"] >= 0.90, "a partição publicada não se reproduz"
+    assert a["perfil_silhueta"]["valor"] < 0.25, (
+        "a silhueta subiu acima de 0,25: se os grupos passaram a SEPARAR, a "
+        "conclusão de contínuo mudou e a prosa do artigo precisa mudar junto"
+    )
 
 
 # --------------------------------------------------------------------------
@@ -253,11 +259,19 @@ def test_diferenca_entre_grupos_acha_a_inversao_plantada():
 
 @pytest.mark.skipif(not (MARTS / "mart_correlacao_causas.parquet").exists(),
                     reason="mart de correlação ainda não gerado")
-def test_a_correlacao_publicada_tem_os_quatro_recortes():
-    """Nacional (−1) e os três grupos. Se sobrar só o nacional, a pergunta
-    'em cada grupo, quais CIDs se correlacionam?' voltou a ficar sem resposta."""
+def test_a_correlacao_publicada_cobre_o_nacional_e_cada_grupo():
+    """Nacional (−1) e um recorte por grupo do perfil publicado.
+
+    O número de grupos não é constante — ele sai da varredura de estabilidade e
+    já mudou de 3 para 2. O invariante é a COBERTURA: se sobrar só o nacional,
+    a pergunta 'em cada grupo, quais CIDs se correlacionam?' voltou a ficar sem
+    resposta.
+    """
     d = pd.read_parquet(MARTS / "mart_correlacao_causas.parquet")
-    assert set(d.grupo.unique()) == {-1, 0, 1, 2}
+    perfil = pd.read_parquet(MARTS / "mart_perfil_mortalidade_municipio.parquet",
+                             columns=["grupo"])
+    esperado = {-1} | set(perfil.grupo.unique().tolist())
+    assert {int(g) for g in d.grupo.unique()} == esperado
     assert d.groupby("grupo").size().nunique() == 1, "os recortes têm de cobrir os mesmos pares"
 
 

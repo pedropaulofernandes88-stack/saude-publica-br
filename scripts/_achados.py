@@ -59,6 +59,26 @@ def registrar(chave: str, valor: float, *, fontes: list[str], descricao: str) ->
                        encoding="utf-8")
 
 
+def esquecer(*chaves: str) -> list[str]:
+    """Remove achados que o código não produz mais.
+
+    `registrar` só escreve; uma chave renomeada fica órfã no arquivo para
+    sempre. A guarda de frescor a acusa (foi como `perfil_silhueta_k3`
+    apareceu depois de virar `perfil_silhueta`), mas acusar não limpa — e um
+    achado órfão só some quando alguém o apaga de propósito.
+    """
+    if not ARQUIVO.exists():
+        return []
+    dados = json.loads(ARQUIVO.read_text(encoding="utf-8"))
+    removidas = [c for c in chaves if c in dados]
+    for c in removidas:
+        del dados[c]
+    if removidas:
+        ARQUIVO.write_text(json.dumps(dados, ensure_ascii=False, indent=1, sort_keys=True),
+                           encoding="utf-8")
+    return removidas
+
+
 def carregar() -> dict:
     if not ARQUIVO.exists():
         return {}

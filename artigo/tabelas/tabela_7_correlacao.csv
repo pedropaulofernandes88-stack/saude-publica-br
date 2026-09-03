@@ -1,16 +1,16 @@
 ﻿CID A,CID B,Descrição A,Descrição B,Correlação
-A90,A91,Dengue,Febre hemorragica dev virus do dengue,0.9739
-C34,C50,Neopl malig dos bronquios e dos pulmoes,Neopl malig da mama,0.9149
-J18,J44,Pneumonia p/microorg NE,Outr doenc pulmonares obstrutivas cronicas,0.9107
-F10,I10,Transt mentais comport dev uso alcool,Hipertensao essencial,0.9106
-E14,I10,Diabetes mellitus NE,Hipertensao essencial,0.9098
-G30,I69,Doenc de Alzheimer,Sequelas de doenc cerebrovasculares,0.9052
-C25,C34,Neopl malig do pancreas,Neopl malig dos bronquios e dos pulmoes,0.8934
+A90,A91,Dengue,Febre hemorragica dev virus do dengue,0.9709
+J18,J44,Pneumonia p/microorg NE,Outr doenc pulmonares obstrutivas cronicas,0.9384
+I25,J18,Doenc isquemica cronica do coracao,Pneumonia p/microorg NE,0.8978
 B34,J12,Doenc p/virus de localiz NE,Pneumonia viral NCOP,0.8818
-I25,I71,Doenc isquemica cronica do coracao,Aneurisma e disseccao da aorta,0.8816
-C18,C34,Neopl malig do colon,Neopl malig dos bronquios e dos pulmoes,0.8737
-F17,I10,Transt mentais e comport dev uso de fumo,Hipertensao essencial,0.8736
-A41,I50,Outr septicemias,Insuf cardiaca,0.8707
-G20,G30,Doenc de Parkinson,Doenc de Alzheimer,0.8661
-C22,C34,Neopl malig figado vias biliares intra-hepat,Neopl malig dos bronquios e dos pulmoes,0.8651
-E11,I10,Diabetes mellitus nao-insulino-dependemte,Hipertensao essencial,0.8632
+E14,I10,Diabetes mellitus NE,Hipertensao essencial,0.873
+F10,I10,Transt mentais comport dev uso alcool,Hipertensao essencial,0.8705
+I25,I71,Doenc isquemica cronica do coracao,Aneurisma e disseccao da aorta,0.8647
+J43,J44,Enfisema,Outr doenc pulmonares obstrutivas cronicas,0.8512
+I25,J81,Doenc isquemica cronica do coracao,Edema pulmonar NE de outr form,0.8491
+I25,J44,Doenc isquemica cronica do coracao,Outr doenc pulmonares obstrutivas cronicas,0.8471
+I26,I42,Embolia pulmonar,Cardiomiopatias,0.8398
+J18,J81,Pneumonia p/microorg NE,Edema pulmonar NE de outr form,0.8397
+I71,J12,Aneurisma e disseccao da aorta,Pneumonia viral NCOP,-0.8359
+J12,J98,Pneumonia viral NCOP,Outr transt respirat,0.8323
+I42,J81,Cardiomiopatias,Edema pulmonar NE de outr form,0.8312

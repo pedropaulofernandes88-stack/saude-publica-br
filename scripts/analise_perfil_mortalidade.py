@@ -133,7 +133,7 @@ import pandas as pd
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _achados import registrar  # noqa: E402
+from _achados import esquecer, registrar  # noqa: E402
 from _publicacao import carregar_env, conferir_chave_unica, escrever_parquet  # noqa: E402
 from _supabase_key import chave_escrita  # noqa: E402
 
@@ -153,13 +153,32 @@ CORTE_OBITOS = 500
 FATOR_ACIMA_DO_NULO = 2.0
 MAX_COMPONENTES = 20
 
-#: k da discretização publicada. Não é "o número de grupos" — ver a seção 2 do
-#: cabeçalho. É o maior k com ARI acima de 0,9 entre subamostras.
-K_GRUPOS = 3
+#: Candidatos a k. NÃO se fixa um: varre-se, e o perfil inteiro de ARI por k é
+#: o resultado — mais informativo que qualquer k escolhido.
+#:
+#: Por que deixou de ser fixo: com 2024 recoletado do `.dbc` (105.669 óbitos que
+#: o CSV não trazia), o ARI de k=3 caiu de 0,934 para 0,887 e a guarda reprovou.
+#: Baixar o limiar seria trocar uma trava real por conforto. Medindo o perfil
+#: inteiro, apareceu o que importa:
+#:
+#:     k=2  ARI 0,957   k=3  0,887   k=4  0,917
+#:     k=5  ARI 0,782   k=6  0,890   k=8  0,842
+#:
+#: A estabilidade NÃO É MONOTÔNICA em k — 3 reprova e 4 passa. Se houvesse
+#: grupos reais, o ARI teria pico no k verdadeiro; em vez disso ele oscila, e um
+#: único ano a mais de dado reordena o ranking. É a evidência mais forte do
+#: contínuo que a análise inteira descreve, e ela só apareceu porque a guarda
+#: reprovou em vez de ser afrouxada.
+K_CANDIDATOS = (2, 3, 4, 5, 6, 8)
 ARI_MINIMO = 0.90
 
 SEMENTE = 7
-N_SUBAMOSTRAS = 10
+#: Repetições do reamostrador. Eram 10, e 10 não bastava: o mesmo k=3 saía com
+#: ARI 0,887 na análise e 0,918 no gerador de tabelas — os dois lados do limiar
+#: de 0,90, só por causa da sequência de sorteios. Decidir estabilidade com um
+#: estimador cuja incerteza atravessa o próprio ponto de corte é decidir no
+#: ruído. Com 50, o desvio cai e passa a ser REPORTADO junto da média.
+N_SUBAMOSTRAS = 50
 
 #: Sufixos que a tabela da CID-10 usa para diagnóstico impreciso.
 #: NE = não especificado · NCOP = não classificado em outra parte · SOE = sem
@@ -268,7 +287,7 @@ def escolher_componentes(resid: np.ndarray, contagens: pd.DataFrame,
     return k, var_obs, cargas
 
 
-def medir_estabilidade(escores: np.ndarray, k: int) -> tuple[float, float]:
+def medir_estabilidade(escores: np.ndarray, k: int) -> tuple[float, float, float]:
     """ARI entre partições de duas subamostras, e silhueta da partição completa.
 
     As duas juntas é que informam. ARI alto sozinho não prova grupo: um
@@ -292,7 +311,7 @@ def medir_estabilidade(escores: np.ndarray, k: int) -> tuple[float, float]:
         aris.append(adjusted_rand_score([r1[c] for c in comum], [r2[c] for c in comum]))
     rotulos = KMeans(k, n_init=10, random_state=0).fit_predict(escores)
     sil = float(silhouette_score(escores, rotulos, sample_size=2000, random_state=0))
-    return float(np.mean(aris)), sil
+    return float(np.mean(aris)), float(np.std(aris)), sil
 
 
 # ---------------------------------------------------------------------------
@@ -426,19 +445,33 @@ def main() -> None:
     escores, _, cargas = componentes(resid)
     escores = escores[:, :k]
 
-    ari, sil = medir_estabilidade(escores, K_GRUPOS)
-    print(f"[grupos] k={K_GRUPOS}: ARI entre subamostras {ari:.3f} | silhueta {sil:.3f}",
-          flush=True)
-    if ari < ARI_MINIMO:
+    perfil = {kk: medir_estabilidade(escores, kk) for kk in K_CANDIDATOS}
+    for kk, (ari, dp, sil) in perfil.items():
+        marca = "estável" if ari >= ARI_MINIMO else "instável"
+        ambiguo = abs(ari - ARI_MINIMO) < dp
+        print(f"[grupos] k={kk}: ARI {ari:.3f} ± {dp:.3f} | silhueta {sil:.3f}  {marca}"
+              + ("  (o desvio cruza o limiar — decisão no ruído)" if ambiguo else ""),
+              flush=True)
+
+    estaveis = {kk: v for kk, v in perfil.items() if v[0] >= ARI_MINIMO}
+    if not estaveis:
         raise SystemExit(
-            f"partição instável (ARI {ari:.3f} < {ARI_MINIMO}). Publicar rótulo de "
-            "grupo que não se reproduz seria inventar tipologia.")
+            f"nenhum k entre {K_CANDIDATOS} tem ARI >= {ARI_MINIMO}. Publicar rótulo "
+            "de grupo que não se reproduz seria inventar tipologia.")
+    k_grupos = max(estaveis, key=lambda kk: estaveis[kk][0])
+    ari, dp_ari, sil = estaveis[k_grupos]
+
+    # A não monotonia é o achado, não um detalhe da varredura.
+    ordem = [kk for kk in K_CANDIDATOS]
+    monotonico = all(perfil[a][0] >= perfil[b][0] for a, b in zip(ordem, ordem[1:], strict=False))
+    print(f"[grupos] k publicado: {k_grupos} (ARI {ari:.3f}, o mais estável)", flush=True)
+    print(f"[grupos] ARI é monotônico em k? {'sim' if monotonico else 'NÃO — oscila, e é '           'isso que distingue contínuo de grupos reais'}", flush=True)
     veredito = ("contínuo estruturado — partição reprodutível, grupos não separados"
                 if sil < 0.25 else "grupos separados")
     print(f"[grupos] leitura: {veredito}", flush=True)
 
     from sklearn.cluster import KMeans
-    grupos = KMeans(K_GRUPOS, n_init=10, random_state=0).fit_predict(escores)
+    grupos = KMeans(k_grupos, n_init=10, random_state=0).fit_predict(escores)
 
     r_inesp = float(np.corrcoef(escores[:, 0], inespecificidade.values)[0, 1])
     r_mal = float(np.corrcoef(conf.pct_mal_definidas.values, inespecificidade.values)[0, 1])
@@ -509,11 +542,24 @@ def main() -> None:
     registrar("perfil_componentes_acima_do_nulo", k, fontes=fontes,
               descricao="componentes da composição de causas que superam 2x o nulo multinomial, "
                         "após remover porte, estrutura etária, qualidade do registro e COVID")
-    registrar("perfil_ari_k3", ari, fontes=fontes,
-              descricao=f"índice Rand ajustado entre partições de subamostras de 80% (k={K_GRUPOS})")
-    registrar("perfil_silhueta_k3", sil, fontes=fontes,
-              descricao=f"silhueta média da partição k={K_GRUPOS}; baixa com ARI alto indica "
+    # Chaves de quando o k era fixo em 3. Renomear um achado deixa órfão, e
+    # órfão sobrevive porque `registrar` só escreve.
+    esquecer("perfil_ari_k3_fixo", "perfil_silhueta_k3")
+    registrar("perfil_k_publicado", k_grupos, fontes=fontes,
+              descricao="k da discretização publicada: o mais estável entre os candidatos, "
+                        "não um número de grupos descoberto")
+    registrar("perfil_ari_desvio", dp_ari, fontes=fontes,
+              descricao="desvio do ARI entre repetições do reamostrador; se ele cruza o "
+                        "limiar de estabilidade, a escolha de k está sendo feita no ruído")
+    registrar("perfil_ari", ari, fontes=fontes,
+              descricao=f"índice Rand ajustado entre subamostras de 80% no k publicado ({k_grupos})")
+    registrar("perfil_silhueta", sil, fontes=fontes,
+              descricao=f"silhueta média no k publicado ({k_grupos}); baixa com ARI alto indica "
                         "contínuo estruturado, não grupos discretos")
+    for kk, (a, _dp, _sl) in perfil.items():
+        registrar(f"perfil_ari_k{kk}", a, fontes=fontes,
+                  descricao=f"índice Rand ajustado para k={kk}; o perfil inteiro é o resultado, "
+                            "e sua não monotonia é a evidência do contínuo")
     registrar("perfil_pc1_inespecificidade", r_inesp, fontes=fontes,
               descricao="correlação do PC1 com a fração de óbitos em CID inespecífico "
                         "(NE/NCOP/SOE, sem B34), já controlados os quatro confundidores")

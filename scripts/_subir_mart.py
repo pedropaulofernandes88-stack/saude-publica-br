@@ -23,11 +23,11 @@ import json
 import math
 import sys
 import time
+from datetime import date, datetime
 from pathlib import Path
 
 import pandas as pd
 import requests
-
 from _supabase_key import chave_escrita
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -51,6 +51,18 @@ def load_env() -> dict[str, str]:
 
 
 def _jd(o):
+    """Serializa o que o json não conhece.
+
+    Data/hora vem ANTES do `.item()`: `pd.Timestamp` tem `.item()`, e ele
+    devolve um objeto que o json também não serializa, então o `default`
+    reentrava para sempre e o erro saía como "Circular reference detected" —
+    mensagem que não aponta para data nenhuma. Foi assim que
+    `mart_excesso_uf_mes` e `mart_mortalidade_uf_mes` falharam ao subir.
+    """
+    if isinstance(o, datetime | date):
+        return o.isoformat()
+    if hasattr(o, "isoformat"):          # pd.Timestamp, np.datetime64 via pandas
+        return o.isoformat()
     return o.item() if hasattr(o, "item") else o
 
 

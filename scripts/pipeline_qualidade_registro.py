@@ -139,7 +139,7 @@ def construir() -> pd.DataFrame:
                "classificacao", "populacao"]].sort_values("municipio_cod").reset_index(drop=True)
 
 
-def conferir_contra_publicado(novo: pd.DataFrame) -> None:
+def conferir_contra_publicado(novo: pd.DataFrame, motivo: str | None = None) -> None:
     """Compara com o Parquet que já estava publicado, se ele existir.
 
     Não aborta em divergência de população — ela vem de `dim_populacao`, que é
@@ -156,20 +156,39 @@ def conferir_contra_publicado(novo: pd.DataFrame) -> None:
         raise SystemExit(f"conjunto de municípios mudou: {len(antigo)} -> {len(novo)}")
     for col in ("obitos_total", "obitos_mal_definidas", "pct_mal_definidas", "classificacao"):
         difs = j[j[f"{col}_antigo"] != j[f"{col}_novo"]]
-        if len(difs):
-            print(difs[["municipio_cod", f"{col}_antigo", f"{col}_novo"]].head(10).to_string(),
+        if not len(difs):
+            continue
+        if motivo:
+            # A guarda existe para impedir alteração SILENCIOSA de dado
+            # publicado — não para impedir correção. Quando a mudança é
+            # intencional, quem roda declara o porquê, e o porquê fica no log
+            # junto da magnitude. Afrouxar a guarda em vez de exigir a
+            # declaração trocaria uma trava real por conforto.
+            print(f"[mudança aceita] {col}: {len(difs):,} divergências — {motivo}",
                   flush=True)
-            raise SystemExit(f"{col}: {len(difs)} divergências contra o publicado")
-    print(f"[qualidade] reproduz o publicado: {len(novo):,} municípios idênticos", flush=True)
+            continue
+        print(difs[["municipio_cod", f"{col}_antigo", f"{col}_novo"]].head(10).to_string(),
+              flush=True)
+        raise SystemExit(
+            f"{col}: {len(difs)} divergências contra o publicado. Se a mudança for "
+            "intencional, rode com --aceitar-mudanca \"motivo\".")
+    if motivo:
+        print(f"[qualidade] {len(novo):,} municípios recalculados, divergências aceitas acima",
+              flush=True)
+    else:
+        print(f"[qualidade] reproduz o publicado: {len(novo):,} municípios idênticos",
+              flush=True)
 
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--no-upload", action="store_true")
+    ap.add_argument("--aceitar-mudanca", metavar="MOTIVO", default=None,
+                    help="prossegue mesmo divergindo do publicado, registrando o motivo")
     args = ap.parse_args()
 
     df = construir()
-    conferir_contra_publicado(df)
+    conferir_contra_publicado(df, args.aceitar_mudanca)
     print("[qualidade] classificação: "
           + ", ".join(f"{k}={v}" for k, v in df.classificacao.value_counts().items()), flush=True)
 

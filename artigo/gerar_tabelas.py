@@ -32,12 +32,14 @@ MARTS = ROOT / "data" / "marts"
 SAIDA = Path(__file__).resolve().parent / "tabelas"
 sys.path.insert(0, str(ROOT / "scripts"))
 
+from _sim_obitos import ANOS_CSV  # noqa: E402
 from analise_perfil_mortalidade import (  # noqa: E402
     CORTE_OBITOS,
     SEMENTE,
     _nulo,
     carregar,
     componentes,
+    medir_estabilidade,
     residualizar,
 )
 
@@ -50,6 +52,21 @@ def _grava(df: pd.DataFrame, nome: str, titulo: str) -> None:
     print(f"[tabela] {nome}: {len(df)} linhas — {titulo}", flush=True)
 
 
+def _faixa(anos: list[int]) -> str:
+    """Lista de anos em faixas: [2015..2021, 2024] -> "2015–2021 e 2024"."""
+    if not anos:
+        return "nenhum ano"
+    blocos, ini, ant = [], anos[0], anos[0]
+    for a in anos[1:] + [None]:
+        if a is not None and a == ant + 1:
+            ant = a
+            continue
+        blocos.append(str(ini) if ini == ant else f"{ini}–{ant}")
+        if a is not None:
+            ini = ant = a
+    return " e ".join(blocos) if len(blocos) < 3 else ", ".join(blocos[:-1]) + f" e {blocos[-1]}"
+
+
 def tabela_1_base() -> pd.DataFrame:
     man = pd.read_json(ROOT / "data" / "publicacoes" / "atual.json", typ="series")
     pub = pd.read_json(ROOT / "data" / "publicacoes" / f"{man['id']}.json")
@@ -60,7 +77,10 @@ def tabela_1_base() -> pd.DataFrame:
     dim = pd.read_parquet(MARTS / "dim_cid10_informativo.parquet")
     por_mun_ano = anual.groupby(["municipio_cod", "ano"]).obitos.sum()
     linhas = [
-        ("Fonte", "SIM/DataSUS (CSV OpenDataSUS 2022–2024; .dbc por UF 2015–2021)"),
+        # A fonte sai de ANOS_CSV, não de string escrita à mão: foi assim que a
+        # tabela seguiu anunciando "CSV 2022–2024" depois de 2024 migrar para o
+        # .dbc. Número copiado envelhece; texto copiado também.
+        ("Fonte", f"SIM/DataSUS (CSV OpenDataSUS {_faixa(sorted(ANOS_CSV))}; .dbc por UF {_faixa(sorted(set(range(2015, 2025)) - ANOS_CSV))})"),
         ("Período", f"{int(anual.ano.min())}–{int(anual.ano.max())}"),
         ("Óbitos não fetais", f"{int(anual.obitos.sum()):,}".replace(",", ".")),
         ("Municípios", f"{anual.municipio_cod.nunique():,}".replace(",", ".")),
@@ -171,12 +191,9 @@ def tabela_4_cargas(comp, conf) -> pd.DataFrame:
 
 def tabela_5_agrupamento(comp, conf, contagens, k_comp: int) -> pd.DataFrame:
     from sklearn.cluster import KMeans
-    from sklearn.metrics import adjusted_rand_score, silhouette_score
 
     escores = componentes(residualizar(comp.values, conf))[0][:, :k_comp]
     nulo = componentes(_nulo(contagens, conf, SEMENTE))[0][:, :k_comp]
-    rng = np.random.default_rng(SEMENTE)
-    n = len(escores)
 
     def fracao_sq(x, k):
         km = KMeans(k, n_init=10, random_state=0).fit(x)
@@ -184,22 +201,17 @@ def tabela_5_agrupamento(comp, conf, contagens, k_comp: int) -> pd.DataFrame:
 
     linhas = []
     for k in KS:
-        aris = []
-        for _ in range(10):
-            i1 = rng.choice(n, int(0.8 * n), replace=False)
-            i2 = rng.choice(n, int(0.8 * n), replace=False)
-            r1 = dict(zip(i1, KMeans(k, n_init=10, random_state=0).fit_predict(escores[i1]),
-                          strict=True))
-            r2 = dict(zip(i2, KMeans(k, n_init=10, random_state=0).fit_predict(escores[i2]),
-                          strict=True))
-            c = np.intersect1d(i1, i2)
-            aris.append(adjusted_rand_score([r1[x] for x in c], [r2[x] for x in c]))
-        rot = KMeans(k, n_init=10, random_state=0).fit_predict(escores)
+        # IMPORTA de analise_perfil_mortalidade em vez de reimplementar. A cópia
+        # que morava aqui usava a mesma semente mas outra SEQUÊNCIA de sorteios,
+        # e por isso dava ARI 0,918 para k=3 onde a análise dava 0,887 — os dois
+        # lados do limiar de decisão. Duas implementações da mesma estatística
+        # não divergem só em teoria.
+        ari, dp, sil = medir_estabilidade(escores, k)
         linhas.append({
             "k": k,
-            "ARI entre subamostras": round(float(np.mean(aris)), 3),
-            "Silhueta": round(float(silhouette_score(escores, rot, sample_size=2000,
-                                                     random_state=0)), 3),
+            "ARI entre subamostras": round(ari, 3),
+            "Desvio do ARI": round(dp, 3),
+            "Silhueta": round(sil, 3),
             "SQ não explicada — observado": round(fracao_sq(escores, k), 4),
             "SQ não explicada — nulo": round(fracao_sq(nulo, k), 4),
         })
