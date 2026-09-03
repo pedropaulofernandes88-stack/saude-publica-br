@@ -181,7 +181,7 @@ export function HospitalarCliente() {
         <div>
           <label className="label" htmlFor="h-ano">Ano (HSMR e permanência)</label>
           <select id="h-ano" className="select" value={ano} onChange={(e) => setAno(Number(e.target.value))}>
-            {ANOS_HOSP.map((a) => <option key={a} value={a}>{a}{a === 2024 ? " (preliminar)" : ""}</option>)}
+            {ANOS_HOSP.map((a) => <option key={a} value={a}>{a}{a === Math.max(...ANOS_HOSP) ? " (preliminar)" : ""}</option>)}
           </select>
         </div>
       </div>

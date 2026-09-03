@@ -192,3 +192,33 @@ def test_testes_declarados_batem_com_a_coleta():
         f"é o que impede o número de envelhecer."
     )
 
+
+
+# --------------------------------------------------------------------------
+# Rótulo de estado não pode depender de ano escrito à mão
+#
+# Mesmo defeito da classe acima, num disfarce: em vez de um número copiado, uma
+# CONDIÇÃO copiada. `a === 2024 ? " (preliminar)"` estava certo quando foi
+# escrito e passou a mentir em 2026-09-03, quando 2024 consolidou e 2025 entrou.
+# O site ficou anunciando exatamente o inverso da verdade — 2024 marcado como
+# preliminar, 2025 sem marca — e ninguém viu, porque a linha não quebrou nada.
+#
+# Fato histórico cravado é legítimo: "2024 (epidemia recorde)" continua verdade
+# para sempre. O que não pode é ESTADO — preliminar, provisório, parcial —,
+# porque estado muda e o literal não acompanha.
+# --------------------------------------------------------------------------
+ESTADOS_QUE_MUDAM = ("preliminar", "provisório", "provisorio", "parcial",
+                     "incompleto", "atual", "corrente")
+
+def test_nenhum_rotulo_de_estado_preso_a_ano_literal():
+    ofensas = []
+    for tsx in sorted((RAIZ / "site" / "app").rglob("*.tsx")):
+        for n, linha in enumerate(_texto(tsx).splitlines(), 1):
+            if not re.search(r"===\s*20\d\d\s*\?", linha):
+                continue
+            if any(e in linha.lower() for e in ESTADOS_QUE_MUDAM):
+                ofensas.append(f"{tsx.relative_to(RAIZ)}:{n}: {linha.strip()[:110]}")
+    assert not ofensas, (
+        "rótulo de estado comparado a ano literal — use ehPreliminar() (mortalidade) "
+        "ou derive do próprio vetor de anos (Math.max(...ANOS_X)):\n  "
+        + "\n  ".join(ofensas))

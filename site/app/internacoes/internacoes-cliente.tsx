@@ -255,7 +255,7 @@ export function InternacoesCliente() {
         <div>
           <label className="label" htmlFor="i-ano">Ano</label>
           <select id="i-ano" className="select" value={ano} onChange={(e) => setAno(Number(e.target.value))}>
-            {ANOS_SIH.map((a) => <option key={a} value={a}>{a}{a === 2024 ? " (preliminar)" : ""}</option>)}
+            {ANOS_SIH.map((a) => <option key={a} value={a}>{a}{a === Math.max(...ANOS_SIH) ? " (preliminar)" : ""}</option>)}
           </select>
         </div>
         <div>

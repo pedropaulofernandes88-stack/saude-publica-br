@@ -11,6 +11,10 @@ import { UFS, fmtDec, fmtInt, rest, sdata, type DengueAno, type DengueSemana } f
 import { ALERTA, EIXO, GRADE, REFERENCIA } from "@/lib/tokens";
 
 const ANOS_DENGUE = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];
+/** Os quatro anos do gráfico de curvas, o mais recente primeiro — ele leva o traço
+ *  grosso. Era `a === 2025 ? 2.8 : 1.8`, que destacaria o ano errado assim que a
+ *  série avançasse: o realce é de "ano corrente", não de 2025. */
+const ANOS_SERIE = ANOS_DENGUE.slice(0, 4);
 const CORES_ANO: Record<number, string> = {
   2025: "#7b5cd6", 2024: ALERTA, 2023: "#e07a1f", 2022: "#1fb87b", 2021: EIXO, 2019: REFERENCIA,
 };
@@ -174,9 +178,10 @@ export function DengueCliente() {
                        tickFormatter={(v) => (v as number).toLocaleString("pt-BR", { notation: "compact" })} />
                 <Tooltip formatter={(v, n) => [fmtInt(v as number), String(n).replace("a", "")]}
                          contentStyle={{ borderRadius: 8, borderColor: GRADE, fontSize: 13 }} />
-                {[2025, 2024, 2023, 2022].map((a) => (
+                {ANOS_SERIE.map((a) => (
                   <Line key={a} type="monotone" dataKey={`a${a}`} name={`a${a}`}
-                        stroke={CORES_ANO[a] ?? "#b1bac9"} strokeWidth={a === 2025 ? 2.8 : 1.8} dot={false} />
+                        stroke={CORES_ANO[a] ?? "#b1bac9"}
+                        strokeWidth={a === ANOS_SERIE[0] ? 2.8 : 1.8} dot={false} />
                 ))}
                 <Legend formatter={(v) => String(v).replace("a", "")} />
               </LineChart>

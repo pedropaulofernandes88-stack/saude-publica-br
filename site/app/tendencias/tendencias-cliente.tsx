@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DispersaoVulnMort, LinhasExcesso, SerieLinha } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { UFS, fmtDec, fmtInt, sdata, type CruzVulnMort, type LinhaExcesso, type SerieTotalItem } from "@/lib/api";
+import { UFS, ehPreliminar, fmtDec, fmtInt, sdata, type CruzVulnMort, type LinhaExcesso, type SerieTotalItem } from "@/lib/api";
 import { SERIE } from "@/lib/tokens";
 
 const REGIOES = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"];
@@ -137,7 +137,7 @@ export function TendenciasCliente() {
             <tbody>
               {resumo.map((r) => (
                 <tr key={r.ano} className="border-b border-ink-100">
-                  <td className="px-3 py-2 font-medium">{r.ano}{r.ano === 2024 ? " *" : ""}</td>
+                  <td className="px-3 py-2 font-medium">{r.ano}{ehPreliminar(r.ano) ? " *" : ""}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{fmtInt(Math.round(r.obs))}</td>
                   <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(Math.round(r.esp))}</td>
                   <td className={`px-3 py-2 text-right font-semibold tabular-nums ${r.exc > 0 ? "text-red-700" : "text-accent-800"}`}>

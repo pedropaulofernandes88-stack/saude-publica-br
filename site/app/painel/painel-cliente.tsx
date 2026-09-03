@@ -7,6 +7,7 @@ import { VerMais } from "@/components/ver-mais";
 import {
   ANOS,
   ANO_DETALHE,
+  ehPreliminar,
   FAIXAS_ORDEM,
   UFS,
   fmtDec,
@@ -215,7 +216,7 @@ export function PainelCliente() {
           <select id="f-ano" className="select" value={ano} onChange={(e) => setAno(Number(e.target.value))}>
             {[...ANOS].reverse().map((a) => (
               <option key={a} value={a}>
-                {a}{a === 2024 ? " (preliminar)" : a < ANO_DETALHE ? " (grão reduzido)" : ""}
+                {a}{ehPreliminar(a) ? " (preliminar)" : a < ANO_DETALHE ? " (grão reduzido)" : ""}
               </option>
             ))}
           </select>
