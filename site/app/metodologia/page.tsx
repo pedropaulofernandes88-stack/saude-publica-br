@@ -79,15 +79,29 @@ export default function Metodologia() {
       <H2 n={1} />
       <ul>
         <li>
-          <strong>Óbitos 2022–2024</strong> — SIM/DataSUS, CSVs nacionais do{" "}
+          <strong>Óbitos 2022–2023</strong> — SIM/DataSUS, CSVs nacionais do{" "}
           <a href="https://opendatasus.saude.gov.br/dataset/sim" target="_blank" rel="noreferrer">OpenDataSUS</a>{" "}
-          (<code>DO22OPEN</code>–<code>DO24OPEN</code>).
+          (<code>DO22OPEN</code>, <code>DO23OPEN</code>).
         </li>
         <li>
-          <strong>Óbitos 2015–2021</strong> — SIM/DataSUS, arquivos <code>.dbc</code> por
-          UF/ano do FTP oficial (<code>SIM/CID10/DORES</code>), convertidos com a
-          biblioteca aberta <code>datasus-dbc</code>. Total da série:{" "}
-          <strong>14.378.827 óbitos não fetais</strong>.
+          <strong>Óbitos 2015–2021 e 2024</strong> — SIM/DataSUS, arquivos{" "}
+          <code>.dbc</code> por UF/ano do FTP oficial (<code>SIM/CID10/DORES</code>),
+          convertidos com a biblioteca aberta <code>datasus-dbc</code>.
+        </li>
+        <li>
+          <strong>Óbitos 2025 — PRELIMINARES</strong> — mesma origem, mas do diretório{" "}
+          <code>SIM/PRELIM/DORES</code>, que o DataSUS ainda não fechou. Entram na base{" "}
+          <strong>marcados</strong> (coluna <code>preliminar</code>) e ficam{" "}
+          <strong>fora de toda análise</strong>. Medimos 2025 e ele{" "}
+          <em>não</em> exibe os defeitos típicos de ano aberto: os doze meses estão
+          entre 1,07 e 1,14 vez a mediana de 2015–2024, dezembro inclusive, e as causas
+          mal definidas somam 4,51% — igual a 2024. Ou seja, o volume fechou e a
+          codificação parece madura. Mesmo assim ele fica fora, porque o que sabemos de
+          2024 é que a <em>versão</em> de um ano muda depois de fechado: ao consolidar,
+          milhares de óbitos migraram de R99 para causas específicas. Parecer estável e
+          ter sido verificado estável são coisas diferentes, e a segunda só é possível
+          quando a versão consolidada existir. Servem para acompanhar o ano corrente,
+          não para comparar com os anteriores.
         </li>
         <li>
           <strong>População total</strong> — IBGE: Estimativas anuais (SIDRA t/6579),
@@ -111,7 +125,7 @@ export default function Metodologia() {
         <li>
           <strong>Óbitos fetais fora da base — pela fonte, não pelo filtro.</strong> A
           convenção de mortalidade geral exclui óbito fetal, e o pipeline mantém o filtro{" "}
-          <code>TIPOBITO ≠ 1</code>. Mas conferindo o campo nos 14.378.827 registros,{" "}
+          <code>TIPOBITO ≠ 1</code>. Mas conferindo o campo nos 14.484.496 registros,{" "}
           <strong>100% têm <code>TIPOBITO = 2</code></strong> nas duas fontes: o óbito
           fetal vive num arquivo separado do DataSUS (<code>SIM/CID10/DOFET</code>) que
           este projeto não coleta. Ou seja, a exclusão acontece na origem e o filtro
@@ -1224,10 +1238,10 @@ export default function Metodologia() {
       <p>
         <strong>O grão que faltava.</strong> Até 2026-09, a base tinha município × capítulo da
         CID (22 categorias) e CID de três caracteres × UF — nunca os dois cruzados. A tabela
-        nova tem 3.591.937 células município × CID × ano e 7.700.720 no grão mensal, e não
+        nova tem 3.612.357 células município × CID × ano e 7.759.402 no grão mensal, e não
         exigiu coleta: o grão já existia dentro do pipeline e era agregado para cima antes de
-        virar tabela. Ela reconcilia exatamente com a mortalidade já publicada — 14.378.827
-        óbitos, 55.938 pares município-ano, divergência zero.
+        virar tabela. Ela reconcilia exatamente com a mortalidade já publicada — 14.484.496
+        óbitos, 55.940 pares município-ano, divergência zero.
       </p>
       <p>
         <strong>B34 é COVID-19, não "infecção viral não especificada".</strong> O SIM brasileiro

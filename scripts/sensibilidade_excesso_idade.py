@@ -24,6 +24,9 @@ import sys
 import os
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _sim_obitos import caminho_populacao  # noqa: E402
+
 import numpy as np
 import pandas as pd
 import requests
@@ -141,7 +144,7 @@ def main() -> None:
     proj = fetch_pop_idade_ano().rename(columns={"faixa": "fx", "populacao": "pop"})
 
     # B reescalado: forma etária da projeção × total pós-Censo
-    pr = pd.read_parquet(REFS / "populacao_2015_2024.parquet")
+    pr = pd.read_parquet(caminho_populacao(REFS))
     pr["uf_sigla"] = pr.municipio_cod.astype(str).str[:2].astype(int).map(UFCOD)
     tot = pr.groupby(["uf_sigla", "ano"])["populacao"].sum().rename("tot").reset_index()
     proj["share"] = proj["pop"] / proj.groupby(["uf_sigla", "ano"])["pop"].transform("sum")

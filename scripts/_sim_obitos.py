@@ -59,6 +59,39 @@ RAW_DBC = RAW / "dbc"
 #: migrá-los é limpeza, não correção.
 ANOS_CSV = {2022, 2023}
 
+#: Categorias da CID-10 para dengue, incluindo a que o Brasil passou a usar.
+#:
+#: Medido em 2026-09-03, comparando 2024 e 2025 na mesma rota do FTP:
+#:
+#:     2024   A90 = 5.237   A91 = 1.504   A97 = 0
+#:     2025   A90 = 0       A91 = 0       A97 = 2.024
+#:
+#: É uma troca COMPLETA, não uma migração gradual. O Brasil adotou o A97 da
+#: atualização da CID-10 (A97.0 sem sinais de alarme, A97.1 com sinais, A97.2
+#: grave, A97.9 não especificada) e abandonou A90/A91 de uma vez.
+#:
+#: Nada quebrou ainda porque toda análise publicada é 2015–2024. O dia em que
+#: alguém estender a série sem isto, a dengue simplesmente SOME — e some sem
+#: erro, que é o pior modo de sumir. É o mesmo tipo de armadilha do B34: o
+#: código não diz o que a doença é.
+CIDS_DENGUE = ("A90", "A91", "A97")
+
+#: Anos que o DataSUS ainda NÃO fechou. Moram em `SIM/PRELIM/DORES`, não em
+#: `CID10/DORES`, e a distinção é analítica, não de caminho.
+#:
+#: Dado preliminar tem a cauda incompleta — foi ela que, no CSV de 2024, fez o
+#: número de pares de causa significativos saltar de 7.030 para 20.234 e inverteu
+#: a leitura do excesso do ano. Por isso o ano preliminar entra na base MARCADO,
+#: e quem analisa filtra por `ANOS_CONSOLIDADOS` de propósito, não por descuido.
+ANOS_PRELIMINARES = {2025}
+
+#: A série fechada. É o que o artigo analisa, e o que qualquer análise deve usar
+#: salvo decisão explícita em contrário.
+ANOS_CONSOLIDADOS = tuple(range(2015, 2025))
+
+#: Tudo que a base cobre, do mais antigo ao mais recente.
+ANOS_COBERTOS = tuple(sorted(set(ANOS_CONSOLIDADOS) | ANOS_PRELIMINARES))
+
 #: Colunas mínimas que a derivação exige das duas fontes.
 COLUNAS = ["TIPOBITO", "DTOBITO", "IDADE", "SEXO", "CODMUNRES", "LOCOCOR", "CAUSABAS"]
 
@@ -226,3 +259,26 @@ def criar_obitos_t(con: duckdb.DuckDBPyConnection, anos: list[int],
                ON d.causabas_3 >= c.ini AND d.causabas_3 <= c.fim
         WHERE d.ano IN ({','.join(str(a) for a in anos)}) AND d.mes BETWEEN 1 AND 12
     """)
+
+
+def caminho_populacao(refs) -> Path:
+    """Resolve o parquet de população pelo padrão, nunca pelo ano literal.
+
+    O arquivo é nomeado com a janela que contém (`populacao_2015_2025.parquet`),
+    então estender a série RENOMEIA o arquivo. Dois scripts vivos —
+    `reconciliacao_denominador` e `sensibilidade_excesso_idade` — carregavam
+    `populacao_2015_2024.parquet` como literal e passaram a apontar para um
+    arquivo que deixou de existir no momento em que 2025 entrou.
+
+    Ano cravado em caminho é uma bomba com data marcada: não quebra quando se
+    escreve, quebra quando alguém estende a série meses depois. Aqui a janela
+    mais recente vence, e a ausência é um erro alto, não um `FileNotFoundError`
+    a trinta linhas de distância.
+    """
+    refs = Path(refs)
+    achados = sorted(refs.glob("populacao_*_*.parquet"))
+    if not achados:
+        raise SystemExit(
+            f"[populacao] nenhum populacao_*_*.parquet em {refs} — "
+            "rode `python scripts/pipeline_v2.py` para reconstruir o denominador")
+    return max(achados, key=lambda p: int(p.stem.rsplit("_", 1)[1]))

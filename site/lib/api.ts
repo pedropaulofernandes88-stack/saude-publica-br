@@ -506,7 +506,21 @@ export const UFS = [
   "SE", "SP", "TO",
 ] as const;
 
-export const ANOS = [2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024] as const;
+export const ANOS = [
+  2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025,
+] as const;
+
+/**
+ * Anos que o DataSUS ainda não fechou — vêm de `SIM/PRELIM/DORES`.
+ *
+ * Existe como constante, e não como comparação com um ano escrito à mão, porque
+ * o rótulo "(preliminar)" ficou colado em 2024 depois de 2024 deixar de ser
+ * preliminar. Um ano sai desta lista quando migra para o diretório consolidado;
+ * quem lê a interface acompanha sozinho.
+ */
+export const ANOS_PRELIMINARES: readonly number[] = [2025];
+
+export const ehPreliminar = (ano: number) => ANOS_PRELIMINARES.includes(ano);
 
 /** A partir deste ano há detalhe demográfico completo (sexo × faixa × capítulo). */
 export const ANO_DETALHE = 2022;

@@ -135,6 +135,7 @@ import requests
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _achados import esquecer, registrar  # noqa: E402
 from _publicacao import carregar_env, conferir_chave_unica, escrever_parquet  # noqa: E402
+from _sim_obitos import ANOS_CONSOLIDADOS  # noqa: E402
 from _supabase_key import chave_escrita  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -201,6 +202,25 @@ GRUPO_NACIONAL = -1
 TERMOS_REMOVIDOS = 13
 
 
+def so_consolidado(df: pd.DataFrame, o_que: str) -> pd.DataFrame:
+    """Descarta anos preliminares, em voz alta.
+
+    A base passou a cobrir 2025, que o DataSUS ainda não fechou. Ano preliminar
+    tem a cauda incompleta, e cauda incompleta impõe um choque comum a todas as
+    causas: no CSV de 2024, ela inflou os pares de causa significativos de 7.030
+    para 20.234. Deixá-lo entrar em silêncio faria a análise do artigo mudar sem
+    ninguém pedir.
+
+    Filtrar calado seria quase tão ruim — quem lesse o resultado não saberia que
+    havia dado disponível e descartado. Por isso o descarte é impresso.
+    """
+    fora = sorted(set(df.ano.unique()) - set(ANOS_CONSOLIDADOS))
+    if fora:
+        print(f"[recorte] {o_que}: descartando {fora} — anos preliminares, "
+              f"a análise usa {ANOS_CONSOLIDADOS[0]}–{ANOS_CONSOLIDADOS[-1]}", flush=True)
+    return df[df.ano.isin(ANOS_CONSOLIDADOS)]
+
+
 # ---------------------------------------------------------------------------
 # Matriz e confundidores
 # ---------------------------------------------------------------------------
@@ -214,7 +234,8 @@ def carregar() -> tuple[pd.DataFrame, pd.DataFrame, pd.Series, pd.DataFrame]:
         .causabas_3) - FORA_DO_INDICE
 
     anual = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio.parquet",
-                            columns=["municipio_cod", "causabas_3", "obitos"])
+                            columns=["municipio_cod", "ano", "causabas_3", "obitos"])
+    anual = so_consolidado(anual, "composição de causas")
     contagens = (anual[anual.causabas_3.isin(informativos)]
                  .pivot_table(index="municipio_cod", columns="causabas_3",
                               values="obitos", aggfunc="sum", fill_value=0))
@@ -385,6 +406,7 @@ def correlacao_entre_causas(cids: list[str],
         colunas.insert(0, "municipio_cod")
     mensal = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio_mes.parquet",
                              columns=colunas)
+    mensal = so_consolidado(mensal, "séries mensais")
     if municipios is not None:
         mensal = mensal[mensal.municipio_cod.isin(municipios)]
     serie = (mensal[mensal.causabas_3.isin(set(cids))]

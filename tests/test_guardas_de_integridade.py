@@ -378,3 +378,81 @@ def test_upload_do_siops_repete_erro_de_servidor_e_desiste_no_limite(monkeypatch
     with pytest.raises(RuntimeError, match="HTTP 503"):
         pipeline_siops.publicar(df, {"SUPABASE_URL": "http://x"}, [2024])
     assert len(tentativas) == 4, f"esperado 4 tentativas, houve {len(tentativas)}"
+
+
+# --------------------------------------------------------------------------
+# o denominador é resolvido por padrão, não por ano cravado
+#
+# `populacao_2015_2024.parquet` virou `populacao_2015_2025.parquet` quando 2025
+# entrou, e dois scripts que liam o nome literal passaram a apontar para um
+# arquivo inexistente — sem que nada acusasse, porque eles só rodam sob demanda.
+# --------------------------------------------------------------------------
+def test_populacao_escolhe_a_janela_mais_recente(tmp_path):
+    from _sim_obitos import caminho_populacao
+    for nome in ("populacao_2015_2024.parquet", "populacao_2015_2025.parquet",
+                 "populacao_2010_2014.parquet"):
+        (tmp_path / nome).touch()
+    assert caminho_populacao(tmp_path).name == "populacao_2015_2025.parquet"
+
+
+def test_populacao_ausente_falha_alto_em_vez_de_silenciar(tmp_path):
+    from _sim_obitos import caminho_populacao
+    with pytest.raises(SystemExit) as e:
+        caminho_populacao(tmp_path)
+    assert "pipeline_v2" in str(e.value)
+
+
+def test_o_denominador_publicado_cobre_todos_os_anos_da_base():
+    """Se a população parar antes dos óbitos, a taxa some ou fica errada."""
+    import pandas as pd
+    from _sim_obitos import ANOS_COBERTOS
+    caminho = Path(__file__).resolve().parent.parent / "data" / "refs"
+    from _sim_obitos import caminho_populacao
+    if not caminho.exists():
+        pytest.skip("data/refs ausente")
+    pop = pd.read_parquet(caminho_populacao(caminho), columns=["ano"])
+    faltando = sorted(set(ANOS_COBERTOS) - set(pop.ano.unique()))
+    assert not faltando, f"sem denominador para {faltando}"
+
+
+# --------------------------------------------------------------------------
+# a carga confere LENDO DE VOLTA, não contando o que tentou enviar
+#
+# Em 2026-09-03 uma carga de mart_mortalidade_municipio foi interrompida no
+# meio: 17.601 das 201.760 linhas de 2025 entraram. O log dizia "linhas
+# publicadas" porque imprimia len(recs) — o tamanho do que saiu daqui, que não
+# é evidência de nada sobre o outro lado.
+# --------------------------------------------------------------------------
+class _Resp:
+    def __init__(self, status, headers=None):
+        self.status_code, self.headers, self.text = status, headers or {}, ""
+
+
+def _subir_com_banco_em(monkeypatch, no_banco: int, enviadas: int):
+    import _subir_mart as sm
+    monkeypatch.setattr(sm, "load_env",
+                        lambda: {"SUPABASE_URL": "https://x", "SUPABASE_SERVICE_ROLE_KEY": "k"})
+    monkeypatch.setattr(sm, "chave_escrita", lambda env: "k")
+    monkeypatch.setattr(sm.requests, "post", lambda *a, **k: _Resp(201))
+    monkeypatch.setattr(sm.requests, "get", lambda *a, **k:
+                        _Resp(206, {"Content-Range": f"0-0/{no_banco}"}))
+    df = pd.DataFrame({"municipio_cod": [f"{i:06d}" for i in range(enviadas)],
+                       "obitos": range(enviadas)})
+    sm.subir("mart_teste", df)
+
+
+def test_carga_parcial_e_recusada(monkeypatch):
+    with pytest.raises(RuntimeError) as e:
+        _subir_com_banco_em(monkeypatch, no_banco=17_601, enviadas=201_760)
+    msg = str(e.value)
+    assert "INCOMPLETA" in msg and "184,159" in msg
+
+
+def test_carga_completa_passa(monkeypatch):
+    _subir_com_banco_em(monkeypatch, no_banco=500, enviadas=500)
+
+
+def test_banco_maior_que_o_parquet_passa_mas_avisa(monkeypatch, capsys):
+    """A tabela pode ter linhas que este parquet não cobre — isso não é falha."""
+    _subir_com_banco_em(monkeypatch, no_banco=900, enviadas=500)
+    assert "há linhas que este parquet não cobre" in capsys.readouterr().out

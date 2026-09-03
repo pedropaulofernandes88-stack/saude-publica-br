@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { geoMercator, type GeoProjection } from "d3-geo";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { ANOS, UFS, fmtDec, fmtInt, rest, type CnesMunicipio, type LinhaMunicipio } from "@/lib/api";
+import { ANOS, UFS, ehPreliminar, fmtDec, fmtInt, rest, type CnesMunicipio, type LinhaMunicipio } from "@/lib/api";
 
 function mediana(vs: number[]): number | null {
   if (!vs.length) return null;
@@ -219,7 +219,7 @@ export function MapaCliente() {
           <label className="label" htmlFor="m-ano">Ano</label>
           <select id="m-ano" className="select" value={ano} onChange={(e) => setAno(Number(e.target.value))}>
             {[...ANOS].reverse().map((a) => (
-              <option key={a} value={a}>{a}{a === 2024 ? " (preliminar)" : ""}</option>
+              <option key={a} value={a}>{a}{ehPreliminar(a) ? " (preliminar)" : ""}</option>
             ))}
           </select>
         </div>

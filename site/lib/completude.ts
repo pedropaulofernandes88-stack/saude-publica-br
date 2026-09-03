@@ -3,8 +3,19 @@
  *
  * O SIM tem atraso de registro: os meses mais recentes chegam parciais e vão
  * sendo preenchidos ao longo dos meses seguintes. Plotados sem ressalva, eles
- * desenham uma queda de mortalidade que não aconteceu — em dez/2024 a série
- * nacional marca 45.516 óbitos contra ~134 mil em julho do mesmo ano.
+ * desenham uma queda de mortalidade que não aconteceu.
+ *
+ * O caso que motivou este módulo foi dez/2024, que o CSV nacional do
+ * OpenDataSUS trazia com 45.516 óbitos contra ~134 mil em julho do mesmo ano.
+ * Esse número NÃO EXISTE MAIS: em 2026-09 a fonte de 2024 passou a ser os 27
+ * `.dbc` do FTP, que trazem o ano completo (dez/2024 = 123.249), e a série
+ * deixou de ter cauda truncada. Fica registrado porque a lição não foi o
+ * número, foi o alcance: este aviso protegia o gráfico e não protegia o dado —
+ * o PCA, a correlação e o manuscrito consumiam o mesmo 2024 truncado sem ver
+ * ressalva nenhuma. Marcar na apresentação não é corrigir na origem.
+ *
+ * A varredura continua valendo, agora para o ano preliminar (2025 em diante),
+ * que entra na base marcado e pode, esse sim, chegar com a cauda aberta.
  *
  * A regra de corte é a mesma que `site/scripts/build-boletim.mjs` já aplicava
  * ao excesso de mortalidade: a partir do fim da série, todo mês cuja razão

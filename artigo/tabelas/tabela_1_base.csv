@@ -3,11 +3,12 @@ Fonte,SIM/DataSUS (CSV OpenDataSUS 2022–2023; .dbc por UF 2015–2021 e 2024)
 Período,2015–2024
 Óbitos não fetais,14.484.496
 Municípios,5.595
-Categorias da CID-10 (3 caracteres),1.546
+Categorias da CID-10 (3 caracteres),1.559
 Células município × CID × ano,3.612.357
 Células município × CID × ano × mês,7.759.402
 Óbitos por município-ano (mediana),78
 Óbitos por município-ano (P25–P75),39–172
 "CIDs informativos (não mal definidos, ≥25% dos municípios)",289
 Municípios analisados (≥500 óbitos no período),3.461
+Tabela publicada (além do recorte analítico),"2015–2025: 4.009.400 células, 16.019.084 óbitos"
 Publicação,2026-09-03 · 47 tabelas

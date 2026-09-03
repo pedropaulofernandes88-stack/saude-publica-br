@@ -40,6 +40,7 @@ def _carregar():
 
 
 pm = _carregar()
+ANOS_CONSOLIDADOS = pm.ANOS_CONSOLIDADOS
 
 
 def _anual(linhas: list[tuple]) -> pd.DataFrame:
@@ -291,3 +292,52 @@ def test_o_grao_mensal_soma_o_grao_anual():
     mensal = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio_mes.parquet",
                              columns=["obitos"])
     assert int(anual.obitos.sum()) == int(mensal.obitos.sum())
+
+
+# --------------------------------------------------------------------------
+# 7c. o vocabulário não pode depender do ano preliminar
+#
+# Ao acrescentar 2025 à base, o conjunto de CIDs informativos pulou de 289 para
+# 302 sem que critério nenhum tivesse mudado: a prevalência era calculada sobre
+# todos os anos, inclusive o que a análise exclui. Um filtro cujo conteúdo vem
+# de dado que a análise não usa é vazamento com nome de filtro.
+# --------------------------------------------------------------------------
+@pytest.mark.skipif(not (MARTS / "dim_cid10_informativo.parquet").exists(),
+                    reason="dim_cid10_informativo ainda não foi gerada")
+def test_prevalencia_conta_so_os_anos_consolidados():
+    dim = pd.read_parquet(MARTS / "dim_cid10_informativo.parquet")
+    anual = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio.parquet")
+
+    consolidado = anual[anual.ano.isin(ANOS_CONSOLIDADOS)]
+    esperado = (consolidado.groupby("causabas_3").municipio_cod.nunique()
+                .rename("esperado"))
+    conferido = dim.set_index("causabas_3").join(esperado)
+
+    # todo CID visto no consolidado tem que bater exato
+    visto = conferido.esperado.notna()
+    assert (conferido.loc[visto, "municipios_com_registro"]
+            == conferido.loc[visto, "esperado"]).all()
+
+    # e o que só existe no preliminar entra no dicionário com contagem zero,
+    # nunca como informativo
+    so_preliminar = conferido[~visto]
+    assert (so_preliminar.municipios_com_registro == 0).all()
+    assert not so_preliminar.informativo.any()
+
+
+@pytest.mark.skipif(not (MARTS / "dim_cid10_informativo.parquet").exists(),
+                    reason="dim_cid10_informativo ainda não foi gerada")
+def test_a97_da_dengue_esta_documentado_mas_fora_da_analise():
+    """O código de dengue mudou de A90/A91 para A97 em 2025.
+
+    Ele precisa aparecer no dicionário — senão a troca fica invisível para quem
+    for estender a série — e precisa ficar fora do recorte informativo, porque
+    2025 é preliminar.
+    """
+    dim = pd.read_parquet(MARTS / "dim_cid10_informativo.parquet")
+    a97 = dim[dim.causabas_3 == "A97"]
+    if a97.empty:
+        pytest.skip("A97 ainda não aparece na base")
+    linha = a97.iloc[0]
+    assert linha.ano_min not in ANOS_CONSOLIDADOS, "A97 no consolidado muda a análise"
+    assert not linha.informativo

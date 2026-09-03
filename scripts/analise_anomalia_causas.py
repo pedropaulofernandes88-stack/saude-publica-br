@@ -86,6 +86,7 @@ from scipy.stats import nbinom
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _achados import registrar  # noqa: E402
 from _publicacao import carregar_env, conferir_chave_unica, escrever_parquet  # noqa: E402
+from _sim_obitos import ANOS_CONSOLIDADOS, CIDS_DENGUE  # noqa: E402
 from _supabase_key import chave_escrita  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -137,6 +138,14 @@ def construir() -> tuple[pd.DataFrame, dict]:
     cids = sorted(set(dim[dim.informativo].causabas_3))
     anual = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio.parquet",
                             columns=["municipio_cod", "ano", "causabas_3", "obitos"])
+    fora = sorted(set(anual.ano.unique()) - set(ANOS_CONSOLIDADOS))
+    if fora:
+        # Ver `so_consolidado` em analise_perfil_mortalidade.py. Aqui o risco é
+        # ainda mais direto: um ano com a cauda faltando aparece como QUEDA
+        # significativa em quase toda categoria, e o escore de anomalia viraria
+        # um detector de atraso de registro.
+        print(f"[recorte] descartando {fora} — anos preliminares", flush=True)
+    anual = anual[anual.ano.isin(ANOS_CONSOLIDADOS)]
     anual = anual[anual.causabas_3.isin(set(cids))]
     total = anual.groupby(["municipio_cod", "ano"]).obitos.sum().rename("total")
     anual = anual.join(total, on=["municipio_cod", "ano"])
@@ -216,10 +225,11 @@ def conferir_controles(alvo: pd.DataFrame) -> None:
     """
     sig = alvo[alvo.excesso_proprio]
 
-    dengue = sig[sig.causabas_3.isin(["A90", "A91"])]
+    dengue = sig[sig.causabas_3.isin(CIDS_DENGUE)]
     if dengue.empty:
         raise SystemExit(
-            "controle positivo falhou: dengue (A90/A91) não aparece entre os excessos. "
+            f"controle positivo falhou: dengue ({'/'.join(CIDS_DENGUE)}) não aparece "
+            "entre os excessos. "
             "2024 teve 6,6 milhões de casos prováveis — a detecção está cega.")
     anos = sorted(dengue.ano.unique())
     if anos != [2024]:

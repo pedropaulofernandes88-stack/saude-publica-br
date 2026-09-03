@@ -108,13 +108,42 @@ def sincronizar(conferir: bool) -> int:
             print("\nRode `python artigo/sincronizar_tabelas.py` para reescrevê-las.")
             return 1
         print(f"[conferir] as {n} tabelas do manuscrito batem com os CSVs")
+        _prestar_contas(n)
         return 0
 
     MANUSCRITO.write_text(novo_texto, encoding="utf-8")
     print(f"[sincronizar] {n} tabelas processadas, {len(divergentes)} reescritas")
     for d in divergentes:
         print(f"    {d}")
+    _prestar_contas(n)
     return 0
+
+
+def _prestar_contas(n: int) -> None:
+    """Diz o que sobrou, em vez de deixar o total sem explicação.
+
+    A ferramenta imprimia "15 tabelas processadas" havendo 16 CSVs, e o 16º era
+    invisível: `tabela_4_cargas.csv` é citada em prosa, sem tabela embutida — o
+    que é deliberado, são 36 linhas. O problema não é a exceção, é ela não
+    aparecer: se alguém apagasse uma tabela do manuscrito por engano, o número
+    cairia de 15 para 14 e não haveria nada a comparar. Total sem prestação de
+    contas é número que ninguém consegue conferir.
+    """
+    csvs = {p.name for p in TABELAS.glob("*.csv")}
+    texto = MANUSCRITO.read_text(encoding="utf-8")
+    citados = {c for c in csvs if c in texto}
+    if orfas := sorted(csvs - citados):
+        print(f"[atenção] {len(orfas)} CSV sem nenhuma citação no manuscrito:")
+        for o in orfas:
+            print(f"    {o}")
+    so_prosa = sorted(citados - _com_tabela(texto))
+    if so_prosa:
+        print(f"[contas] {n} embutidas + {len(so_prosa)} citada(s) só em prosa "
+              f"= {len(csvs)} CSVs: {', '.join(so_prosa)}")
+
+
+def _com_tabela(texto: str) -> set[str]:
+    return {m.group(2) for m in PADRAO.finditer(texto)}
 
 
 def main() -> None:

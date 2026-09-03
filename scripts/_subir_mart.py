@@ -92,7 +92,33 @@ def subir(table: str, df: pd.DataFrame, truncar: bool = False) -> None:
                 raise RuntimeError(f"{table}: HTTP {r.status_code} {r.text[:300]}")
             time.sleep(3 * (tentativa + 1))
         print(f"[subir] {table}: lote {i + 1}/{lotes}", flush=True)
-    print(f"[subir] {table}: {len(recs):,} linhas publicadas", flush=True)
+
+    # Confere LENDO DE VOLTA, não contando o que se tentou enviar.
+    #
+    # A linha anterior imprimia `len(recs)` — o tamanho do que saiu daqui — e
+    # isso não é evidência de nada sobre o outro lado. Em 2026-09-03 uma carga
+    # de `mart_mortalidade_municipio` foi interrompida no meio: 17.601 das
+    # 201.760 linhas de 2025 entraram, e a única razão de o defeito ter
+    # aparecido foi alguém ter conferido o banco à mão depois. Sem esta leitura,
+    # a tabela ficava 184 mil linhas curta com "linhas publicadas" no log.
+    #
+    # Vale também para o caso sem interrupção: upsert que resolva conflito
+    # descartando linha não devolve erro, devolve 200.
+    r = requests.get(f"{url}/rest/v1/{table}", timeout=120,
+                     headers={**h, "Prefer": "count=exact", "Range": "0-0"},
+                     params={"select": df.columns[0]})
+    if r.status_code not in (200, 206):
+        raise RuntimeError(f"{table}: conferência HTTP {r.status_code} {r.text[:200]}")
+    no_banco = int(r.headers["Content-Range"].split("/")[-1])
+    if no_banco < len(recs):
+        raise RuntimeError(
+            f"{table}: carga INCOMPLETA — {no_banco:,} linhas no banco contra "
+            f"{len(recs):,} enviadas ({len(recs) - no_banco:,} faltando). "
+            "A tabela ficou parcial; rode de novo antes de publicar.")
+    extra = ("" if no_banco == len(recs)
+             else f" (o banco tem {no_banco:,}: há linhas que este parquet não cobre)")
+    print(f"[subir] {table}: {len(recs):,} linhas publicadas, conferidas no banco{extra}",
+          flush=True)
 
 
 def main() -> None:

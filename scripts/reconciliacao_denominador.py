@@ -22,6 +22,9 @@ from __future__ import annotations
 import sys
 import os
 from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _sim_obitos import caminho_populacao  # noqa: E402
 import numpy as np, pandas as pd, requests
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -42,7 +45,7 @@ def main():
     # totais censitários
     j=requests.get("https://apisidra.ibge.gov.br/values/t/200/n3/all/v/93/p/2010",timeout=60).json()
     t2010={UFCOD[int(r['D1C'])]:float(r['V']) for r in j[1:]}
-    pr=pd.read_parquet(REFS/'populacao_2015_2024.parquet'); pr['uf']=pr.municipio_cod.astype(str).str[:2].astype(int).map(UFCOD)
+    pr=pd.read_parquet(caminho_populacao(REFS)); pr['uf']=pr.municipio_cod.astype(str).str[:2].astype(int).map(UFCOD)
     t2022=pr[pr.ano==2022].groupby('uf')['populacao'].sum().to_dict()
     def tot(uf,ano): return t2010[uf]*(t2022[uf]/t2010[uf])**((ano-2010)/12.0)
     # estrutura da projeção -> shares

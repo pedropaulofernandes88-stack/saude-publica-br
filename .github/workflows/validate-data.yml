@@ -106,7 +106,7 @@ jobs:
       - name: Medir tamanho e inchaço do banco
         if: ${{ env.SUPABASE_SERVICE_ROLE_KEY != '' }}
         # Sem --limite-mb: o teto e o padrao do script (LIMITE_PADRAO_MB).
-        # Repetir 700 aqui criaria uma segunda definicao que pode divergir da
+        # Repetir o numero aqui criaria uma segunda definicao que pode divergir da
         # primeira em silencio -- e o CI passaria a checar um limite que o
         # projeto ja abandonou.
         run: python scripts/diagnostico_banco.py

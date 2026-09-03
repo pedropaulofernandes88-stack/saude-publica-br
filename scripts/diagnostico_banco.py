@@ -2,7 +2,7 @@
 diagnostico_banco.py — mede o tamanho do banco e avisa quando ele incha
 =======================================================================
 
-    python scripts/diagnostico_banco.py              # mede E reprova acima de 700 MB
+    python scripts/diagnostico_banco.py              # mede E reprova acima do teto (LIMITE_PADRAO_MB)
     python scripts/diagnostico_banco.py --limite-mb 0  # só mede, sem veredito
     python scripts/diagnostico_banco.py --json
 
@@ -61,7 +61,27 @@ PCT_INCHACO_RELEVANTE = 15.0
 #:
 #: O valor tem folga proposital sobre o uso corrente: alarme que toca por
 #: variação normal é alarme que se aprende a ignorar.
-LIMITE_PADRAO_MB = 700.0
+#:
+#: 2026-09-03 — de 700 para 750 MB, e o motivo fica aqui porque teto que sobe
+#: sem justificativa registrada deixa de ser teto. A base passou a cobrir 2025
+#: (`SIM/PRELIM/DORES`), e o ano novo acrescenta 330.887 linhas às três marts
+#: servidas — 201.760 em `mart_mortalidade_municipio`, 108.076 em
+#: `mart_mortalidade_uf_mes`, 21.051 em `mart_mortalidade_causa` —, cerca de
+#: 47 MB. O banco vai de 663 para ~710 MB.
+#:
+#: A distinção que autoriza mexer: este alarme mede FOLGA SOBRE O USO CORRENTE,
+#: e o uso corrente correto mudou por decisão explícita, com o crescimento
+#: conferido linha a linha. Não é o caso de afrouxar uma trava para caber —
+#: quando a guarda de qualidade acusou divergência no dado publicado, o certo
+#: foi `--aceitar-mudanca MOTIVO`, não baixar o limiar. Aqui é o contrário:
+#: manter 700 depois de a linha de base subir faria o alarme tocar todo dia por
+#: uma razão já conhecida, que é exatamente como um alarme morre.
+#:
+#: 750 preserva a mesma proporção de folga que 700 tinha sobre os 663 MB de
+#: antes (~5,6%), e fica abaixo dos 740 MB que o banco já sustentou em agosto
+#: sem incidente — ou seja, não é território novo. Antes de subir de novo,
+#: procurar o que remover: em 2026-08-23 uma compactação devolveu 133 MB.
+LIMITE_PADRAO_MB = 750.0
 
 
 def mb(n: float) -> str:

@@ -74,15 +74,35 @@ Três consequências analíticas, e nenhuma é cosmética.
 
 **O vocabulário de códigos também difere.** O CSV de 2024 continha 46 categorias ausentes do `.dbc`, entre elas as duas únicas categorias fora das faixas oficiais da CID-10 que a tabela registrava (D96 e K99); o `.dbc`, por sua vez, traz 20 categorias que o CSV não tinha. Com a rota do FTP, nenhum código fora da CID-10 permanece na base.
 
+**E a consolidação RECLASSIFICA, não apenas acrescenta.** Este é o efeito mais relevante para o presente trabalho, e não é dedutível do volume. Comparando categoria a categoria as duas versões do mesmo ano:
+
+| categoria que PERDE registros | Δ | categoria que GANHA | Δ |
+|---|---:|---|---:|
+| R99 causas mal definidas | −6.944 | I21 infarto agudo do miocárdio | +7.948 |
+| Y34 evento de intenção não determinada | −2.993 | J44 doença pulmonar obstrutiva crônica | +4.641 |
+| J96 insuficiência respiratória NCOP | −1.536 | E14 diabetes não especificado | +4.430 |
+| R96 morte súbita de causa desconhecida | −1.443 | I10 hipertensão essencial | +4.134 |
+| F03 demência não especificada | −478 | G30 doença de Alzheimer | +3.214 |
+
+O padrão é inequívoco: saem categorias imprecisas, entram diagnósticos específicos. É o serviço de investigação de óbito convertendo causa mal definida em causa determinada, e ele leva meses. Consequência direta: o percentual do capítulo XVIII em 2024 caiu de 5,4% para 4,5%, e R99 deixou o terceiro lugar entre as categorias mais frequentes para ocupar o quinto.
+
+**Dado preliminar não superestima apenas o que falta — superestima a imprecisão.** Isso importa aqui mais que em qualquer outro estudo, porque a imprecisão diagnóstica é justamente o objeto medido na seção 3.5. Uma análise que misturasse vintages diferentes leria como variação geográfica de codificação o que seria, em parte, variação de tempo desde o óbito. Todos os dez anos desta análise usam a versão consolidada.
+
 Registre-se que a incompletude era **conhecida e anotada na camada de apresentação** da plataforma — havia um mecanismo que marcava meses incompletos nos gráficos, documentando inclusive o valor de dezembro de 2024. O que não havia era correção na camada de dado: o aviso alcançava o leitor do gráfico e não alcançava a análise. Anotar não é corrigir.
 
 Adota-se, portanto, a rota `.dbc` para 2024. A rota do CSV permanece para 2022–2023, onde as duas coincidem exatamente e os arquivos já estavam verificados.
 
 ### 2.3 Recorte analítico
 
-Restringimos a análise aos municípios com pelo menos 500 óbitos no período (3.461 dos 5.595 presentes) e às categorias presentes em pelo menos 25% dos municípios e não pertencentes ao capítulo XVIII (289 das 1.546). O corte de municípios não é um julgamento sobre relevância: abaixo dele, o perfil é dominado por variação multinomial, e incluir esses municípios adicionaria ruído sem adicionar informação.
+Restringimos a análise aos municípios com pelo menos 500 óbitos no período (3.461 dos 5.595 presentes) e às categorias presentes em pelo menos 25% dos municípios e não pertencentes ao capítulo XVIII (289 das 1.559). O corte de municípios não é um julgamento sobre relevância: abaixo dele, o perfil é dominado por variação multinomial, e incluir esses municípios adicionaria ruído sem adicionar informação.
 
 Deliberadamente, a tabela publicada **não** é filtrada. O limiar de informatividade é uma escolha analítica, e cravá-la no dado distribuído esconderia essa escolha de quem o baixa. Publicamos a matriz completa e, ao lado, um dicionário com prevalência municipal e marcas por categoria.
+
+**A base cobre mais anos do que esta análise usa.** Desde setembro de 2026 a plataforma coleta também 2025, do diretório preliminar do DataSUS (`SIM/PRELIM/DORES`), para acompanhamento do ano corrente. Esses registros entram marcados — coluna `preliminar` na própria tabela — e **ficam fora de toda análise deste trabalho**, que se restringe a 2015–2024. A razão é a documentada na seção anterior: ano em consolidação pode ter a cauda incompleta ou a codificação ainda por resolver, e qualquer das duas desloca exatamente as quantidades aqui medidas — foi o que 2024 fez. Os scripts de análise aplicam o recorte explicitamente e imprimem o que descartaram, em vez de depender de quem os executa lembrar de fazê-lo.
+
+O recorte precisa alcançar também o **vocabulário**, e esse é o ponto em que ele quase escapou. A prevalência municipal por categoria era calculada sobre todos os anos da tabela; ao acrescentar 2025, o conjunto de categorias informativas passou de 289 para 302 sem que critério nenhum tivesse sido alterado. Um filtro cujo conteúdo depende de dado que a análise exclui não é filtro, é vazamento com nome de filtro. A prevalência e a marca `informativo` passaram a ser computadas apenas sobre 2015–2024; o dicionário publicado continua listando todas as 1.559 categorias, inclusive as que só existem no ano preliminar, porque omiti-las esconderia justamente a mudança de codificação que a seção 7 documenta. Com a correção, acrescentar 2025 à base deixa os 289 códigos, os 3.461 municípios e todos os resultados deste artigo inalterados — o que é a verificação de que a separação funciona.
+
+Registre-se que a exclusão é **conservadora, não forçada pela evidência disponível**. Medido o ano preliminar contra os consolidados, 2025 não exibe nenhum dos dois sinais que justificariam descartá-lo de imediato: o volume mensal é plano — todos os doze meses entre 1,07 e 1,14 vez a mediana de 2015–2024, e dezembro em 0,98 da média do próprio ano, acima do 0,96 de 2024 já completo — e o percentual de causas mal definidas, 4,51%, é igual ao de 2024 (4,51%), com R99 em 2,72% contra 2,73%. Ou seja, a cauda fechou e a codificação já parece madura. Ainda assim o mantemos fora, porque *parecer* estável e *ter sido verificado* estável são coisas diferentes: a seção 2.2 mostra que a diferença entre versões de um mesmo ano desloca justamente as quantidades aqui medidas, e essa verificação só é possível depois que a versão consolidada existir.
 
 ### 2.4 Confundidores removidos antes da decomposição
 
@@ -147,13 +167,14 @@ Reportamos dois escores: contra a história própria do município, e o mesmo de
 | Período | 2015–2024 |
 | Óbitos não fetais | 14.484.496 |
 | Municípios | 5.595 |
-| Categorias da CID-10 (3 caracteres) | 1.546 |
+| Categorias da CID-10 (3 caracteres) | 1.559 |
 | Células município × CID × ano | 3.612.357 |
 | Células município × CID × ano × mês | 7.759.402 |
 | Óbitos por município-ano (mediana) | 78 |
 | Óbitos por município-ano (P25–P75) | 39–172 |
 | CIDs informativos (não mal definidos, ≥25% dos municípios) | 289 |
 | Municípios analisados (≥500 óbitos no período) | 3.461 |
+| Tabela publicada (além do recorte analítico) | 2015–2025: 4.009.400 células, 16.019.084 óbitos |
 | Publicação | 2026-09-03 · 47 tabelas |
 
 ### 3.2 A COVID-19 está codificada como B34
@@ -172,8 +193,11 @@ Reportamos dois escores: contra a história própria do município, e o mesmo de
 | 2022 | 66.113 | 0 | 1.544.266 | 4,28 |
 | 2023 | 10.444 | 0 | 1.465.610 | 0,71 |
 | 2024 | 5.850 | 0 | 1.532.015 | 0,38 |
+| 2025* | 2.766 | 0 | 1.534.588 | 0,18 |
 
-Não há um único registro em U07 em dez anos. O achado é operacional antes de ser interpretativo: qualquer análise que trate B34 pela sua descrição na CID-10 — "doença por vírus de localização não especificada" — e o descarte como código inespecífico terá removido 23,2% de todos os óbitos brasileiros de 2021.
+\* 2025 é preliminar e não entra em nenhuma análise (§2.3); aparece aqui porque a série de B34 é o argumento da seção, e interrompê-la em 2024 esconderia que a queda continua.
+
+Não há um único registro em U07 em onze anos, preliminar incluído. O achado é operacional antes de ser interpretativo: qualquer análise que trate B34 pela sua descrição na CID-10 — "doença por vírus de localização não especificada" — e o descarte como código inespecífico terá removido 23,2% de todos os óbitos brasileiros de 2021.
 
 ### 3.3 Seis eixos acima do ruído, e quase metade do primeiro era confundidor
 
@@ -461,6 +485,8 @@ A ausência de associação com capacidade hospitalar desfavorece a leitura de "
 
 Isto **não resolve** a questão de artefato versus acesso: escolaridade e densidade de rede são determinantes tanto da qualidade do registro quanto da saúde da população, e permanecem confundidas. O que os dados sustentam é mais estreito e ainda assim útil: a dimensão existe, é grande, não é explicada por tamanho do município nem por capacidade hospitalar instalada, e não é capturada pelo indicador de qualidade em uso.
 
+Há, porém, um terceiro mecanismo que a comparação entre versões do mesmo ano (§2.2) traz à tona e que nenhuma das duas leituras contempla: **a precisão diagnóstica não é fixada no momento do óbito**. Entre a versão preliminar e a consolidada de 2024, R99 perdeu 6.944 registros e I21 ganhou 7.948 — a investigação de óbito converte causa mal definida em causa determinada, e leva meses para fazê-lo. Se essa capacidade de investigação varia entre municípios, e é razoável supor que varie com os mesmos determinantes que a escolaridade e a densidade de rede, então parte do índice de inespecificidade mede **capacidade de investigação póstuma**, e não acesso diagnóstico em vida nem descuido de preenchimento. São três mecanismos, não dois, e os dados aqui não os separam.
+
 
 ---
 
@@ -523,12 +549,14 @@ A convergência das três análises sobre a mesma dimensão reforça a interpret
 
 Todas as tabelas derivadas estão publicadas em formato Parquet, com SHA-256 por arquivo e histórico datado imutável, em **saudeemdado.com/dados**, sob licença CC BY 4.0. O código é aberto sob licença MIT.
 
+As tabelas publicadas cobrem **2015–2025**, um ano a mais do que a análise usa: 2025 ainda é preliminar no SIM e entra marcado como tal, na coluna `preliminar`, sem participar de nenhum resultado deste artigo (§2.3). Os totais abaixo são os do arquivo publicado; entre parênteses, a parte consolidada de que a análise se serve.
+
 | Produto | Conteúdo |
 |---|---|
-| `mart_mortalidade_causa_municipio` | 3.612.357 células município × CID × ano |
-| `mart_mortalidade_causa_municipio_mes` | 7.759.402 células, grão mensal |
-| `mart_mortalidade_causa_municipio_faixa` | 6.525.786 células por faixa etária e sexo |
-| `dim_cid10_informativo` | dicionário de 1.546 categorias com prevalência e marcas |
+| `mart_mortalidade_causa_municipio` | 4.009.400 células município × CID × ano (3.612.357 em 2015–2024) |
+| `mart_mortalidade_causa_municipio_mes` | 8.613.183 células, grão mensal (7.759.402) |
+| `mart_mortalidade_causa_municipio_faixa` | 7.238.429 células por faixa etária e sexo (6.525.786) |
+| `dim_cid10_informativo` | dicionário de 1.559 categorias com prevalência e marcas — a prevalência e a marca `informativo` são calculadas **só sobre 2015–2024**, para que o ano preliminar não redefina o vocabulário da análise |
 | `mart_perfil_mortalidade_municipio` | coordenadas dos seis componentes, por município |
 | `mart_correlacao_causas` | 124.848 linhas: 41.616 pares × 3 recortes (nacional e dois grupos) |
 | `mart_contexto_social_municipio` | quatro eixos sociais e dez variáveis de contexto, por município |
@@ -572,6 +600,8 @@ A padronização parece reter mais sinal, e é ilusão: o componente padronizado
 | todas as presentes | 1.458 | 3,74× | 4 | 0,373 |
 
 Categorias raras entram como colunas quase inteiramente nulas e diluem o sinal: a razão contra o nulo cai um quarto e dois componentes deixam de superá-lo. O eixo de codificação também se dilui — de 0,54 para 0,37. O patamar fica entre 25% e 50%, e o corte adotado está nele;
+- **o código da dengue mudou em 2025, e quem estender a série precisa saber.** Comparando os dois anos na mesma rota do FTP, a troca é completa e não gradual: 2024 traz A90 = 5.237 e A91 = 1.504, com A97 zerado; 2025 traz A90 = 0, A91 = 0 e A97 = 2.024, distribuído entre A97.0, A97.1, A97.2 e A97.9. O Brasil adotou a categoria A97 da atualização da CID-10 e abandonou as anteriores de uma vez. Nada neste trabalho é afetado — a análise termina em 2024 —, mas uma série estendida sem o mapeamento faria a dengue **desaparecer sem erro**, que é o pior modo de desaparecer. É a mesma armadilha do B34 (§3.2) por outro caminho: o código não diz qual é a doença;
+- **a diferença entre versões do mesmo ano é um instrumento não explorado.** A comparação entre o SIM preliminar e o consolidado de 2024 (§2.2) mostra que a investigação de óbito converte R99 em diagnóstico específico ao longo de meses. Medir essa conversão POR MUNICÍPIO daria uma estimativa direta de capacidade de investigação póstuma — hoje confundida com acesso diagnóstico dentro do índice de inespecificidade. Exige guardar as duas versões de cada ano, o que este projeto passou a fazer, mas ainda não retroativamente;
 - a resolução mensal por município é a única via plausível para reexaminar precedência temporal, e exige tratamento explícito de contagens pequenas;
 - a comparação entre grupos usa teste z de Fisher assumindo independência entre os recortes, o que é razoável por serem municípios distintos, mas ignora correlação espacial residual;
 - separar artefato de registro de acesso diagnóstico real exigiria informação individual sobre o processo de certificação do óbito, que a base não contém — é a limitação central da seção 3.11.

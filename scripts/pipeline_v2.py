@@ -53,6 +53,7 @@ import requests
 from _datasus_ftp import CHAVE_FONTE, baixar, fonte_do_checkpoint, tamanho
 from _publicacao import escrever_parquet
 from _sim_obitos import (  # noqa: E402
+    ANOS_COBERTOS,
     ANOS_CSV,
     CID10_CAPITULOS,
     criar_obitos_t,
@@ -92,6 +93,21 @@ def versao_dataset() -> str:
 S3_SIM = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SIM"
 FTP_HOST = "ftp.datasus.gov.br"
 FTP_DIR = "/dissemin/publicos/SIM/CID10/DORES"
+
+#: Diretório do dado PRELIMINAR. Ano ainda em consolidação mora aqui e migra
+#: para `CID10/DORES` quando fecha — 2024 fez essa passagem em 2025-12-23.
+#:
+#: Ter dois diretórios não é detalhe de caminho: preliminar tem a cauda
+#: incompleta que fabrica correlação, e foi exatamente esse defeito que o CSV de
+#: 2024 introduziu na análise. Por isso o ano preliminar entra MARCADO, e a
+#: marca viaja no dado — ver `ANOS_PRELIMINARES` em `_sim_obitos.py`.
+FTP_DIR_PRELIM = "/dissemin/publicos/SIM/PRELIM/DORES"
+
+
+def diretorio_do_ano(ano: int) -> str:
+    """Onde o .dbc daquele ano mora hoje no FTP."""
+    from _sim_obitos import ANOS_PRELIMINARES
+    return FTP_DIR_PRELIM if ano in ANOS_PRELIMINARES else FTP_DIR
 
 ANO_DETALHE = 2022                      # >= : grão demográfico completo
 BASELINE = (2015, 2019)                 # excesso de mortalidade
@@ -194,14 +210,19 @@ def _dbc_to_parquet(uf: str, ano: int) -> tuple[str, int, str | None]:
         # Agora ele carrega, nos metadados Arrow, a VERSAO do .dbc que o
         # produziu; se o DataSUS reescrever o arquivo, o tamanho muda e o cache
         # deixa de servir sozinho. Mesmo carimbo do SIH e do SINAN.
-        marca = f"{nome} bytes={tamanho(FTP_DIR, nome)}"
+        pasta = diretorio_do_ano(ano)
+        # A marca carrega a PASTA, não só o nome: quando um ano migra de
+        # PRELIM para o consolidado, o arquivo muda de lugar e de conteúdo,
+        # e um checkpoint que só guardasse o nome aceitaria o preliminar
+        # velho para sempre.
+        marca = f"{pasta}/{nome} bytes={tamanho(pasta, nome)}"
         if out.exists() and fonte_do_checkpoint(out) == marca:
             return (f"{uf}{ano}", -1, None)  # cache da versao atual
 
         tmp = Path(tempfile.gettempdir())
         dbc = tmp / nome
         dbf = tmp / f"DO{uf}{ano}.dbf"
-        dbc.write_bytes(baixar(FTP_DIR, nome))
+        dbc.write_bytes(baixar(pasta, nome))
         datasus_dbc.decompress(str(dbc), str(dbf))
 
         rows = []
@@ -291,8 +312,18 @@ def fetch_populacao(anos: list[int]) -> pd.DataFrame:
     anos_est = sorted({a for a in anos if a not in (2022, 2023)})
     if anos_est:
         print(f"[ibge] estimativas {anos_est} (t/6579)...")
-        p = ",".join(str(a) for a in anos_est)
-        df = _sidra(f"https://apisidra.ibge.gov.br/values/t/6579/n6/all/v/9324/p/{p}")
+        # UM ANO POR REQUISIÇÃO, de propósito.
+        #
+        # A SIDRA aceitava os oito anos numa URL só e passou a devolver 400 ao
+        # nono, quando 2025 entrou. O limite não está documentado e não vale
+        # descobrir onde ele fica: pedir ano a ano custa alguns segundos a mais
+        # e deixa de existir como modo de falha. Cada resposta traz 5.572
+        # municípios, então o volume por requisição é o mesmo.
+        partes = []
+        for a in anos_est:
+            partes.append(_sidra(
+                f"https://apisidra.ibge.gov.br/values/t/6579/n6/all/v/9324/p/{a}"))
+        df = pd.concat(partes, ignore_index=True)
         # coluna do ano: localizada dinamicamente (valores = anos pedidos)
         anos_str = {str(a) for a in anos_est}
         ano_col = next(c for c in df.columns if c.startswith("D") and c.endswith("C")
@@ -691,7 +722,9 @@ def _jd(o):
 # ───────────────────────────── Main ─────────────────────────────────────────
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--anos", nargs="+", type=int, default=list(range(2015, 2025)))
+    # ANOS_COBERTOS inclui o preliminar. A base cobre; a ANÁLISE recorta —
+    # ver `so_consolidado` em analise_perfil_mortalidade.py.
+    ap.add_argument("--anos", nargs="+", type=int, default=list(ANOS_COBERTOS))
     ap.add_argument("--medir", action="store_true")
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--workers", type=int, default=4)

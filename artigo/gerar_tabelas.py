@@ -32,7 +32,7 @@ MARTS = ROOT / "data" / "marts"
 SAIDA = Path(__file__).resolve().parent / "tabelas"
 sys.path.insert(0, str(ROOT / "scripts"))
 
-from _sim_obitos import ANOS_CSV  # noqa: E402
+from _sim_obitos import ANOS_CONSOLIDADOS, ANOS_CSV, CIDS_DENGUE  # noqa: E402
 from analise_perfil_mortalidade import (  # noqa: E402
     CORTE_OBITOS,
     SEMENTE,
@@ -41,6 +41,7 @@ from analise_perfil_mortalidade import (  # noqa: E402
     componentes,
     medir_estabilidade,
     residualizar,
+    so_consolidado,
 )
 
 KS = [2, 3, 4, 5, 6, 8, 10, 12]
@@ -144,10 +145,17 @@ def rotulo_cid(bruto: str | None, cid: str) -> str:
 def tabela_1_base() -> pd.DataFrame:
     man = pd.read_json(ROOT / "data" / "publicacoes" / "atual.json", typ="series")
     pub = pd.read_json(ROOT / "data" / "publicacoes" / f"{man['id']}.json")
-    anual = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio.parquet",
-                            columns=["municipio_cod", "ano", "causabas_3", "obitos"])
-    mensal = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio_mes.parquet",
-                             columns=["obitos"])
+    # ESTA TABELA DESCREVE A ANÁLISE, não o arquivo publicado — os dois deixaram
+    # de coincidir quando 2025 entrou na base. Sem o recorte, ela passou a
+    # anunciar 3.678 municípios analisados enquanto a análise usava 3.461, e o
+    # leitor não teria como saber qual dos dois número é o do resultado. O que
+    # o arquivo publicado tem a mais é dito numa linha própria, ao final.
+    anual_pub = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio.parquet",
+                                columns=["municipio_cod", "ano", "causabas_3", "obitos"])
+    mensal_pub = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio_mes.parquet",
+                                 columns=["ano", "obitos"])
+    anual = so_consolidado(anual_pub, "tabela 1: base")
+    mensal = so_consolidado(mensal_pub, "tabela 1: grão mensal")
     dim = pd.read_parquet(MARTS / "dim_cid10_informativo.parquet")
     por_mun_ano = anual.groupby(["municipio_cod", "ano"]).obitos.sum()
     linhas = [
@@ -167,12 +175,19 @@ def tabela_1_base() -> pd.DataFrame:
         ("CIDs informativos (não mal definidos, ≥25% dos municípios)",
          f"{int(dim.informativo.sum())}"),
         ("Municípios analisados (≥500 óbitos no período)", None),
+        ("Tabela publicada (além do recorte analítico)",
+         f"{int(anual_pub.ano.min())}–{int(anual_pub.ano.max())}: "
+         f"{len(anual_pub):,}".replace(",", ".") + " células, "
+         + f"{int(anual_pub.obitos.sum()):,}".replace(",", ".") + " óbitos"),
         ("Publicação", f"{man['id']} · {pub['resumo']['n_tabelas']} tabelas"),
     ]
     contagens = (anual[anual.causabas_3.isin(set(dim[dim.informativo].causabas_3))]
                  .groupby("municipio_cod").obitos.sum())
-    linhas[10] = ("Municípios analisados (≥500 óbitos no período)",
-                  f"{int((contagens >= CORTE_OBITOS).sum()):,}".replace(",", "."))
+    # por nome, não por posição: `linhas[10] = ...` sobrescreveria calado a linha
+    # errada assim que alguém inserisse uma acima — e acabei de inserir uma.
+    rotulo = "Municípios analisados (≥500 óbitos no período)"
+    i = [r[0] for r in linhas].index(rotulo)
+    linhas[i] = (rotulo, f"{int((contagens >= CORTE_OBITOS).sum()):,}".replace(",", "."))
     return pd.DataFrame(linhas, columns=["Item", "Valor"])
 
 
@@ -189,6 +204,11 @@ def tabela_2_covid() -> pd.DataFrame:
         "Total de óbitos": tot.values,
     })
     df["B34 (% do total)"] = (100 * df["B34 (óbitos)"] / df["Total de óbitos"]).round(2)
+    # 2025 fica na tabela — é a evidência de que B34 voltou ao patamar pré-2020 —
+    # mas vai marcado: o texto compara percentuais entre anos, e comparar um ano
+    # preliminar com nove consolidados sem dizer que é preliminar é o erro de
+    # sempre, só que dentro de uma tabela.
+    df["Ano"] = [f"{a}*" if a not in ANOS_CONSOLIDADOS else str(a) for a in df["Ano"]]
     return df
 
 
@@ -214,8 +234,10 @@ def tabela_3b_grao(comp, conf, contagens) -> pd.DataFrame:
     e pelo mesmo nulo. Feita de outro jeito — bruto contra residualizado — ela
     exagera a favor da categoria.
     """
-    anual = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio.parquet",
-                            columns=["municipio_cod", "capitulo_cid", "obitos"])
+    anual = so_consolidado(
+        pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio.parquet",
+                        columns=["municipio_cod", "ano", "capitulo_cid", "obitos"]),
+        "tabela 3b: grão de capítulo")
     cap = anual.pivot_table(index="municipio_cod", columns="capitulo_cid",
                             values="obitos", aggfunc="sum", fill_value=0)
     cap = cap.loc[cap.index.intersection(comp.index)]
@@ -363,7 +385,7 @@ def tabela_8_anomalias() -> tuple[pd.DataFrame, pd.DataFrame]:
                        "Excesso descontada a tendência nacional": ("excesso_relativo", "sum")})
                .reset_index().rename(columns={"ano": "Ano"}))
 
-    dengue = an[an.causabas_3.isin(["A90", "A91"]) & an.excesso_proprio].copy()
+    dengue = an[an.causabas_3.isin(CIDS_DENGUE) & an.excesso_proprio].copy()
     dengue = dengue[["municipio_nome", "uf_sigla", "ano", "causabas_3", "obitos",
                      "esperado", "razao"]].sort_values("razao", ascending=False)
     dengue.columns = ["Município", "UF", "Ano", "CID", "Óbitos", "Esperado", "Razão"]
@@ -499,6 +521,28 @@ def main() -> None:
     r = np.corrcoef(componentes(residualizar(comp.values, conf))[0][:, 0],
                     inespecificidade.values)[0, 1]
     print(f"[conferência] PC1 × inespecificidade r={r:+.3f} — bate com o artigo", flush=True)
+    _empacotar()
+
+
+def _empacotar() -> None:
+    """Reescreve o zip que acompanha o artigo, a partir dos CSVs recém-gravados.
+
+    O zip era montado à mão para envio por e-mail, e por isso envelhecia sozinho:
+    em 2026-09-03 ele estava dois dias atrás dos CSVs, com a tabela 1 anunciando
+    números que a análise já não produzia. Quem recebesse o anexo teria dado
+    diferente do manuscrito da mesma mensagem, sem nada indicando isso.
+
+    Sai daqui, e não de um script separado, porque a única garantia de que o
+    pacote corresponde às tabelas é ele ser feito no mesmo passo que as gera.
+    """
+    import zipfile
+    csvs = sorted(SAIDA.glob("*.csv"))
+    alvo = SAIDA.parent / "tabelas-do-artigo.zip"
+    with zipfile.ZipFile(alvo, "w", zipfile.ZIP_DEFLATED) as z:
+        for c in csvs:
+            z.write(c, c.name)
+    print(f"[pacote] {alvo.name}: {len(csvs)} CSVs, {alvo.stat().st_size:,} bytes",
+          flush=True)
 
 
 if __name__ == "__main__":

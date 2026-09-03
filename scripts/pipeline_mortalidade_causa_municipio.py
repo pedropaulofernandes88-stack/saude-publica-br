@@ -99,6 +99,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _achados import registrar  # noqa: E402
 from _publicacao import carregar_env, conferir_chave_unica, escrever_parquet  # noqa: E402
 from _sim_obitos import (  # noqa: E402
+    ANOS_COBERTOS,
+    ANOS_CONSOLIDADOS,
+    ANOS_PRELIMINARES,
     contar_fetais,
     criar_obitos_t,
     criar_tabela_capitulos,
@@ -112,7 +115,8 @@ ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
 PRODUTOR = "scripts/pipeline_mortalidade_causa_municipio.py"
 
-ANOS = list(range(2015, 2025))
+#: A base COBRE o preliminar; quem analisa recorta. Ver ANOS_CONSOLIDADOS.
+ANOS = list(ANOS_COBERTOS)
 
 #: Capítulo XVIII (R00–R99): sintomas, sinais e achados anormais. É o balde de
 #: "não se sabe", e o mesmo que `mart_qualidade_registro_municipio` mede.
@@ -200,18 +204,29 @@ def construir(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame
     """).df()
 
     print("[dim] vocabulário de CID com prevalência...", flush=True)
-    dimcid = con.execute("""
+    # O DICIONÁRIO cobre tudo — inclusive códigos que só existem no ano
+    # preliminar, como o A97 da dengue —, mas a PREVALÊNCIA e a marca
+    # `informativo` são calculadas SÓ sobre os anos consolidados.
+    #
+    # Sem essa separação o preliminar entrava na análise pela porta do
+    # vocabulário: ao acrescentar 2025, o conjunto de CIDs informativos passou
+    # de 289 para 302 sem que ninguém tivesse mudado critério nenhum. Um filtro
+    # cujo conteúdo depende de dado que a análise exclui não é um filtro, é um
+    # vazamento com nome de filtro.
+    consolidados = ",".join(str(a) for a in ANOS_CONSOLIDADOS)
+    dimcid = con.execute(f"""
         SELECT o.causabas_3,
                any_value(o.capitulo_cid)              AS capitulo_cid,
                count(*)::INT                          AS obitos_total,
-               count(DISTINCT o.municipio_cod)::INT   AS municipios_com_registro,
+               count(DISTINCT o.municipio_cod) FILTER (WHERE o.ano IN ({consolidados}))::INT
+                                                      AS municipios_com_registro,
                min(o.ano)::SMALLINT                   AS ano_min,
                max(o.ano)::SMALLINT                   AS ano_max
         FROM obitos_t o GROUP BY 1 ORDER BY 3 DESC
     """).df()
     con.close()
 
-    n_mun = anual.municipio_cod.nunique()
+    n_mun = anual[anual.ano.isin(ANOS_CONSOLIDADOS)].municipio_cod.nunique()
     dimcid["prevalencia_municipal"] = (dimcid.municipios_com_registro / n_mun).round(4)
     dimcid["is_mal_definida"] = dimcid.capitulo_cid == CAPITULO_MAL_DEFINIDAS
     dimcid["is_covid"] = dimcid.causabas_3 == CID_COVID
@@ -226,6 +241,11 @@ def construir(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame
 
     for df in (anual, mensal, etario):
         df["uf_sigla"] = df["uf_sigla"].fillna("ND")
+        # A marca viaja no DADO, não num README. Quem baixa a tabela precisa
+        # poder distinguir ano fechado de ano em consolidação sem consultar
+        # nada — foi a ausência dessa distinção que deixou o 2024 truncado
+        # circular por meses como se fosse definitivo.
+        df["preliminar"] = df["ano"].isin(ANOS_PRELIMINARES)
     anual["municipio_nome"] = anual["municipio_nome"].fillna("Não identificado")
     anual["regiao"] = anual["regiao"].fillna("ND")
     mensal["mes_competencia"] = pd.to_datetime(mensal["mes_competencia"]).dt.date
@@ -369,7 +389,11 @@ def guarda_modelo_nulo(anual: pd.DataFrame, dimcid: pd.DataFrame) -> float:
     disso é o que a clusterização pode legitimamente encontrar.
     """
     informativos = set(dimcid[dimcid.informativo].causabas_3)
-    base = anual[anual.causabas_3.isin(informativos)]
+    # Só o consolidado. A razão vai para `achados.json` e é comparada entre
+    # execuções; misturar um ano preliminar — cuja cauda muda a cada reescrita
+    # do DataSUS — faria o número oscilar por motivo que não é o dado.
+    base = anual[anual.causabas_3.isin(informativos)
+                 & anual.ano.isin(ANOS_CONSOLIDADOS)]
     matriz = base.pivot_table(index="municipio_cod", columns="causabas_3",
                               values="obitos", aggfunc="sum", fill_value=0)
     matriz = matriz[matriz.sum(axis=1) >= NULO_CORTE_OBITOS]
@@ -474,6 +498,15 @@ def main() -> None:
                        "valor": ("SIM/DataSUS — óbitos por município e categoria da CID-10 "
                                  f"({min(anos)}–{max(anos)}), grão anual e mensal. "
                                  "COVID-19 aparece como B34; U07 não é usado no Brasil.")},
+                      {"chave": "anos_preliminares",
+                       "valor": (f"{', '.join(str(a) for a in sorted(ANOS_PRELIMINARES))} — "
+                                 "coletados de SIM/PRELIM/DORES, ainda não fechados pelo "
+                                 "DataSUS. Marcados na coluna `preliminar` e EXCLUÍDOS de "
+                                 "toda análise publicada, que usa "
+                                 f"{ANOS_CONSOLIDADOS[0]}–{ANOS_CONSOLIDADOS[-1]}. Ano em "
+                                 "consolidação tem a codificação por resolver: entre o "
+                                 "preliminar e o consolidado de 2024, R99 perdeu 6.944 "
+                                 "registros e I21 ganhou 7.948.")},
                       {"chave": "gerado_em",
                        "valor": datetime.now().isoformat(timespec="seconds")},
                   ]), timeout=60)
