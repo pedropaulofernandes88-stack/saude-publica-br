@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type { Metadata } from "next";
-import { SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/api";
+import { ANOS, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/api";
 
 type TabelaPublicada = { nome: string; linhas: number; bytes: number; sha256: string };
 
@@ -22,6 +22,27 @@ function arquivosPublicados(): TabelaPublicada[] {
     tabelas: Record<string, TabelaPublicada>;
   };
   return Object.values(manifesto.tabelas).sort((a, b) => b.bytes - a.bytes);
+}
+
+/**
+ * O nº de linhas de uma tabela, do manifesto — não escrito à mão.
+ *
+ * Esta coluna era uma lista de aproximações (`~53 mil`) que envelheceu em
+ * silêncio, e feio: em 2026-09-03 o catálogo anunciava 53 mil linhas para
+ * `mart_internacoes_agravo`, que tem 158.042 — três vezes mais. Natalidade e
+ * internações por hospital estavam pelo mesmo fator. Não era defeito de uma
+ * atualização: era a coluna inteira, drifting desde que foi escrita.
+ *
+ * O manifesto já estava sendo lido nesta mesma página, duas tabelas abaixo,
+ * com o número exato. Ter as duas coisas na mesma página, uma certa e outra
+ * errada, é o argumento mais forte que existe contra copiar número.
+ *
+ * Tabela ausente do manifesto devolve "—" em vez de quebrar o build: linha
+ * descritiva pode citar coisa que ainda não foi publicada.
+ */
+function linhasDe(nome: string): string {
+  const t = arquivosPublicados().find((x) => x.nome === nome);
+  return t ? t.linhas.toLocaleString("pt-BR") : "—";
 }
 
 function emMB(bytes: number): string {
@@ -94,23 +115,23 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
         <tbody>
           <tr>
             <td><code>mart_mortalidade_municipio</code></td>
-            <td>município × ano (2015–2024) × capítulo CID-10 × sexo; taxa bruta + IC95% + <b>taxa padronizada por idade</b></td>
-            <td>~1,3 mi</td>
+            <td>município × ano ({ANOS[0]}–{ANOS[ANOS.length - 1]}) × capítulo CID-10 × sexo; taxa bruta + IC95% + <b>taxa padronizada por idade</b></td>
+            <td>{linhasDe("mart_mortalidade_municipio")}</td>
           </tr>
           <tr>
             <td><code>mart_mortalidade_uf_mes</code></td>
-            <td>UF × mês (2015–2024) × capítulo × sexo × faixa etária</td>
-            <td>~400 mil</td>
+            <td>UF × mês ({ANOS[0]}–{ANOS[ANOS.length - 1]}) × capítulo × sexo × faixa etária</td>
+            <td>{linhasDe("mart_mortalidade_uf_mes")}</td>
           </tr>
           <tr>
             <td><code>mart_mortalidade_causa</code></td>
-            <td>UF × ano (2015–2024) × causa básica (CID-10, 3 caracteres)</td>
-            <td>~200 mil</td>
+            <td>UF × ano ({ANOS[0]}–{ANOS[ANOS.length - 1]}) × causa básica (CID-10, 3 caracteres)</td>
+            <td>{linhasDe("mart_mortalidade_causa")}</td>
           </tr>
           <tr>
             <td><code>mart_excesso_uf_mes</code></td>
             <td>excesso de mortalidade: observado × esperado por UF/BR × mês (2020+)</td>
-            <td>~1,7 mil</td>
+            <td>{linhasDe("mart_excesso_uf_mes")}</td>
           </tr>
           <tr>
             <td><code>mart_dengue_semana</code></td>
@@ -130,7 +151,7 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
           <tr>
             <td><code>mart_natalidade_municipio</code></td>
             <td>nascidos vivos (SINASC): peso ao nascer, prematuridade, pré-natal, idade da mãe, por município × ano</td>
-            <td>~11 mil</td>
+            <td>{linhasDe("mart_natalidade_municipio")}</td>
           </tr>
           <tr>
             <td><code>mart_mortalidade_infantil_uf</code></td>
@@ -148,7 +169,7 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
               reprovada — a cobertura mediana cai de 102,7% nos municípios com 50 a 100 nascidos para 86,2%
               nos com mais de 5 mil, o que é viés de denominador, não variação real.
             </td>
-            <td>~933 mil</td>
+            <td>{linhasDe("mart_vacinacao_municipio")}</td>
           </tr>
           <tr>
             <td><code>mart_vacinacao_uf_mes</code></td>
@@ -156,7 +177,7 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
               doses aplicadas por competência mensal, UF e imunobiológico. É a série mais atual do
               projeto — vai até o mês passado.
             </td>
-            <td>~72 mil</td>
+            <td>{linhasDe("mart_vacinacao_uf_mes")}</td>
           </tr>
           <tr>
             <td><code>mart_cobertura_vacinal_uf</code></td>
@@ -187,12 +208,12 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
               k-means, que foi medido e reprovado (índice de Rand ajustado 0,571 entre reamostragens; 16% dos
               municípios trocavam de grupo sem que o dado deles mudasse).
             </td>
-            <td>~1,7 mil</td>
+            <td>{linhasDe("dim_cluster_municipio")}</td>
           </tr>
           <tr>
             <td><code>mart_icsap_municipio</code></td>
             <td>internações evitáveis (ICSAP) por município, 2021–2024: total, ICSAP, % e por 100k hab. Inclui o <strong>grupo 1 da Lista Brasileira</strong> — doenças preveníveis por imunização (<code>internacoes_g1</code>, <code>g1_100k</code>), exibido no boletim municipal e cruzável com as doses do PNI.</td>
-            <td>~5,5 mil</td>
+            <td>{linhasDe("mart_icsap_municipio")}</td>
           </tr>
           <tr>
             <td><code>mart_fluxo_intermunicipal</code></td>
@@ -202,12 +223,12 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
           <tr>
             <td><code>mart_internacoes_agravo</code></td>
             <td>internações por agravo traçador (CID-3) por município, 2024: volume, permanência, mortalidade, custo</td>
-            <td>~53 mil</td>
+            <td>{linhasDe("mart_internacoes_agravo")}</td>
           </tr>
           <tr>
             <td><code>mart_internacoes_hospital</code></td>
             <td>internações por estabelecimento (CNES), 2024: volume, permanência, mortalidade, custo, capítulo principal</td>
-            <td>~4,7 mil</td>
+            <td>{linhasDe("mart_internacoes_hospital")}</td>
           </tr>
           <tr>
             <td><code>dim_municipio</code></td>
@@ -216,13 +237,13 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
           </tr>
           <tr>
             <td><code>dim_populacao</code></td>
-            <td>população municipal por ano (2015–2024)</td>
-            <td>~56 mil</td>
+            <td>população municipal por ano ({ANOS[0]}–{ANOS[ANOS.length - 1]})</td>
+            <td>{linhasDe("dim_populacao")}</td>
           </tr>
           <tr>
             <td><code>dim_pop_faixa</code></td>
             <td>população municipal por faixa etária (Censo 2022)</td>
-            <td>~44,6 mil</td>
+            <td>{linhasDe("dim_pop_faixa")}</td>
           </tr>
           <tr>
             <td><code>dim_pop_padrao</code></td>

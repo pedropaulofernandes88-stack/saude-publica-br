@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { DispersaoVulnMort, LinhasExcesso, SerieLinha } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { UFS, ehPreliminar, fmtDec, fmtInt, sdata, type CruzVulnMort, type LinhaExcesso, type SerieTotalItem } from "@/lib/api";
+import { ANOS, UFS, ehPreliminar, fmtDec, fmtInt, sdata, type CruzVulnMort, type LinhaExcesso, type SerieTotalItem } from "@/lib/api";
 import { SERIE } from "@/lib/tokens";
 
 const REGIOES = ["Norte", "Nordeste", "Centro-Oeste", "Sudeste", "Sul"];
@@ -78,9 +78,9 @@ export function TendenciasCliente() {
         Tendências e excesso de mortalidade
       </h1>
       <p className="mt-2 max-w-3xl text-ink-600">
-        Dez anos de série mensal (2015–2024) e excesso de mortalidade: óbitos
-        observados versus esperados pela média 2015–2019 do mesmo mês, ajustada
-        pela população do ano.
+        Série mensal de {ANOS[0]} a {ANOS[ANOS.length - 1]} e excesso de
+        mortalidade: óbitos observados versus esperados pela tendência linear
+        por mês civil ajustada a 2015–2019, projetada para o ano-alvo.
       </p>
 
       <div className="card mt-6 max-w-xs">
@@ -106,19 +106,19 @@ export function TendenciasCliente() {
 
       <div className="card mt-6">
         <h2 className="font-serif text-xl font-semibold text-ink-900">
-          Observado × esperado — {uf === "BR" ? "Brasil" : uf} (2020–2024)
+          Observado × esperado — {uf === "BR" ? "Brasil" : uf} (2020–{ANOS[ANOS.length - 1]})
         </h2>
         <p className="mt-1 text-sm text-ink-500">
           Linha tracejada: esperado (baseline 2015–2019 com ajuste populacional). Vermelha: observado.
         </p>
-        <div className="mt-4">{excUf ? <LinhasExcesso data={excUf} titulo={`Observado × esperado — ${uf === "BR" ? "Brasil" : uf} (2020–2024)`} /> : <Skeleton altura={340} />}</div>
+        <div className="mt-4">{excUf ? <LinhasExcesso data={excUf} titulo={`Observado × esperado — ${uf === "BR" ? "Brasil" : uf} (2020–${ANOS[ANOS.length - 1]})`} /> : <Skeleton altura={340} />}</div>
       </div>
 
       <div className="card mt-6">
         <h2 className="font-serif text-xl font-semibold text-ink-900">
-          Série completa 2015–2024 — {uf === "BR" ? "Brasil" : uf}
+          Série completa {ANOS[0]}–{ANOS[ANOS.length - 1]} — {uf === "BR" ? "Brasil" : uf}
         </h2>
-        <div className="mt-4">{serieUf ? <SerieLinha data={serieUf} titulo={`Série completa 2015–2024 — ${uf === "BR" ? "Brasil" : uf}`} /> : <Skeleton />}</div>
+        <div className="mt-4">{serieUf ? <SerieLinha data={serieUf} titulo={`Série completa ${ANOS[0]}–${ANOS[ANOS.length - 1]} — ${uf === "BR" ? "Brasil" : uf}`} /> : <Skeleton />}</div>
       </div>
 
       {resumo && (

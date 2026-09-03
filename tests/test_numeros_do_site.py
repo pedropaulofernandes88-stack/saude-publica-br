@@ -222,3 +222,33 @@ def test_nenhum_rotulo_de_estado_preso_a_ano_literal():
         "rótulo de estado comparado a ano literal — use ehPreliminar() (mortalidade) "
         "ou derive do próprio vetor de anos (Math.max(...ANOS_X)):\n  "
         + "\n  ".join(ofensas))
+
+
+# --------------------------------------------------------------------------
+# O catálogo de dados não pode ter contagem escrita à mão
+#
+# /dados tinha DUAS tabelas: uma descritiva com aproximações digitadas e outra
+# gerada do manifesto, com o número exato — na mesma página, uma certa e outra
+# errada. A digitada anunciava 53 mil linhas para mart_internacoes_agravo, que
+# tem 158.042; natalidade e internações por hospital estavam por um terço do
+# real, e isso não veio de uma atualização: era drift desde que foi escrita.
+# --------------------------------------------------------------------------
+CATALOGO = RAIZ / "site" / "app" / "dados" / "page.tsx"
+
+def test_catalogo_nao_tem_contagem_de_linhas_digitada():
+    ofensas = [f"linha {n}: {l.strip()}"
+               for n, l in enumerate(_texto(CATALOGO).splitlines(), 1)
+               if re.match(r"\s*<td>~[\d.,]+\s*(mil|mi|milh)", l)]
+    assert not ofensas, (
+        "contagem de linhas digitada no catálogo — use linhasDe(\"nome\"), que lê "
+        "o manifesto de publicação:\n  " + "\n  ".join(ofensas))
+
+
+def test_toda_tabela_citada_no_catalogo_existe_no_manifesto():
+    """linhasDe() devolve '—' para nome ausente, e isso não pode passar calado."""
+    nomes = set(re.findall(r'linhasDe\("([a-z0-9_]+)"\)', _texto(CATALOGO)))
+    assert nomes, "nenhuma chamada a linhasDe — a guarda perdeu o alvo"
+    atual = json.loads((RAIZ / "data" / "publicacoes" / "atual.json").read_text("utf-8"))
+    man = json.loads((RAIZ / "data" / "publicacoes" / atual["arquivo"]).read_text("utf-8"))
+    faltando = sorted(nomes - set(man["tabelas"]))
+    assert not faltando, f"citadas em /dados e ausentes do manifesto: {faltando}"

@@ -9,11 +9,11 @@ import { TendenciasCliente } from "./tendencias-cliente";
 export const metadata: Metadata = {
   title: "Excesso de mortalidade no Brasil",
   description:
-    "Dez anos de série mensal (2015–2024) e excesso de mortalidade por UF: observado versus esperado pela tendência 2015–2019, cruzado com vulnerabilidade social.",
+    "Série mensal desde 2015 e excesso de mortalidade por UF: observado versus esperado pela tendência 2015–2019, cruzado com vulnerabilidade social.",
   alternates: { canonical: "/tendencias/" },
   openGraph: {
     title: "Excesso de mortalidade no Brasil — Saúde em Dado",
-    description: "Dez anos de série mensal (2015–2024) e excesso de mortalidade por UF: observado versus esperado pela tendência 2015–2019, cruzado com vulnerabilidade social.",
+    description: "Série mensal desde 2015 e excesso de mortalidade por UF: observado versus esperado pela tendência 2015–2019, cruzado com vulnerabilidade social.",
     url: "https://saudeemdado.com/tendencias/",
     type: "website",
   },
