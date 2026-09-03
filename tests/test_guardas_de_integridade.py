@@ -489,3 +489,52 @@ def test_recorte_de_um_ano_ainda_pega_carga_curta(monkeypatch):
                        "obitos": range(201_760)})
     with pytest.raises(RuntimeError, match="INCOMPLETA"):
         sm.subir("mart_teste", df, ja_no_banco=1_104_682)
+
+
+# --------------------------------------------------------------------------
+# "Publicada ≠ servida" precisa valer nos DOIS sentidos
+#
+# NAO_SERVIDAS lista as tabelas que ficam só em Parquet — cada uma saiu do
+# Postgres por uma decisão medida (custo em MB contra buscas no índice), e o
+# motivo está escrito ao lado da lista.
+#
+# Em 2026-09-03 um script tentou subir `mart_correlacao_causas` e recebeu
+# PGRST205, "could not find the table". Eu li isso como tabela faltando e a
+# recriei — desfazendo a decisão documentada dez linhas acima da lista, e
+# devolvendo 12 MB a um banco que estava a 10 MB do teto.
+#
+# Um 404 pode significar "falta criar" ou "não deve existir". As duas coisas
+# são indistinguíveis pela mensagem; quem decide é a lista. Esta guarda faz a
+# lista valer.
+# --------------------------------------------------------------------------
+def test_nenhum_script_sobe_tabela_que_nao_deve_ser_servida():
+    """Nenhum POST ao PostgREST pode ter por alvo uma tabela de NAO_SERVIDAS."""
+    from _publicacao import NAO_SERVIDAS
+    ofensas = []
+    for arq in sorted((RAIZ / "scripts").glob("*.py")):
+        for n, linha in enumerate(arq.read_text(encoding="utf-8").splitlines(), 1):
+            if linha.lstrip().startswith("#"):
+                continue
+            if "rest/v1/" not in linha:
+                continue
+            for nome in NAO_SERVIDAS:
+                if f"rest/v1/{nome}" in linha:
+                    ofensas.append(f"{arq.name}:{n}: sobe {nome}")
+    assert not ofensas, (
+        "script subindo tabela declarada NAO_SERVIDA — ela é publicada em "
+        "Parquet e deliberadamente fora do Postgres. Se a decisão mudou, tire "
+        "o nome de NAO_SERVIDAS dizendo por quê:\n  " + "\n  ".join(ofensas))
+
+
+def test_subir_mart_recusa_tabela_nao_servida(monkeypatch, capsys):
+    """`_subir_mart.py <nao_servida>` tem de parar antes de tocar na rede."""
+    import _subir_mart as sm
+    from _publicacao import NAO_SERVIDAS
+    alvo = sorted(NAO_SERVIDAS)[0]
+    monkeypatch.setattr(sys, "argv", ["_subir_mart.py", alvo])
+    def _explode(*a, **k):
+        raise AssertionError("chegou à rede — a recusa não aconteceu")
+    monkeypatch.setattr(sm.requests, "post", _explode)
+    with pytest.raises(SystemExit) as e:
+        sm.main()
+    assert "NAO_SERVIDA" in str(e.value) or "não servida" in str(e.value)

@@ -605,15 +605,16 @@ def main() -> None:
         if r.status_code not in (200, 201):
             raise RuntimeError(f"upload: HTTP {r.status_code} {r.text[:200]}")
     print(f"[supabase]   mart_perfil_mortalidade_municipio: {len(recs):,} OK", flush=True)
-    recs = pares.astype(object).where(pd.notna(pares), None).to_dict("records")
-    for i in range(0, len(recs), 5000):
-        r = requests.post(f"{url}/rest/v1/mart_correlacao_causas", headers=cab,
-                          data=json.dumps(recs[i:i + 5000], allow_nan=False,
-                                          default=lambda o: o.item() if hasattr(o, "item") else o),
-                          timeout=300)
-        if r.status_code not in (200, 201):
-            raise RuntimeError(f"upload: HTTP {r.status_code} {r.text[:200]}")
-    print(f"[supabase]   mart_correlacao_causas: {len(recs):,} OK", flush=True)
+    # `mart_correlacao_causas` NÃO sobe: está em NAO_SERVIDAS (_publicacao.py).
+    # A tabela foi retirada do Postgres deliberadamente — 21 MB e zero buscas no
+    # índice desde que existia, e o único consumidor (artigo/gerar_tabelas.py) lê
+    # o Parquet. Este bloco de upload ficou para trás naquela remoção e passou a
+    # falhar com PGRST205 ("could not find the table").
+    #
+    # Em 2026-09-03 eu li esse 404 como tabela faltando e a RECRIEI, desfazendo
+    # a decisão que está documentada dez linhas acima da lista. Erro instrutivo:
+    # um 404 pode significar "falta criar" ou "não deve existir", e as duas
+    # coisas são indistinguíveis olhando só a mensagem. Quem decide é a lista.
     requests.post(f"{url}/rest/v1/meta_dataset", headers=cab, timeout=60,
                   data=json.dumps([{"chave": "gerado_em",
                                     "valor": datetime.now().isoformat(timespec="seconds")}]))

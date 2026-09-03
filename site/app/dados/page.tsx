@@ -4,7 +4,7 @@ import path from "node:path";
 import type { Metadata } from "next";
 import { ANOS, ANOS_PRELIMINARES, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/api";
 
-type TabelaPublicada = { nome: string; linhas: number; bytes: number; sha256: string };
+type TabelaPublicada = { nome: string; linhas: number; bytes: number; sha256: string; servida?: boolean };
 
 /**
  * Lê o manifesto da publicação corrente no momento do build.
@@ -43,6 +43,37 @@ function arquivosPublicados(): TabelaPublicada[] {
 function linhasDe(nome: string): string {
   const t = arquivosPublicados().find((x) => x.nome === nome);
   return t ? t.linhas.toLocaleString("pt-BR") : "—";
+}
+
+/**
+ * O nome da tabela, com a marca de quem NÃO responde pela API.
+ *
+ * "Publicada" e "servida" são coisas diferentes neste projeto: o Parquet é a
+ * cópia canônica, o Postgres é um cache com orçamento em MB. Cinco tabelas
+ * ficam deliberadamente de fora dele — a de vacinação municipal custava 119 MB,
+ * as de mortalidade por causa somam milhões de linhas que ninguém consulta uma
+ * a uma. O motivo de cada uma está em NAO_SERVIDAS (scripts/_publicacao.py).
+ *
+ * O catálogo não dizia isso. Quem lesse esta página e chamasse
+ * `mart_vacinacao_municipio` na API recebia um 404 seco, sem nada que
+ * explicasse — e o download, que é o caminho certo para ela, estava ali do lado.
+ */
+function NomeTabela({ n }: { n: string }) {
+  const t = arquivosPublicados().find((x) => x.nome === n);
+  return (
+    <>
+      <code>{n}</code>
+      {t?.servida === false && (
+        <>
+          {" "}
+          <span title="Publicada em Parquet, fora da API REST — baixe o arquivo"
+                className="whitespace-nowrap rounded bg-ink-100 px-1.5 py-0.5 text-[11px] font-medium text-ink-600">
+            só download
+          </span>
+        </>
+      )}
+    </>
+  );
 }
 
 function emMB(bytes: number): string {
@@ -102,6 +133,23 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
         1.000 linhas — use o cabeçalho <code>Range</code> com ordenação
         determinística para obter conjuntos maiores.
       </p>
+      <div className="mt-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-ink-800">
+        <strong>Determinística quer dizer única.</strong> Paginar por uma ordem que
+        empata é um defeito silencioso, não um detalhe de estilo: o Postgres não
+        promete a mesma ordem entre duas consultas, então páginas consecutivas
+        podem repetir linhas e pular outras — e o total continua batendo, porque
+        uma coisa compensa a outra. Aconteceu aqui:{" "}
+        <code>mart_internacoes_municipio</code> foi exportada com 334.769 linhas e
+        apenas 212.893 chaves distintas, e o arquivo corrompido passou em todas as
+        conferências de contagem.
+        <br />
+        Ordene sempre pela chave completa da tabela — em{" "}
+        <code>mart_mortalidade_municipio</code> é{" "}
+        <code>order=municipio_cod,ano,capitulo_cid,sexo</code>, não apenas{" "}
+        <code>municipio_cod,ano</code>, que tem cerca de 23 linhas por combinação.
+        Na dúvida, acrescente colunas até que o resultado tenha uma linha por
+        chave.
+      </div>
 
       <h2>Tabelas disponíveis</h2>
       <table>
@@ -114,52 +162,52 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
         </thead>
         <tbody>
           <tr>
-            <td><code>mart_mortalidade_municipio</code></td>
+            <td><NomeTabela n="mart_mortalidade_municipio" /></td>
             <td>município × ano ({ANOS[0]}–{ANOS[ANOS.length - 1]}) × capítulo CID-10 × sexo; taxa bruta + IC95% + <b>taxa padronizada por idade</b></td>
             <td>{linhasDe("mart_mortalidade_municipio")}</td>
           </tr>
           <tr>
-            <td><code>mart_mortalidade_uf_mes</code></td>
+            <td><NomeTabela n="mart_mortalidade_uf_mes" /></td>
             <td>UF × mês ({ANOS[0]}–{ANOS[ANOS.length - 1]}) × capítulo × sexo × faixa etária</td>
             <td>{linhasDe("mart_mortalidade_uf_mes")}</td>
           </tr>
           <tr>
-            <td><code>mart_mortalidade_causa</code></td>
+            <td><NomeTabela n="mart_mortalidade_causa" /></td>
             <td>UF × ano ({ANOS[0]}–{ANOS[ANOS.length - 1]}) × causa básica (CID-10, 3 caracteres)</td>
             <td>{linhasDe("mart_mortalidade_causa")}</td>
           </tr>
           <tr>
-            <td><code>mart_excesso_uf_mes</code></td>
+            <td><NomeTabela n="mart_excesso_uf_mes" /></td>
             <td>excesso de mortalidade: observado × esperado por UF/BR × mês (2020+)</td>
             <td>{linhasDe("mart_excesso_uf_mes")}</td>
           </tr>
           <tr>
-            <td><code>mart_dengue_semana</code></td>
+            <td><NomeTabela n="mart_dengue_semana" /></td>
             <td>dengue (SINAN): casos prováveis, graves e óbitos por município × ano × semana epidemiológica</td>
             <td>centenas de mil</td>
           </tr>
           <tr>
-            <td><code>mart_dengue_municipio_ano</code></td>
+            <td><NomeTabela n="mart_dengue_municipio_ano" /></td>
             <td>dengue anual por município: casos, incidência /100k e letalidade</td>
             <td>dezenas de mil</td>
           </tr>
           <tr>
-            <td><code>mart_internacoes_municipio</code></td>
+            <td><NomeTabela n="mart_internacoes_municipio" /></td>
             <td>internações SUS (SIH): volume, permanência média, mortalidade hospitalar e custo, por município × ano × capítulo CID-10</td>
             <td>centenas de mil</td>
           </tr>
           <tr>
-            <td><code>mart_natalidade_municipio</code></td>
+            <td><NomeTabela n="mart_natalidade_municipio" /></td>
             <td>nascidos vivos (SINASC): peso ao nascer, prematuridade, pré-natal, idade da mãe, por município × ano</td>
             <td>{linhasDe("mart_natalidade_municipio")}</td>
           </tr>
           <tr>
-            <td><code>mart_mortalidade_infantil_uf</code></td>
+            <td><NomeTabela n="mart_mortalidade_infantil_uf" /></td>
             <td>Taxa de Mortalidade Infantil por UF e ano (óbitos &lt;1 ano ÷ nascidos vivos)</td>
             <td>54</td>
           </tr>
           <tr>
-            <td><code>mart_vacinacao_municipio</code></td>
+            <td><NomeTabela n="mart_vacinacao_municipio" /></td>
             <td>
               doses aplicadas do PNI por município, ano e imunobiológico (2023–2026, alimentado pela RNDS).{" "}
               <strong>Só por download</strong> — é a maior das três e nenhuma tela a consulta, então fica
@@ -172,7 +220,7 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>{linhasDe("mart_vacinacao_municipio")}</td>
           </tr>
           <tr>
-            <td><code>mart_vacinacao_uf_mes</code></td>
+            <td><NomeTabela n="mart_vacinacao_uf_mes" /></td>
             <td>
               doses aplicadas por competência mensal, UF e imunobiológico. É a série mais atual do
               projeto — vai até o mês passado.
@@ -180,7 +228,7 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>{linhasDe("mart_vacinacao_uf_mes")}</td>
           </tr>
           <tr>
-            <td><code>mart_cobertura_vacinal_uf</code></td>
+            <td><NomeTabela n="mart_cobertura_vacinal_uf" /></td>
             <td>
               cobertura vacinal em menores de 1 ano por UF e ano, só onde há nascidos vivos definitivos
               (2023–2024) e só para cinco indicadores da atenção básica. BCG e hepatite B ao nascer ficam
@@ -189,17 +237,17 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>270</td>
           </tr>
           <tr>
-            <td><code>mart_qualidade_registro_municipio</code></td>
+            <td><NomeTabela n="mart_qualidade_registro_municipio" /></td>
             <td>índice de confiabilidade do registro de óbitos por município (% causas mal-definidas, 2022–2024) com classificação Bom/Regular/Ruim</td>
             <td>5.595</td>
           </tr>
           <tr>
-            <td><code>dim_ivs</code></td>
+            <td><NomeTabela n="dim_ivs" /></td>
             <td>vulnerabilidade social municipal (proxy Censo 2022: analfabetismo + água; z-score)</td>
             <td>5.570</td>
           </tr>
           <tr>
-            <td><code>dim_cluster_municipio</code></td>
+            <td><NomeTabela n="dim_cluster_municipio" /></td>
             <td>
               estrato de saúde municipal: cruzamento dos tercis de mortalidade × vulnerabilidade ×
               internações (2023), em 27 grupos, com os cortes congelados no repositório.{" "}
@@ -211,42 +259,42 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>{linhasDe("dim_cluster_municipio")}</td>
           </tr>
           <tr>
-            <td><code>mart_icsap_municipio</code></td>
+            <td><NomeTabela n="mart_icsap_municipio" /></td>
             <td>internações evitáveis (ICSAP) por município, 2021–2024: total, ICSAP, % e por 100k hab. Inclui o <strong>grupo 1 da Lista Brasileira</strong> — doenças preveníveis por imunização (<code>internacoes_g1</code>, <code>g1_100k</code>), exibido no boletim municipal e cruzável com as doses do PNI.</td>
             <td>{linhasDe("mart_icsap_municipio")}</td>
           </tr>
           <tr>
-            <td><code>mart_fluxo_intermunicipal</code></td>
+            <td><NomeTabela n="mart_fluxo_intermunicipal" /></td>
             <td>fluxo de pacientes residência→atendimento (SIH 2024, fluxos ≥ 5)</td>
             <td>dezenas de mil</td>
           </tr>
           <tr>
-            <td><code>mart_internacoes_agravo</code></td>
+            <td><NomeTabela n="mart_internacoes_agravo" /></td>
             <td>internações por agravo traçador (CID-3) por município, 2024: volume, permanência, mortalidade, custo</td>
             <td>{linhasDe("mart_internacoes_agravo")}</td>
           </tr>
           <tr>
-            <td><code>mart_internacoes_hospital</code></td>
+            <td><NomeTabela n="mart_internacoes_hospital" /></td>
             <td>internações por estabelecimento (CNES), 2024: volume, permanência, mortalidade, custo, capítulo principal</td>
             <td>{linhasDe("mart_internacoes_hospital")}</td>
           </tr>
           <tr>
-            <td><code>dim_municipio</code></td>
+            <td><NomeTabela n="dim_municipio" /></td>
             <td>municípios IBGE (códigos 6/7 dígitos, UF, região)</td>
             <td>5.571</td>
           </tr>
           <tr>
-            <td><code>dim_populacao</code></td>
+            <td><NomeTabela n="dim_populacao" /></td>
             <td>população municipal por ano ({ANOS[0]}–{ANOS[ANOS.length - 1]})</td>
             <td>{linhasDe("dim_populacao")}</td>
           </tr>
           <tr>
-            <td><code>dim_pop_faixa</code></td>
+            <td><NomeTabela n="dim_pop_faixa" /></td>
             <td>população municipal por faixa etária (Censo 2022)</td>
             <td>{linhasDe("dim_pop_faixa")}</td>
           </tr>
           <tr>
-            <td><code>dim_pop_padrao</code></td>
+            <td><NomeTabela n="dim_pop_padrao" /></td>
             <td>população padrão da padronização (Brasil, Censo 2022)</td>
             <td>8</td>
           </tr>
@@ -256,7 +304,7 @@ curl "$BASE/mart_mortalidade_causa?select=causabas_3,obitos.sum()&ano=eq.2024&uf
             <td>22 / ~2 mil</td>
           </tr>
           <tr>
-            <td><code>meta_dataset</code></td>
+            <td><NomeTabela n="meta_dataset" /></td>
             <td>metadados: fontes, métodos, datas, exclusões, licença, versão</td>
             <td>—</td>
           </tr>
@@ -319,7 +367,7 @@ Sexo                        http://hl7.org/fhir/administrative-gender`}</code>
             <td>sigla de 2 letras (<code>SP</code>). <strong>Não</strong> é o código numérico: o equivalente da RNDS são os <strong>2 primeiros dígitos</strong> de <code>municipio_cod</code> (<code>35</code>)</td>
           </tr>
           <tr>
-            <td><code>regiao</code></td>
+            <td><NomeTabela n="regiao" /></td>
             <td>IBGE, nível região</td>
             <td>nome da macrorregião. O código de 1 dígito é o <strong>primeiro</strong> de <code>municipio_cod</code></td>
           </tr>
@@ -329,17 +377,17 @@ Sexo                        http://hl7.org/fhir/administrative-gender`}</code>
             <td>numeral romano, <code>I</code>–<code>XXII</code>. A faixa correspondente está em <code>dim_cid10_capitulo.faixa</code> (<code>O00-O99</code>)</td>
           </tr>
           <tr>
-            <td><code>causabas_3</code></td>
+            <td><NomeTabela n="causabas_3" /></td>
             <td>CID-10, categoria</td>
             <td><strong>3 caracteres</strong> (<code>G31</code>). Vem de <code>CAUSABAS</code> no SIM e <code>DIAG_PRINC</code> no SIH; descrições em <code>dim_cid10_categoria</code></td>
           </tr>
           <tr>
-            <td><code>cnes</code></td>
+            <td><NomeTabela n="cnes" /></td>
             <td>CNES</td>
             <td>7 dígitos, <strong>string com zeros à esquerda</strong> (<code>0000035</code>). Converter para número destrói a chave</td>
           </tr>
           <tr>
-            <td><code>sexo</code></td>
+            <td><NomeTabela n="sexo" /></td>
             <td>HL7 <code>administrative-gender</code></td>
             <td><code>M</code> / <code>F</code> / <code>I</code> equivalem a <code>male</code> / <code>female</code> / <code>unknown</code> — os mesmos três valores do <code>BRSexo-1.0</code></td>
           </tr>
@@ -349,12 +397,12 @@ Sexo                        http://hl7.org/fhir/administrative-gender`}</code>
             <td>SE de 1 a 53, com ano epidemiológico próprio — <strong>não coincide</strong> com o ano civil na virada. Sem equivalente FHIR</td>
           </tr>
           <tr>
-            <td><code>mes_competencia</code></td>
+            <td><NomeTabela n="mes_competencia" /></td>
             <td>ISO 8601</td>
             <td>primeiro dia do mês (<code>2023-03-01</code>), não uma data de evento</td>
           </tr>
           <tr>
-            <td><code>faixa_etaria</code></td>
+            <td><NomeTabela n="faixa_etaria" /></td>
             <td>convenção desta base</td>
             <td><code>&lt;1</code>, <code>1-4</code>, <code>5-14</code>, <code>15-29</code>, <code>30-44</code>, <code>45-59</code>, <code>60-74</code>, <code>75+</code>. Escolhida para a padronização por idade; <strong>não</strong> é sistema externo</td>
           </tr>
@@ -393,12 +441,12 @@ Sexo                        http://hl7.org/fhir/administrative-gender`}</code>
           </tr>
           <tr>
             <td><code>ND</code></td>
-            <td><code>uf_sigla</code></td>
+            <td><NomeTabela n="uf_sigla" /></td>
             <td>UF não identificada</td>
           </tr>
           <tr>
             <td><code>&lt;UF&gt;0000</code></td>
-            <td><code>municipio_cod</code></td>
+            <td><NomeTabela n="municipio_cod" /></td>
             <td>agregado de &quot;município ignorado&quot; da UF. <code>110000</code> é Rondônia sem município identificado, não uma cidade — há um código desses por UF</td>
           </tr>
         </tbody>

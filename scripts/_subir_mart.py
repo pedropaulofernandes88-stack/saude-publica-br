@@ -145,6 +145,21 @@ def main() -> None:
                          "linhas levar horas para acrescentar 200 mil")
     args = ap.parse_args()
 
+    # Antes de qualquer coisa: esta tabela deve mesmo ser servida?
+    #
+    # `NAO_SERVIDAS` lista as que ficam só em Parquet, cada uma retirada do
+    # Postgres por uma decisão medida — custo em MB contra buscas no índice —
+    # com o motivo escrito ao lado da lista. Sem esta parada, subir uma delas é
+    # um comando de uma linha, e o efeito (desfazer a decisão) só apareceria
+    # dias depois, no diagnóstico de tamanho do banco.
+    from _publicacao import NAO_SERVIDAS  # noqa: PLC0415
+    if args.tabela in NAO_SERVIDAS:
+        raise SystemExit(
+            f"{args.tabela} é NAO_SERVIDA: publicada em Parquet e deliberadamente "
+            "fora do Postgres (ver NAO_SERVIDAS em scripts/_publicacao.py, com o "
+            "motivo de cada uma). Se a decisão mudou, tire o nome da lista "
+            "primeiro — dizendo por quê.")
+
     caminho = MARTS / f"{args.tabela}.parquet"
     if not caminho.exists():
         raise SystemExit(f"parquet não encontrado: {caminho}")

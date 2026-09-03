@@ -420,3 +420,29 @@ def test_anos_declarados_batem_com_o_publicado(vetor: str, mart: str):
     assert not inventados, (
         f"{vetor} oferece {inventados}, que {mart} não tem — "
         "o seletor levaria a uma tela vazia")
+
+
+# --------------------------------------------------------------------------
+# O catálogo tem que dizer quais tabelas a API NÃO serve
+#
+# "Publicada" e "servida" são coisas diferentes aqui: cinco tabelas ficam
+# deliberadamente fora do Postgres. O catálogo listava todas igual, então quem
+# chamasse `mart_vacinacao_municipio` na API recebia um 404 seco — com o
+# download, que é o caminho certo para ela, ali do lado na mesma página.
+# --------------------------------------------------------------------------
+def test_o_catalogo_marca_as_tabelas_que_a_api_nao_serve():
+    texto = _texto(CATALOGO)
+    assert "servida === false" in texto, (
+        "o catálogo não distingue publicada de servida — quem tentar a API numa "
+        "tabela só-Parquet recebe 404 sem explicação")
+    # e a marca tem de vir do manifesto, não de uma lista escrita à mão aqui
+    assert "NomeTabela" in texto and 'n="mart_' in texto, (
+        "as células de nome deixaram de passar por NomeTabela, que é onde a "
+        "marca é derivada")
+
+
+def test_toda_tabela_do_manifesto_declara_se_e_servida():
+    atual = json.loads((RAIZ / "data" / "publicacoes" / "atual.json").read_text("utf-8"))
+    man = json.loads((RAIZ / "data" / "publicacoes" / atual["arquivo"]).read_text("utf-8"))
+    sem = sorted(n for n, v in man["tabelas"].items() if "servida" not in v)
+    assert not sem, f"sem o campo `servida` no manifesto: {sem}"
