@@ -802,7 +802,22 @@ def main() -> None:
     loader.load_df("mart_mortalidade_causa", mart_causa)
     loader.load_df("mart_excesso_uf_mes", mart_exc)
 
-    meta = pd.DataFrame([
+    loader.load_df("meta_dataset", construir_meta(anos))
+    print("[done] pipeline v2 concluído.")
+
+
+def construir_meta(anos) -> pd.DataFrame:
+    """Os metadados que o site publica, derivados dos mesmos constantes do resto.
+
+    Era um bloco solto dentro de `main()`, e por isso só existia quando o
+    pipeline inteiro rodava. Em 2026-09-03 o `meta_dataset` do banco continuou
+    anunciando cobertura "2015…2024" depois de 2025 ter entrado em todas as
+    marts — a página de metadados dizia ao leitor que a série parava um ano
+    antes de onde ela para. Reexecutar horas de pipeline para corrigir três
+    strings não é opção, e reescrevê-las à mão criaria uma segunda definição
+    que diverge da primeira em silêncio. Extrair a função resolve os dois.
+    """
+    return pd.DataFrame([
         ("fonte_obitos", "SIM/DataSUS — microdados abertos (OpenDataSUS 2022+; FTP CID10/DORES 2015–2021)"),
         ("fonte_populacao", "IBGE — Censo 2022 (t/4709, t/9514) e Estimativas (t/6579); 2023 interpolado"),
         ("anos_cobertura", ", ".join(str(a) for a in anos)),
@@ -821,8 +836,6 @@ def main() -> None:
         ("pipeline", "scripts/pipeline_v2.py"),
         ("versao_dataset", versao_dataset()),
     ], columns=["chave", "valor"])
-    loader.load_df("meta_dataset", meta)
-    print("[done] pipeline v2 concluído.")
 
 
 if __name__ == "__main__":

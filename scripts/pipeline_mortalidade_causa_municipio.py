@@ -484,7 +484,7 @@ def main() -> None:
         return
 
     # As duas tabelas de fato NÃO sobem ao Postgres: 3,6 e 7,7 milhões de linhas
-    # estourariam o orçamento de 700 MB do cache. Ficam publicadas em Parquet
+    # estourariam o orçamento do cache (ver LIMITE_PADRAO_MB em diagnostico_banco.py). Ficam publicadas em Parquet
     # com checksum, `servida=False` no manifesto. Ver V036 e V034.
     env = carregar_env()
     subir("dim_cid10_informativo", dimcid, env)
@@ -493,7 +493,19 @@ def main() -> None:
                   headers={"apikey": key, "Authorization": f"Bearer {key}",
                            "Content-Type": "application/json",
                            "Prefer": "return=minimal,resolution=merge-duplicates"},
-                  data=json.dumps([
+                  data=json.dumps(construir_meta(anos)), timeout=60)
+    print("[done] mortalidade por causa e município concluída.", flush=True)
+
+
+def construir_meta(anos) -> list[dict]:
+    """As chaves de metadado deste pipeline, derivadas dos mesmos constantes.
+
+    Extraída de `main()` pelo motivo em `pipeline_v2.construir_meta`: rodar o
+    pipeline com `--no-upload` deixa o `meta_dataset` publicado descrevendo uma
+    cobertura que já mudou, e a alternativa — reescrever as strings à mão —
+    cria uma segunda definição que diverge da primeira sem avisar.
+    """
+    return [
                       {"chave": "fonte_mortalidade_causa_municipio",
                        "valor": ("SIM/DataSUS — óbitos por município e categoria da CID-10 "
                                  f"({min(anos)}–{max(anos)}), grão anual e mensal. "
@@ -509,8 +521,7 @@ def main() -> None:
                                  "registros e I21 ganhou 7.948.")},
                       {"chave": "gerado_em",
                        "valor": datetime.now().isoformat(timespec="seconds")},
-                  ]), timeout=60)
-    print("[done] mortalidade por causa e município concluída.", flush=True)
+    ]
 
 
 if __name__ == "__main__":

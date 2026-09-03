@@ -158,7 +158,7 @@ class Tabela:
     competencia_max: str | None = None
     # Publicada NÃO implica servida. O eixo canônico do projeto é o Parquet
     # datado; o Postgres é cache reconstruível e tem orçamento finito (a guarda
-    # do diagnóstico corta em 700 MB). Uma tabela grande cujo valor está no
+    # do diagnóstico corta em LIMITE_PADRAO_MB). Uma tabela grande cujo valor está no
     # download — e que nenhuma tela consulta — cabe no manifesto, no Storage e
     # no checksum sem ocupar o cache. `servida=False` diz isso explicitamente,
     # em vez de deixar a ausência parecer defeito para quem confere as camadas.
@@ -439,7 +439,7 @@ NAO_SERVIDAS = frozenset({
     "mart_mortalidade_causa_municipio_faixa",
     # Matriz de correlação: 164.164 pares, 21 MB no banco, ZERO buscas no
     # índice desde que foi criada. O consumidor dela — artigo/gerar_tabelas.py
-    # — já lê o Parquet. Terceira vez que o teto de 700 MB morde, terceira vez
+    # — já lê o Parquet. Terceira vez que o teto do banco morde, terceira vez
     # que sai a tabela e não o limite. Ver V041.
     "mart_correlacao_causas",
 })

@@ -95,8 +95,10 @@ export default function Metodologia() {
           <strong>fora de toda análise</strong>. Medimos 2025 e ele{" "}
           <em>não</em> exibe os defeitos típicos de ano aberto: os doze meses estão
           entre 1,07 e 1,14 vez a mediana de 2015–2024, dezembro inclusive, e as causas
-          mal definidas somam 4,51% — igual a 2024. Ou seja, o volume fechou e a
-          codificação parece madura. Mesmo assim ele fica fora, porque o que sabemos de
+          mal definidas somam 4,51% — igual a 2024. Ou seja, no agregado nacional o volume fechou
+          e a codificação parece madura — mas não uniformemente: pela mesma régua de
+          completude aplicada aos gráficos, Roraima ainda tem seis meses de 2025 abaixo do
+          esperado, e Acre e Amapá, dois cada. Mesmo assim ele fica fora, porque o que sabemos de
           2024 é que a <em>versão</em> de um ano muda depois de fechado: ao consolidar,
           milhares de óbitos migraram de R99 para causas específicas. Parecer estável e
           ter sido verificado estável são coisas diferentes, e a segunda só é possível

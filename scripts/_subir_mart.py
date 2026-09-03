@@ -35,6 +35,11 @@ if hasattr(sys.stdout, "reconfigure"):
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
+#: Linhas por requisição. 8.000 serve para a maioria das marts, mas NÃO é
+#: seguro para tabela grande: o upsert precisa consultar a PK linha a linha, e
+#: em `mart_mortalidade_municipio` (1,3 milhão de linhas) um lote desse tamanho
+#: estourou o `statement_timeout` do Postgres — HTTP 500 com código 57014 depois
+#: de quase dois minutos por lote. `--lote` existe para esse caso.
 LOTE = 8_000
 
 
@@ -66,7 +71,8 @@ def _jd(o):
     return o.item() if hasattr(o, "item") else o
 
 
-def subir(table: str, df: pd.DataFrame, truncar: bool = False) -> None:
+def subir(table: str, df: pd.DataFrame, truncar: bool = False,
+          lote: int = LOTE, ja_no_banco: int = 0) -> None:
     env = load_env()
     url, key = env["SUPABASE_URL"].rstrip("/"), chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}",
@@ -81,9 +87,9 @@ def subir(table: str, df: pd.DataFrame, truncar: bool = False) -> None:
         print(f"[subir] {table}: tabela esvaziada antes da carga", flush=True)
 
     recs = df.astype(object).where(pd.notna(df), None).to_dict("records")
-    lotes = math.ceil(len(recs) / LOTE)
+    lotes = math.ceil(len(recs) / lote)
     for i in range(lotes):
-        body = json.dumps(recs[i * LOTE:(i + 1) * LOTE], default=_jd, allow_nan=False)
+        body = json.dumps(recs[i * lote:(i + 1) * lote], default=_jd, allow_nan=False)
         for tentativa in range(4):
             r = requests.post(f"{url}/rest/v1/{table}", headers=h, data=body, timeout=300)
             if r.status_code in (200, 201):
@@ -110,13 +116,16 @@ def subir(table: str, df: pd.DataFrame, truncar: bool = False) -> None:
     if r.status_code not in (200, 206):
         raise RuntimeError(f"{table}: conferência HTTP {r.status_code} {r.text[:200]}")
     no_banco = int(r.headers["Content-Range"].split("/")[-1])
-    if no_banco < len(recs):
+    # `ja_no_banco` é o que a tabela tinha ANTES desta carga e que este recorte
+    # não cobre — sem ele, subir só um ano acusaria falsamente carga incompleta.
+    esperado = len(recs) + ja_no_banco
+    if no_banco < esperado:
         raise RuntimeError(
             f"{table}: carga INCOMPLETA — {no_banco:,} linhas no banco contra "
-            f"{len(recs):,} enviadas ({len(recs) - no_banco:,} faltando). "
+            f"{esperado:,} esperadas ({esperado - no_banco:,} faltando). "
             "A tabela ficou parcial; rode de novo antes de publicar.")
-    extra = ("" if no_banco == len(recs)
-             else f" (o banco tem {no_banco:,}: há linhas que este parquet não cobre)")
+    extra = ("" if no_banco == esperado
+             else f" (o banco tem {no_banco:,}: há linhas que este recorte não cobre)")
     print(f"[subir] {table}: {len(recs):,} linhas publicadas, conferidas no banco{extra}",
           flush=True)
 
@@ -126,14 +135,35 @@ def main() -> None:
     ap.add_argument("tabela")
     ap.add_argument("--truncar", action="store_true",
                     help="apaga a tabela antes de carregar (para marts sem PK estável)")
+    ap.add_argument("--lote", type=int, default=LOTE,
+                    help=f"linhas por requisição (padrão {LOTE}); reduza em tabela "
+                         "grande, onde o upsert estoura o statement_timeout")
+    ap.add_argument("--anos", type=str, default=None,
+                    help="sobe só estes anos, separados por vírgula (ex.: 2025). "
+                         "Reenviar linha idêntica não é inofensivo: é o upsert mais "
+                         "caro que existe, e foi o que fez a carga de 1,3 milhão de "
+                         "linhas levar horas para acrescentar 200 mil")
     args = ap.parse_args()
 
     caminho = MARTS / f"{args.tabela}.parquet"
     if not caminho.exists():
         raise SystemExit(f"parquet não encontrado: {caminho}")
     df = pd.read_parquet(caminho)
+    ja_no_banco = 0
+    if args.anos:
+        if "ano" not in df.columns:
+            raise SystemExit(f"{args.tabela} não tem coluna `ano` — --anos não se aplica")
+        anos = {int(a) for a in args.anos.split(",")}
+        fora = sorted(set(df.ano.unique()) - anos)
+        ja_no_banco = int(df.ano.isin(fora).sum())
+        df = df[df.ano.isin(anos)]
+        if df.empty:
+            raise SystemExit(f"nenhuma linha de {sorted(anos)} em {caminho.name}")
+        print(f"[subir] {args.tabela}: recorte {sorted(anos)} — {len(df):,} linhas; "
+              f"as outras {ja_no_banco:,} ficam como estão", flush=True)
     print(f"[subir] {args.tabela}: {len(df):,} linhas em {caminho.name}", flush=True)
-    subir(args.tabela, df, truncar=args.truncar)
+    subir(args.tabela, df, truncar=args.truncar, lote=args.lote,
+          ja_no_banco=ja_no_banco)
 
 
 if __name__ == "__main__":

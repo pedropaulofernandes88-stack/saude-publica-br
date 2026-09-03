@@ -102,7 +102,9 @@ Deliberadamente, a tabela publicada **não** é filtrada. O limiar de informativ
 
 O recorte precisa alcançar também o **vocabulário**, e esse é o ponto em que ele quase escapou. A prevalência municipal por categoria era calculada sobre todos os anos da tabela; ao acrescentar 2025, o conjunto de categorias informativas passou de 289 para 302 sem que critério nenhum tivesse sido alterado. Um filtro cujo conteúdo depende de dado que a análise exclui não é filtro, é vazamento com nome de filtro. A prevalência e a marca `informativo` passaram a ser computadas apenas sobre 2015–2024; o dicionário publicado continua listando todas as 1.559 categorias, inclusive as que só existem no ano preliminar, porque omiti-las esconderia justamente a mudança de codificação que a seção 7 documenta. Com a correção, acrescentar 2025 à base deixa os 289 códigos, os 3.461 municípios e todos os resultados deste artigo inalterados — o que é a verificação de que a separação funciona.
 
-Registre-se que a exclusão é **conservadora, não forçada pela evidência disponível**. Medido o ano preliminar contra os consolidados, 2025 não exibe nenhum dos dois sinais que justificariam descartá-lo de imediato: o volume mensal é plano — todos os doze meses entre 1,07 e 1,14 vez a mediana de 2015–2024, e dezembro em 0,98 da média do próprio ano, acima do 0,96 de 2024 já completo — e o percentual de causas mal definidas, 4,51%, é igual ao de 2024 (4,51%), com R99 em 2,72% contra 2,73%. Ou seja, a cauda fechou e a codificação já parece madura. Ainda assim o mantemos fora, porque *parecer* estável e *ter sido verificado* estável são coisas diferentes: a seção 2.2 mostra que a diferença entre versões de um mesmo ano desloca justamente as quantidades aqui medidas, e essa verificação só é possível depois que a versão consolidada existir.
+Registre-se que a exclusão é **conservadora, não forçada pela evidência disponível**. Medido o ano preliminar contra os consolidados, 2025 não exibe nenhum dos dois sinais que justificariam descartá-lo de imediato: o volume mensal é plano — todos os doze meses entre 1,07 e 1,14 vez a mediana de 2015–2024, e dezembro em 0,98 da média do próprio ano, acima do 0,96 de 2024 já completo — e o percentual de causas mal definidas, 4,51%, é igual ao de 2024 (4,51%), com R99 em 2,72% contra 2,73%. Ou seja, no agregado nacional a cauda fechou e a codificação já parece madura.
+
+A ressalva é que *nacional* não é *uniforme*. Aplicada a mesma régua por unidade da federação — mês abaixo de 90% do esperado, varrendo do fim da série para trás —, três estados ainda têm cauda aberta em 2025: Roraima em seis meses (julho a dezembro), Acre e Amapá em dois (novembro e dezembro). Nenhum aparece no Brasil, porque juntos respondem por menos de 1% dos óbitos do país. É mais um motivo para o recorte: a incompletude de 2025 existe, é pequena, e está concentrada exatamente nas unidades de menor porte — que é onde uma análise municipal teria menos margem para absorvê-la. Ainda assim o mantemos fora, porque *parecer* estável e *ter sido verificado* estável são coisas diferentes: a seção 2.2 mostra que a diferença entre versões de um mesmo ano desloca justamente as quantidades aqui medidas, e essa verificação só é possível depois que a versão consolidada existir.
 
 ### 2.4 Confundidores removidos antes da decomposição
 
@@ -175,7 +177,7 @@ Reportamos dois escores: contra a história própria do município, e o mesmo de
 | CIDs informativos (não mal definidos, ≥25% dos municípios) | 289 |
 | Municípios analisados (≥500 óbitos no período) | 3.461 |
 | Tabela publicada (além do recorte analítico) | 2015–2025: 4.009.400 células, 16.019.084 óbitos |
-| Publicação | 2026-09-03 · 47 tabelas |
+| Publicação | 2026-09-03.2 · 47 tabelas |
 
 ### 3.2 A COVID-19 está codificada como B34
 

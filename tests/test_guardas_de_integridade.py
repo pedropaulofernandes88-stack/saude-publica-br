@@ -455,4 +455,37 @@ def test_carga_completa_passa(monkeypatch):
 def test_banco_maior_que_o_parquet_passa_mas_avisa(monkeypatch, capsys):
     """A tabela pode ter linhas que este parquet não cobre — isso não é falha."""
     _subir_com_banco_em(monkeypatch, no_banco=900, enviadas=500)
-    assert "há linhas que este parquet não cobre" in capsys.readouterr().out
+    assert "há linhas que este recorte não cobre" in capsys.readouterr().out
+
+
+def test_recorte_de_um_ano_nao_acusa_carga_incompleta_falsa(monkeypatch):
+    """Subir só 2025 não pode reprovar por causa dos anos que já estavam lá.
+
+    Sem `ja_no_banco`, a conferência compararia 201.760 enviadas com 1.306.442
+    no banco e diria que sobraram linhas — ou, no sentido contrário, subir um
+    recorte pequeno num banco cheio pareceria sempre carga a mais.
+    """
+    import _subir_mart as sm
+    monkeypatch.setattr(sm, "load_env",
+                        lambda: {"SUPABASE_URL": "https://x", "SUPABASE_SERVICE_ROLE_KEY": "k"})
+    monkeypatch.setattr(sm, "chave_escrita", lambda env: "k")
+    monkeypatch.setattr(sm.requests, "post", lambda *a, **k: _Resp(201))
+    monkeypatch.setattr(sm.requests, "get", lambda *a, **k:
+                        _Resp(206, {"Content-Range": "0-0/1306442"}))
+    df = pd.DataFrame({"municipio_cod": [f"{i:06d}" for i in range(201_760)],
+                       "obitos": range(201_760)})
+    sm.subir("mart_teste", df, ja_no_banco=1_104_682)  # não levanta
+
+
+def test_recorte_de_um_ano_ainda_pega_carga_curta(monkeypatch):
+    import _subir_mart as sm
+    monkeypatch.setattr(sm, "load_env",
+                        lambda: {"SUPABASE_URL": "https://x", "SUPABASE_SERVICE_ROLE_KEY": "k"})
+    monkeypatch.setattr(sm, "chave_escrita", lambda env: "k")
+    monkeypatch.setattr(sm.requests, "post", lambda *a, **k: _Resp(201))
+    monkeypatch.setattr(sm.requests, "get", lambda *a, **k:
+                        _Resp(206, {"Content-Range": "0-0/1122283"}))
+    df = pd.DataFrame({"municipio_cod": [f"{i:06d}" for i in range(201_760)],
+                       "obitos": range(201_760)})
+    with pytest.raises(RuntimeError, match="INCOMPLETA"):
+        sm.subir("mart_teste", df, ja_no_banco=1_104_682)
