@@ -522,6 +522,22 @@ export const ANOS_PRELIMINARES: readonly number[] = [2025];
 
 export const ehPreliminar = (ano: number) => ANOS_PRELIMINARES.includes(ano);
 
+/**
+ * O ano que as páginas de mortalidade abrem por padrão: o último CONSOLIDADO.
+ *
+ * Não é o último da série. Abrir num ano preliminar poria o visitante diante do
+ * recorte mais frágil da base sem que ele tivesse escolhido isso — e o número
+ * seria comparado com os anteriores como se fosse equivalente.
+ *
+ * Existe como derivação porque a alternativa é o que havia: `useState(2024)` em
+ * seis arquivos, que estava certo até 2025 entrar e passaria a apontar para um
+ * ano cada vez mais antigo sem nunca quebrar nada.
+ */
+export const ANO_PADRAO: number = [...ANOS].reverse().find((a) => !ehPreliminar(a)) ?? ANOS[ANOS.length - 1];
+
+/** "2015–2025" — o alcance da série, para texto corrido. */
+export const PERIODO = `${ANOS[0]}–${ANOS[ANOS.length - 1]}`;
+
 /** A partir deste ano há detalhe demográfico completo (sexo × faixa × capítulo). */
 export const ANO_DETALHE = 2022;
 

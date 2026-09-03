@@ -37,7 +37,7 @@ function wilsonInf(x: number, n: number): number {
 
 export function InternacoesCliente() {
   const [uf, setUf] = useState("Brasil");
-  const [ano, setAno] = useState(2024);
+  const [ano, setAno] = useState(Math.max(...ANOS_SIH));
   const [capitulo, setCapitulo] = useState("TOTAL");
   const [linhas, setLinhas] = useState<Internacao[] | null>(null);
   const [capsDim, setCapsDim] = useState<CapituloCid[]>([]);

@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { geoMercator, type GeoProjection } from "d3-geo";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { ANOS, UFS, ehPreliminar, fmtDec, fmtInt, rest, type CnesMunicipio, type LinhaMunicipio } from "@/lib/api";
+import { ANOS, ANO_PADRAO, UFS, ehPreliminar, fmtDec, fmtInt, rest, type CnesMunicipio, type LinhaMunicipio } from "@/lib/api";
 
 function mediana(vs: number[]): number | null {
   if (!vs.length) return null;
@@ -88,7 +88,7 @@ interface Feature {
 
 export function MapaCliente() {
   const [uf, setUf] = useState("MG");
-  const [ano, setAno] = useState(2024);
+  const [ano, setAno] = useState(ANO_PADRAO);
   const [metrica, setMetrica] = useState<Metrica>("taxa_padronizada_100k");
   const [geo, setGeo] = useState<{ features: Feature[] } | null>(null);
   const [dados, setDados] = useState<Map<string, LinhaMunicipio> | null>(null);

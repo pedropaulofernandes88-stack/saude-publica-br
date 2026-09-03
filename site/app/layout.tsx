@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { cobertura } from "@/lib/cobertura";
 import { Inter, Source_Serif_4 } from "next/font/google";
 import Link from "next/link";
 import { Nav } from "@/components/nav";
@@ -18,7 +20,7 @@ export const metadata: Metadata = {
     template: "%s · Saúde em Dado",
   },
   description:
-    "Mortalidade, dengue e internações no Brasil (DataSUS, 2015–2024): painéis navegáveis, mapa municipal, taxas padronizadas, excesso de mortalidade, incidência de dengue e API pública gratuita para pesquisa.",
+    `Mortalidade, dengue e internações no Brasil (DataSUS, ${cobertura().periodo}): painéis navegáveis, mapa municipal, taxas padronizadas, excesso de mortalidade, incidência de dengue e API pública gratuita para pesquisa.`,
   keywords: [
     "DataSUS", "SIM", "SINAN", "SIH", "mortalidade", "dengue", "internações",
     "epidemiologia", "dados abertos", "saúde pública", "CID-10", "Brasil",
@@ -44,7 +46,7 @@ export const metadata: Metadata = {
     siteName: "Saúde em Dado",
     title: "Saúde em Dado — Mortalidade, dengue e internações no Brasil (DataSUS)",
     description:
-      "14,4 milhões de óbitos (2015–2024) em painéis navegáveis, mapa municipal, taxas padronizadas e API pública gratuita.",
+      `${cobertura().obitosAprox} de óbitos (${cobertura().periodo}) em painéis navegáveis, mapa municipal, taxas padronizadas e API pública gratuita.`,
   },
   twitter: {
     card: "summary_large_image",
@@ -58,7 +60,7 @@ export const metadata: Metadata = {
 const DATASET_JSONLD = {
   "@context": "https://schema.org",
   "@type": "Dataset",
-  name: "Saúde em Dado — Mortalidade, dengue e internações no Brasil (DataSUS), 2015–2024",
+  name: `Saúde em Dado — Mortalidade, dengue e internações no Brasil (DataSUS), ${cobertura().periodo}`,
   description:
     "Indicadores agregados de saúde no Brasil a partir dos microdados do DataSUS: mortalidade (SIM) com taxas padronizadas por idade, IC95% e excesso de mortalidade; dengue (SINAN) com incidência e gravidade; internações SUS (SIH) com permanência, custo e mortalidade hospitalar. Por município, ano e CID-10. População IBGE.",
   url: "https://saudeemdado.com",

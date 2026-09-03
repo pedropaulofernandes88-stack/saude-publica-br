@@ -14,7 +14,7 @@ const ANOS = [2022, 2021];
 
 export function NascimentosCliente() {
   const [uf, setUf] = useState("Brasil");
-  const [ano, setAno] = useState(2022);
+  const [ano, setAno] = useState(Math.max(...ANOS));
   const [nat, setNat] = useState<Natalidade[] | null>(null);
   const [tmi, setTmi] = useState<MortalidadeInfantil[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);

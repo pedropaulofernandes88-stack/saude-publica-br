@@ -21,7 +21,7 @@ const CORES_ANO: Record<number, string> = {
 
 export function DengueCliente() {
   const [uf, setUf] = useState("Brasil");
-  const [ano, setAno] = useState(2025);
+  const [ano, setAno] = useState(Math.max(...ANOS_DENGUE));
   const [semana, setSemana] = useState<DengueSemana[] | null>(null);
   const [anual, setAnual] = useState<DengueAno[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);

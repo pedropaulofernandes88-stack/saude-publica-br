@@ -6,6 +6,8 @@ import { Kpi, Skeleton } from "@/components/kpi";
 import { VerMais } from "@/components/ver-mais";
 import {
   ANOS,
+  ANO_PADRAO,
+  PERIODO,
   ANO_DETALHE,
   ehPreliminar,
   FAIXAS_ORDEM,
@@ -27,7 +29,8 @@ type Sexo = "TOTAL" | "M" | "F";
 
 export function PainelCliente() {
   const [uf, setUf] = useState<string>("Brasil");
-  const [ano, setAno] = useState<number>(2024);
+  const periodo = PERIODO;
+  const [ano, setAno] = useState<number>(ANO_PADRAO);
   const [capitulo, setCapitulo] = useState<string>("TOTAL");
   const [sexo, setSexo] = useState<Sexo>("TOTAL");
   const [capitulos, setCapitulos] = useState<CapituloCid[]>([]);
@@ -199,7 +202,7 @@ export function PainelCliente() {
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink-950">Painel de mortalidade</h1>
       <p className="mt-2 max-w-3xl text-ink-600">
-        Série 2015–2024 (10 anos). Taxas padronizadas por idade e IC95% para
+        Série {periodo} ({ANOS.length} anos). Taxas padronizadas por idade e IC95% para
         comparação responsável entre municípios — os mesmos valores da API pública.
       </p>
 
@@ -252,7 +255,7 @@ export function PainelCliente() {
 
       <div className="mt-6 grid gap-4 sm:grid-cols-3">
         <Kpi rotulo={`Óbitos em ${ano}`} valor={totalAno != null ? fmtInt(totalAno) : "…"} detalhe={capDesc} />
-        <Kpi rotulo="Óbitos na série 2015–2024" valor={totalPeriodo != null ? fmtInt(totalPeriodo) : "…"} detalhe={uf === "Brasil" ? "Brasil" : uf} />
+        <Kpi rotulo={`Óbitos na série ${periodo}`} valor={totalPeriodo != null ? fmtInt(totalPeriodo) : "…"} detalhe={uf === "Brasil" ? "Brasil" : uf} />
         <Kpi
           rotulo="Municípios com registro"
           valor={particao ? fmtInt(particao.identificados.length) : "…"}
@@ -269,7 +272,7 @@ export function PainelCliente() {
           Evolução mensal — {uf === "Brasil" ? "Brasil" : uf}
         </h2>
         <p className="mt-1 text-sm text-ink-500">
-          {capDesc}{sexo !== "TOTAL" ? ` · sexo ${sexo === "M" ? "masculino" : "feminino"}` : ""} · 2015–2024
+          {capDesc}{sexo !== "TOTAL" ? ` · sexo ${sexo === "M" ? "masculino" : "feminino"}` : ""} · {periodo}
         </p>
         <div className="mt-4">
           {serie ? <SerieLinha data={serie} incompletos={incompletosDe(completude, uf)} titulo={`Evolução mensal — ${uf === "Brasil" ? "Brasil" : uf}`} /> : <Skeleton />}

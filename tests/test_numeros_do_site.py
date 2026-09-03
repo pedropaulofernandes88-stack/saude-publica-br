@@ -306,3 +306,73 @@ def test_site_nao_descreve_o_metodo_de_excesso_antigo():
         "esperado vem de tendência linear por mês civil ajustada a 2015–2019. "
         "Se a menção for histórica, diga isso perto dela:\n  "
         + "\n  ".join(ofensas))
+
+
+# --------------------------------------------------------------------------
+# A cobertura da base não pode ser afirmada por texto digitado
+#
+# "14,4 milhões de óbitos (2015–2024)" aparecia em oito lugares: a descrição
+# que o link mostra ao ser compartilhado, o nome no schema.org, o herói da
+# home, o cartão de mortalidade, o rótulo de um KPI, a citação sugerida para
+# trabalhos acadêmicos e o quadro do /sobre. Todos digitados, todos defasados
+# no mesmo dia — e o KPI ao lado de um deles já exibia o número certo, porque
+# esse era calculado a partir da série.
+#
+# Anos vêm de ANOS (lib/api.ts) no cliente e de cobertura() (lib/cobertura.ts,
+# que lê sdata/serie_total.json no build) no servidor.
+# --------------------------------------------------------------------------
+#: Onde um intervalo iniciado em 2015 é legítimo, e por quê. Cada isenção é uma
+#: afirmação: "este recorte NÃO acompanha a base". Acrescentar exige dizer isso.
+RECORTES_FIXOS = {
+    # o baseline do excesso de mortalidade: janela fixa por metodologia, citada
+    # em muitas páginas. Não acompanha a base por definição — se acompanhasse,
+    # o "esperado" passaria a ser ajustado pelos anos que ele deveria julgar.
+    (None, "2015", "2019"): "baseline do excesso de mortalidade",
+    # a série é dada por metodologia, não pela cobertura
+    ("site/app/dengue/dengue-cliente.tsx", "2015", "2023"):
+        "baseline do diagrama de controle da dengue",
+    # descrevem a DIVISÃO DE FONTE, não o alcance
+    ("site/app/metodologia/page.tsx", "2015", "2021"):
+        "anos que vêm do .dbc / que têm só totais e marginais",
+    ("site/app/metodologia/page.tsx", "2015", "2024"):
+        "mediana de comparação para julgar 2025, e leitos CNES",
+}
+
+#: Artigo publicado é registro datado: ele expõe `datePublished` e afirma a
+#: cobertura DA ÉPOCA. Reescrever o período de um artigo depois falsifica o
+#: registro — a correção certa seria um novo artigo, nunca uma edição silenciosa.
+FORA_DA_GUARDA = ("site/content/artigos.tsx",)
+
+
+def test_nenhuma_pagina_crava_o_periodo_da_base():
+    """Intervalo digitado que comece no 1º ano da base e termine antes do último.
+
+    Fontes que de fato param antes (SIH, ICSAP, PNI) começam depois de 2015 e
+    por isso não entram aqui — cravar o intervalo delas está correto.
+    """
+    anos = re.search(r"export const ANOS = \[([^\]]+)\]",
+                     _texto(RAIZ / "site" / "lib" / "api.ts"))
+    assert anos, "ANOS sumiu de lib/api.ts — a guarda perdeu a referência"
+    todos = [int(a) for a in re.findall(r"\d{4}", anos.group(1))]
+    primeiro, ultimo = min(todos), max(todos)
+
+    ofensas = []
+    for arq in sorted((RAIZ / "site").rglob("*.tsx")):
+        if "node_modules" in arq.parts:
+            continue
+        rel = arq.relative_to(RAIZ).as_posix()
+        if rel in FORA_DA_GUARDA:
+            continue
+        for n, linha in enumerate(_texto(arq).splitlines(), 1):
+            if linha.lstrip().startswith(("//", "*", "/*", "#:")):
+                continue
+            for ini, fim in re.findall(r"(20\d\d)\s*[–-]\s*(20\d\d)", linha):
+                if int(ini) != primeiro or int(fim) >= ultimo:
+                    continue
+                if (rel, ini, fim) in RECORTES_FIXOS or (None, ini, fim) in RECORTES_FIXOS:
+                    continue
+                ofensas.append(f"{rel}:{n}: {ini}–{fim} (a base vai até {ultimo})")
+    assert not ofensas, (
+        "período da base cravado em texto — derive de ANOS/PERIODO (cliente) ou "
+        "de cobertura() (servidor). Se for recorte fixo por metodologia, "
+        "declare em RECORTES_FIXOS com o motivo:\n  " + "\n  ".join(ofensas))

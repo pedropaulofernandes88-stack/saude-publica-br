@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SerieLinha } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
-import { fmtInt, sdata, type MetaItem, type SerieTotalItem } from "@/lib/api";
+import { ANOS, fmtInt, sdata, type MetaItem, type SerieTotalItem } from "@/lib/api";
 import { incompletosDe, notaCompletude, type ManifestoCompletude } from "@/lib/completude";
 
 interface HomeData {
@@ -18,6 +18,10 @@ interface HomeData {
 export default function Home() {
   const [data, setData] = useState<HomeData | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  // O período vem de ANOS, não de texto: as sete afirmações desta página
+  // diziam "2015–2024" e continuaram dizendo depois de 2025 entrar — inclusive
+  // o rótulo de um KPI cujo VALOR, ao lado, já vinha calculado e certo.
+  const periodo = `${ANOS[0]}–${ANOS[ANOS.length - 1]}`;
 
   useEffect(() => {
     (async () => {
@@ -60,7 +64,7 @@ export default function Home() {
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-ink-600">
             Mortalidade, dengue e internações hospitalares do SUS — dezenas de
-            milhões de registros oficiais (2015–2024) em painéis navegáveis, com
+            milhões de registros oficiais ({periodo}) em painéis navegáveis, com
             taxas padronizadas, incidência epidemiológica, excesso de
             mortalidade, mapa municipal e API pública gratuita.
           </p>
@@ -90,7 +94,7 @@ export default function Home() {
           <Kpi
             rotulo="Óbitos registrados"
             valor={data ? fmtInt(data.total) : "…"}
-            detalhe="2015–2024, não fetais"
+            detalhe={`${periodo}, não fetais`}
           />
           <Kpi rotulo="Municípios cobertos" valor={data ? fmtInt(data.municipios) : "…"} detalhe="Todos — base IBGE" />
           <Kpi rotulo="Causas (CID-10)" valor="22 capítulos" detalhe="+ categorias de 3 caracteres" />
@@ -117,7 +121,7 @@ export default function Home() {
             {[
               ["47 tabelas · 10 fontes",
                "publicadas em Parquet com SHA-256 por arquivo e DOI citável"],
-              ["662 testes",
+              ["663 testes",
                "automatizados a cada alteração, com o banco reconstruído do zero no CI"],
               ["351 anos-UF refeitos",
                "reprocessados da fonte para conferência: 459 de 459 checkpoints idênticos"],
@@ -163,7 +167,7 @@ export default function Home() {
           <Link href="/painel/" className="card group transition hover:border-accent-400 hover:shadow-md">
             <h3 className="font-serif text-lg font-semibold text-ink-900">💀 Mortalidade <span className="text-ink-500">· SIM</span></h3>
             <p className="mt-2 text-sm leading-relaxed text-ink-600">
-              14,4 milhões de óbitos (2015–2024) por causa, sexo e idade. Taxas
+              {data ? fmtInt(data.total) : "Milhões de"} óbitos ({periodo}) por causa, sexo e idade. Taxas
               padronizadas, IC95% e excesso de mortalidade.
             </p>
             <span className="mt-3 inline-block text-sm font-medium text-accent-700 group-hover:underline">Abrir painel →</span>
@@ -227,7 +231,7 @@ export default function Home() {
           </p>
           <pre className="mt-4 overflow-x-auto rounded-lg bg-black/40 p-4 text-xs leading-relaxed">
 {`BRASIL. Ministério da Saúde. Sistema de Informações sobre Mortalidade (SIM).
-Microdados abertos, OpenDataSUS, 2015–2024.
+Microdados abertos, ${periodo} (FTP CID10/DORES e PRELIM/DORES; OpenDataSUS 2022–2023).
 
 IBGE. Censo Demográfico 2022 e Estimativas de População. SIDRA.
 

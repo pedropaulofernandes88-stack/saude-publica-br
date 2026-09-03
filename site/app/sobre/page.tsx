@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 
+import { cobertura } from "@/lib/cobertura";
+
 export const metadata: Metadata = {
   title: "Sobre o projeto",
   description:
@@ -53,7 +55,8 @@ export default function Sobre() {
       {/* Proof points */}
       <div className="mt-6 grid gap-4 sm:grid-cols-4">
         {[
-          ["14,4 mi", "óbitos processados (SIM 2015–2024)"],
+          [`${(cobertura().obitos / 1e6).toFixed(1).replace(".", ",")} mi`,
+           `óbitos processados (SIM ${cobertura().periodo})`],
           ["10 fontes", "SIM · SIH · SINAN · SINASC · PNI · CNES · SIOPS · e-Gestor AB · ANS · IBGE"],
           ["DOI", "citável e versionado (Zenodo)"],
           ["100%", "pipeline aberto e reproduzível"],

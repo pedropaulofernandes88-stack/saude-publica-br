@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+
+import { cobertura } from "@/lib/cobertura";
 import { PainelCliente } from "./painel-cliente";
 
 /**
@@ -9,11 +11,11 @@ import { PainelCliente } from "./painel-cliente";
 export const metadata: Metadata = {
   title: "Painel de mortalidade por município",
   description:
-    "Mortalidade no Brasil (SIM/DataSUS, 2015–2024) por município, causa (CID-10), sexo e faixa etária: taxas padronizadas por idade com IC95%, série mensal e ranking municipal exportável.",
+    `Mortalidade no Brasil (SIM/DataSUS, ${cobertura().periodo}) por município, causa (CID-10), sexo e faixa etária: taxas padronizadas por idade com IC95%, série mensal e ranking municipal exportável.`,
   alternates: { canonical: "/painel/" },
   openGraph: {
     title: "Painel de mortalidade por município — Saúde em Dado",
-    description: "Mortalidade no Brasil (SIM/DataSUS, 2015–2024) por município, causa (CID-10), sexo e faixa etária: taxas padronizadas por idade com IC95%, série mensal e ranking municipal exportável.",
+    description: `Mortalidade no Brasil (SIM/DataSUS, ${cobertura().periodo}) por município, causa (CID-10), sexo e faixa etária: taxas padronizadas por idade com IC95%, série mensal e ranking municipal exportável.`,
     url: "https://saudeemdado.com/painel/",
     type: "website",
   },

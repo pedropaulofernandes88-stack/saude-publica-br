@@ -18,7 +18,7 @@ const ANOS_HOSP = [2024, 2023, 2022] as const;
 
 export function HospitalarCliente() {
   const [uf, setUf] = useState("Brasil");
-  const [ano, setAno] = useState<number>(2024);
+  const [ano, setAno] = useState<number>(Math.max(...ANOS_HOSP));
   const ufF = useMemo<Record<string, string>>(
     () => (uf === "Brasil" ? {} as Record<string, string> : { uf_sigla: `eq.${uf}` }),
     [uf],

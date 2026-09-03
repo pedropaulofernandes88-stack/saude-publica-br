@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 
 import type { Metadata } from "next";
-import { ANOS, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/api";
+import { ANOS, ANOS_PRELIMINARES, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/api";
 
 type TabelaPublicada = { nome: string; linhas: number; bytes: number; sha256: string };
 
@@ -500,7 +500,7 @@ mg.nlargest(10, "taxa_padronizada_100k")`}</code>
       <h2>Boletim municipal</h2>
       <p>
         Cada município tem um boletim imprimível (PDF via navegador) com série
-        de taxas 2015–2024, IC95% e principais grupos de causas:{" "}
+        de taxas {ANOS[0]}–{ANOS[ANOS.length - 1]}, IC95% e principais grupos de causas:{" "}
         <code>/boletim/?m=&lt;código IBGE 6 dígitos&gt;</code> — ou clique no
         nome do município no painel.
       </p>
@@ -515,7 +515,7 @@ mg.nlargest(10, "taxa_padronizada_100k")`}</code>
           <tr><th>Base</th><th>Sistema</th><th>Cobertura</th><th>Observação</th></tr>
         </thead>
         <tbody>
-          <tr><td>Mortalidade</td><td>SIM</td><td>2015–2024</td><td>2024 preliminar</td></tr>
+          <tr><td>Mortalidade</td><td>SIM</td><td>{ANOS[0]}–{ANOS[ANOS.length - 1]}</td><td>{ANOS_PRELIMINARES.join(", ")} preliminar (PRELIM/DORES)</td></tr>
           <tr><td>Internações</td><td>SIH/AIH</td><td>2022–2024</td><td>2024 preliminar; só rede SUS</td></tr>
           <tr><td>Dengue</td><td>SINAN</td><td>2015–2025</td><td>2025 fechado (FINAIS)</td></tr>
           <tr><td>Nascimentos</td><td>SINASC</td><td>2021–2023</td><td>2024 não liberado pelo MS</td></tr>
