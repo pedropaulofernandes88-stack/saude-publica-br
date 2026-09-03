@@ -252,3 +252,57 @@ def test_toda_tabela_citada_no_catalogo_existe_no_manifesto():
     man = json.loads((RAIZ / "data" / "publicacoes" / atual["arquivo"]).read_text("utf-8"))
     faltando = sorted(nomes - set(man["tabelas"]))
     assert not faltando, f"citadas em /dados e ausentes do manifesto: {faltando}"
+
+
+# --------------------------------------------------------------------------
+# O site não pode descrever o método de excesso que foi substituído
+#
+# Pior que número envelhecido: /tendencias explicava o excesso como "média
+# 2015–2019 do mesmo mês, ajustada pela população do ano" e a legenda do
+# gráfico repetia "baseline 2015–2019 com ajuste populacional". Esse método foi
+# trocado por TENDÊNCIA LINEAR por mês civil no 3.1.0 — a troca está no
+# CHANGELOG, na metodologia, nos artigos e no preprint, e esta página ficou na
+# versão velha por mais de um ano. Não é um número que envelheceu: é a
+# descrição de um cálculo que o código não faz.
+#
+# O método antigo superestimava o excesso nos anos recentes, então a página
+# explicava um viés que o projeto já tinha corrigido.
+# --------------------------------------------------------------------------
+METODO_ANTIGO = (
+    "ajuste populacional",
+    "ajustada pela população",
+    "razão populacional",
+    "média 2015–2019",
+    "média 2015-2019",
+)
+
+#: Falar do método antigo COMO antigo é legítimo e desejável — a §6 da
+#: metodologia explica o que foi trocado e por quê. O que a guarda proíbe é
+#: apresentá-lo como o cálculo corrente, e a diferença está numa marca
+#: histórica perto da menção.
+MARCA_HISTORICA = ("anterior", "antigo", "substitu", "trocad", "deixou de",
+                   "ficou para trás", "3.1.0")
+
+
+def test_site_nao_descreve_o_metodo_de_excesso_antigo():
+    ofensas = []
+    for arq in sorted((RAIZ / "site").rglob("*.tsx")):
+        if "node_modules" in arq.parts:
+            continue
+        texto = _texto(arq)
+        if "excesso" not in texto.lower():
+            continue
+        linhas = texto.splitlines()
+        for n, linha in enumerate(linhas, 1):
+            if not any(t in linha for t in METODO_ANTIGO):
+                continue
+            # a marca pode estar nas linhas vizinhas: o texto é JSX quebrado
+            volta = " ".join(linhas[max(0, n - 4):n + 3]).lower()
+            if any(m in volta for m in MARCA_HISTORICA):
+                continue
+            ofensas.append(f"{arq.relative_to(RAIZ)}:{n}: {linha.strip()[:100]}")
+    assert not ofensas, (
+        "método de excesso ANTERIOR ao 3.1.0 apresentado como o corrente — o "
+        "esperado vem de tendência linear por mês civil ajustada a 2015–2019. "
+        "Se a menção for histórica, diga isso perto dela:\n  "
+        + "\n  ".join(ofensas))

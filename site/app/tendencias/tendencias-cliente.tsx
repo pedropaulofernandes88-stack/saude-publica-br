@@ -109,7 +109,7 @@ export function TendenciasCliente() {
           Observado × esperado — {uf === "BR" ? "Brasil" : uf} (2020–{ANOS[ANOS.length - 1]})
         </h2>
         <p className="mt-1 text-sm text-ink-500">
-          Linha tracejada: esperado (baseline 2015–2019 com ajuste populacional). Vermelha: observado.
+          Linha tracejada: esperado (tendência linear ajustada a 2015–2019). Vermelha: observado.
         </p>
         <div className="mt-4">{excUf ? <LinhasExcesso data={excUf} titulo={`Observado × esperado — ${uf === "BR" ? "Brasil" : uf} (2020–${ANOS[ANOS.length - 1]})`} /> : <Skeleton altura={340} />}</div>
       </div>
