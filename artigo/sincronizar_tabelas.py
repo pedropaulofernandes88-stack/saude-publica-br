@@ -42,10 +42,23 @@ MANUSCRITO = RAIZ / "manuscrito.md"
 TABELAS = RAIZ / "tabelas"
 
 #: Anúncio de tabela seguido do bloco Markdown que ela substitui.
-PADRAO = re.compile(r"(\(`(tabela_[a-z0-9_]+\.csv)`\)\s*\n\n)((?:\|.*\n)+)")
+#:
+#: O nome do CSV é procurado em QUALQUER lugar da legenda em negrito, não só
+#: entre parênteses no fim. A primeira versão exigia a forma exata e por isso
+#: deixou TRÊS tabelas de fora — entre elas a do controle positivo de dengue,
+#: citada como `(Tabela 8c, `x.csv`)`. Ferramenta de sincronia que cobre parte
+#: das tabelas dá a garantia que não tem.
+PADRAO = re.compile(
+    r"(^\*\*[^\n]*`(tabela_[a-z0-9_]+\.csv)`[^\n]*\n\n)((?:\|.*\n)+)", re.M)
 
 
-def formatar(valor) -> str:
+#: Colunas cujo inteiro é um RÓTULO, não uma contagem, e portanto não leva
+#: separador de milhar. Sem isto, "2024" saía "2.024" na tabela do controle
+#: positivo de dengue — erro que passa despercebido no código e salta na página.
+COLUNAS_SEM_SEPARADOR = {"ano", "k", "cid", "cid a", "cid b", "uf", "componente"}
+
+
+def formatar(valor, coluna: str = "") -> str:
     """Número no padrão do texto em português; texto vai como está."""
     if pd.isna(valor):
         return "—"
@@ -54,6 +67,8 @@ def formatar(valor) -> str:
     if isinstance(valor, float) and not float(valor).is_integer():
         return f"{valor:,.4f}".rstrip("0").rstrip(".").replace(",", "\x00") \
                                               .replace(".", ",").replace("\x00", ".")
+    if coluna.strip().lower() in COLUNAS_SEM_SEPARADOR:
+        return str(int(valor))
     return f"{int(valor):,}".replace(",", ".")
 
 
@@ -62,7 +77,8 @@ def bloco_markdown(csv: pd.DataFrame) -> str:
     linhas = ["| " + " | ".join(cabecalho) + " |",
               "|" + "|".join("---" for _ in cabecalho) + "|"]
     for _, r in csv.iterrows():
-        linhas.append("| " + " | ".join(formatar(v) for v in r) + " |")
+        linhas.append("| " + " | ".join(formatar(v, c)
+                                        for c, v in zip(cabecalho, r, strict=True)) + " |")
     return "\n".join(linhas) + "\n"
 
 

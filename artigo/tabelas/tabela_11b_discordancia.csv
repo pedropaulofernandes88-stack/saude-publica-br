@@ -1,13 +1,13 @@
 ﻿CID A,CID B,Descrição A,Descrição B,r no grupo 1 (mais preciso),r no grupo 0 (menos preciso)
-I63,I67,Infarto cerebral,Outr doenc cerebrovasculares,-0.83,0.29
-I46,Y34,Parada cardiaca,Fatos ou eventos NE e intenc nao determinada,0.43,-0.46
+I63,I67,Infarto cerebral,Outras doenças cerebrovasculares,-0.83,0.29
+I46,Y34,Parada cardíaca,Fatos ou eventos NE e intenc nao determinada,0.43,-0.46
 I61,J12,Hemorragia intracerebral,Pneumonia viral NCOP,0.46,-0.39
-E11,I25,Diabetes mellitus nao-insulino-dependemte,Doenc isquemica cronica do coracao,0.33,-0.49
-I10,Y34,Hipertensao essencial,Fatos ou eventos NE e intenc nao determinada,0.54,-0.23
-C18,I63,Neopl malig do colon,Infarto cerebral,-0.46,0.3
-I61,J98,Hemorragia intracerebral,Outr transt respirat,0.27,-0.48
-C34,F32,Neopl malig dos bronquios e dos pulmoes,Episodios depressivos,0.2,-0.55
+E11,I25,Diabetes mellitus não insulino-dependente,Doença isquêmica crônica do coração,0.33,-0.49
+I10,Y34,Hipertensão essencial,Fatos ou eventos NE e intenc nao determinada,0.54,-0.23
+C18,I63,Neoplasia maligna do colon,Infarto cerebral,-0.46,0.3
+I61,J98,Hemorragia intracerebral,Outros transtornos respiratórios,0.27,-0.48
+C34,F32,Neoplasia maligna dos bronquios e dos pulmoes,Episodios depressivos,0.2,-0.55
 W79,Y29,Inalacao ingest aliment caus obstr trat resp,Contato obj contundente intenc n det,0.48,-0.26
-I10,I61,Hipertensao essencial,Hemorragia intracerebral,0.54,-0.21
-E11,N39,Diabetes mellitus nao-insulino-dependemte,Outr transt do trato urinario,0.42,-0.32
-F17,I25,Transt mentais e comport dev uso de fumo,Doenc isquemica cronica do coracao,0.13,-0.59
+I10,I61,Hipertensão essencial,Hemorragia intracerebral,0.54,-0.21
+E11,N39,Diabetes mellitus não insulino-dependente,Outros transtornos do trato urinário,0.42,-0.32
+F17,I25,Transt mentais e comportamentais devida a uso de fumo,Doença isquêmica crônica do coração,0.13,-0.59

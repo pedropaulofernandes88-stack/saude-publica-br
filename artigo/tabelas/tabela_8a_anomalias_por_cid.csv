@@ -1,13 +1,13 @@
 ﻿CID,Descrição,Municípios-ano
-N39,Outr transt do trato urinario,178
-G30,Doenc de Alzheimer,130
-E11,Diabetes mellitus nao-insulino-dependemte,122
-I10,Hipertensao essencial,110
-A41,Outr septicemias,93
-J15,Pneumonia bacter NCOP,75
-B34,Doenc p/virus de localiz NE,75
-I25,Doenc isquemica cronica do coracao,69
-I11,Doenc cardiaca hipertensiva,60
-L08,Outr infecc localiz pele e tec subcutaneo,54
+N39,Outros transtornos do trato urinário,178
+G30,Doença de Alzheimer,130
+E11,Diabetes mellitus não insulino-dependente,122
+I10,Hipertensão essencial,110
+A41,Outras septicemias,93
+J15,Pneumonia bacteriana NCOP,75
+B34,Doença por vírus de localização NE,75
+I25,Doença isquêmica crônica do coração,69
+I11,Doença cardíaca hipertensiva,60
+L08,Outras infecções localização pele e tec subcutâneo,54
 I63,Infarto cerebral,53
-W18,Outr quedas no mesmo nivel,47
+W18,Outras quedas no mesmo nível,47

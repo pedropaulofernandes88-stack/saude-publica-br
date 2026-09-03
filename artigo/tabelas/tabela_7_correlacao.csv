@@ -1,16 +1,16 @@
 ﻿CID A,CID B,Descrição A,Descrição B,Correlação
-A90,A91,Dengue,Febre hemorragica dev virus do dengue,0.9709
-J18,J44,Pneumonia p/microorg NE,Outr doenc pulmonares obstrutivas cronicas,0.9384
-I25,J18,Doenc isquemica cronica do coracao,Pneumonia p/microorg NE,0.8978
-B34,J12,Doenc p/virus de localiz NE,Pneumonia viral NCOP,0.8818
-E14,I10,Diabetes mellitus NE,Hipertensao essencial,0.873
-F10,I10,Transt mentais comport dev uso alcool,Hipertensao essencial,0.8705
-I25,I71,Doenc isquemica cronica do coracao,Aneurisma e disseccao da aorta,0.8647
-J43,J44,Enfisema,Outr doenc pulmonares obstrutivas cronicas,0.8512
-I25,J81,Doenc isquemica cronica do coracao,Edema pulmonar NE de outr form,0.8491
-I25,J44,Doenc isquemica cronica do coracao,Outr doenc pulmonares obstrutivas cronicas,0.8471
+A90,A91,Dengue,Febre hemorrágica devida a vírus do dengue,0.9709
+J18,J44,Pneumonia por microorganismo NE,Outras doenças pulmonares obstrutivas crônicas,0.9384
+I25,J18,Doença isquêmica crônica do coração,Pneumonia por microorganismo NE,0.8978
+B34,J12,Doença por vírus de localização NE,Pneumonia viral NCOP,0.8818
+E14,I10,Diabetes mellitus NE,Hipertensão essencial,0.873
+F10,I10,Transt mentais comportamentais devida a uso álcool,Hipertensão essencial,0.8705
+I25,I71,Doença isquêmica crônica do coração,Aneurisma e dissecção da aorta,0.8647
+J43,J44,Enfisema,Outras doenças pulmonares obstrutivas crônicas,0.8512
+I25,J81,Doença isquêmica crônica do coração,Edema pulmonar NE de outras form,0.8491
+I25,J44,Doença isquêmica crônica do coração,Outras doenças pulmonares obstrutivas crônicas,0.8471
 I26,I42,Embolia pulmonar,Cardiomiopatias,0.8398
-J18,J81,Pneumonia p/microorg NE,Edema pulmonar NE de outr form,0.8397
-I71,J12,Aneurisma e disseccao da aorta,Pneumonia viral NCOP,-0.8359
-J12,J98,Pneumonia viral NCOP,Outr transt respirat,0.8323
-I42,J81,Cardiomiopatias,Edema pulmonar NE de outr form,0.8312
+J18,J81,Pneumonia por microorganismo NE,Edema pulmonar NE de outras form,0.8397
+I71,J12,Aneurisma e dissecção da aorta,Pneumonia viral NCOP,-0.8359
+J12,J98,Pneumonia viral NCOP,Outros transtornos respiratórios,0.8323
+I42,J81,Cardiomiopatias,Edema pulmonar NE de outras form,0.8312

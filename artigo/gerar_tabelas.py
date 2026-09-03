@@ -67,6 +67,80 @@ def _faixa(anos: list[int]) -> str:
     return " e ".join(blocos) if len(blocos) < 3 else ", ".join(blocos[:-1]) + f" e {blocos[-1]}"
 
 
+#: Abreviaturas do dicionário CID-10 do DataSUS. O arquivo oficial abrevia para
+#: caber em campo de tamanho fixo — "Outr transt do trato urinario" —, e essa
+#: forma é ilegível numa tabela de artigo. A expansão é textual e conservadora:
+#: só troca token inteiro, nunca parte de palavra, e o que não estiver aqui
+#: passa como veio.
+ABREVIATURAS = {
+    "Outr": "Outros", "outr": "outros", "transt": "transtornos",
+    "Doenc": "Doença", "doenc": "doenças", "infecc": "infecções",
+    "Neopl": "Neoplasia", "malig": "maligna",
+    # NE, NCOP e SOE ficam como estão. Expandi-las exigiria concordar com o
+    # substantivo — "Pneumonia bacteriana não classificadOS em outra parte" foi
+    # o que a expansão produziu —, e concordância depende do núcleo do sintagma,
+    # que não se resolve por dicionário. São siglas padrão da CID-10 e o artigo
+    # as define na §3.5; mantê-las é mais correto que expandi-las errado.
+    "dev": "devida a", "p/": "por", "c/": "com", "s/": "sem",
+    "Insuf": "Insuficiência", "respirat": "respiratórios", "cronicas": "crônicas",
+    "cronica": "crônica", "coracao": "coração", "cerebr": "cerebral",
+    "Acid": "Acidente", "vasc": "vascular", "traum": "traumatizado",
+    "acid": "acidente", "transp": "transporte", "localiz": "localização",
+    "subcutaneo": "subcutâneo", "Agressao": "Agressão", "hemorragica": "hemorrágica",
+    "virus": "vírus", "urinario": "urinário", "essencial": "essencial",
+    "bacter": "bacteriana", "septicemias": "septicemias", "quedas": "quedas",
+    "nivel": "nível", "isquemica": "isquêmica", "cardiaca": "cardíaca",
+    "hipertensiva": "hipertensiva", "Hipertensao": "Hipertensão",
+    "microorg": "microorganismo", "obstrutivas": "obstrutivas",
+    "pulmonares": "pulmonares", "Embolia": "Embolia", "disseccao": "dissecção",
+    "Sequelas": "Sequelas", "cerebrovasculares": "cerebrovasculares",
+    "comport": "comportamentais", "alcool": "álcool", "Demencia": "Demência",
+    "nao-insulino-dependemte": "não insulino-dependente",
+    "nao-insulino-dependente": "não insulino-dependente",
+    "Infarto": "Infarto", "Enfisema": "Enfisema", "Pneumonia": "Pneumonia",
+}
+
+
+#: Palavras femininas que seguem "Outr" no dicionário do DataSUS. A abreviatura
+#: não marca gênero, e expandi-la sempre como "Outros" produzia "Outros
+#: septicemias" numa tabela do artigo. A lista sai da varredura das 27 palavras
+#: que de fato aparecem depois de "Outr" entre as categorias informativas — é
+#: fechada e verificável, não uma heurística de terminação que erraria em
+#: "afeccoes" e acertaria em "anemias" por acaso.
+FEMININAS_APOS_OUTR = {
+    "afeccoes", "anemias", "arma", "arritmias", "doenc", "embolia",
+    "estruturas", "form", "gastroenterites", "hemorragias", "infecc",
+    "malformacoes", "neopl", "partes", "quedas", "septicemias",
+}
+
+
+def rotulo_cid(bruto: str | None, cid: str) -> str:
+    """Descrição da CID legível para uma tabela de artigo.
+
+    Devolve o `cid` quando não há descrição — nunca string vazia, que numa
+    tabela vira célula muda.
+    """
+    if not bruto:
+        return cid
+    texto = bruto.split("   ")[-1].strip()
+    # As barras vêm COLADAS na palavra seguinte ("p/virus", "dev/"), e sem
+    # separá-las o tokenizador nunca vê a abreviatura. Foi assim que
+    # "Doenc p/virus" virou "Doença p/virus" em vez de "Doença por vírus".
+    for sigla, palavra in (("p/", "por "), ("c/", "com "), ("s/", "sem ")):
+        texto = texto.replace(sigla, palavra)
+    tokens = texto.split()
+    fora = []
+    for i, t in enumerate(tokens):
+        if t in ("Outr", "outr"):
+            seguinte = tokens[i + 1] if i + 1 < len(tokens) else ""
+            fem = seguinte in FEMININAS_APOS_OUTR
+            base = "utras" if fem else "utros"
+            fora.append(("O" if t[0] == "O" else "o") + base)
+            continue
+        fora.append(ABREVIATURAS.get(t, t))
+    return " ".join(fora)
+
+
 def tabela_1_base() -> pd.DataFrame:
     man = pd.read_json(ROOT / "data" / "publicacoes" / "atual.json", typ="series")
     pub = pd.read_json(ROOT / "data" / "publicacoes" / f"{man['id']}.json")
@@ -182,7 +256,7 @@ def tabela_4_cargas(comp, conf) -> pd.DataFrame:
             for cid in itens:
                 linhas.append({
                     "Componente": f"PC{i + 1}", "Polo": polo, "CID": cid,
-                    "Descrição": (descricao.get(cid) or cid).split("   ")[-1],
+                    "Descrição": rotulo_cid(descricao.get(cid), cid),
                     "Carga": round(float(serie[cid]), 3),
                     "Inespecífico": "sim" if cid in inesp else "não",
                 })
@@ -267,8 +341,8 @@ def tabela_7_correlacao() -> pd.DataFrame:
     sig = pares[pares.significativo].copy()
     sig["abs_r"] = sig.r.abs()
     top = sig.nlargest(15, "abs_r").copy()
-    top["Descrição A"] = top.cid_a.map(lambda c: (d.get(c) or c).split("   ")[-1])
-    top["Descrição B"] = top.cid_b.map(lambda c: (d.get(c) or c).split("   ")[-1])
+    top["Descrição A"] = top.cid_a.map(lambda c: rotulo_cid(d.get(c), c))
+    top["Descrição B"] = top.cid_b.map(lambda c: rotulo_cid(d.get(c), c))
     return top[["cid_a", "cid_b", "Descrição A", "Descrição B", "r"]].rename(
         columns={"cid_a": "CID A", "cid_b": "CID B", "r": "Correlação"})
 
@@ -281,7 +355,7 @@ def tabela_8_anomalias() -> tuple[pd.DataFrame, pd.DataFrame]:
 
     resumo = (sig.groupby("causabas_3").size().sort_values(ascending=False)
               .head(12).rename("Municípios-ano").reset_index())
-    resumo["Descrição"] = resumo.causabas_3.map(lambda c: (d.get(c) or c).split("   ")[-1])
+    resumo["Descrição"] = resumo.causabas_3.map(lambda c: rotulo_cid(d.get(c), c))
     resumo = resumo.rename(columns={"causabas_3": "CID"})[["CID", "Descrição", "Municípios-ano"]]
 
     por_ano = (an.groupby("ano")
@@ -384,8 +458,8 @@ def tabela_11_correlacao_por_grupo() -> tuple[pd.DataFrame, pd.DataFrame]:
     for cid_a, cid_b in dif.index:
         linhas.append({
             "CID A": cid_a, "CID B": cid_b,
-            "Descrição A": (descricao.get(cid_a) or cid_a).split("   ")[-1],
-            "Descrição B": (descricao.get(cid_b) or cid_b).split("   ")[-1],
+            "Descrição A": rotulo_cid(descricao.get(cid_a), cid_a),
+            "Descrição B": rotulo_cid(descricao.get(cid_b), cid_b),
             f"r no grupo {a} (mais preciso)": round(float(ja.loc[(cid_a, cid_b)]), 2),
             f"r no grupo {b} (menos preciso)": round(float(jb.loc[(cid_a, cid_b)]), 2),
         })

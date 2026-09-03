@@ -117,7 +117,7 @@ O número de repetições não é detalhe de implementação. Com dez, o mesmo k
 
 ### 2.7 Correlação entre causas
 
-Construímos séries mensais nacionais por categoria (120 pontos, 2015–2024) e removemos de cada uma tendência linear e efeito de mês civil por regressão. Sem essa remoção, 23,3% dos 41.041 pares excedem |r| = 0,5; depois dela, 10,8% — a maior parte da "associação entre causas" que uma análise direta encontraria é sazonalidade compartilhada.
+Construímos séries mensais nacionais por categoria (120 pontos, 2015–2024) e removemos de cada uma tendência linear e efeito de mês civil por regressão. Sem essa remoção, 24,1% dos 41.616 pares excedem |r| = 0,5; depois dela, apenas 3,4% — a **grande maioria** da "associação entre causas" que uma análise direta encontraria é tendência e sazonalidade compartilhadas.
 
 Correlações contemporâneas foram testadas por transformação de Fisher com graus de liberdade ajustados pelo número de termos removidos, e a taxa de descoberta falsa foi controlada pelo procedimento de Benjamini-Hochberg a 1%.
 
@@ -131,7 +131,7 @@ O encolhimento não é refinamento: sem ele, um município sem nenhum óbito de 
 
 O teste é binomial negativa, não z-score. A distribuição normal não aproxima contagens cuja moda é zero, e a variância excede a média. A dispersão φ foi estimada por categoria a partir da variação **ano a ano dentro do mesmo município** no período base (mediana 1,23; percentil 95 igual a 3,38). Uma estimativa alternativa, tomando a média nacional como referência, produz φ próximo de 20 porque absorve como ruído a diferença real entre municípios — que é o sinal, não o erro.
 
-Reportamos dois escores: contra a história própria do município, e o mesmo descontada a variação nacional da categoria naquele ano. Taxa de descoberta falsa controlada a 1% sobre 947.319 testes.
+Reportamos dois escores: contra a história própria do município, e o mesmo descontada a variação nacional da categoria naquele ano. Taxa de descoberta falsa controlada a 1% sobre 961.029 testes.
 
 ---
 
@@ -162,16 +162,16 @@ Reportamos dois escores: contra a história própria do município, e o mesmo de
 
 | Ano | B34 (óbitos) | U07 (óbitos) | Total de óbitos | B34 (% do total) |
 |---|---|---|---|---|
-| 2.015 | 91 | 0 | 1.264.175 | 0,01 |
-| 2.016 | 240 | 0 | 1.309.774 | 0,02 |
-| 2.017 | 74 | 0 | 1.312.663 | 0,01 |
-| 2.018 | 56 | 0 | 1.316.719 | 0 |
-| 2.019 | 60 | 0 | 1.349.801 | 0 |
-| 2.020 | 213.233 | 0 | 1.556.824 | 13,7 |
-| 2.021 | 425.218 | 0 | 1.832.649 | 23,2 |
-| 2.022 | 66.113 | 0 | 1.544.266 | 4,28 |
-| 2.023 | 10.444 | 0 | 1.465.610 | 0,71 |
-| 2.024 | 5.850 | 0 | 1.532.015 | 0,38 |
+| 2015 | 91 | 0 | 1.264.175 | 0,01 |
+| 2016 | 240 | 0 | 1.309.774 | 0,02 |
+| 2017 | 74 | 0 | 1.312.663 | 0,01 |
+| 2018 | 56 | 0 | 1.316.719 | 0 |
+| 2019 | 60 | 0 | 1.349.801 | 0 |
+| 2020 | 213.233 | 0 | 1.556.824 | 13,7 |
+| 2021 | 425.218 | 0 | 1.832.649 | 23,2 |
+| 2022 | 66.113 | 0 | 1.544.266 | 4,28 |
+| 2023 | 10.444 | 0 | 1.465.610 | 0,71 |
+| 2024 | 5.850 | 0 | 1.532.015 | 0,38 |
 
 Não há um único registro em U07 em dez anos. O achado é operacional antes de ser interpretativo: qualquer análise que trate B34 pela sua descrição na CID-10 — "doença por vírus de localização não especificada" — e o descarte como código inespecífico terá removido 23,2% de todos os óbitos brasileiros de 2021.
 
@@ -225,7 +225,7 @@ Ou seja: **o grão que parece ter mais sinal tem menos.** A variância explicada
 O agrupamento observado é consistentemente mais compacto que o do nulo — a razão fica entre 0,68 e 0,90 em todo o intervalo, ou seja, há estrutura real a ser particionada. Mas as outras duas colunas negam a existência de grupos:
 
 - a **reprodutibilidade é alta** (Rand ajustado 0,954 em k=2 e 0,904 em k=3), o que isoladamente pareceria confirmar uma tipologia;
-- a **separação é baixa em todo k** (silhueta entre 0,155 e 0,177), sem qualquer máximo local;
+- a **separação é baixa em todo k** (silhueta entre 0,156 e 0,185), sem qualquer máximo local;
 - a soma de quadrados não explicada **cai monotonicamente sem cotovelo**, de 0,82 a 0,40, sem indicar um k natural.
 
 A combinação de partição reprodutível com silhueta baixa é a assinatura de um **gradiente contínuo**. O mesmo corte reaparece a cada subamostra porque a direção do gradiente é estável, não porque existam agregados separados por vazios. Reportar "três tipos de município" a partir destes dados seria afirmar uma separação que a silhueta nega.
@@ -238,22 +238,24 @@ As cargas do primeiro componente (Tabela 4, `tabela_4_cargas.csv`) opõem I64, I
 
 O polo negativo é composto de diagnósticos imprecisos. O positivo, de diagnósticos precisos.
 
-Para quantificar, construímos um índice de inespecificidade: a fração dos óbitos do município codificada em categorias cuja descrição na CID-10 contém as marcas *NE* (não especificado), *NCOP* (não classificado em outra parte) ou *SOE* (sem outra especificação), **excluído B34**, que casa com o padrão textual mas é COVID-19 e não imprecisão. O índice vale, na mediana, 0,225 entre os municípios analisados, com percentis 5 e 95 em 0,154 e 0,313.
+Para quantificar, construímos um índice de inespecificidade: a fração dos óbitos do município codificada em categorias cuja descrição na CID-10 contém as marcas *NE* (não especificado), *NCOP* (não classificado em outra parte) ou *SOE* (sem outra especificação), **excluído B34**, que casa com o padrão textual mas é COVID-19 e não imprecisão. O índice vale, na mediana, 0,224 entre os municípios analisados, com percentis 5 e 95 em 0,153 e 0,308.
 
 Já removidos os quatro confundidores — inclusive o percentual de causas mal definidas:
 
 | Correlação | r | r² |
 |---|---|---|
-| PC1 × índice de inespecificidade | **0,538** | 0,290 |
-| PC2 × índice | −0,151 | 0,023 |
-| PC3 × índice | −0,070 | 0,005 |
-| % causas mal definidas × índice | **+0,366** | 0,134 |
+| PC1 × índice de inespecificidade | **+0,538** | 0,290 |
+| PC2 × índice | +0,151 | 0,023 |
+| PC3 × índice | +0,072 | 0,005 |
+| % causas mal definidas × índice | **+0,358** | 0,128 |
 
-Dois resultados se somam. Primeiro: **aproximadamente 29% do primeiro componente do perfil municipal de causas é precisão de codificação diagnóstica**, e não perfil de doença. Segundo, e mais consequente: **o indicador clássico de qualidade do registro não captura essa dimensão**. O percentual de causas mal definidas correlaciona apenas +0,36 com o índice; os dois medem coisas distintas. O primeiro mede o balde do capítulo XVIII — o óbito para o qual não se declarou doença alguma. O segundo mede a granularidade de todo o resto: o infarto cerebral codificado como acidente vascular não especificado, o diabetes tipo 2 codificado como diabetes não especificado.
+O sinal de um componente principal é arbitrário — o que importa é a magnitude e o contraste entre as cargas, não a direção do eixo.
+
+Dois resultados se somam. Primeiro: **aproximadamente 29% do primeiro componente do perfil municipal de causas é precisão de codificação diagnóstica**, e não perfil de doença. Segundo, e mais consequente: **o indicador clássico de qualidade do registro não captura essa dimensão**. O percentual de causas mal definidas correlaciona apenas +0,36 com o índice, contra +0,54 do primeiro componente; os dois medem coisas distintas. O primeiro mede o balde do capítulo XVIII — o óbito para o qual não se declarou doença alguma. O segundo mede a granularidade de todo o resto: o infarto cerebral codificado como acidente vascular não especificado, o diabetes tipo 2 codificado como diabetes não especificado.
 
 Incluir o percentual de causas mal definidas entre os controles, como fizemos, **não é suficiente**. O eixo de codificação sobrevive a ele.
 
-Sem excluir B34 do índice, a correlação seria −0,565; a exclusão é conservadora e o resultado é robusto a ela.
+Sem excluir B34 do índice, a correlação seria +0,567; a exclusão é conservadora — ela **reduz** a associação — e o resultado é robusto a ela.
 
 ### 3.6 Os grupos, se descritos, descrevem região e codificação
 
@@ -274,21 +276,21 @@ Este resultado é coerente com a seção anterior e reforça a mesma advertênci
 
 | CID A | CID B | Descrição A | Descrição B | Correlação |
 |---|---|---|---|---|
-| A90 | A91 | Dengue | Febre hemorragica dev virus do dengue | 0,9709 |
-| J18 | J44 | Pneumonia p/microorg NE | Outr doenc pulmonares obstrutivas cronicas | 0,9384 |
-| I25 | J18 | Doenc isquemica cronica do coracao | Pneumonia p/microorg NE | 0,8978 |
-| B34 | J12 | Doenc p/virus de localiz NE | Pneumonia viral NCOP | 0,8818 |
-| E14 | I10 | Diabetes mellitus NE | Hipertensao essencial | 0,873 |
-| F10 | I10 | Transt mentais comport dev uso alcool | Hipertensao essencial | 0,8705 |
-| I25 | I71 | Doenc isquemica cronica do coracao | Aneurisma e disseccao da aorta | 0,8647 |
-| J43 | J44 | Enfisema | Outr doenc pulmonares obstrutivas cronicas | 0,8512 |
-| I25 | J81 | Doenc isquemica cronica do coracao | Edema pulmonar NE de outr form | 0,8491 |
-| I25 | J44 | Doenc isquemica cronica do coracao | Outr doenc pulmonares obstrutivas cronicas | 0,8471 |
+| A90 | A91 | Dengue | Febre hemorrágica devida a vírus do dengue | 0,9709 |
+| J18 | J44 | Pneumonia por microorganismo NE | Outras doenças pulmonares obstrutivas crônicas | 0,9384 |
+| I25 | J18 | Doença isquêmica crônica do coração | Pneumonia por microorganismo NE | 0,8978 |
+| B34 | J12 | Doença por vírus de localização NE | Pneumonia viral NCOP | 0,8818 |
+| E14 | I10 | Diabetes mellitus NE | Hipertensão essencial | 0,873 |
+| F10 | I10 | Transt mentais comportamentais devida a uso álcool | Hipertensão essencial | 0,8705 |
+| I25 | I71 | Doença isquêmica crônica do coração | Aneurisma e dissecção da aorta | 0,8647 |
+| J43 | J44 | Enfisema | Outras doenças pulmonares obstrutivas crônicas | 0,8512 |
+| I25 | J81 | Doença isquêmica crônica do coração | Edema pulmonar NE de outras form | 0,8491 |
+| I25 | J44 | Doença isquêmica crônica do coração | Outras doenças pulmonares obstrutivas crônicas | 0,8471 |
 | I26 | I42 | Embolia pulmonar | Cardiomiopatias | 0,8398 |
-| J18 | J81 | Pneumonia p/microorg NE | Edema pulmonar NE de outr form | 0,8397 |
-| I71 | J12 | Aneurisma e disseccao da aorta | Pneumonia viral NCOP | -0,8359 |
-| J12 | J98 | Pneumonia viral NCOP | Outr transt respirat | 0,8323 |
-| I42 | J81 | Cardiomiopatias | Edema pulmonar NE de outr form | 0,8312 |
+| J18 | J81 | Pneumonia por microorganismo NE | Edema pulmonar NE de outras form | 0,8397 |
+| I71 | J12 | Aneurisma e dissecção da aorta | Pneumonia viral NCOP | -0,8359 |
+| J12 | J98 | Pneumonia viral NCOP | Outros transtornos respiratórios | 0,8323 |
+| I42 | J81 | Cardiomiopatias | Edema pulmonar NE de outras form | 0,8312 |
 
 Dos 41.616 pares testados, 7.030 são significativos com controle de taxa de descoberta falsa a 1%.
 
@@ -308,31 +310,53 @@ O exame dos pares nos quais a defasagem produz maior "ganho" sobre o *lag* zero 
 
 ### 3.9 Desvios do padrão próprio
 
-Dos 947.319 testes, 2.167 células apresentam excesso significativo sobre a história própria do município, e 1.648 sobre a história própria descontada a tendência nacional.
+Dos 961.029 testes, 2.320 células apresentam excesso significativo sobre a história própria do município, e 1.715 sobre a história própria descontada a tendência nacional.
 
 **Controle positivo — dengue (Tabela 8c, `tabela_8c_dengue_2024.csv`).** Sinalizada exclusivamente em 2024, o ano da maior epidemia registrada no Brasil (6,56 milhões de casos prováveis contra 1,65 milhão em 2023, segundo o SINAN):
 
-| Município | UF | CID | Óbitos | Esperado | Razão |
-|---|---|---|---|---|---|
-| São Paulo | SP | A90 | 422 | 6,5 | **64,7×** |
-| Guarulhos | SP | A90 | 95 | 2,4 | 40,2× |
-| São José dos Campos | SP | A90 | 97 | 3,1 | 31,1× |
-| Brasília | DF | A90 | 293 | 15,7 | 18,7× |
-| Belo Horizonte | MG | A91 | 93 | 7,6 | 12,2× |
+| Município | UF | Ano | CID | Óbitos | Esperado | Razão |
+|---|---|---|---|---|---|---|
+| São Paulo | SP | 2024 | A90 | 426 | 7,069 | 60,26 |
+| Guarulhos | SP | 2024 | A90 | 95 | 2,5 | 38 |
+| Guarulhos | SP | 2024 | A91 | 43 | 1,278 | 33,66 |
+| São José dos Campos | SP | 2024 | A90 | 99 | 3,22 | 30,75 |
+| São Paulo | SP | 2024 | A91 | 95 | 5,237 | 18,14 |
+| Brasília | DF | 2024 | A90 | 305 | 17,903 | 17,04 |
+| Brasília | DF | 2024 | A91 | 97 | 8,856 | 10,95 |
+| Belo Horizonte | MG | 2024 | A91 | 90 | 8,524 | 10,56 |
 
-**Controle positivo — COVID-19.** B34 é sinalizada em 74 município-anos, concentrados em 2020–2021.
+**Controle positivo — COVID-19.** B34 é sinalizada em 75 município-anos, concentrados em 2020–2021.
 
-**O resultado mais relevante, contudo, é outro (Tabelas 8a e 8b).** As categorias mais frequentemente sinalizadas não são epidêmicas:
+**O resultado mais relevante, contudo, é outro.** As categorias mais frequentemente sinalizadas não são epidêmicas:
 
-| CID | Descrição | Município-anos |
+**Tabela 8a — Categorias mais sinalizadas.** (`tabela_8a_anomalias_por_cid.csv`)
+
+| CID | Descrição | Municípios-ano |
 |---|---|---|
-| N39 | outros transtornos do trato urinário | 171 |
-| E11 | diabetes mellitus não insulino-dependente | 109 |
-| G30 | doença de Alzheimer | 109 |
-| I10 | hipertensão essencial | 103 |
-| A41 | outras septicemias | 103 |
+| N39 | Outros transtornos do trato urinário | 178 |
+| G30 | Doença de Alzheimer | 130 |
+| E11 | Diabetes mellitus não insulino-dependente | 122 |
+| I10 | Hipertensão essencial | 110 |
+| A41 | Outras septicemias | 93 |
+| J15 | Pneumonia bacteriana NCOP | 75 |
+| B34 | Doença por vírus de localização NE | 75 |
+| I25 | Doença isquêmica crônica do coração | 69 |
+| I11 | Doença cardíaca hipertensiva | 60 |
+| L08 | Outras infecções localização pele e tec subcutâneo | 54 |
+| I63 | Infarto cerebral | 53 |
+| W18 | Outras quedas no mesmo nível | 47 |
 
-E o número de sinais cresce monotonicamente ao longo do período: 203 (2020), 233 (2021), 487 (2022), 600 (2023), 644 (2024). Epidemias não produzem crescimento monótono de cinco anos; mudança de prática de registro produz. Descontada a tendência nacional de cada categoria, o gradiente se atenua substancialmente (205, 299, 359, 389, 396), confirmando que boa parte do crescimento é nacional e não local.
+E o número de sinais cresce ao longo do período. Epidemias não produzem crescimento monótono de cinco anos; mudança de prática de registro produz. Descontada a tendência nacional de cada categoria, o gradiente se atenua, confirmando que boa parte do crescimento é nacional e não local.
+
+**Tabela 8b — Sinais por ano e por escore.** (`tabela_8b_anomalias_por_ano.csv`)
+
+| Ano | Excesso vs. história própria | Excesso descontada a tendência nacional |
+|---|---|---|
+| 2020 | 206 | 208 |
+| 2021 | 235 | 301 |
+| 2022 | 500 | 359 |
+| 2023 | 608 | 388 |
+| 2024 | 771 | 459 |
 
 Estas são as mesmas categorias que dominam as correlações contemporâneas mais fortes da seção 3.7, e o mesmo eixo identificado na seção 3.5. **Os três resultados convergem sobre a mesma dimensão: a codificação diagnóstica variou no espaço e no tempo, e essa variação é grande o suficiente para dominar análises de perfil de mortalidade.**
 
@@ -358,18 +382,18 @@ O teste par a par entre os grupos (z de Fisher, taxa de descoberta falsa a 1%) i
 
 | CID A | CID B | Descrição A | Descrição B | r no grupo 1 (mais preciso) | r no grupo 0 (menos preciso) |
 |---|---|---|---|---|---|
-| I63 | I67 | Infarto cerebral | Outr doenc cerebrovasculares | -0,83 | 0,29 |
-| I46 | Y34 | Parada cardiaca | Fatos ou eventos NE e intenc nao determinada | 0,43 | -0,46 |
+| I63 | I67 | Infarto cerebral | Outras doenças cerebrovasculares | -0,83 | 0,29 |
+| I46 | Y34 | Parada cardíaca | Fatos ou eventos NE e intenc nao determinada | 0,43 | -0,46 |
 | I61 | J12 | Hemorragia intracerebral | Pneumonia viral NCOP | 0,46 | -0,39 |
-| E11 | I25 | Diabetes mellitus nao-insulino-dependemte | Doenc isquemica cronica do coracao | 0,33 | -0,49 |
-| I10 | Y34 | Hipertensao essencial | Fatos ou eventos NE e intenc nao determinada | 0,54 | -0,23 |
-| C18 | I63 | Neopl malig do colon | Infarto cerebral | -0,46 | 0,3 |
-| I61 | J98 | Hemorragia intracerebral | Outr transt respirat | 0,27 | -0,48 |
-| C34 | F32 | Neopl malig dos bronquios e dos pulmoes | Episodios depressivos | 0,2 | -0,55 |
+| E11 | I25 | Diabetes mellitus não insulino-dependente | Doença isquêmica crônica do coração | 0,33 | -0,49 |
+| I10 | Y34 | Hipertensão essencial | Fatos ou eventos NE e intenc nao determinada | 0,54 | -0,23 |
+| C18 | I63 | Neoplasia maligna do colon | Infarto cerebral | -0,46 | 0,3 |
+| I61 | J98 | Hemorragia intracerebral | Outros transtornos respiratórios | 0,27 | -0,48 |
+| C34 | F32 | Neoplasia maligna dos bronquios e dos pulmoes | Episodios depressivos | 0,2 | -0,55 |
 | W79 | Y29 | Inalacao ingest aliment caus obstr trat resp | Contato obj contundente intenc n det | 0,48 | -0,26 |
-| I10 | I61 | Hipertensao essencial | Hemorragia intracerebral | 0,54 | -0,21 |
-| E11 | N39 | Diabetes mellitus nao-insulino-dependemte | Outr transt do trato urinario | 0,42 | -0,32 |
-| F17 | I25 | Transt mentais e comport dev uso de fumo | Doenc isquemica cronica do coracao | 0,13 | -0,59 |
+| I10 | I61 | Hipertensão essencial | Hemorragia intracerebral | 0,54 | -0,21 |
+| E11 | N39 | Diabetes mellitus não insulino-dependente | Outros transtornos do trato urinário | 0,42 | -0,32 |
+| F17 | I25 | Transt mentais e comportamentais devida a uso de fumo | Doença isquêmica crônica do coração | 0,13 | -0,59 |
 
 O par I63 × I67 é o exemplo mais limpo. No grupo de codificação precisa a correlação é **fortemente negativa** (−0,77): os dois códigos são **substitutos**, e usar um implica não usar o outro para a mesma morte. No grupo impreciso a relação desaparece e inverte de sinal (+0,38), porque a escolha entre eles deixa de ser sistemática.
 
@@ -430,8 +454,8 @@ O padrão é específico e as **correlações nulas são as mais informativas**.
 
 - acompanha fortemente **vulnerabilidade socioeconômica** — analfabetismo é o correlato mais forte de toda a lista;
 - acompanha, em magnitude semelhante e sinal oposto, a **densidade de atenção ambulatorial e privada** (estabelecimentos per capita, plano de saúde, gasto municipal em saúde);
-- é **indiferente a leito hospitalar** (−0,09) e a **hospital por habitante** (−0,02);
-- é **indiferente ao porte do município** (+0,01), o que confirma que os controles da seção 2.3 funcionaram.
+- é **indiferente a leito hospitalar** (−0,09) e a **hospital por habitante** (−0,01);
+- é **indiferente ao porte do município** (+0,02), o que confirma que os controles da seção 2.4 funcionaram.
 
 A ausência de associação com capacidade hospitalar desfavorece a leitura de "falta de equipamento". Se a imprecisão fosse principalmente consequência de não haver tomógrafo ou laboratório para tipificar, esperaríamos gradiente com leitos e hospitais — e ele não existe. O que existe é gradiente com escolaridade da população e com densidade da rede ambulatorial.
 
@@ -442,9 +466,28 @@ Isto **não resolve** a questão de artefato versus acesso: escolaridade e densi
 
 ## 4. Discussão
 
+### 4.1 O que foi perguntado e o que foi respondido
+
+O desenho proposto pedia três análises. Todas foram executadas; duas delas respondem o contrário do que a formulação original antecipava, e é aí que está o conteúdo.
+
+| Pedido | Onde | Resposta |
+|---|---|---|
+| Análise não supervisionada: cada município um ponto, agrupado pelos CIDs de mortalidade, com a tabela filtrada por categorias não informativas ou pouco frequentes | §2.3, §3.3, §3.4 | Feito — o filtro deixa 289 de 1.546 categorias. Há seis eixos acima do nulo, **mas não há grupos**: a partição se reproduz e não separa |
+| O mesmo espaço, mas de contexto social | §3.11 | Feito — quatro eixos sociais. O primeiro alinha-se ao eixo principal de mortalidade em r = 0,46 |
+| Correlação e correlação cruzada longitudinal: em cada grupo, quais CIDs se correlacionam | §3.7, §3.8, §3.10 | Contemporânea: sim, com controle positivo satisfeito. **Cruzada com defasagem: não se sustenta** — achado negativo. Por grupo: a resposta difere entre eles, e a diferença é o achado |
+| Detecção de outliers e mudanças de padrão por CID e município; dengue deve aparecer | §2.8, §3.9 | Feito, com binomial negativa em vez de escore z (§2.8 explica). **Dengue aparece, e só em 2024** |
+
+Duas ressalvas de método sobre o pedido original, ambas registradas onde aparecem:
+
+**O escore z não serve aqui.** A mediana é de 78 óbitos por município-ano e a maioria das células município × categoria × ano vale 0, 1 ou 2. A aproximação normal não descreve isso, e a variância excede a média em todas as categorias testadas (φ mediano 1,24). O substituto é a binomial negativa com dispersão estimada dentro do próprio município.
+
+**"Filtrar CIDs não informativos" tem uma armadilha específica no Brasil.** O critério textual óbvio — remover categorias cuja descrição indica imprecisão — removeria B34, que no SIM brasileiro é COVID-19 (§3.2). O filtro adotado exclui o capítulo XVIII e exige prevalência mínima, mas preserva B34 explicitamente.
+
+### 4.2 Três resultados de naturezas diferentes
+
 O desenho proposto foi executado integralmente e produziu três resultados de naturezas diferentes.
 
-**Existe estrutura.** Seis eixos de variação do perfil municipal de causas superam o ruído multinomial por fatores de 2,2 a 5,2, mesmo após remover porte, estrutura etária, qualidade do registro e pandemia. A afirmação é modesta e sólida: a composição de causas difere sistematicamente entre municípios de formas que a amostragem não explica.
+**Existe estrutura.** Seis eixos de variação do perfil municipal de causas superam o ruído multinomial por fatores de 2,2 a 5,3, mesmo após remover porte, estrutura etária, qualidade do registro e pandemia. A afirmação é modesta e sólida: a composição de causas difere sistematicamente entre municípios de formas que a amostragem não explica.
 
 **Não existem grupos.** A discordância entre reprodutibilidade alta e separação baixa é informativa, não ambígua. Estudos que reportam tipologias municipais de mortalidade a partir de *k-means* raramente reportam silhueta ao lado do índice de estabilidade; a nossa leitura é que a estabilidade elevada, sozinha, é rotineiramente sobreinterpretada. Um gradiente estável produz partições estáveis.
 
@@ -484,7 +527,7 @@ Todas as tabelas derivadas estão publicadas em formato Parquet, com SHA-256 por
 |---|---|
 | `mart_mortalidade_causa_municipio` | 3.612.357 células município × CID × ano |
 | `mart_mortalidade_causa_municipio_mes` | 7.759.402 células, grão mensal |
-| `mart_mortalidade_causa_municipio_faixa` | 6.485.073 células por faixa etária e sexo |
+| `mart_mortalidade_causa_municipio_faixa` | 6.525.786 células por faixa etária e sexo |
 | `dim_cid10_informativo` | dicionário de 1.546 categorias com prevalência e marcas |
 | `mart_perfil_mortalidade_municipio` | coordenadas dos seis componentes, por município |
 | `mart_correlacao_causas` | 124.848 linhas: 41.616 pares × 3 recortes (nacional e dois grupos) |
@@ -507,28 +550,28 @@ A metodologia detalhada, com âncora citável por seção, está em **saudeemdad
 
 Itens conhecidos e não resolvidos, listados para que não sejam confundidos com decisões:
 
-- **estrutura etária — medido, e a saída óbvia não funciona.** O grão município × CID × ano × faixa foi construído (`mart_mortalidade_causa_municipio_faixa`, 6.485.073 células, 12 MB; apenas 0,17% dos óbitos sem idade). Ele permitiria padronizar a composição de causas por idade em vez de residualizar sobre o percentual de 60 anos ou mais. Testado, a padronização direta **não substitui a covariável**:
+- **estrutura etária — medido, e a saída óbvia não funciona.** O grão município × CID × ano × faixa foi construído (`mart_mortalidade_causa_municipio_faixa`, 6.525.786 células, 12 MB; apenas 0,17% dos óbitos sem idade). Ele permitiria padronizar a composição de causas por idade em vez de residualizar sobre o percentual de 60 anos ou mais. Testado, a padronização direta **não substitui a covariável**:
 
-| desenho | razão vs. nulo | \|r\| do PC1 com % 60+ |
-|---|---|---|
-| bruta + % 60+ como covariável (adotado) | 5,23× | **0,000** |
-| bruta, sem controle nenhum | 9,33× | 0,710 |
-| padronizada por idade, sem covariável | 7,69× | **0,602** |
-| padronizada por idade + covariável | 5,16× | 0,001 |
+| desenho | razão vs. nulo | \|r\| do PC1 com % 60+ | \|r\| com inespecificidade | componentes > 2× |
+|---|---|---|---|---|
+| bruta + % 60+ como covariável (adotado) | 5,32× | **0,000** | 0,538 | 6 |
+| bruta, sem controle nenhum | 9,50× | 0,710 | 0,499 | 6 |
+| padronizada por idade, sem covariável | 7,82× | **0,602** | 0,565 | 5 |
+| padronizada por idade + covariável | 5,25× | 0,000 | 0,576 | 5 |
 
-A padronização parece reter mais sinal, e é ilusão: o componente padronizado ainda correlaciona 0,602 com a estrutura etária. Padronizar pela distribuição etária dos *óbitos* remove o efeito de quem morre, mas não o de municípios envelhecidos terem perfil distinto *dentro* de cada faixa — e a composição intra-faixa de um município jovem, com poucos óbitos acima de 75 anos, é ela própria ruidosa. Manter as duas (última linha) controla a idade tão bem quanto a covariável sozinha e deixa o achado de codificação um pouco mais forte (0,576 contra 0,536), ao custo de um componente acima do nulo. É o caminho natural, e a diferença é pequena;
+A padronização parece reter mais sinal, e é ilusão: o componente padronizado ainda correlaciona 0,602 com a estrutura etária — quase o mesmo 0,710 de não controlar nada. Padronizar pela distribuição etária dos *óbitos* remove o efeito de quem morre, mas não o de municípios envelhecidos terem perfil distinto *dentro* de cada faixa, e a composição intra-faixa de um município jovem, com poucos óbitos acima de 75 anos, é ela própria ruidosa. Manter as duas (última linha) controla a idade tão bem quanto a covariável sozinha e deixa o achado de codificação um pouco mais forte (0,576 contra 0,538), ao custo de um componente acima do nulo. É o caminho natural, e a diferença é pequena;
 
 - **incluir todas as categorias da CID — viável, mas contraproducente.** A tabela publicada já traz as 1.546 categorias; o filtro de 289 existe só na análise. Afrouxá-lo degrada:
 
-| corte de prevalência | categorias | razão vs. nulo | componentes acima de 2× |
-|---|---|---|---|
-| ≥ 50% dos municípios | 200 | 4,92× | 6 |
-| ≥ 25% (adotado) | 357 | **5,02×** | **6** |
-| ≥ 10% | 589 | 4,79× | 6 |
-| ≥ 1% | 1.087 | 4,00× | 5 |
-| todas as presentes | 1.481 | 3,70× | 4 |
+| corte de prevalência | categorias | razão vs. nulo | componentes acima de 2× | \|r\| com inespecificidade |
+|---|---|---|---|---|
+| ≥ 50% dos municípios | 200 | 4,98× | 6 | 0,532 |
+| ≥ 25% (adotado) | 357 | **5,07×** | **6** | **0,536** |
+| ≥ 10% | 589 | 4,78× | 6 | 0,536 |
+| ≥ 1% | 1.089 | 4,04× | 5 | 0,407 |
+| todas as presentes | 1.458 | 3,74× | 4 | 0,373 |
 
-Categorias raras entram como colunas quase inteiramente nulas e diluem o sinal. O patamar fica entre 25% e 50%, e o corte adotado está nele;
+Categorias raras entram como colunas quase inteiramente nulas e diluem o sinal: a razão contra o nulo cai um quarto e dois componentes deixam de superá-lo. O eixo de codificação também se dilui — de 0,54 para 0,37. O patamar fica entre 25% e 50%, e o corte adotado está nele;
 - a resolução mensal por município é a única via plausível para reexaminar precedência temporal, e exige tratamento explícito de contagens pequenas;
 - a comparação entre grupos usa teste z de Fisher assumindo independência entre os recortes, o que é razoável por serem municípios distintos, mas ignora correlação espacial residual;
 - separar artefato de registro de acesso diagnóstico real exigiria informação individual sobre o processo de certificação do óbito, que a base não contém — é a limitação central da seção 3.11.

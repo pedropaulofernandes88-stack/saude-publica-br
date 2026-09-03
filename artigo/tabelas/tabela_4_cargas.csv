@@ -1,37 +1,37 @@
 ﻿Componente,Polo,CID,Descrição,Carga,Inespecífico
-PC1,negativo,C18,Neopl malig do colon,-0.211,não
-PC1,negativo,C34,Neopl malig dos bronquios e dos pulmoes,-0.198,não
-PC1,negativo,C25,Neopl malig do pancreas,-0.187,não
-PC1,negativo,C43,Melanoma malig da pele,-0.161,não
+PC1,negativo,C18,Neoplasia maligna do colon,-0.211,não
+PC1,negativo,C34,Neoplasia maligna dos bronquios e dos pulmoes,-0.198,não
+PC1,negativo,C25,Neoplasia maligna do pancreas,-0.187,não
+PC1,negativo,C43,Melanoma maligna da pele,-0.161,não
 PC1,negativo,I35,Transt nao-reumaticos da valva aortica,-0.149,não
-PC1,negativo,V43,Ocup automov traum col auto pickup caminhon,-0.149,não
-PC1,positivo,I64,Acid vasc cerebr NE como hemorrag isquemico,0.132,sim
-PC1,positivo,I10,Hipertensao essencial,0.111,não
+PC1,negativo,V43,Ocup automov traumatizado col auto pickup caminhon,-0.149,não
+PC1,positivo,I64,Acidente vascular cerebral NE como hemorrag isquemico,0.132,sim
+PC1,positivo,I10,Hipertensão essencial,0.111,não
 PC1,positivo,E14,Diabetes mellitus NE,0.106,sim
-PC1,positivo,V29,Motociclista traum outr acid transp e NE,0.094,sim
-PC1,positivo,K92,Outr doenc do aparelho digestivo,0.09,não
-PC1,positivo,X95,Agressao disparo outr arma de fogo ou NE,0.086,sim
-PC2,negativo,X99,Agressao objeto cortante ou penetrante,-0.178,não
-PC2,negativo,E11,Diabetes mellitus nao-insulino-dependemte,-0.151,não
+PC1,positivo,V29,Motociclista traumatizado outros acidente transporte e NE,0.094,sim
+PC1,positivo,K92,Outras doenças do aparelho digestivo,0.09,não
+PC1,positivo,X95,Agressão disparo outras arma de fogo ou NE,0.086,sim
+PC2,negativo,X99,Agressão objeto cortante ou penetrante,-0.178,não
+PC2,negativo,E11,Diabetes mellitus não insulino-dependente,-0.151,não
 PC2,negativo,I63,Infarto cerebral,-0.145,não
-PC2,negativo,C53,Neopl malig do colo do utero,-0.137,não
+PC2,negativo,C53,Neoplasia maligna do colo do utero,-0.137,não
 PC2,negativo,P24,Sindr de aspiracao neonatal,-0.131,não
 PC2,negativo,E10,Diabetes mellitus insulino-dependente,-0.123,não
-PC2,positivo,N39,Outr transt do trato urinario,0.18,não
-PC2,positivo,J69,Pneumonite dev solidos e liquidos,0.166,não
+PC2,positivo,N39,Outros transtornos do trato urinário,0.18,não
+PC2,positivo,J69,Pneumonite devida a solidos e liquidos,0.166,não
 PC2,positivo,Y34,Fatos ou eventos NE e intenc nao determinada,0.156,sim
-PC2,positivo,N03,Sindr nefritica cronica,0.155,não
-PC2,positivo,I67,Outr doenc cerebrovasculares,0.153,não
-PC2,positivo,J18,Pneumonia p/microorg NE,0.12,sim
+PC2,positivo,N03,Sindr nefritica crônica,0.155,não
+PC2,positivo,I67,Outras doenças cerebrovasculares,0.153,não
+PC2,positivo,J18,Pneumonia por microorganismo NE,0.12,sim
 PC3,negativo,E14,Diabetes mellitus NE,-0.198,sim
-PC3,negativo,F10,Transt mentais comport dev uso alcool,-0.172,não
-PC3,negativo,F17,Transt mentais e comport dev uso de fumo,-0.15,não
-PC3,negativo,X95,Agressao disparo outr arma de fogo ou NE,-0.136,sim
-PC3,negativo,V23,Motocicl traum colis automov pickup caminhon,-0.135,não
-PC3,negativo,K70,Doenc alcoolica do figado,-0.132,não
-PC3,positivo,J15,Pneumonia bacter NCOP,0.189,sim
-PC3,positivo,J96,Insuf respirat NCOP,0.178,sim
-PC3,positivo,A41,Outr septicemias,0.177,não
-PC3,positivo,N17,Insuf renal aguda,0.148,não
-PC3,positivo,I50,Insuf cardiaca,0.146,não
-PC3,positivo,J18,Pneumonia p/microorg NE,0.146,sim
+PC3,negativo,F10,Transt mentais comportamentais devida a uso álcool,-0.172,não
+PC3,negativo,F17,Transt mentais e comportamentais devida a uso de fumo,-0.15,não
+PC3,negativo,X95,Agressão disparo outras arma de fogo ou NE,-0.136,sim
+PC3,negativo,V23,Motocicl traumatizado colis automov pickup caminhon,-0.135,não
+PC3,negativo,K70,Doença alcoolica do figado,-0.132,não
+PC3,positivo,J15,Pneumonia bacteriana NCOP,0.189,sim
+PC3,positivo,J96,Insuficiência respiratórios NCOP,0.178,sim
+PC3,positivo,A41,Outras septicemias,0.177,não
+PC3,positivo,N17,Insuficiência renal aguda,0.148,não
+PC3,positivo,I50,Insuficiência cardíaca,0.146,não
+PC3,positivo,J18,Pneumonia por microorganismo NE,0.146,sim
