@@ -37,9 +37,11 @@ import pandas as pd
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+#: Pasta do manuscrito. Virou argumento quando nasceu o segundo manuscrito
+#: (`artigo-neoplasias/`): a regra "tabela do texto sai do CSV" vale para os
+#: dois, e uma segunda cópia deste arquivo divergiria da primeira sem avisar.
+#: Sem `--dir`, o comportamento é o de sempre.
 RAIZ = Path(__file__).resolve().parent
-MANUSCRITO = RAIZ / "manuscrito.md"
-TABELAS = RAIZ / "tabelas"
 
 #: Anúncio de tabela seguido do bloco Markdown que ela substitui.
 #:
@@ -82,13 +84,16 @@ def bloco_markdown(csv: pd.DataFrame) -> str:
     return "\n".join(linhas) + "\n"
 
 
-def sincronizar(conferir: bool) -> int:
-    texto = MANUSCRITO.read_text(encoding="utf-8")
+def sincronizar(conferir: bool, raiz: Path = RAIZ) -> int:
+    manuscrito, tabelas = raiz / "manuscrito.md", raiz / "tabelas"
+    if not manuscrito.exists():
+        raise SystemExit(f"{manuscrito} não existe")
+    texto = manuscrito.read_text(encoding="utf-8")
     divergentes: list[str] = []
 
     def troca(m: re.Match) -> str:
         anuncio, nome, atual = m.group(1), m.group(2), m.group(3)
-        caminho = TABELAS / nome
+        caminho = tabelas / nome
         if not caminho.exists():
             divergentes.append(f"{nome}: CSV ausente")
             return m.group(0)
@@ -102,24 +107,27 @@ def sincronizar(conferir: bool) -> int:
 
     if conferir:
         if divergentes:
-            print(f"[conferir] {len(divergentes)} de {n} tabelas divergem do CSV:")
+            print(f"[conferir] {raiz.name}: {len(divergentes)} de {n} tabelas "
+                  "divergem do CSV:")
             for d in divergentes:
                 print(f"    {d}")
-            print("\nRode `python artigo/sincronizar_tabelas.py` para reescrevê-las.")
+            print(f"\nRode `python artigo/sincronizar_tabelas.py --dir {raiz.name}` "
+                  "para reescrevê-las.")
             return 1
-        print(f"[conferir] as {n} tabelas do manuscrito batem com os CSVs")
-        _prestar_contas(n)
+        print(f"[conferir] {raiz.name}: as {n} tabelas do manuscrito batem com os CSVs")
+        _prestar_contas(n, manuscrito, tabelas)
         return 0
 
-    MANUSCRITO.write_text(novo_texto, encoding="utf-8")
-    print(f"[sincronizar] {n} tabelas processadas, {len(divergentes)} reescritas")
+    manuscrito.write_text(novo_texto, encoding="utf-8")
+    print(f"[sincronizar] {raiz.name}: {n} tabelas processadas, "
+          f"{len(divergentes)} reescritas")
     for d in divergentes:
         print(f"    {d}")
-    _prestar_contas(n)
+    _prestar_contas(n, manuscrito, tabelas)
     return 0
 
 
-def _prestar_contas(n: int) -> None:
+def _prestar_contas(n: int, manuscrito: Path, tabelas: Path) -> None:
     """Diz o que sobrou, em vez de deixar o total sem explicação.
 
     A ferramenta imprimia "15 tabelas processadas" havendo 16 CSVs, e o 16º era
@@ -129,8 +137,8 @@ def _prestar_contas(n: int) -> None:
     cairia de 15 para 14 e não haveria nada a comparar. Total sem prestação de
     contas é número que ninguém consegue conferir.
     """
-    csvs = {p.name for p in TABELAS.glob("*.csv")}
-    texto = MANUSCRITO.read_text(encoding="utf-8")
+    csvs = {p.name for p in tabelas.glob("*.csv")}
+    texto = manuscrito.read_text(encoding="utf-8")
     citados = {c for c in csvs if c in texto}
     if orfas := sorted(csvs - citados):
         print(f"[atenção] {len(orfas)} CSV sem nenhuma citação no manuscrito:")
@@ -150,7 +158,10 @@ def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--conferir", action="store_true",
                     help="não escreve; sai != 0 se alguma tabela divergir")
-    raise SystemExit(sincronizar(ap.parse_args().conferir))
+    ap.add_argument("--dir", default=str(RAIZ),
+                    help="pasta do manuscrito (padrão: artigo/)")
+    args = ap.parse_args()
+    raise SystemExit(sincronizar(args.conferir, Path(args.dir).resolve()))
 
 
 if __name__ == "__main__":

@@ -17,16 +17,19 @@ Uso:
 """
 from __future__ import annotations
 
+import argparse
 import html
 import re
 import subprocess
 import sys
 from pathlib import Path
 
+#: Diretório do manuscrito. Passa a ser argumento porque existe um SEGUNDO
+#: manuscrito (`artigo-neoplasias/`) com o mesmo subconjunto de Markdown e a
+#: mesma tipografia. Copiar este arquivo para lá seria criar duas versões do
+#: renderizador que divergem em silêncio — o mesmo motivo de `_sim_obitos.py`
+#: existir. Sem argumento, o comportamento é o de sempre.
 AQUI = Path(__file__).resolve().parent
-ENTRADA = AQUI / "manuscrito.md"
-SAIDA_HTML = AQUI / "manuscrito.html"
-SAIDA_PDF = AQUI / "manuscrito.pdf"
 
 MARCA_ITEM = re.compile(r"^\s*[-*]\s+")
 BLOCO = re.compile(r"^(#{1,4}\s|\s*[-*]\s|\|)")
@@ -171,16 +174,25 @@ def para_html(md: str) -> str:
 
 
 def main() -> None:
-    if not ENTRADA.exists():
-        raise SystemExit(f"{ENTRADA} não existe")
-    md = ENTRADA.read_text(encoding="utf-8")
+    ap = argparse.ArgumentParser(description="Renderiza um manuscrito em HTML e PDF.")
+    ap.add_argument("diretorio", nargs="?", default=str(AQUI),
+                    help="pasta com o manuscrito.md (padrão: artigo/)")
+    raiz = Path(ap.parse_args().diretorio).resolve()
+    entrada = raiz / "manuscrito.md"
+    saida_html = raiz / "manuscrito.html"
+    saida_pdf = raiz / "manuscrito.pdf"
+
+    if not entrada.exists():
+        raise SystemExit(f"{entrada} não existe")
+    md = entrada.read_text(encoding="utf-8")
     titulo = next((x[2:].strip() for x in md.split("\n") if x.startswith("# ")), "Manuscrito")
-    SAIDA_HTML.write_text(
+    saida_html.write_text(
         "<!doctype html>\n<html lang=\"pt-BR\"><head><meta charset=\"utf-8\">"
         "<meta name=\"viewport\" content=\"width=device-width,initial-scale=1\">"
         f"<title>{html.escape(titulo)}</title><style>{CSS}</style></head><body>\n"
         + para_html(md) + "\n</body></html>\n", encoding="utf-8")
-    print(f"[html] {SAIDA_HTML.name} — {SAIDA_HTML.stat().st_size / 1024:.0f} kB", flush=True)
+    print(f"[html] {raiz.name}/{saida_html.name} — "
+          f"{saida_html.stat().st_size / 1024:.0f} kB", flush=True)
 
     chrome = next((c for c in CHROME if Path(c).exists()), None)
     if not chrome:
@@ -188,10 +200,11 @@ def main() -> None:
         return
     r = subprocess.run(
         [chrome, "--headless", "--disable-gpu", "--no-pdf-header-footer",
-         f"--print-to-pdf={SAIDA_PDF}", SAIDA_HTML.as_uri()],
+         f"--print-to-pdf={saida_pdf}", saida_html.as_uri()],
         capture_output=True, text=True, timeout=180)
-    if SAIDA_PDF.exists():
-        print(f"[pdf] {SAIDA_PDF.name} — {SAIDA_PDF.stat().st_size / 1024:.0f} kB", flush=True)
+    if saida_pdf.exists():
+        print(f"[pdf] {raiz.name}/{saida_pdf.name} — "
+              f"{saida_pdf.stat().st_size / 1024:.0f} kB", flush=True)
     else:
         print(f"[pdf] falhou: {(r.stderr or '')[-200:]}", file=sys.stderr, flush=True)
 

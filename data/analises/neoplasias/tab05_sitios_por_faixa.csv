@@ -1,0 +1,36 @@
+faixa_etaria,posicao,causabas_3,sitio,obitos,pct_da_faixa
+0-4,1,C91,Leucemia linfoide,576.0,20.3
+0-4,2,C71,Neopl malig do encefalo,572.0,20.2
+0-4,3,C92,Leucemia mieloide,308.0,10.9
+0-4,4,C74,Neopl malig da gland supra-renal,280.0,9.9
+0-4,5,C72,Neop mal med esp nerv cran out sist nerv cen,176.0,6.2
+5-14,1,C71,Neopl malig do encefalo,1209.0,23.2
+5-14,2,C91,Leucemia linfoide,1188.0,22.8
+5-14,3,C92,Leucemia mieloide,439.0,8.4
+5-14,4,C41,Neopl malig ossos/cartil artic outr loc e NE,331.0,6.4
+5-14,5,C72,Neop mal med esp nerv cran out sist nerv cen,271.0,5.2
+15-29,1,C71,Neopl malig do encefalo,1743.0,10.4
+15-29,2,C92,Leucemia mieloide,1286.0,7.7
+15-29,3,C91,Leucemia linfoide,1254.0,7.5
+15-29,4,C53,Neopl malig do colo do utero,1018.0,6.1
+15-29,5,C41,Neopl malig ossos/cartil artic outr loc e NE,981.0,5.9
+30-44,1,C50,Neopl malig da mama,12324.0,17.6
+30-44,2,C53,Neopl malig do colo do utero,8312.0,11.9
+30-44,3,C16,Neopl malig do estomago,4557.0,6.5
+30-44,4,C71,Neopl malig do encefalo,4240.0,6.1
+30-44,5,C18,Neopl malig do colon,3602.0,5.2
+45-59,1,C50,Neopl malig da mama,29413.0,12.4
+45-59,2,C34,Neopl malig dos bronquios e dos pulmoes,22892.0,9.7
+45-59,3,C16,Neopl malig do estomago,14850.0,6.3
+45-59,4,C18,Neopl malig do colon,13644.0,5.8
+45-59,5,C15,Neopl malig do esofago,11488.0,4.9
+60-74,1,C34,Neopl malig dos bronquios e dos pulmoes,72944.0,15.4
+60-74,2,C50,Neopl malig da mama,31252.0,6.6
+60-74,3,C16,Neopl malig do estomago,28921.0,6.1
+60-74,4,C18,Neopl malig do colon,28610.0,6.1
+60-74,5,C25,Neopl malig do pancreas,27844.0,5.9
+75+,1,C61,Neopl malig da prostata,52433.0,13.1
+75+,2,C34,Neopl malig dos bronquios e dos pulmoes,51020.0,12.8
+75+,3,C18,Neopl malig do colon,25756.0,6.4
+75+,4,C50,Neopl malig da mama,23612.0,5.9
+75+,5,C16,Neopl malig do estomago,23310.0,5.8

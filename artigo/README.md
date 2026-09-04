@@ -13,8 +13,13 @@ escrito a partir de um desenho de análise proposto em 2026-09-01.
 
 ```
 .venv311/Scripts/python artigo/gerar_tabelas.py
+.venv311/Scripts/python artigo/sincronizar_tabelas.py
 .venv311/Scripts/python artigo/renderizar.py
 ```
+
+`sincronizar_tabelas.py` e `renderizar.py` servem aos **dois** manuscritos do
+repositório e recebem a pasta como argumento (`--dir` e posicional). Sem
+argumento, agem sobre este. O outro é `artigo-neoplasias/`.
 
 ## Nenhum número do texto é digitado
 

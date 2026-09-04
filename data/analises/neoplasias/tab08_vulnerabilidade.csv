@@ -1,0 +1,5 @@
+quartil_ivs,obitos_neoplasia,obitos_totais,taxa_bruta_100k,taxa_padronizada_100k,taxa_padr_corrigida_100k,pct_causa_mal_definida,pct_c80_entre_neoplasias,pct_obitos_por_neoplasia
+Q1,511934.0,2870996.0,134.9,130.8,136.4,4.06,2.37,17.8
+Q2,106150.0,697288.0,115.0,118.8,125.9,5.55,2.41,15.2
+Q3,71385.0,513685.0,100.9,106.0,113.3,6.36,2.03,13.9
+Q4,58050.0,450242.0,86.9,95.0,102.4,7.21,1.88,12.9

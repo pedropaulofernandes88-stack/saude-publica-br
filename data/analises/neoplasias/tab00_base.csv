@@ -1,0 +1,17 @@
+Item,Valor
+Fonte dos óbitos,"SIM/DataSUS — .dbc por UF (2015–2021, 2024) e CSV nacional do OpenDataSUS (2022–2023)"
+Período consolidado,2015–2024
+Recorte de causa,"CID-10 C00–C97 (neoplasias malignas), causa básica truncada em três caracteres"
+"Óbitos em D00–D48, excluídos do recorte",45.953
+D00–D48 como fração do capítulo II,"2,0%"
+Óbitos por neoplasia maligna,2.292.834
+Denominador populacional,"IBGE — população por UF, ano e faixa etária"
+População padrão,"Brasil, Censo 2022 (método direto)"
+Período do eixo social,2022–2023
+Óbitos no microdado social (todas as causas),3.005.666
+Óbitos por neoplasia maligna no microdado social,488.535
+"Sem cor/raça declarada, entre os óbitos por câncer","1,6%"
+"Sem escolaridade declarada, entre os óbitos por câncer","13,2%"
+Denominador por cor/raça,"IBGE — Censo 2022, SIDRA t/9606 (cor/raça × sexo × idade)"
+Óbitos fetais,excluídos na fonte — TIPOBITO = 2 em 100% dos registros
+Ano preliminar excluído,2025 (SIM/PRELIM/DORES)

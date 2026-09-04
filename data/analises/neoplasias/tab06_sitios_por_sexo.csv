@@ -1,0 +1,21 @@
+sexo,posicao,causabas_3,sitio,obitos,pct_do_sexo
+F,1,C50,Neopl malig da mama,96077.0,16.5
+F,2,C34,Neopl malig dos bronquios e dos pulmoes,68827.0,11.8
+F,3,C18,Neopl malig do colon,36951.0,6.4
+F,4,C53,Neopl malig do colo do utero,34917.0,6.0
+F,5,C25,Neopl malig do pancreas,32650.0,5.6
+F,6,C16,Neopl malig do estomago,26509.0,4.6
+F,7,C22,Neopl malig figado vias biliares intra-hepat,23201.0,4.0
+F,8,C56,Neopl malig do ovario,21183.0,3.6
+F,9,C71,Neopl malig do encefalo,20369.0,3.5
+F,10,C80,Neopl malig s/especificacao de localiz,14243.0,2.5
+M,1,C61,Neopl malig da prostata,83651.0,13.5
+M,2,C34,Neopl malig dos bronquios e dos pulmoes,81635.0,13.1
+M,3,C16,Neopl malig do estomago,45670.0,7.3
+M,4,C18,Neopl malig do colon,35130.0,5.6
+M,5,C15,Neopl malig do esofago,33319.0,5.4
+M,6,C25,Neopl malig do pancreas,31747.0,5.1
+M,7,C22,Neopl malig figado vias biliares intra-hepat,31652.0,5.1
+M,8,C71,Neopl malig do encefalo,22350.0,3.6
+M,9,C32,Neopl malig da laringe,20069.0,3.2
+M,10,C67,Neopl malig da bexiga,16919.0,2.7
