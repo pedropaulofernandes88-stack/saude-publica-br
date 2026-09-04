@@ -439,6 +439,10 @@ def test_o_catalogo_marca_as_tabelas_que_a_api_nao_serve():
     assert "NomeTabela" in texto and 'n="mart_' in texto, (
         "as células de nome deixaram de passar por NomeTabela, que é onde a "
         "marca é derivada")
+    # a lista de DOWNLOADS também: quatro das cinco não-servidas só aparecem lá,
+    # e é justamente quem baixa que pode supor que a API também as tem
+    assert "servida === false && \" · fora da API REST" in texto, (
+        "a lista de downloads não distingue as tabelas fora da API REST")
 
 
 def test_toda_tabela_do_manifesto_declara_se_e_servida():

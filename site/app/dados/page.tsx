@@ -495,7 +495,7 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
           </tr>
         </thead>
         <tbody>
-          {arquivosPublicados().map(({ nome, bytes, sha256, linhas }) => (
+          {arquivosPublicados().map(({ nome, bytes, sha256, linhas, servida }) => (
             <tr key={nome}>
               <td>
                 <a href={`${SUPABASE_URL}/storage/v1/object/public/dados/${nome}.parquet`} download>
@@ -504,6 +504,7 @@ df <- resp |> resp_body_json(simplifyVector = TRUE)`}</code>
                 <br />
                 <span style={{ fontSize: "0.78em", opacity: 0.7 }}>
                   {linhas.toLocaleString("pt-BR")} linhas
+                  {servida === false && " · fora da API REST, só este arquivo"}
                 </span>
               </td>
               <td>{emMB(bytes)}</td>
