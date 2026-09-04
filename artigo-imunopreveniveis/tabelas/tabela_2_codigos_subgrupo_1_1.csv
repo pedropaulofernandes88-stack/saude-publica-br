@@ -1,0 +1,16 @@
+Doença,CID-10,Menores de 5 anos,5 a 74 anos,"Óbitos 2015–2024, todas as idades"
+Tuberculose do sistema nervoso,A17,sim,sim,1081
+Tuberculose miliar,A19,sim,sim,2430
+Tétano neonatal,A33,sim,não,4
+Tétano obstétrico,A34,não,sim,0
+Tétano (outras formas),A35,sim,sim,692
+Difteria,A36,sim,sim,46
+Coqueluche,A37,sim,sim,110
+Poliomielite aguda,A80,sim,sim,0
+Sarampo,B05,sim,sim,41
+Rubéola,B06,sim,sim,23
+Hepatite aguda B,B16,sim,sim,2013
+Caxumba,B26,sim,não,105
+Meningite por Haemophilus,G00.0,sim,sim,108
+Síndrome da rubéola congênita,P35.0,sim,não,23
+Hepatite viral congênita,P35.3,sim,não,14
