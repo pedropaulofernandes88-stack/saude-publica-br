@@ -35,17 +35,23 @@ Cada valor citado na prosa existe em `tabelas/`, e cada tabela sai de
 `gerar_tabelas.py`. A regra tem regressão: `tests/test_manuscrito.py` confere
 que as quinze tabelas embutidas batem com os seus CSVs.
 
-O mesmo arquivo tem um segundo teste, `test_todo_numero_da_prosa_existe_em_alguma_tabela`,
-que varre a prosa atrás de decimal com vírgula e de inteiro com separador de
-milhar e reprova quem não achar em tabela. **Este manuscrito o satisfaz**, com
-uma única exceção medida e deliberada:
+O mesmo arquivo tem um segundo teste,
+`test_todo_numero_da_prosa_existe_em_alguma_tabela`, que varre a prosa atrás de
+decimal com vírgula e de inteiro com separador de milhar, decompõe cada célula
+das tabelas nos números que contém e compara por **igualdade** — não por
+substring, que aprovaria `6,9` por causa de um `16,9` alheio. Ele é
+parametrizado por `COM_PROCEDENCIA` e cobre esta pasta.
+
+Este manuscrito o satisfaz com uma única exceção, medida e deliberada:
 
 - `0,30` — o limiar de nulidade declarado antes da análise (§2.6). É parâmetro
   de decisão, não medida; cravá-lo numa tabela seria fingir que foi observado.
+  Está em `DECIMAIS_SEM_TABELA["artigo-imunopreveniveis"]`, com o motivo.
 
-O teste ainda está escrito para `artigo-neoplasias` e precisa de uma
-parametrização de uma linha para cobrir esta pasta também. A verificação foi
-feita à mão enquanto isso — ver a nota no fim deste arquivo.
+A guarda foi vista reprovando: trocar `4,03` por `4,07` no texto reprova
+nomeando a pasta e o valor. Foi assim, aliás, que se descobriu que citação
+múltipla no estilo `[4,5]` casa com o padrão de decimal — daí o espaço em
+`[4, 5]` ao longo do texto.
 
 `tabela_14_influenza_doses_uf.csv` é citada em prosa e **não** é embutida: são
 53 linhas de dado por unidade da federação, que a página não comporta e que
@@ -89,11 +95,15 @@ crônica ficam num grupo de latência longa que nunca é somado.
 O manuscrito traz **coautoria a definir** na folha de rosto, de propósito. É
 rascunho de trabalho, não submissão.
 
-## Pendência conhecida
+## As referências foram conferidas na fonte, não citadas de memória
 
-`tests/test_manuscrito.py` estava sendo editado por outra frente de trabalho
-quando esta pasta nasceu, e por isso recebeu apenas a inclusão de
-`artigo-imunopreveniveis` na lista `MANUSCRITOS` — que já põe as tabelas em
-regressão. Falta parametrizar `test_todo_numero_da_prosa_existe_em_alguma_tabela`
-pelas pastas e mover a exceção `0,30` para lá. É edição de uma dúzia de linhas,
-adiada para não colidir com trabalho em curso no mesmo arquivo.
+Os três artigos que propõem e revisam a Lista Brasileira foram baixados do
+SciELO e lidos antes de virarem referência — volume, número, páginas e lista de
+autores saíram do PDF. Foi o que permitiu citar, na §3.4, a justificativa que os
+próprios autores dão para manter A17 e A19 no subgrupo de imunoprevenção: a
+vacina BCG. O argumento do artigo passou a incidir sobre o critério declarado
+por quem escreveu a lista, e não sobre uma suposição a respeito dele.
+
+O `WebFetch` não alcança esses PDFs — ele promove a URL para HTTPS e
+`scielo.iec.gov.br` só fala HTTP, devolvendo `ECONNREFUSED`, que se lê como
+"fora do ar" e não é. `curl` na porta 80 baixa em segundos.

@@ -26,7 +26,7 @@
 
 ## 1. Introdução
 
-Perguntar quantas pessoas morrem no Brasil de doenças que uma vacina previne parece uma pergunta de epidemiologia, e é em boa parte uma pergunta de instrumento. Existe uma resposta oficial: a Lista Brasileira de Causas de Mortes Evitáveis, construída por grupo de trabalho coordenado pelo Ministério da Saúde, publicada em 2007, revista em oficinas da Expoepi de 2009 e 2010, e distribuída como nota técnica do TabNet/DataSUS em duas versões etárias — menores de cinco anos e de cinco a setenta e quatro anos. O primeiro subgrupo de ambas reúne as causas "reduzíveis pelas ações de imunoprevenção". Ele é o que o Brasil usa quando precisa dizer, com respaldo institucional, que uma morte poderia ter sido evitada por vacina.
+Perguntar quantas pessoas morrem no Brasil de doenças que uma vacina previne parece uma pergunta de epidemiologia, e é em boa parte uma pergunta de instrumento. Existe uma resposta oficial: a Lista Brasileira de Causas de Mortes Evitáveis, construída por grupo de trabalho coordenado pelo Ministério da Saúde, publicada em 2007 [1], revista em 2010 [2] e, para a faixa de cinco a setenta e quatro anos, em 2011 [3], e distribuída como nota técnica do TabNet/DataSUS em duas versões etárias [4, 5] — menores de cinco anos e de cinco a setenta e quatro anos. O primeiro subgrupo de ambas reúne as causas "reduzíveis pelas ações de imunoprevenção". Ele é o que o Brasil usa quando precisa dizer, com respaldo institucional, que uma morte poderia ter sido evitada por vacina.
 
 Entre a última revisão da lista e hoje, o Programa Nacional de Imunizações mudou. Entraram a vacina contra rotavírus, a meningocócica C e depois a ACWY, a pneumocócica 10-valente, a varicela, o HPV. E entrou, em janeiro de 2021, a vacinação contra a COVID-19, que é a maior campanha da história do programa e responde à doença que mais matou brasileiros no período coberto por este trabalho. Uma lista de evitabilidade cujo último ajuste é anterior a tudo isso não descreve o que o SUS oferece hoje.
 
@@ -46,7 +46,7 @@ A terceira é a que organiza o texto, e responder a ela exige separar três cois
 
 ### 2.1 Delineamento, fonte e definição de óbito
 
-Estudo ecológico descritivo de série temporal, com unidade de análise o óbito registrado. A fonte são os microdados do Sistema de Informações sobre Mortalidade (SIM), obtidos por duas rotas do DataSUS: os arquivos por unidade da federação do FTP (`.dbc`) para 2015–2021, 2024 e 2025, e os arquivos nacionais do OpenDataSUS para 2022 e 2023, que conferem exatamente com a rota do FTP nesses dois anos.
+Estudo ecológico descritivo de série temporal, com unidade de análise o óbito registrado. A fonte são os microdados do Sistema de Informações sobre Mortalidade (SIM), obtidos por duas rotas do DataSUS: os arquivos por unidade da federação do FTP (`.dbc`) para 2015–2021, 2024 e 2025, e os arquivos nacionais do OpenDataSUS para 2022 e 2023 [7], que conferem exatamente com a rota do FTP nesses dois anos.
 
 A definição de óbito não foi escrita para este trabalho. Ela é a de `scripts/_sim_obitos.py`, módulo compartilhado por todos os pipelines de mortalidade do repositório, e determina: exclusão de óbito fetal pelo campo `TIPOBITO`, decodificação do campo `IDADE` em anos completos, e município de residência preservado como `000000` quando ausente, para não desaparecer em junção. Compartilhar a definição em vez de reescrevê-la é decisão deliberada — duas cópias da mesma regra divergem em silêncio, e a divergência apareceria como um total de óbitos que não bate entre duas tabelas publicadas.
 
@@ -64,15 +64,19 @@ A agregação foi refeita a partir do microdado preservando os quatro caracteres
 
 ### 2.3 O instrumento oficial
 
-O subgrupo 1.1 foi transcrito literalmente das duas notas técnicas do TabNet/DataSUS (`Obitos_Evitaveis_0_a_4_anos.pdf` e `Obitos_Evitaveis_5_a_74_anos.pdf`), e não reconstruído de memória nem de artigo secundário. As duas versões diferem em quatro pontos, todos preservados: a versão de menores de cinco anos inclui tétano neonatal (A33), caxumba (B26), síndrome da rubéola congênita (P35.0) e hepatite viral congênita (P35.3), e exclui tétano obstétrico (A34), que só aparece na versão de 5 a 74 anos (Tabela 2).
+O subgrupo 1.1 foi transcrito literalmente das duas notas técnicas do TabNet/DataSUS [4, 5] (`Obitos_Evitaveis_0_a_4_anos.pdf` e `Obitos_Evitaveis_5_a_74_anos.pdf`), e não reconstruído de memória nem de artigo secundário. As notas implementam a lista de 2007 [1] com as revisões de 2010 [2] e 2011 [3]. As duas versões diferem em cinco códigos, todos preservados: a versão de menores de cinco anos inclui tétano neonatal (A33), caxumba (B26), síndrome da rubéola congênita (P35.0) e hepatite viral congênita (P35.3), e exclui tétano obstétrico (A34), que só aparece na versão de 5 a 74 anos (Tabela 2).
 
 A aplicação respeita a idade que cada versão determina. Um óbito de menor de cinco anos é avaliado pela lista de menores de cinco; um óbito entre 5 e 74 anos, pela outra. **Óbitos com 75 anos ou mais não são avaliados por nenhuma lista**, porque nenhuma existe — o que é propriedade do instrumento e não recorte deste estudo, e cuja consequência quantitativa é medida na §3.3.
+
+O limite superior é explícito na própria revisão que o fixou: o título de 2011 é "Atualização da lista de causas de mortes evitáveis (5 a 74 anos de idade) por intervenções do Sistema Único de Saúde do Brasil" [3]. Não é omissão da nota técnica nem convenção de tabulação — é a delimitação declarada do instrumento.
 
 ### 2.4 O conjunto ampliado e o critério de disponibilidade
 
 O conjunto ampliado reúne, além dos códigos do subgrupo 1.1, as demais doenças para as quais existe vacina, com os códigos de causa básica que as identificam sem ambiguidade. Cada causa carrega um campo de **disponibilidade**, que registra desde quando a vacina existe na rede pública brasileira, e esse campo faz trabalho analítico, não decorativo: ele separa "a doença tem vacina" de "o SUS oferecia a vacina". O herpes zoster é o caso que obriga a distinção — tem vacina licenciada no Brasil, ela **não** está no PNI, e contar os seus óbitos como evitáveis pelo SUS seria falso. Por isso a Tabela 7 traz dois subtotais, com e sem ele.
 
 A COVID-19 recebe tratamento próprio pelo mesmo motivo: a vacina passou a existir em janeiro de 2021, e nenhum óbito de 2020 poderia ter sido evitado por ela. Os totais do conjunto ampliado são sempre apresentados com e sem COVID-19.
+
+Os anos de entrada foram compilados do Calendário Nacional de Vacinação do Ministério da Saúde e do seu histórico [6]. Eles são anotação de contexto, não variável de análise: nenhum resultado deste artigo depende do ano exato, e a §4.4 registra que não foram auditados ato normativo a ato normativo.
 
 ### 2.5 O grupo de latência longa
 
@@ -82,7 +86,7 @@ Estas três causas estão no artigo porque são o argumento mais forte a favor d
 
 ### 2.6 O cruzamento ecológico e o critério declarado antes da análise
 
-Para testar se a variação territorial da mortalidade por influenza guarda relação com a intensidade da vacinação, foram cruzados, por unidade da federação e para 2023 e 2024, os óbitos por influenza (J09–J11) em pessoas de 60 anos ou mais, os denominadores populacionais dessa faixa e as doses de influenza (`INF3`) registradas no PNI/RNDS (Tabela 14).
+Para testar se a variação territorial da mortalidade por influenza guarda relação com a intensidade da vacinação, foram cruzados, por unidade da federação e para 2023 e 2024, os óbitos por influenza (J09–J11) em pessoas de 60 anos ou mais, os denominadores populacionais dessa faixa [9] e as doses de influenza (`INF3`) registradas no PNI/RNDS [8] (Tabela 14).
 
 O critério de interpretação foi fixado **antes** de observar o resultado: correlação de Spearman com módulo inferior a 0,30, ou sinal diferente entre os dois anos, seria tratada como ausência de sinal — e ausência de sinal seria reportada como resultado, não como convite a procurar outro recorte. Declarar o critério antes é o que separa um achado nulo de uma busca por especificação que produza significância.
 
@@ -143,7 +147,7 @@ A guarda de U07 não disparou: zero óbitos nesse código em dez anos, e 718.811
 | Síndrome da rubéola congênita | P35.0 | sim | não | 23 |
 | Hepatite viral congênita | P35.3 | sim | não | 14 |
 
-Duas leituras saltam da Tabela 2. A primeira é a distribuição interna: tuberculose miliar (2.430 óbitos) e do sistema nervoso (1.081) e hepatite aguda B (2.013) concentram a maior parte do total, enquanto sarampo, rubéola, difteria e caxumba somam, juntos, menos de duzentos óbitos em dez anos. A segunda é a poliomielite: **zero óbitos em toda a série**, o que é a confirmação de um sucesso de saúde pública e, ao mesmo tempo, um código que ocupa lugar na lista sem contribuir com informação.
+Duas leituras saltam da Tabela 2. A primeira é a distribuição interna: tuberculose miliar (2.430 óbitos) e do sistema nervoso (1.081) e hepatite aguda B (2.013) concentram a maior parte do total, enquanto sarampo, rubéola, difteria e caxumba somam, juntos, pouco mais de duzentos óbitos em dez anos. A segunda é a poliomielite: **zero óbitos em toda a série**, o que é a confirmação de um sucesso de saúde pública e, ao mesmo tempo, um código que ocupa lugar na lista sem contribuir com informação.
 
 **Tabela 3 — Óbitos do subgrupo 1.1 por ano, e o mesmo conjunto de códigos acima de 74 anos (`tabela_3_subgrupo_1_1_por_ano.csv`).**
 
@@ -205,7 +209,7 @@ O corte etário tem origem conceitual conhecida — listas de evitabilidade nasc
 
 Dos 5.832 óbitos do subgrupo 1.1, 3.189 são tuberculose miliar ou do sistema nervoso — 54,7% do total do instrumento. Destes, apenas 97 ocorreram em menores de cinco anos; 3.092, ou 53% de todo o subgrupo, ocorreram entre 5 e 74 anos.
 
-A distinção importa porque a evitabilidade atribuída a essas duas causas vem da BCG, cuja eficácia estabelecida é contra as formas graves da tuberculose **na criança**. Não há proteção demonstrada em adulto, e a duração da proteção conferida na infância é objeto de controvérsia. Manter A17 e A19 no subgrupo de imunoprevenção sem restrição etária faz com que mais da metade do que o instrumento oficial reporta como "morte evitável por vacina" seja tuberculose de adulto, para a qual a intervenção evitável é diagnóstico e tratamento — que a própria Lista Brasileira classifica em outro subgrupo, o 1.2, quando se trata das demais formas de tuberculose.
+A distinção importa porque a evitabilidade atribuída a essas duas causas vem da BCG — e isso não é interpretação deste trabalho. É o que a revisão de 2011 declara ao explicar por que manteve A17 e A19 no subgrupo 1.1 e mandou os demais códigos de tuberculose para outro: "por serem as causas evitáveis de morte pela vacina BCG" [3]. A eficácia estabelecida da BCG, porém, é contra as formas graves da tuberculose **na criança**. Não há proteção demonstrada em adulto, e a duração da proteção conferida na infância é objeto de controvérsia. O critério enunciado pelos autores não restringe a idade; a evidência que o fundamenta, sim. Manter A17 e A19 no subgrupo de imunoprevenção sem restrição etária faz com que mais da metade do que o instrumento oficial reporta como "morte evitável por vacina" seja tuberculose de adulto, para a qual a intervenção evitável é diagnóstico e tratamento — que a própria Lista Brasileira classifica em outro subgrupo, o 1.2, quando se trata das demais formas de tuberculose.
 
 Excluída a tuberculose, o núcleo do instrumento oficial fica em 2.643 óbitos em dez anos, 264,3 por ano no país inteiro.
 
@@ -242,7 +246,7 @@ Excluída a tuberculose, o núcleo do instrumento oficial fica em 2.643 óbitos 
 
 Sem a COVID-19, o conjunto ampliado soma 27.917 óbitos, razão de 4,79 sobre o instrumento oficial (Tabela 4); excluído também o herpes zoster, que tem vacina fora do PNI, ficam 26.674 e a razão cai para 4,57. Quatro causas ausentes do subgrupo 1.1 respondem sozinhas por mais óbitos do que ele inteiro: influenza (14.622), doença meningocócica (1.531), meningite pneumocócica (1.121) e pneumonia pneumocócica (809).
 
-A composição por disponibilidade é o que dá sentido ao número. Das causas com maior contagem, a influenza tem campanha anual desde 1999 e está classificada pela Lista Brasileira no subgrupo 1.2, entre as doenças infecciosas, e não no de imunoprevenção. Meningocócica C entrou no PNI em 2010 e a ACWY em 2020; a pneumocócica conjugada, em 2010. Nenhuma delas poderia estar numa lista revista até 2011 — e, ainda assim, meningocócica C e pneumocócica 10-valente já existiam quando a última revisão foi feita.
+A composição por disponibilidade é o que dá sentido ao número. Das causas com maior contagem, a influenza tem campanha anual desde 1999 e está classificada pela Lista Brasileira no subgrupo 1.2, entre as doenças infecciosas, e não no de imunoprevenção. A meningocócica ACWY, de 2020, não teria como constar de uma lista revista em 2011. A meningocócica C e a pneumocócica 10-valente, ambas incorporadas em 2010, teriam — e não constam. A defasagem, portanto, não é só o tempo que passou desde a última revisão: parte dela já existia no dia em que ela foi feita.
 
 ### 3.6 Três eventos em que a vacina existia e a doença matou
 
@@ -358,7 +362,7 @@ A literatura internacional atribui ao pneumococo uma fração substancial da pne
 
 Pelo critério declarado na §2.6, o resultado é **nulo**: a correlação de Spearman é +0,389 em 2023 e −0,056 em 2024, com troca de sinal entre os anos e um deles abaixo do limiar de módulo. O dado por unidade da federação que sustenta o teste está em `tabela_14_influenza_doses_uf.csv`.
 
-Três razões desaconselham insistir com outra especificação. A campanha responde ao surto, o que inverte a direção causal esperada. A unidade de análise é a unidade da federação, sujeita à falácia ecológica com 27 pontos. E, decisiva, a fonte do denominador está incompleta em um dos dois anos: o PNI/RNDS registra 16.621.107 doses de influenza em 2023 contra 54.215.093 em 2024, enquanto o total de doses de todos os imunobiológicos quase não varia entre os dois anos. Não é queda de campanha; é a campanha de 2023 que não chegou inteira ao registro nacional. Dose de influenza de 2023 nessa base não serve de denominador — observação que vale para além deste artigo.
+Três razões desaconselham insistir com outra especificação. A campanha responde ao surto, o que inverte a direção causal esperada. A unidade de análise é a unidade da federação, sujeita à falácia ecológica com menos de trinta pontos por ano (Tabela 15). E, decisiva, a fonte do denominador está incompleta em um dos dois anos: o PNI/RNDS registra 16.621.107 doses de influenza em 2023 contra 54.215.093 em 2024, enquanto o total de doses de todos os imunobiológicos quase não varia entre os dois anos. Não é queda de campanha; é a campanha de 2023 que não chegou inteira ao registro nacional. Dose de influenza de 2023 nessa base não serve de denominador — observação que vale para além deste artigo.
 
 ### 3.11 O grupo de latência longa
 
@@ -386,13 +390,13 @@ A primeira é o corte etário. Um terço da carga por causas com vacina disponí
 
 A segunda é a data. A lista descreve o calendário vacinal anterior a 2011, e o calendário mudou. Ela não tem como conter COVID-19, e isso é justo; mas também não contém rotavírus, meningococo, pneumococo, varicela e HPV, e classifica influenza fora da imunoprevenção apesar de a campanha anual ser anterior à própria lista.
 
-A terceira é interna. Mais da metade do que ela conta é tuberculose miliar e do sistema nervoso em pessoas de 5 a 74 anos, atribuída à imunoprevenção por conta da BCG, cuja proteção estabelecida é contra as formas graves na criança. Não é um detalhe de classificação: é a maior componente do indicador.
+A terceira é interna. Mais da metade do que ela conta é tuberculose miliar e do sistema nervoso em pessoas de 5 a 74 anos, atribuída à imunoprevenção por conta da BCG — critério que a revisão de 2011 enuncia explicitamente [3] e que não restringe a idade, embora a proteção estabelecida da vacina seja contra as formas graves na criança. Não é um detalhe de classificação: é a maior componente do indicador.
 
 ### 4.2 O que muda se o instrumento for atualizado
 
-A comparação entre o subgrupo 1.1 e o conjunto ampliado dá a ordem de grandeza do que está fora: razão de 4,79 sem a COVID-19 e de 123,25 com ela (Tabela 4). Mas a implicação mais útil não é o total: é que os componentes de fora são **os que se movem**.
+A comparação entre o subgrupo 1.1 e o conjunto ampliado dá a ordem de grandeza do que está fora: razão de 4,79 para o conjunto sem a COVID-19, e de 123,25 para a COVID-19 sozinha (Tabela 4). Mas a implicação mais útil não é o total: é que os componentes de fora são **os que se movem**.
 
-O subgrupo 1.1 é composto de causas raras e estáveis, e por isso não responde a política vacinal alguma no horizonte de uma década. As causas de fora, ao contrário, produziram na mesma década um surto de febre amarela com 452 óbitos, a perda do certificado de eliminação do sarampo, o retorno da coqueluche em lactentes e uma série de influenza que triplicou. Uma lista atualizada não seria apenas maior; seria sensível — mostraria variação onde a atual mostra ruído.
+O subgrupo 1.1 é composto de causas raras e estáveis, e por isso não responde a política vacinal alguma no horizonte de uma década. As causas de fora, ao contrário, produziram na mesma década um surto de febre amarela com 452 óbitos, a perda do certificado de eliminação do sarampo, o retorno da coqueluche em lactentes e uma série de influenza cujo maior valor é o do ano mais recente, ainda preliminar. Uma lista atualizada não seria apenas maior; seria sensível — mostraria variação onde a atual mostra ruído.
 
 Três acréscimos são consequências diretas dos resultados: incluir influenza no subgrupo de imunoprevenção, incluir doença meningocócica e doença pneumocócica invasiva, e estender a lista acima dos 74 anos ou explicitar que o indicador é de mortalidade prematura e não de evitabilidade. A restrição etária de A17 e A19 aos menores de cinco anos é a quarta, e a mais barata: não exige dado novo, apenas coerência com o mecanismo que fundamenta a inclusão.
 
@@ -410,6 +414,7 @@ A limitação central não é de método: é de fonte, e vale para toda a litera
 - **A causa básica é uma escolha de codificação.** Óbitos com doença imunoprevenível como causa contribuinte, e não básica, não aparecem — situação frequente na COVID-19 e na influenza em pessoas com comorbidade. A direção do viés é conhecida: subcontagem.
 - **O grupo de latência longa foi excluído por argumento, não por medida.** A fração de câncer de fígado atribuível ao vírus da hepatite B não foi estimada aqui; ela existe na literatura e sua incorporação exigiria premissas que este desenho não sustenta.
 - **A disponibilidade da vacina é nacional e por ano.** Ela não captura variação territorial de recomendação — que é exatamente o mecanismo do surto de febre amarela — nem descontinuidade de estoque. Uma versão futura poderia usar a recomendação vigente por município e ano, dado que existe em normativa e não em base estruturada.
+- **Os anos de entrada no PNI não foram auditados um a um.** Foram compilados do Calendário Nacional de Vacinação [6], e não da sequência de portarias e notas informativas que os instituíram. Servem para separar "tem vacina" de "o SUS oferecia a vacina", que é o uso que o artigo lhes dá, e não sustentariam uma análise de tempo até a incorporação.
 - **O cruzamento ecológico é ecológico.** Ainda que a fonte de 2023 estivesse íntegra, correlação entre agregados por unidade da federação não sustenta inferência sobre indivíduos.
 
 ---
@@ -426,7 +431,7 @@ Atualizar a Lista Brasileira é decisão de vigilância, não exercício estatí
 
 ## 6. Disponibilidade de dados e código
 
-Todas as fontes são de domínio público. Os microdados do Sistema de Informações sobre Mortalidade são distribuídos pelo DataSUS e pelo OpenDataSUS; as doses aplicadas, pelo PNI/RNDS via OpenDataSUS; os denominadores populacionais, pelo IBGE. As duas notas técnicas que definem a Lista Brasileira estão publicadas pelo TabNet/DataSUS. Nenhum dado individual é publicado — apenas agregados.
+Todas as fontes são de domínio público. Os microdados do Sistema de Informações sobre Mortalidade são distribuídos pelo DataSUS e pelo OpenDataSUS; as doses aplicadas, pelo PNI/RNDS via OpenDataSUS; os denominadores populacionais, pelo IBGE. As duas notas técnicas que definem a Lista Brasileira estão publicadas pelo TabNet/DataSUS [4, 5], e os artigos que a propõem e revisam, na revista *Epidemiologia e Serviços de Saúde* [1-3]. Nenhum dado individual é publicado — apenas agregados.
 
 Os cálculos são reproduzidos por dois scripts abertos:
 
@@ -447,3 +452,17 @@ Itens conhecidos e não resolvidos, listados para que não sejam confundidos com
 - **a fração atribuível não foi aplicada a nenhuma causa.** Para pneumococo em pneumonia sem agente, e para hepatite B em câncer de fígado, existem estimativas na literatura. Aplicá-las produziria a única estimativa de carga com ordem de grandeza realista, ao custo de premissas importadas de outras populações — decisão que merece ser tomada explicitamente, e não por conveniência;
 - **a mortalidade não foi padronizada por idade nem apresentada como taxa populacional.** Como o objeto do artigo é a cobertura do instrumento, e não a comparação entre territórios, os números são contagens e proporções sobre o total de óbitos. Uma versão que compare unidades da federação exigiria padronização, e o repositório já dispõe do denominador por faixa;
 - **a situação vacinal individual é o dado que falta e existe.** O PNI/RNDS registra dose com identificador pseudonimizado do paciente; o SIM registra óbito. A vinculação entre as duas bases não é possível com os dados públicos e transformaria todo este desenho — de contagem de teto em medida de falha de proteção.
+
+---
+
+## 8. Referências
+
+- **[1]** Malta DC, Duarte EC, Almeida MF, Dias MAS. Lista de causas de mortes evitáveis por intervenções do Sistema Único de Saúde do Brasil. *Epidemiologia e Serviços de Saúde*. 2007;16(4):233-244.
+- **[2]** Malta DC, Sardinha LMV, Moura L, Lansky S, Leal MC, Szwarcwald CL, França E. Atualização da lista de causas de mortes evitáveis por intervenções do Sistema Único de Saúde do Brasil. *Epidemiologia e Serviços de Saúde*. 2010;19(2):173-176.
+- **[3]** Malta DC, França E, Abreu DX, Oliveira H, Monteiro RA, Sardinha LMV, Duarte EC, Silva GA. Atualização da lista de causas de mortes evitáveis (5 a 74 anos de idade) por intervenções do Sistema Único de Saúde do Brasil. *Epidemiologia e Serviços de Saúde*. 2011;20(3):409-412.
+- **[4]** Brasil. Ministério da Saúde. DATASUS. *Óbitos por causas evitáveis — 0 a 4 anos: notas técnicas*. Disponível em `tabnet.datasus.gov.br/cgi/sim/Obitos_Evitaveis_0_a_4_anos.pdf`
+- **[5]** Brasil. Ministério da Saúde. DATASUS. *Óbitos por causas evitáveis — 5 a 74 anos: notas técnicas*. Disponível em `tabnet.datasus.gov.br/cgi/sim/Obitos_Evitaveis_5_a_74_anos.pdf`
+- **[6]** Brasil. Ministério da Saúde. *Calendário Nacional de Vacinação*. Disponível em `gov.br/saude/pt-br/vacinacao/calendario`
+- **[7]** Brasil. Ministério da Saúde. *Sistema de Informações sobre Mortalidade (SIM): microdados*. DATASUS e OpenDataSUS. Arquivos por unidade da federação e nacionais, competências de 2015 a 2025.
+- **[8]** Brasil. Ministério da Saúde. *Programa Nacional de Imunizações: doses aplicadas*. OpenDataSUS, competências mensais de 2023 a 2026.
+- **[9]** Instituto Brasileiro de Geografia e Estatística. *Censo Demográfico 2022* e *Estimativas da população residente*. Rio de Janeiro: IBGE.
