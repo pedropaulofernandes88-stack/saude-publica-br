@@ -1,0 +1,26 @@
+causa,disponibilidade,grupo,total_2015_2024,2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025
+COVID-19,PNI a partir de 2021,ampliado,718811,0,0,1,0,0,212706,424461,65764,10274,5605,2568
+Influenza,campanha anual desde 1999,ampliado,14622,301,1756,585,1215,1125,1186,1413,3249,1334,2458,4575
+Pneumonia pneumocócica,PNI (VPC10 2010; VPP23 idosos),ampliado,809,70,94,191,95,85,58,25,60,69,62,85
+Sepse pneumocócica,PNI (VPC10 2010; VPP23 idosos),ampliado,793,67,71,80,88,70,36,42,160,98,81,49
+Meningite pneumocócica,PNI (VPC10 2010; VPP23 idosos),ampliado,1121,94,100,102,137,108,40,39,143,176,182,186
+Doença meningocócica,PNI (MenC 2010; ACWY 2020),ampliado,1531,210,191,218,185,192,82,69,93,151,140,183
+Meningite por Haemophilus,PNI (Hib 1999),ampliado,108,11,9,14,17,10,4,3,12,12,16,13
+Sepse/pneumonia Haemophilus,PNI (Hib 1999),ampliado,146,9,9,18,14,14,10,11,17,13,31,24
+Rotavírus,PNI a partir de 2006,ampliado,46,0,3,2,2,4,1,0,8,8,18,2
+Varicela,PNI a partir de 2013,ampliado,408,83,81,67,46,38,22,17,13,12,29,13
+Herpes zoster,FORA do PNI (rede privada),ampliado,1243,87,110,91,123,112,124,119,132,164,181,196
+Febre amarela,PNI (área ampliada 2017-2020),ampliado,500,4,8,195,257,18,2,8,2,3,3,41
+Raiva,PNI (profilaxia pós-exposição),ampliado,22,0,2,5,11,0,0,0,2,0,2,0
+Tuberculose miliar e do SNC,BCG (formas graves na criança),ampliado,3511,279,320,303,342,346,332,360,377,427,425,491
+Tétano,PNI (todo o período),ampliado,696,88,81,80,79,72,66,55,51,66,58,50
+Coqueluche,PNI (dTpa gestante 2014),ampliado,110,42,9,17,8,6,5,1,0,0,22,9
+Difteria,PNI (todo o período),ampliado,46,4,5,10,9,6,0,2,4,2,4,1
+Sarampo,PNI (todo o período),ampliado,41,0,1,2,8,11,15,3,0,1,0,0
+Rubéola e SRC,PNI (todo o período),ampliado,46,3,10,6,4,3,5,7,5,1,2,7
+Caxumba,PNI (todo o período),ampliado,105,7,6,15,5,10,8,11,12,16,15,11
+Hepatite B aguda,PNI (todo o período),ampliado,2013,226,214,233,230,196,208,187,174,166,179,171
+Poliomielite,PNI (todo o período),ampliado,0,0,0,0,0,0,0,0,0,0,0,0
+Câncer de colo do útero (HPV),HPV no PNI desde 2014; latência de décadas,latencia_longa,65999,5727,5847,6385,6526,6596,6627,6606,6983,7209,7493,7455
+Hepatite B crônica/cirrose,fração atribuível ao HBV não separável na CID,latencia_longa,2083,262,309,204,233,201,169,162,198,163,182,165
+Câncer de fígado,fração atribuível ao HBV não separável na CID,latencia_longa,106018,9711,9786,10201,10551,10902,10764,10598,10618,11199,11688,11585
