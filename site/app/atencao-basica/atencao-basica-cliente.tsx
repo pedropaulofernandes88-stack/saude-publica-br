@@ -7,11 +7,7 @@ import {
   UFS, fmtDec, fmtInt, rest,
   type CoberturaApsMunicipio, type CoberturaIcsapMunicipio,
 } from "@/lib/api";
-
-/** minúsculas + sem acentos, para busca tolerante ("Penapolis" casa com "Penápolis"). */
-function normalizar(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
+import { semAcento } from "@/lib/busca";
 
 const FAIXAS: { rotulo: string; min: number; max: number }[] = [
   { rotulo: "< 10 mil hab.", min: 0, max: 10_000 },
@@ -46,10 +42,10 @@ export function AtencaoBasicaCliente() {
   }, []);
 
   const opcoes = useMemo(() => {
-    const q = normalizar(busca.trim());
+    const q = semAcento(busca.trim());
     if (q.length < 3) return [];
     return municipios
-      .filter((m) => normalizar(m.municipio_nome ?? "").includes(q))
+      .filter((m) => semAcento(m.municipio_nome ?? "").includes(q))
       .sort((a, b) => (b.populacao ?? 0) - (a.populacao ?? 0))
       .slice(0, 8);
   }, [municipios, busca]);

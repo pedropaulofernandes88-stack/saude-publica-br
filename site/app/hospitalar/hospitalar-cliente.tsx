@@ -8,11 +8,7 @@ import {
   type ForecastDemandaHospital, type HsmrHospital, type InternacaoHospital,
   type LeitosMunicipio, type LosHospital,
 } from "@/lib/api";
-
-/** minúsculas + sem acentos, para busca tolerante ("Penapolis" casa com "Penápolis"). */
-function normalizar(s: string): string {
-  return s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-}
+import { semAcento } from "@/lib/busca";
 
 const ANOS_HOSP = [2024, 2023, 2022] as const;
 
@@ -26,10 +22,18 @@ export function HospitalarCliente() {
 
   // ── HSMR — mortalidade hospitalar ajustada por case-mix ──────────────────
   const [hsmr, setHsmr] = useState<HsmrHospital[] | null>(null);
-  // Ordena pela mesma régua que é exibida (hsmr_estrato), não pelo HSMR bruto:
-  // ordenar por uma coluna e mostrar outra colocaria no topo hospitais que não
-  // são os maiores da lista exibida.
-  const [hsmrOrd, setHsmrOrd] = useState<"hsmr_estrato" | "internacoes" | "obitos_observados">("hsmr_estrato");
+  // Quando a ordenação É por HSMR, ela usa a mesma régua que é exibida
+  // (hsmr_estrato) e não o HSMR bruto: ordenar por uma coluna e mostrar outra
+  // colocaria no topo hospitais que não são os maiores da lista exibida.
+  //
+  // Mas o PADRÃO deixou de ser essa ordenação, e o motivo não é estético. Duas
+  // linhas desta mesma página dizem "não é um veredito de qualidade" e "nunca
+  // para ranquear" — e a tela abria uma lista NUMERADA, do maior HSMR para o
+  // menor. Quem chega lê a lista antes do parágrafo, e o que a lista comunica
+  // é exatamente o ranking que o parágrafo proíbe. Abrir por volume descreve
+  // sem julgar; ordenar por HSMR continua a um clique, como escolha deliberada
+  // de quem investiga.
+  const [hsmrOrd, setHsmrOrd] = useState<"hsmr_estrato" | "internacoes" | "obitos_observados">("internacoes");
   useEffect(() => {
     setHsmr(null);
     rest<HsmrHospital>("mart_hsmr_hospital", {
@@ -139,9 +143,9 @@ export function HospitalarCliente() {
   }, []);
 
   const hospOpcoes = useMemo(() => {
-    const q = normalizar(hospBusca.trim());
+    const q = semAcento(hospBusca.trim());
     if (q.length < 3) return [];
-    return hospitaisTodos.filter((h) => normalizar(h.municipio_nome ?? "").includes(q)).slice(0, 8);
+    return hospitaisTodos.filter((h) => semAcento(h.municipio_nome ?? "").includes(q)).slice(0, 8);
   }, [hospitaisTodos, hospBusca]);
 
   useEffect(() => {
@@ -369,8 +373,9 @@ export function HospitalarCliente() {
           praticamente igual entre municípios com e sem leito local, dentro de cada quartil de
           porte — e a diferença que existe favorece levemente o grupo <em>sem</em> leito. O teste mais
           exigente — comparar só na região Norte, onde as distâncias até um hospital de referência são
-          maiores — não muda o quadro (taxa padronizada 627,3 sem leito vs. 662,5 com leito). Se faltar
-          leito matasse, seria ali que apareceria.
+          maiores — não muda o quadro (taxa padronizada 627,3 sem leito vs. 662,5 com leito).
+          <strong> Não encontramos associação neste recorte e com estes ajustes</strong> — o que não é
+          o mesmo que demonstrar que não há efeito. É onde ele apareceria primeiro, e não apareceu.
         </p>
         <p className="mt-2 max-w-3xl text-sm text-ink-700">
           Isso conversa com o achado da seção de ICSAP: leito local quase <strong>dobra</strong> a
@@ -405,10 +410,15 @@ export function HospitalarCliente() {
           <div>
             <label className="label" htmlFor="h-ord">Ordenar por</label>
             <select id="h-ord" className="select" value={hsmrOrd} onChange={(e) => setHsmrOrd(e.target.value as typeof hsmrOrd)}>
-              <option value="hsmr_estrato">HSMR no estrato (maior primeiro)</option>
-              <option value="internacoes">Internações</option>
+              <option value="internacoes">Internações (volume)</option>
               <option value="obitos_observados">Óbitos observados</option>
+              <option value="hsmr_estrato">HSMR no estrato (maior primeiro)</option>
             </select>
+            <p className="mt-1 max-w-xs text-[11px] text-ink-500">
+              A lista abre por volume de propósito. Ordenar por HSMR é útil para investigar, e
+              não produz um ranking de qualidade — o intervalo de confiança de cada linha diz
+              quantas delas sequer diferem do esperado.
+            </p>
           </div>
         </div>
 
@@ -433,16 +443,18 @@ export function HospitalarCliente() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                    <th className="px-3 py-2">#</th><th className="px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                    {/* Sem coluna de posição: numerar as linhas transforma
+                        qualquer ordenação em classificação aos olhos de quem
+                        lê, inclusive a de volume. O CNES já identifica a linha. */}
+                    <th className="px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                     <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">Óbitos obs.</th>
                     <th className="px-3 py-2 text-right">Leitos</th><th className="px-3 py-2 text-center">UTI</th>
                     <th className="px-3 py-2 text-right">HSMR no estrato (IC95%)</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {hsmr.map((h, i) => (
+                  {hsmr.map((h) => (
                     <tr key={h.cnes} className="border-b border-ink-100 hover:bg-ink-50">
-                      <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
                       <td className="px-3 py-2 tabular-nums text-ink-500">{h.cnes}</td>
                       <td className="px-3 py-2 font-medium text-ink-900">{h.municipio_nome ?? h.municipio_cod}</td>
                       <td className="px-3 py-2 text-ink-600">{h.uf_sigla}</td>

@@ -250,8 +250,14 @@ export function MapaCliente() {
         />
       </div>
       <p className="mt-2 text-xs text-ink-500">
+        {/* O texto dizia "não coberto ainda", e deixou de ser verdade quando
+            `pipeline_cnes_leitos` entrou: leitos existem em
+            `mart_leitos_municipio` e aparecem na visão hospitalar. A limitação
+            é DESTE mapa, cuja camada vem da API de dados abertos, e não do
+            projeto — dizer o contrário mandava o visitante procurar fora. */}
         Estabelecimentos de saúde ativos com perfil hospitalar (CNES, cadastro corrente, API de dados
-        abertos do Ministério da Saúde) — não inclui leitos (exigem o FTP do DataSUS, não coberto ainda).
+        abertos do Ministério da Saúde) — esta camada não traz leitos, que vêm do FTP do DataSUS e
+        estão na <a className="text-accent-700 underline" href="/hospitalar/">visão hospitalar</a>.
         "Público" vem da natureza jurídica do estabelecimento, não da esfera de gestão — ver{" "}
         <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
       </p>

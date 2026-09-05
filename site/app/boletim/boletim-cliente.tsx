@@ -108,7 +108,47 @@ function BoletimInner() {
     }).then((r) => setIcsap(r[0] ?? null)).catch(() => {});
   }, [cod]);
 
-  const atual = useMemo(() => linhas?.length ? linhas[linhas.length - 1] : null, [linhas]);
+  /**
+   * O ano exibido, e por que ele não é simplesmente o último da série.
+   *
+   * Era: `linhas[linhas.length - 1]`, o mais recente que existisse. Sair do
+   * painel em 2024 e cair num boletim de 2025 preliminar trocava o ano do
+   * visitante sem aviso, e o próprio aviso de preliminar mandava "use 2024"
+   * sem oferecer como. Agora o painel manda o ano na URL, existe seletor, e o
+   * fallback continua sendo o mais recente para quem chega sem `?ano=`.
+   *
+   * Ano pedido que não existe para este município cai no mais recente em vez
+   * de mostrar página vazia — município pequeno pode não ter linha em todo ano.
+   */
+  const anosDisponiveis = useMemo(
+    () => (linhas ?? []).map((l) => l.ano).sort((a, b) => b - a),
+    [linhas],
+  );
+  const anoPedido = Number(params.get("ano")) || null;
+  const [anoEscolhido, setAnoEscolhido] = useState<number | null>(null);
+  const anoAlvo = anoEscolhido ?? anoPedido;
+
+  const atual = useMemo(() => {
+    if (!linhas?.length) return null;
+    return (anoAlvo && linhas.find((l) => l.ano === anoAlvo)) || linhas[linhas.length - 1];
+  }, [linhas, anoAlvo]);
+
+  const ultimoConsolidado = useMemo(
+    () => anosDisponiveis.find((a) => !ehPreliminar(a)) ?? null,
+    [anosDisponiveis],
+  );
+
+  /** A janela que o gráfico desenha, para o título não prometer outra. */
+  const janelaSerie = useMemo(() => {
+    if (!linhas?.length) return "";
+    return `${linhas[0].ano}–${linhas[linhas.length - 1].ano}`;
+  }, [linhas]);
+
+  /** O endereço acompanha o ano, para o link compartilhado abrir no mesmo. */
+  useEffect(() => {
+    if (typeof window === "undefined" || !atual || !cod) return;
+    window.history.replaceState(null, "", `?m=${cod}&ano=${atual.ano}`);
+  }, [cod, atual]);
 
   const serieTaxas = useMemo(
     () => linhas?.map((l) => ({ ano: l.ano, bruta: l.taxa_obitos_100k, padronizada: l.taxa_padronizada_100k })) ?? null,
@@ -164,7 +204,20 @@ function BoletimInner() {
                 Boletim de mortalidade · {atual.regiao} · População {fmtInt(atual.populacao)} ({atual.ano})
               </p>
             </div>
-            <button onClick={() => window.print()} className="btn-primary no-print">🖨 Imprimir / PDF</button>
+            <div className="flex flex-wrap items-end gap-3 no-print">
+              {anosDisponiveis.length > 1 && (
+                <div>
+                  <label className="label" htmlFor="b-ano">Ano de referência</label>
+                  <select id="b-ano" className="select" value={atual.ano}
+                          onChange={(e) => setAnoEscolhido(Number(e.target.value))}>
+                    {anosDisponiveis.map((a) => (
+                      <option key={a} value={a}>{a}{ehPreliminar(a) ? " (preliminar)" : ""}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
+              <button onClick={() => window.print()} className="btn-primary">🖨 Imprimir / PDF</button>
+            </div>
           </div>
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
@@ -181,7 +234,17 @@ function BoletimInner() {
               ainda não fechou (<code>SIM/PRELIM/DORES</code>) e será revisado. O que muda
               ao consolidar não é só o total — a codificação também: entre as duas versões
               de 2024, milhares de óbitos migraram de &quot;causa mal definida&quot; para
-              causas específicas. Para comparar com anos anteriores, use {atual.ano - 1}.
+              causas específicas.
+              {ultimoConsolidado != null && (
+                <>
+                  {" "}Para comparar com anos anteriores,{" "}
+                  <button type="button" onClick={() => setAnoEscolhido(ultimoConsolidado)}
+                          className="font-semibold underline underline-offset-2 no-print">
+                    ver {ultimoConsolidado}, o último consolidado
+                  </button>
+                  <span className="print-only">use {ultimoConsolidado}, o último consolidado.</span>
+                </>
+              )}
             </p>
           )}
           {(atual.populacao ?? 0) < 10_000 && (
@@ -236,7 +299,13 @@ function BoletimInner() {
           {imuno && <CardImuno mun={imuno.mun} uf={imuno.uf} />}
 
           <div className="card mt-6">
-            <h2 className="font-serif text-xl font-semibold text-ink-900">Taxas de mortalidade, 2015–{atual.ano}</h2>
+            {/* O gráfico traz a série INTEIRA, então o título segue a janela
+                dela — e não o ano selecionado no seletor. Com `atual.ano`,
+                escolher um ano do meio rotulava o gráfico com um intervalo
+                menor do que o que ele desenha. */}
+            <h2 className="font-serif text-xl font-semibold text-ink-900">
+              Taxas de mortalidade, {janelaSerie}
+            </h2>
             <p className="mt-1 text-sm text-ink-500">Verde: padronizada por idade. Cinza tracejada: bruta.</p>
             <div className="mt-4">{serieTaxas ? <SerieTaxas data={serieTaxas} /> : <Skeleton altura={300} />}</div>
           </div>

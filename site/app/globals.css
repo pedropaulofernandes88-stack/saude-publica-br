@@ -75,9 +75,19 @@ body {
 .prose-doc pre code {
   @apply bg-transparent p-0 text-inherit;
 }
+/* Só aparece no papel. Existe em par com `.no-print`: onde a tela oferece um
+   botão ("ver 2024, o último consolidado"), o PDF precisa da mesma informação
+   em texto — botão impresso é instrução que ninguém pode seguir. */
+.print-only {
+  display: none;
+}
+
 @media print {
   header, footer, .no-print {
     display: none !important;
+  }
+  .print-only {
+    display: inline;
   }
   body {
     background: white;
