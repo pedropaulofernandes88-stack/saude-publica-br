@@ -61,6 +61,7 @@ function PainelInner() {
     () => { const v = params.get(PARAM.sexo); return v === "M" || v === "F" ? v : "TOTAL"; },
   );
   const [capitulos, setCapitulos] = useState<CapituloCid[]>([]);
+  const [descricoesCid, setDescricoesCid] = useState<Record<string, string>>({});
 
   const [serie, setSerie] = useState<{ mes: string; obitos: number }[] | null>(null);
   const [completude, setCompletude] = useState<ManifestoCompletude | null>(null);
@@ -128,6 +129,13 @@ function PainelInner() {
   }, [consulta]);
 
   useEffect(() => {
+    // As descrições da CID-10, uma vez por sessão: 2.046 linhas que só o
+    // gráfico de causas usa, e sem as quais ele fala em código.
+    rest<{ causabas_3: string; descricao: string }>("dim_cid10_categoria", {
+      select: "causabas_3,descricao",
+    })
+      .then((r) => setDescricoesCid(Object.fromEntries(r.map((x) => [x.causabas_3, x.descricao]))))
+      .catch(() => {});
     sdata<ManifestoCompletude>("completude").then(setCompletude).catch(() => {});
     sdata<CapituloCid[]>("capitulos")
       .catch(() =>
@@ -245,11 +253,47 @@ function PainelInner() {
       .slice(0, 100);
   }, [particao, busca, popMin, ordenarPor, sexo]);
 
+  /**
+   * Quantos o recorte tem, contra quantos a tabela mostra.
+   *
+   * A tabela corta em 100 e não dizia. Quem filtrava uma UF grande via uma
+   * lista terminar no centésimo município e não tinha como saber se aquele era
+   * o fim do recorte ou o fim da página — limite visual e ausência de registro
+   * têm a mesma aparência quando ninguém conta.
+   */
+  const totalNoRecorte = useMemo(() => {
+    if (!particao) return null;
+    return particao.identificados
+      .filter((m) => (m.populacao ?? 0) >= popMin || sexo !== "TOTAL")
+      .filter((m) => casaMunicipio(busca, m.municipio_nome, m.municipio_cod))
+      .length;
+  }, [particao, busca, popMin, sexo]);
+
+  /**
+   * As quinze principais causas, com DESCRIÇÃO e não só o código.
+   *
+   * O gráfico rotulava as barras com `I21`, `J18`, `B34` — legível para quem
+   * sabe CID-10 de cor, opaco para todo o resto, que é a maioria de quem chega
+   * a um painel público. `dim_cid10_categoria` já está publicada e tem as 2.046
+   * descrições; faltava buscá-la.
+   *
+   * O código continua no rótulo, na frente: quem sabe procura por ele, quem não
+   * sabe lê o que vem depois.
+   */
   const topCausas = useMemo(() => {
     if (!causas) return null;
     return [...causas].sort((a, b) => b.obitos - a.obitos).slice(0, 15)
-      .map((c) => ({ nome: c.causabas_3, obitos: c.obitos }));
-  }, [causas]);
+      .map((c) => {
+        // `descricao` já vem com o código na frente ("I21   Infarto agudo do
+        // miocardio"), e concatenar produzia "I21 — I21   Infarto…", com o
+        // corte comendo o texto. O prefixo sai antes.
+        const desc = (descricoesCid[c.causabas_3] ?? "").replace(/^[A-Z]\d{2}\s+/, "").trim();
+        return {
+          nome: desc ? `${c.causabas_3} — ${desc.slice(0, 40)}` : c.causabas_3,
+          obitos: c.obitos,
+        };
+      });
+  }, [causas, descricoesCid]);
 
   const totalPeriodo = serie?.reduce((s, r) => s + r.obitos, 0);
   const totalAno = useMemo(
@@ -455,7 +499,16 @@ function PainelInner() {
       <div className="card mt-6">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <h2 className="font-serif text-xl font-semibold text-ink-900">Municípios ({ano})</h2>
+            <h2 className="font-serif text-xl font-semibold text-ink-900">
+              Municípios ({ano})
+              {totalNoRecorte != null && (
+                <span className="ml-2 align-middle text-sm font-normal text-ink-500">
+                  {totalNoRecorte > 100
+                    ? `mostrando 100 de ${fmtInt(totalNoRecorte)} no recorte`
+                    : `${fmtInt(totalNoRecorte)} no recorte`}
+                </span>
+              )}
+            </h2>
             <p className="mt-1 text-sm text-ink-500">
               <b>Taxa padronizada</b> (ajustada por idade) é o indicador recomendado para comparar
               municípios; a bruta acompanha IC95%. Disponíveis quando sexo = Ambos.

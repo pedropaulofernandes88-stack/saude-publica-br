@@ -372,12 +372,27 @@ export function Barras({
       + ` Menor valor ${fmtInt(min)}. Unidade: ${unidade.toLowerCase()}.`
     : "Sem dados no recorte selecionado.";
 
+  /**
+   * A largura do eixo de categorias acompanha o rótulo mais longo.
+   *
+   * Era fixa em 88 px, o suficiente para um código de CID e nada mais. Quando o
+   * painel passou a rotular as causas com a descrição — "I21 — Infarto agudo do
+   * miocardio" —, o recharts cortou tudo depois do travessão e as barras
+   * ficaram anunciando "I21 —", que é pior que só o código: parece defeito.
+   *
+   * O teto de 280 px existe para o rótulo não engolir o gráfico; abaixo dele, o
+   * eixo cresce com o texto, e quem usa rótulo curto continua com 88.
+   */
+  const larguraEixo = horizontal
+    ? Math.min(280, Math.max(88, Math.round(Math.max(0, ...data.map((d) => d.nome.length)) * 6.4)))
+    : 88;
+
   const grafico = horizontal ? (
       <ResponsiveContainer width="100%" height={altura}>
         <BarChart data={data} layout="vertical" margin={{ top: 4, right: 24, bottom: 0, left: 8 }}>
           <CartesianGrid stroke={GRID} horizontal={false} />
           <XAxis type="number" tick={AXIS} tickFormatter={compactPt} />
-          <YAxis type="category" dataKey="nome" tick={{ ...AXIS, fill: INK }} width={88} />
+          <YAxis type="category" dataKey="nome" tick={{ ...AXIS, fill: INK }} width={larguraEixo} />
           <Tooltip
             formatter={(v) => [fmtInt(v as number), unidade]}
             contentStyle={{ borderRadius: 8, borderColor: GRID, fontSize: 13 }}
