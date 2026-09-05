@@ -3,8 +3,12 @@ import path from "node:path";
 
 import type { Metadata } from "next";
 import { ANOS, ANOS_PRELIMINARES, SUPABASE_ANON_KEY, SUPABASE_URL } from "@/lib/api";
+import { FONTES, FONTE_DA_TABELA, HORIZONTE_DE_PROJECAO } from "@/lib/fontes";
 
-type TabelaPublicada = { nome: string; linhas: number; bytes: number; sha256: string; servida?: boolean };
+type TabelaPublicada = {
+  nome: string; linhas: number; bytes: number; sha256: string; servida?: boolean;
+  competencia_min?: string | null; competencia_max?: string | null;
+};
 
 /**
  * Lê o manifesto da publicação corrente no momento do build.
@@ -22,6 +26,56 @@ function arquivosPublicados(): TabelaPublicada[] {
     tabelas: Record<string, TabelaPublicada>;
   };
   return Object.values(manifesto.tabelas).sort((a, b) => b.bytes - a.bytes);
+}
+
+/**
+ * Quando o manifesto corrente foi gerado — a data em que a BASE foi
+ * reprocessada, que não é a data em que o site subiu nem a última competência
+ * de cada fonte. As três se confundem, e a página passa a separá-las.
+ */
+function publicacaoCorrente(): { id: string; gerado_em: string } {
+  const dir = path.join(process.cwd(), "..", "data", "publicacoes");
+  const atual = JSON.parse(readFileSync(path.join(dir, "atual.json"), "utf8")) as { arquivo: string };
+  const m = JSON.parse(readFileSync(path.join(dir, atual.arquivo), "utf8")) as {
+    id: string; gerado_em: string;
+  };
+  return { id: m.id, gerado_em: m.gerado_em };
+}
+
+/**
+ * Disponibilidade por fonte, DERIVADA do manifesto.
+ *
+ * A versão anterior desta seção era uma tabela de cinco linhas com intervalos
+ * digitados, e envelheceu duas vezes: dizia que o SINASC parava em 2023 (vai a
+ * 2024) e omitia cinco das dez fontes — entre elas as duas mais atuais da base,
+ * vacinação e atenção primária. Quem viesse saber "até onde vai cada série"
+ * concluía que a base parava em 2025.
+ *
+ * Agora a cobertura sai das competências do manifesto e a única coisa escrita à
+ * mão é o que não se deriva: de que sistema a tabela vem e o que o leitor
+ * precisa saber antes de comparar períodos entre fontes. `lib/fontes.test.mts`
+ * reprova se uma tabela publicada ficar sem classificação — incompletude não
+ * reprova sozinha, e foi assim que a tabela manual perdeu metade das fontes.
+ */
+function disponibilidadePorFonte() {
+  const tabelas = arquivosPublicados();
+  return FONTES.map((f) => {
+    const suas = tabelas.filter((t) => FONTE_DA_TABELA[t.nome] === f.id);
+    // A competência de uma tabela de previsão é o que ela PROJETA, e entrava na
+    // cobertura como se fosse dado observado — ver HORIZONTE_DE_PROJECAO.
+    const comps = suas
+      .filter((t) => !HORIZONTE_DE_PROJECAO.has(t.nome))
+      .flatMap((t) => [t.competencia_min, t.competencia_max])
+      .filter(Boolean) as string[];
+    const ini = comps.length ? comps.reduce((a, b) => (a < b ? a : b)) : null;
+    const fim = comps.length ? comps.reduce((a, b) => (a > b ? a : b)) : null;
+    return {
+      ...f,
+      tabelas: suas.length,
+      linhas: suas.reduce((n, t) => n + t.linhas, 0),
+      cobertura: ini && fim ? (ini === fim ? ini : `${ini} a ${fim}`) : "—",
+    };
+  });
 }
 
 /**
@@ -554,23 +608,82 @@ mg.nlargest(10, "taxa_padronizada_100k")`}</code>
         nome do município no painel.
       </p>
 
-      <h2>Vigência por base (data-fonte)</h2>
+      <h2 id="disponibilidade">Disponibilidade por fonte</h2>
       <p>
         Cada sistema tem cobertura e atualidade próprias — uma análise deve sempre
-        confrontar o ano disponível de cada base:
+        confrontar até onde vai cada base. A cobertura abaixo é <strong>derivada do
+        manifesto da publicação corrente</strong>, não digitada: ela acompanha o dado.
       </p>
       <table>
         <thead>
-          <tr><th>Base</th><th>Sistema</th><th>Cobertura</th><th>Observação</th></tr>
+          <tr>
+            <th>Fonte</th><th>Sistema</th><th>Cobertura</th>
+            <th style={{ textAlign: "right" }}>Tabelas</th>
+            <th style={{ textAlign: "right" }}>Linhas</th>
+            <th>O que observar</th>
+          </tr>
         </thead>
         <tbody>
-          <tr><td>Mortalidade</td><td>SIM</td><td>{ANOS[0]}–{ANOS[ANOS.length - 1]}</td><td>{ANOS_PRELIMINARES.join(", ")} preliminar (PRELIM/DORES)</td></tr>
-          <tr><td>Internações</td><td>SIH/AIH</td><td>2022–2024</td><td>2024 preliminar; só rede SUS</td></tr>
-          <tr><td>Dengue</td><td>SINAN</td><td>2015–2025</td><td>2025 fechado (FINAIS)</td></tr>
-          <tr><td>Nascimentos</td><td>SINASC</td><td>2021–2023</td><td>2024 não liberado pelo MS</td></tr>
-          <tr><td>Vulnerabilidade / população</td><td>IBGE Censo 2022 + estimativas</td><td>2022 (2023 interpolado)</td><td>renda municipal 2022 ainda não liberada</td></tr>
+          {disponibilidadePorFonte().map((f) => (
+            <tr key={f.id}>
+              <td><strong>{f.nome}</strong><br /><span style={{ fontSize: ".85em", opacity: .7 }}>{f.traz}</span></td>
+              <td>{f.sistema}<br /><span style={{ fontSize: ".85em", opacity: .7 }}>{f.orgao}</span></td>
+              <td style={{ whiteSpace: "nowrap" }}>{f.cobertura}</td>
+              <td style={{ textAlign: "right" }}>{f.tabelas}</td>
+              <td style={{ textAlign: "right" }}>{f.linhas.toLocaleString("pt-BR")}</td>
+              <td style={{ fontSize: ".9em" }}>{f.observacao}</td>
+            </tr>
+          ))}
         </tbody>
       </table>
+      <p>
+        Onde a cobertura aparece como <code>AAAA-MM</code>, a série é mensal e o mês é a
+        última competência publicada. As dimensões de apoio e as análises derivadas herdam a
+        competência das fontes que as originam.
+      </p>
+
+      <h3>Três datas que não são a mesma</h3>
+      <p>
+        Elas se confundem com facilidade, e confundi-las faz um número parecer mais
+        velho ou mais novo do que é:
+      </p>
+      <table>
+        <thead>
+          <tr><th>O quê</th><th>Quando</th><th>O que significa</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Base reprocessada</strong></td>
+            <td><code>{publicacaoCorrente().id}</code></td>
+            <td>
+              a publicação corrente, gerada em{" "}
+              {publicacaoCorrente().gerado_em.slice(0, 10)}. Toda tabela desta página traz o
+              SHA-256 dessa publicação.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Dado recente</strong></td>
+            <td>varia por fonte</td>
+            <td>
+              a última competência de cada sistema, na coluna <em>cobertura</em> acima. É a
+              única das três que diz até quando o dado vai.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>Site atualizado</strong></td>
+            <td>a cada publicação no repositório</td>
+            <td>
+              o site é estático e reconstrói a cada mudança de código ou de dado —
+              não implica dado novo.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <p>
+        O ano mais recente do SIM ({ANOS_PRELIMINARES.join(", ")}) é <strong>preliminar</strong>:
+        vem do diretório que o DataSUS ainda não fechou, e a série vai de {ANOS[0]} a{" "}
+        {ANOS[ANOS.length - 1]}.
+      </p>
 
       <h2>Observatório de qualidade do registro</h2>
       <p>
