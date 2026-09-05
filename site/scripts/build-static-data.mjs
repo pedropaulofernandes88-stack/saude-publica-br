@@ -128,6 +128,25 @@ try {
   await writeFile(path.join(OUT, "vulnerab_mortalidade.json"), "[]");
 }
 
+/**
+ * Os 5.571 municípios, para a busca da página inicial.
+ *
+ * Vai como ARRAY DE ARRAYS (`[cod, nome, uf]`), e não como lista de objetos:
+ * repetir três nomes de chave 5.571 vezes custa mais que o dado. São ~220 kB
+ * contra 449 kB — e o arquivo só é buscado quando alguém digita a primeira
+ * letra, nunca no carregamento da home.
+ */
+console.log("[sdata] municípios para a busca…");
+const municipios = await rest("dim_municipio", {
+  select: "municipio_cod,municipio_nome,uf_sigla",
+  order: "municipio_nome",
+});
+await writeFile(
+  path.join(OUT, "municipios.json"),
+  JSON.stringify(municipios.map((m) => [m.municipio_cod, m.municipio_nome, m.uf_sigla])),
+);
+console.log(`[sdata]   ${municipios.length} municípios`);
+
 console.log("[sdata] capítulos, padrão etário e metadados…");
 const caps = await rest("dim_cid10_capitulo", {
   select: "capitulo,capitulo_num,faixa,descricao",

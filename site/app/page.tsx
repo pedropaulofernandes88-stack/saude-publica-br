@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { SerieLinha } from "@/components/charts";
+import { BuscaMunicipal } from "@/components/busca-municipal";
 import { Kpi, Skeleton } from "@/components/kpi";
 import { ANOS, fmtInt, sdata, type MetaItem, type SerieTotalItem } from "@/lib/api";
 import { incompletosDe, notaCompletude, type ManifestoCompletude } from "@/lib/completude";
@@ -68,6 +69,13 @@ export default function Home() {
             taxas padronizadas, incidência epidemiológica, excesso de
             mortalidade, mapa municipal e API pública gratuita.
           </p>
+          {/* A entrada por TERRITÓRIO, antes dos atalhos por tema.
+              O site se entrava por assunto, e quem chega com um município na
+              cabeça precisava de cinco passos até o boletim dele. */}
+          <div className="mt-8 max-w-xl">
+            <BuscaMunicipal />
+          </div>
+
           <div className="mt-8 flex flex-wrap gap-3">
             <Link href="/painel/" className="btn-primary">
               Explorar o painel →

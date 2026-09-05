@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { IndiceDaPagina } from "@/components/indice-da-pagina";
 import { Kpi, Skeleton } from "@/components/kpi";
 import { VerMais } from "@/components/ver-mais";
 import {
@@ -161,6 +162,7 @@ export function HospitalarCliente() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <IndiceDaPagina />
       <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink-950">Visão hospitalar</h1>
       <p className="mt-2 max-w-3xl text-ink-600">
         Inteligência analítica por estabelecimento (CNES): mortalidade ajustada por case-mix (HSMR),

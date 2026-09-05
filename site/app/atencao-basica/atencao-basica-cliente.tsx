@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { SerieCobertura } from "@/components/charts";
+import { IndiceDaPagina } from "@/components/indice-da-pagina";
 import { Kpi, Skeleton } from "@/components/kpi";
 import {
   UFS, fmtDec, fmtInt, rest,
@@ -97,6 +98,7 @@ export function AtencaoBasicaCliente() {
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <IndiceDaPagina />
       <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink-950">Atenção Primária</h1>
       <p className="mt-2 max-w-3xl text-ink-600">
         Cobertura potencial da Atenção Primária à Saúde por município e mês (2021–2026), a partir do

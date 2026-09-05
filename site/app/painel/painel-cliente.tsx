@@ -278,6 +278,45 @@ function PainelInner() {
     ? "Todas as causas"
     : `Capítulo ${capitulo} — ${capitulos.find((c) => c.capitulo === capitulo)?.descricao ?? ""}`;
 
+  /**
+   * Os filtros que DIFEREM do padrão, cada um com como desfazê-lo.
+   *
+   * O painel tem sete controles espalhados por dois blocos, e um recorte
+   * herdado de um link compartilhado chegava sem nada dizendo o que já estava
+   * aplicado — o visitante via uma tabela curta e não sabia por quê. Só o que
+   * difere do padrão entra: um painel recém-aberto não tem nada a listar, e uma
+   * lista que sempre aparece deixa de ser lida.
+   */
+  const filtrosAtivos: { rotulo: string; limpar: () => void }[] = [
+    ...(uf !== "Brasil" ? [{ rotulo: `UF: ${uf}`, limpar: () => setUf("Brasil") }] : []),
+    ...(ano !== ANO_PADRAO ? [{ rotulo: `Ano: ${ano}`, limpar: () => setAno(ANO_PADRAO) }] : []),
+    ...(capitulo !== "TOTAL" ? [{ rotulo: `Causa: ${capitulo}`, limpar: () => setCapitulo("TOTAL") }] : []),
+    ...(sexo !== "TOTAL" ? [{ rotulo: `Sexo: ${sexo === "M" ? "masculino" : "feminino"}`, limpar: () => setSexo("TOTAL") }] : []),
+    ...(popMin !== 50_000 ? [{ rotulo: `População ≥ ${fmtInt(popMin)}`, limpar: () => setPopMin(50_000) }] : []),
+    ...(ordenarPor !== "taxa_pad" ? [{ rotulo: `Ordem: ${ordenarPor === "taxa" ? "taxa bruta" : "óbitos"}`, limpar: () => setOrdenarPor("taxa_pad") }] : []),
+    ...(busca.trim() ? [{ rotulo: `Busca: "${busca.trim()}"`, limpar: () => setBusca("") }] : []),
+  ];
+
+  function limparTudo() {
+    setUf("Brasil"); setAno(ANO_PADRAO); setCapitulo("TOTAL"); setSexo("TOTAL");
+    setPopMin(50_000); setOrdenarPor("taxa_pad"); setBusca("");
+  }
+
+  /**
+   * Por que a busca não achou nada — a diferença entre "não existe" e "o filtro
+   * escondeu".
+   *
+   * Buscar "Penápolis" com o mínimo de 50 mil habitantes devolvia lista vazia
+   * sem dizer que o município EXISTE e tem 63 mil; buscar um de 8 mil devolvia
+   * a mesma tela. Duas situações opostas com a mesma resposta.
+   */
+  const escondidosPeloPorte = useMemo(() => {
+    if (!particao || !busca.trim() || sexo !== "TOTAL") return [];
+    return particao.identificados
+      .filter((m) => casaMunicipio(busca, m.municipio_nome, m.municipio_cod))
+      .filter((m) => (m.populacao ?? 0) < popMin);
+  }, [particao, busca, popMin, sexo]);
+
   return (
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink-950">Painel de mortalidade</h1>
@@ -330,6 +369,26 @@ function PainelInner() {
           )}
         </div>
       </div>
+
+      {filtrosAtivos.length > 0 && (
+        <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
+          <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">Filtros ativos</span>
+          {filtrosAtivos.map((f) => (
+            <button
+              key={f.rotulo}
+              onClick={f.limpar}
+              className="inline-flex items-center gap-1 rounded-full border border-ink-300 bg-white px-3 py-1 text-xs text-ink-700 hover:border-ink-400 hover:bg-ink-50"
+              title={`Remover: ${f.rotulo}`}
+            >
+              {f.rotulo} <span aria-hidden className="text-ink-400">×</span>
+              <span className="sr-only">remover filtro</span>
+            </button>
+          ))}
+          <button onClick={limparTudo} className="text-xs font-medium text-accent-700 underline">
+            Limpar tudo
+          </button>
+        </div>
+      )}
 
       {erro && <div className="card mt-6 border-red-200 bg-red-50 text-sm text-red-800">Falha ao consultar a base: {erro}</div>}
 
@@ -490,9 +549,24 @@ function PainelInner() {
             <Skeleton altura={300} />
           )}
           {ranking && ranking.length === 0 && (
-            <p className="py-6 text-center text-sm text-ink-500">
-              Nenhum município no recorte — reduza a população mínima ou ajuste a busca.
-            </p>
+            <div className="py-6 text-center text-sm text-ink-500">
+              {escondidosPeloPorte.length > 0 ? (
+                <>
+                  <p className="text-ink-700">
+                    {escondidosPeloPorte.length === 1
+                      ? `${escondidosPeloPorte[0].municipio_nome} existe na base`
+                      : `${escondidosPeloPorte.length} municípios existem na base`}
+                    , mas {escondidosPeloPorte.length === 1 ? "está" : "estão"} abaixo do filtro de
+                    população mínima ({fmtInt(popMin)} hab.).
+                  </p>
+                  <button onClick={() => setPopMin(0)} className="mt-2 text-accent-700 underline">
+                    Mostrar sem mínimo de população
+                  </button>
+                </>
+              ) : (
+                <p>Nenhum município no recorte — reduza a população mínima ou ajuste a busca.</p>
+              )}
+            </div>
           )}
         </div>
         <p className="mt-3 text-xs text-ink-500">
