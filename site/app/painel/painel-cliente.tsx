@@ -24,6 +24,7 @@ import {
   type SerieTotalItem,
 } from "@/lib/api";
 import { particionarMunicipios } from "@/lib/municipios";
+import { FichaIndicador } from "@/components/ficha-indicador";
 import { casaMunicipio } from "@/lib/busca";
 import { incompletosDe, notaCompletude, type ManifestoCompletude } from "@/lib/completude";
 
@@ -343,6 +344,19 @@ function PainelInner() {
               ? `no recorte selecionado, ${ano} · ${fmtInt(particao.obitosNaoIdentificados)} óbitos sem município identificado`
               : `no recorte selecionado, ${ano}`
           }
+        />
+      </div>
+      {/* A ficha vale para os dois primeiros cartões e para a coluna de taxa
+          padronizada da tabela — é o mesmo indicador, do mesmo mart. Fica
+          abaixo do bloco e em largura cheia, pela mesma razão do boletim. */}
+      <div className="mt-2 space-y-2">
+        <FichaIndicador
+          id="obitos"
+          contexto={`${uf === "Brasil" ? "Brasil" : uf}, ${ano}${ehPreliminar(ano) ? " · dado preliminar" : " · dado consolidado"} · ${capDesc}`}
+        />
+        <FichaIndicador
+          id="taxa-padronizada"
+          contexto={`${uf === "Brasil" ? "Brasil" : uf}, ${ano} · coluna "Taxa padronizada" da tabela`}
         />
       </div>
 

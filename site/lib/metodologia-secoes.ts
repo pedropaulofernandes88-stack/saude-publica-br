@@ -100,6 +100,19 @@ export function secao(n: number): SecaoMetodologia {
   return s;
 }
 
+/**
+ * Título de uma seção pelo slug, ou `null` se o slug não existe mais.
+ *
+ * Mora aqui, e não no catálogo de indicadores, porque é conhecimento sobre
+ * seções — e porque o contrário criaria um import entre dois módulos de `lib/`
+ * que o runner de teste do Node só resolve com extensão explícita. Dependência
+ * que existe por conveniência de um consumidor tende a apontar para o lado
+ * errado.
+ */
+export function tituloDoSlug(slug: string): string | null {
+  return SECOES.find((s) => s.slug === slug)?.titulo ?? null;
+}
+
 /** Grupos na ordem do documento, para montar o sumário. */
 export function gruposOrdenados(): { grupo: string; secoes: SecaoMetodologia[] }[] {
   const out: { grupo: string; secoes: SecaoMetodologia[] }[] = [];

@@ -89,6 +89,15 @@ body {
   .print-only {
     display: inline;
   }
+  /* A ficha de indicador abre sozinha no papel. Um "clique para expandir"
+     impresso é instrução que ninguém pode seguir, e o boletim em PDF é
+     justamente onde o contexto do número precisa viajar junto. */
+  details.ficha > *:not(summary) {
+    display: block !important;
+  }
+  details.ficha > summary {
+    display: none;
+  }
   body {
     background: white;
   }

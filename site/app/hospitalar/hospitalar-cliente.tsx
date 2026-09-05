@@ -8,6 +8,7 @@ import {
   type ForecastDemandaHospital, type HsmrHospital, type InternacaoHospital,
   type LeitosMunicipio, type LosHospital,
 } from "@/lib/api";
+import { FichaIndicador } from "@/components/ficha-indicador";
 import { semAcento } from "@/lib/busca";
 
 const ANOS_HOSP = [2024, 2023, 2022] as const;
@@ -421,6 +422,8 @@ export function HospitalarCliente() {
             </p>
           </div>
         </div>
+
+        <FichaIndicador id="hsmr" contexto={`${uf === "Brasil" ? "Brasil" : uf}, ${ano} · hospitais com AIH no SIH`} />
 
         {hsmrNacional != null && (
           <div className="mt-4 grid gap-4 sm:grid-cols-3">

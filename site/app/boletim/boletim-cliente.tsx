@@ -8,6 +8,7 @@ import { Kpi, Skeleton } from "@/components/kpi";
 import {
   Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { FichaIndicador } from "@/components/ficha-indicador";
 import { IcsapPares } from "@/components/icsap-pares";
 import { Imunopreveniveis as CardImuno } from "@/components/imunopreveniveis";
 import { ehPreliminar, fmtDec, fmtInt, rest, sdata, type CapituloCid, type ClusterMunicipio, type IcsapPares as TIcsapPares, type Imunopreveniveis, type Ivs, type LinhaMunicipio } from "@/lib/api";
@@ -144,6 +145,19 @@ function BoletimInner() {
     return `${linhas[0].ano}–${linhas[linhas.length - 1].ano}`;
   }, [linhas]);
 
+  /**
+   * O recorte efetivo, para a ficha dizer de QUE número ela fala.
+   *
+   * Sem isto a ficha explicaria o indicador em abstrato — e o que o visitante
+   * tem na tela é um município e um ano específicos. "Território e período
+   * efetivos" é um campo da ficha, não um detalhe.
+   */
+  const contextoFicha = useMemo(() => {
+    if (!atual) return undefined;
+    const preliminar = ehPreliminar(atual.ano) ? " · dado preliminar" : " · dado consolidado";
+    return `${atual.municipio_nome ?? cod} (${atual.uf_sigla}), ${atual.ano}${preliminar}`;
+  }, [atual, cod]);
+
   /** O endereço acompanha o ano, para o link compartilhado abrir no mesmo. */
   useEffect(() => {
     if (typeof window === "undefined" || !atual || !cod) return;
@@ -228,6 +242,14 @@ function BoletimInner() {
             <Kpi rotulo="Taxa padronizada /100 mil" valor={fmtDec(atual.taxa_padronizada_100k)}
                  detalhe="ajustada por idade — comparável entre municípios" />
           </div>
+          {/* As fichas ficam ABAIXO dos três cartões, não dentro deles: numa
+              coluna de um terço da largura a lista de definições quebrava
+              palavra a palavra e o nome da tabela estourava o cartão. */}
+          <div className="mt-2 space-y-2">
+            <FichaIndicador id="obitos" contexto={contextoFicha} />
+            <FichaIndicador id="taxa-bruta" contexto={contextoFicha} />
+            <FichaIndicador id="taxa-padronizada" contexto={contextoFicha} />
+          </div>
           {ehPreliminar(atual.ano) && (
             <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">
               ⚠ {atual.ano} é <strong>preliminar</strong>: vem do diretório que o DataSUS
@@ -291,12 +313,23 @@ function BoletimInner() {
                   </span>
                 </p>
               )}
+              <FichaIndicador id="ivs-proxy" contexto={`${atual.municipio_nome ?? cod} (${atual.uf_sigla}), Censo 2022`} />
             </div>
           )}
 
-          {icsap && <IcsapPares dados={icsap} />}
+          {icsap && (
+            <>
+              <IcsapPares dados={icsap} />
+              <FichaIndicador id="icsap-pct" contexto={`${icsap.municipio_nome ?? cod} (${icsap.uf_sigla}), ${icsap.ano}`} />
+            </>
+          )}
 
-          {imuno && <CardImuno mun={imuno.mun} uf={imuno.uf} />}
+          {imuno && (
+            <>
+              <CardImuno mun={imuno.mun} uf={imuno.uf} />
+              <FichaIndicador id="imunopreveniveis-g1" contexto={`${atual.municipio_nome ?? cod} (${imuno.mun.uf_sigla}), ${imuno.mun.ano}`} />
+            </>
+          )}
 
           <div className="card mt-6">
             {/* O gráfico traz a série INTEIRA, então o título segue a janela

@@ -7,7 +7,7 @@
  * navegação típica. Consultas finas (municípios, capítulos específicos)
  * continuam indo à API ao vivo.
  */
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { construirManifesto } from "../lib/completude.ts";
 
@@ -136,5 +136,47 @@ const caps = await rest("dim_cid10_capitulo", {
 await writeFile(path.join(OUT, "capitulos.json"), JSON.stringify(caps));
 const meta = await rest("meta_dataset", { select: "chave,valor" });
 await writeFile(path.join(OUT, "meta.json"), JSON.stringify(meta));
+
+/**
+ * O manifesto de publicação, recortado para o que a ficha de indicador mostra.
+ *
+ * Ele NÃO vem da rede: vem de `data/publicacoes/`, que é a camada canônica do
+ * projeto — o Parquet datado é a verdade e o Postgres é cache. Ler o manifesto
+ * do disco é ler a mesma fonte que `publicar.py` escreveu, com o commit e o
+ * SHA-256 de cada tabela. Buscar os mesmos fatos na API seria perguntar ao
+ * cache o que o original já responde, e responderia sem o checksum.
+ *
+ * Só os campos que a ficha usa entram no JSON servido: linhas, competência,
+ * versão em que a tabela foi publicada, se é servida pela API e o checksum.
+ * As colunas e os bytes ficam de fora — quem precisa deles baixa o manifesto
+ * inteiro, que está no repositório.
+ */
+console.log("[sdata] manifesto de publicação (do disco, não da API)…");
+const PUB = path.join(import.meta.dirname, "..", "..", "data", "publicacoes");
+const atual = JSON.parse(await readFile(path.join(PUB, "atual.json"), "utf8"));
+const manifesto = JSON.parse(await readFile(path.join(PUB, atual.arquivo), "utf8"));
+const tabelas = Object.fromEntries(
+  Object.entries(manifesto.tabelas).map(([nome, t]) => [
+    nome,
+    {
+      linhas: t.linhas,
+      competencia_min: t.competencia_min ?? null,
+      competencia_max: t.competencia_max ?? null,
+      publicada_em: t.publicada_em ?? null,
+      servida: t.servida !== false,
+      sha256: t.sha256 ?? null,
+    },
+  ]),
+);
+await writeFile(
+  path.join(OUT, "manifesto.json"),
+  JSON.stringify({
+    id: manifesto.id,
+    gerado_em: manifesto.gerado_em,
+    commit: manifesto.commit ?? null,
+    tabelas,
+  }),
+);
+console.log(`[sdata]   publicação ${manifesto.id} · ${Object.keys(tabelas).length} tabelas`);
 
 console.log("[sdata] concluído.");
