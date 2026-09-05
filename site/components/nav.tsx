@@ -23,6 +23,7 @@ const NAV: Entry[] = [
   {
     label: "Explorar", curto: "Explorar",
     group: [
+      { href: "/comparar/", label: "Comparar municípios", curto: "Comparar" },
       { href: "/mapa/", label: "Mapa", curto: "Mapa" },
       { href: "/tendencias/", label: "Tendências", curto: "Tend." },
       { href: "/nascimentos/", label: "Nascimentos", curto: "Nasc." },

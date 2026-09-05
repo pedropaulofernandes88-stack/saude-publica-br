@@ -6,7 +6,7 @@ export const dynamic = "force-static";
 export default function sitemap(): MetadataRoute.Sitemap {
   const base = "https://saudeemdado.com";
   const agora = new Date();
-  const fixas = ["", "/painel/", "/dengue/", "/internacoes/", "/hospitalar/", "/atencao-basica/", "/nascimentos/", "/mapa/", "/tendencias/", "/artigos/", "/boletim-semanal/", "/dados/", "/metodologia/", "/sobre/"].map(
+  const fixas = ["", "/painel/", "/dengue/", "/internacoes/", "/hospitalar/", "/atencao-basica/", "/nascimentos/", "/comparar/", "/mapa/", "/tendencias/", "/artigos/", "/boletim-semanal/", "/dados/", "/metodologia/", "/sobre/"].map(
     (p) => ({
       url: `${base}${p}`,
       lastModified: agora,
