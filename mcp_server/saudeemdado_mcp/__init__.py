@@ -14,6 +14,7 @@ Config Claude Desktop:
 """
 from __future__ import annotations
 
+import functools
 import sys
 from pathlib import Path
 
@@ -26,7 +27,7 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server import MCPServer
 
-__version__ = "0.5.0"
+__version__ = "0.6.0"
 
 # A 2.0.0 do SDK renomeou FastMCP para MCPServer e removeu mcp.server.fastmcp.
 # A API de decorators nao mudou: as 19 @mcp.tool() seguem iguais.
@@ -45,7 +46,10 @@ mcp = MCPServer(
         "(número de saúde não admite invenção):\n"
         "1. NUNCA estime números de cabeça — sempre chame uma ferramenta e use o valor "
         "retornado. Se não há ferramenta para a pergunta, diga que não sabe.\n"
-        "2. SEMPRE cite a fonte (DataSUS/MS e IBGE) e o ano; o ano de 2024 é preliminar.\n"
+        "2. SEMPRE cite a fonte. Toda ferramenta de dado devolve `procedencia` ao lado "
+        "de `dados`: REPRODUZA o campo `como_citar` ao publicar, apresentar ou responder "
+        "com estes números, e diga o ano — o mais recente é preliminar. Os marts "
+        "derivados estão sob CC BY 4.0, em que a atribuição é CONDIÇÃO da licença.\n"
         "3. Ao comparar municípios em mortalidade, use taxa_padronizada_100k (ajustada "
         "por idade) — a taxa bruta engana; ela vem com IC95% (ic95_inf/ic95_sup).\n"
         "4. CONFIABILIDADE: antes de afirmar causas de morte de um município, consulte "
@@ -78,8 +82,92 @@ mcp = MCPServer(
 )
 
 
+# ── Procedência: a citação viaja COM o dado ──────────────────────────────────
+#
+# O servidor sempre teve a regra "SEMPRE cite a fonte" nas instruções. Instrução
+# some quando a resposta é copiada — e as 19 ferramentas devolviam `list[dict]`
+# cru, sem nada que dissesse de onde o número veio nem como creditar. Só a
+# vigésima (`metadados_dataset`) trazia licença e DOI, e um assistente
+# raramente a chama sozinho.
+#
+# Isso não é detalhe de etiqueta: os marts derivados estão sob **CC BY 4.0**, em
+# que atribuição é CONDIÇÃO, não cortesia. Entregar dado sem dizer como citar é
+# construir a superfície que produz o uso não creditado.
+#
+# Agora toda ferramenta de dado devolve `{"dados": ..., "procedencia": {...}}`,
+# e a procedência sai de `meta_dataset` — a mesma fonte que a API e o site
+# leem, não uma segunda cópia da frase.
+_META_CACHE: dict[str, str] | None = None
+
+
+def _meta() -> dict[str, str]:
+    """`meta_dataset`, buscado uma vez por processo.
+
+    Falha de rede não pode derrubar uma consulta de dado que já funcionou: sem
+    metadados, a procedência sai reduzida ao que é constante do pacote, e a
+    ferramenta continua respondendo.
+    """
+    global _META_CACHE
+    if _META_CACHE is None:
+        try:
+            _META_CACHE = sd.metadados()
+        except Exception:  # noqa: BLE001 — rede/HTTP; degradar é melhor que falhar
+            _META_CACHE = {}
+    return _META_CACHE
+
+
+def _procedencia(chave_fonte: str) -> dict[str, str]:
+    m = _meta()
+    return {
+        "fonte_primaria": m.get(chave_fonte, "DATASUS/Ministério da Saúde e IBGE"),
+        "plataforma": f"Saúde em Dado (saudeemdado.com) — versão do dataset {m.get('versao_dataset', '?')}",
+        "dado_gerado_em": m.get("gerado_em", "?"),
+        "licenca": m.get("licenca", "Marts derivados sob CC BY 4.0 — atribuição obrigatória."),
+        "como_citar": m.get(
+            "como_citar",
+            "Fernandes, P. P. Saúde em Dado. https://saudeemdado.com · "
+            "DOI: 10.5281/zenodo.20706845",
+        ),
+        "ao_reportar": (
+            "Inclua a citação acima ao publicar, apresentar ou responder com estes "
+            "números. A atribuição é condição da licença, não cortesia."
+        ),
+    }
+
+
+def procedencia(chave_fonte: str):
+    """Envelopa o retorno de uma ferramenta com a sua procedência.
+
+    Fica ENTRE `@mcp.tool()` e a função, para o corpo de cada ferramenta seguir
+    devolvendo só o dado. `functools.wraps` preserva nome, docstring e
+    assinatura (o MCP deriva o schema dela); só a anotação de retorno é
+    reescrita, senão a ferramenta anunciaria `list[dict]` e devolveria `dict`.
+    """
+
+    def decorador(fn):
+        @functools.wraps(fn)
+        def wrapper(*args, **kwargs):
+            saida = fn(*args, **kwargs)
+            # Falha não leva citação, e não desce um nível.
+            #
+            # A primeira versão envelopava tudo, e `{"erro": ...}` virava
+            # `{"dados": {"erro": ...}}` — quatro testes de caminho de erro
+            # reprovaram, com razão. Anexar "como citar" a uma mensagem de erro
+            # é dar procedência a dado que não existe, e enterra o `erro` um
+            # nível abaixo de onde o modelo o procura. Erro passa direto.
+            if isinstance(saida, dict) and "erro" in saida:
+                return saida
+            return {"dados": saida, "procedencia": _procedencia(chave_fonte)}
+
+        wrapper.__annotations__ = {**getattr(fn, "__annotations__", {}), "return": dict}
+        return wrapper
+
+    return decorador
+
+
 # ── Mortalidade ──────────────────────────────────────────────────────────────
 @mcp.tool()
+@procedencia("fonte_obitos")
 def serie_mensal_obitos(uf: str = "", capitulo_cid: str = "TOTAL") -> list[dict]:
     """Série mensal de óbitos 2015–2024. uf vazio = todas as UFs (some para o Brasil).
     capitulo_cid: I a XXII ou TOTAL (IX = circulatório, X = respiratório, II = neoplasias)."""
@@ -87,6 +175,7 @@ def serie_mensal_obitos(uf: str = "", capitulo_cid: str = "TOTAL") -> list[dict]
 
 
 @mcp.tool()
+@procedencia("fonte_obitos")
 def municipios_indicadores(
     uf: str, ano: int = 2023, capitulo_cid: str = "TOTAL", populacao_minima: int = 10000
 ) -> list[dict]:
@@ -96,6 +185,7 @@ def municipios_indicadores(
 
 
 @mcp.tool()
+@procedencia("fonte_mortalidade_causa_municipio")
 def principais_causas(uf: str = "", ano: int = 2024, top: int = 20) -> list[dict]:
     """Principais causas básicas de óbito (CID-10, 3 caracteres) no Brasil (uf vazio) ou UF.
     Atenção: R99 = causa mal-definida (ausência de diagnóstico), não é doença."""
@@ -103,6 +193,7 @@ def principais_causas(uf: str = "", ano: int = 2024, top: int = 20) -> list[dict
 
 
 @mcp.tool()
+@procedencia("fonte_mortalidade_causa_municipio")
 def descricao_cid10(codigos: list[str]) -> dict[str, str]:
     """Descrições oficiais de categorias CID-10 de 3 caracteres (ex.: I21, C34)."""
     todos = {r["causabas_3"]: r["descricao"] for r in sd.cid10()}
@@ -110,6 +201,7 @@ def descricao_cid10(codigos: list[str]) -> dict[str, str]:
 
 
 @mcp.tool()
+@procedencia("fonte_obitos")
 def excesso_mortalidade(uf: str = "BR") -> list[dict]:
     """Excesso de mortalidade mensal (2020+) por UF ou BR (Brasil): observado, esperado
     (baseline por TENDÊNCIA linear 2015–2019, que capta o envelhecimento), excesso e %.
@@ -119,6 +211,7 @@ def excesso_mortalidade(uf: str = "BR") -> list[dict]:
 
 # ── Confiabilidade do dado (camada anti-alucinação) ─────────────────────────
 @mcp.tool()
+@procedencia("fonte_qualidade_registro")
 def qualidade_registro(municipio_cod: str = "", uf: str = "") -> list[dict]:
     """CONFIABILIDADE do registro de óbitos (2022–2024): % de causas mal-definidas e
     classe (Bom <5% | Regular 5–10% | Ruim >10%). Consulte ANTES de afirmar causas de
@@ -137,6 +230,7 @@ def qualidade_registro(municipio_cod: str = "", uf: str = "") -> list[dict]:
 
 # ── Internações (SIH) ────────────────────────────────────────────────────────
 @mcp.tool()
+@procedencia("fonte_sih")
 def internacoes_municipios(uf: str = "", ano: int = 2024, capitulo_cid: str = "TOTAL") -> list[dict]:
     """Internações SUS (SIH/AIH) por município: volume, permanência média, mortalidade
     intra-hospitalar (%) e custo médio (R$). Cobre só a rede SUS.
@@ -146,6 +240,7 @@ def internacoes_municipios(uf: str = "", ano: int = 2024, capitulo_cid: str = "T
 
 
 @mcp.tool()
+@procedencia("fonte_fluxo_icsap")
 def internacoes_evitaveis_icsap(uf: str = "") -> list[dict]:
     """ICSAP — internações por condições sensíveis à atenção primária, por município (2024):
     total, ICSAP, % e por 100k hab.
@@ -170,6 +265,7 @@ def internacoes_evitaveis_icsap(uf: str = "") -> list[dict]:
 
 
 @mcp.tool()
+@procedencia("fonte_agravo_hospital")
 def internacoes_por_agravo(uf: str = "", agravo: str = "") -> list[dict]:
     """Internações por agravo traçador (CID-3), por município (2024): diabetes, avc, iam,
     icc, asma, dpoc, pneumonia, depressao, esquizofrenia, alcool_drogas, tce. agravo vazio =
@@ -193,6 +289,7 @@ def internacoes_por_agravo(uf: str = "", agravo: str = "") -> list[dict]:
 
 
 @mcp.tool()
+@procedencia("fonte_agravo_hospital")
 def hospitais(uf: str = "", ordenar_por: str = "internacoes", top: int = 50) -> list[dict]:
     """Visão por estabelecimento (CNES), 2024: volume, permanência, mortalidade, custo e
     capítulo predominante. ordenar_por: internacoes | mortalidade_pct | permanencia_media |
@@ -210,6 +307,7 @@ def hospitais(uf: str = "", ordenar_por: str = "internacoes", top: int = 50) -> 
 
 
 @mcp.tool()
+@procedencia("fonte_fluxo_icsap")
 def fluxo_pacientes(municipio_res_cod: str) -> list[dict]:
     """Para onde os moradores de um município viajam para se internar (SIH 2024, fluxos ≥ 5).
     Revela dependência de polos regionais e evasão da rede local. Informe o código de 6
@@ -224,6 +322,7 @@ def fluxo_pacientes(municipio_res_cod: str) -> list[dict]:
 
 # ── Dengue (SINAN) ───────────────────────────────────────────────────────────
 @mcp.tool()
+@procedencia("fonte_dengue")
 def dengue_municipios(uf: str = "", ano: int = 2024) -> list[dict]:
     """Dengue (SINAN) por município/ano: casos prováveis, graves, óbitos, incidência/100k e
     letalidade. 2024 foi epidemia recorde (6,56 milhões de casos)."""
@@ -231,6 +330,7 @@ def dengue_municipios(uf: str = "", ano: int = 2024) -> list[dict]:
 
 
 @mcp.tool()
+@procedencia("fonte_dengue")
 def dengue_semanal(uf: str, ano: int = 2024) -> list[dict]:
     """Dengue (SINAN) por semana epidemiológica de uma UF/ano — curvas sazonais e picos."""
     return sd.dengue(uf=uf, ano=ano, nivel="semana")
@@ -238,6 +338,7 @@ def dengue_semanal(uf: str, ano: int = 2024) -> list[dict]:
 
 # ── Copiloto: anomalias ──────────────────────────────────────────────────────
 @mcp.tool()
+@procedencia("fonte_obitos")
 def detectar_anomalias(municipio_cod: str) -> dict:
     """COPILOTO: dado um município (6 dígitos), retorna um resumo priorizado de sinais —
     confiabilidade do registro, ICSAP vs. média nacional (~21%), e letalidade de dengue —
@@ -302,6 +403,7 @@ def detectar_anomalias(municipio_cod: str) -> dict:
 
 # ── Análise: comparação com pares ────────────────────────────────────────────
 @mcp.tool()
+@procedencia("fonte_clusters")
 def comparar_com_pares(municipio_cod: str) -> dict:
     """ANÁLISE: compara um município (6 dígitos) com seus PARES — municípios do mesmo
     estrato de saúde (tercis fixos de mortalidade × vulnerabilidade × internações, 2023).
@@ -356,6 +458,7 @@ def comparar_com_pares(municipio_cod: str) -> dict:
 
 # ── Tradução: do indicador para a decisão ────────────────────────────────────
 @mcp.tool()
+@procedencia("fonte_fluxo_icsap")
 def icsap_distancia_dos_pares(municipio_cod: str = "", uf: str = "", top: int = 20) -> list[dict]:
     """TRADUÇÃO: converte o indicador ICSAP na pergunta do gestor — "quanto meu
     município está acima de municípios COMPARÁVEIS em internações evitáveis, e o que
@@ -403,6 +506,7 @@ def icsap_distancia_dos_pares(municipio_cod: str = "", uf: str = "", top: int = 
 
 # ── Análise: canal endêmico ──────────────────────────────────────────────────
 @mcp.tool()
+@procedencia("fonte_dengue")
 def canal_endemico_dengue(uf: str, ano: int = 2024) -> dict:
     """ANÁLISE: canal endêmico de dengue de uma UF (diagrama de controle). Compara os
     casos semanais do ano observado com a faixa esperada (quartis P25–P75 das mesmas
@@ -450,6 +554,7 @@ def canal_endemico_dengue(uf: str, ano: int = 2024) -> dict:
 
 # ── Boletim epidemiológico semanal ───────────────────────────────────────────
 @mcp.tool()
+@procedencia("fonte_dengue")
 def boletim_semanal(edicao: str = "") -> dict:
     """SITUAÇÃO ATUAL + boletim semanal. Use esta ferramenta para perguntas sobre o
     que está acontecendo AGORA ("como está a dengue esta semana?", "tem alerta no meu

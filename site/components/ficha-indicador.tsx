@@ -36,6 +36,18 @@ function carregarManifesto(): Promise<Manifesto> {
   return cache;
 }
 
+/**
+ * A citação vem de `meta_dataset`, que a deriva do `CITATION.cff` — não é uma
+ * terceira cópia da frase. Marts derivados estão sob CC BY 4.0, em que
+ * atribuição é condição da licença: a ficha é onde ela fica ao alcance de quem
+ * está olhando o número, e não a três cliques dele.
+ */
+let cacheMeta: Promise<{ chave: string; valor: string }[]> | null = null;
+function carregarMeta(): Promise<{ chave: string; valor: string }[]> {
+  cacheMeta ??= sdata<{ chave: string; valor: string }[]>("meta");
+  return cacheMeta;
+}
+
 function Linha({ termo, children }: { termo: string; children: React.ReactNode }) {
   return (
     <div className="grid gap-0.5 py-1.5 sm:grid-cols-[10rem_1fr] sm:gap-3">
@@ -48,7 +60,9 @@ function Linha({ termo, children }: { termo: string; children: React.ReactNode }
 export function FichaIndicador({ id, contexto }: { id: string; contexto?: string }) {
   const ind = indicador(id);
   const [manifesto, setManifesto] = useState<Manifesto | null>(null);
+  const [citacao, setCitacao] = useState<string | null>(null);
   const [aberta, setAberta] = useState(false);
+  const [copiado, setCopiado] = useState(false);
 
   // Só busca o manifesto quando alguém abre a primeira ficha da página: o
   // arquivo não serve para nada enquanto todas estão fechadas, e a home não
@@ -56,7 +70,19 @@ export function FichaIndicador({ id, contexto }: { id: string; contexto?: string
   useEffect(() => {
     if (!aberta || manifesto) return;
     carregarManifesto().then(setManifesto).catch(() => setManifesto(null));
+    carregarMeta()
+      .then((m) => setCitacao(m.find((r) => r.chave === "como_citar")?.valor ?? null))
+      .catch(() => setCitacao(null));
   }, [aberta, manifesto]);
+
+  /** A citação com o endereço EXATO que está na barra — o recorte é a análise. */
+  const textoCitacao = () => {
+    const hoje = new Date().toISOString().slice(0, 10);
+    const url = typeof window === "undefined" ? "" : window.location.href;
+    return `${citacao ?? "Fernandes, P. P. Saúde em Dado. https://saudeemdado.com"}`
+      + ` Indicador: ${ind.rotulo}${contexto ? ` (${contexto})` : ""}.`
+      + ` Consulta: ${url} Acesso em: ${hoje}.`;
+  };
 
   const tab = tabelaPublicada(manifesto, ind.tabela);
   const periodo = periodoCoberto(tab);
@@ -118,6 +144,23 @@ export function FichaIndicador({ id, contexto }: { id: string; contexto?: string
           <ul className="list-disc space-y-1 pl-4">
             {ind.limitacoes.map((l) => <li key={l}>{l}</li>)}
           </ul>
+        </Linha>
+        <Linha termo="Como citar">
+          <p className="text-xs leading-relaxed text-ink-600">{textoCitacao()}</p>
+          <button
+            type="button"
+            className="mt-1 rounded border border-ink-300 bg-white px-2 py-1 text-xs font-medium text-ink-700 no-print"
+            onClick={async () => {
+              try {
+                await navigator.clipboard.writeText(textoCitacao());
+                setCopiado(true);
+              } catch {
+                setCopiado(false);
+              }
+            }}
+          >
+            {copiado ? "✓ Citação copiada" : "Copiar citação"}
+          </button>
         </Linha>
         <Linha termo="Método">
           {/* Sem repetir a publicação: ela já está em "versão do dado", e o

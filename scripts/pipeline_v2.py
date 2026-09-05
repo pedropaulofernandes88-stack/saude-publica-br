@@ -50,6 +50,7 @@ import numpy as np
 import pandas as pd
 import requests
 
+from _citacao import linhas_meta
 from _datasus_ftp import CHAVE_FONTE, baixar, fonte_do_checkpoint, tamanho
 from _publicacao import escrever_parquet
 from _sim_obitos import (  # noqa: E402
@@ -831,7 +832,11 @@ def construir_meta(anos) -> pd.DataFrame:
                              "(capta crescimento e envelhecimento), projetada para o ano-alvo. "
                              "Excesso = observado − esperado."),
         ("nota_preliminar", "Dados do ano mais recente podem ser preliminares (sujeitos a revisão pelo MS)"),
-        ("licenca", "Dados públicos — DATASUS/MS e IBGE; uso livre com citação das fontes"),
+        # Citação e licença saem do CITATION.cff, não são digitadas aqui: elas
+        # precisam VIAJAR COM O DADO — quem consome a API ou o MCP recebia
+        # números sem nada que dissesse como creditar, e a licença dos marts
+        # derivados é CC BY 4.0, em que atribuição é condição, não cortesia.
+        *linhas_meta(),
         ("gerado_em", datetime.now().isoformat(timespec="seconds")),
         ("pipeline", "scripts/pipeline_v2.py"),
         ("versao_dataset", versao_dataset()),

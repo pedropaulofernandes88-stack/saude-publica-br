@@ -129,7 +129,15 @@ def test_edicao_inexistente_lista_as_disponiveis(monkeypatch):
 
 
 def test_edicao_existente_volta_com_permalink(monkeypatch):
-    """O caminho bom: sem erro, e com o link que o modelo deve citar."""
+    """O caminho bom: sem erro, com o link, e agora com a procedência ao lado.
+
+    A partir da 0.6.0 as ferramentas de DADO devolvem
+    `{"dados": ..., "procedencia": ...}` — a citação passou a viajar com o
+    número, porque os marts derivados estão sob CC BY 4.0 e nada no caminho do
+    dado dizia como creditar. O caminho de ERRO seguiu sem envelope (ver os
+    testes acima): citação em cima de falha é procedência de dado que não
+    existe.
+    """
     def _get(url, **k):
         if url.endswith("index.json"):
             return _Resposta(corpo=[{"edicao": "2026-se30"}])
@@ -138,5 +146,9 @@ def test_edicao_existente_volta_com_permalink(monkeypatch):
     monkeypatch.setattr(mcp.requests, "get", _get)
     r = mcp.boletim_semanal()
     assert "erro" not in r
-    assert r["permalink"].endswith("?e=2026-se30")
-    assert r["edicoes_disponiveis"] == ["2026-se30"]
+    assert set(r) == {"dados", "procedencia"}
+    assert "como_citar" in r["procedencia"]
+
+    b = r["dados"]
+    assert b["permalink"].endswith("?e=2026-se30")
+    assert b["edicoes_disponiveis"] == ["2026-se30"]
