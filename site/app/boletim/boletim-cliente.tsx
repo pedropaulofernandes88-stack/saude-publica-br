@@ -10,6 +10,7 @@ import {
 } from "recharts";
 import { Bloco, useCarga } from "@/components/bloco";
 import { BotaoExportarCsv } from "@/components/exportar-csv";
+import { DengueMunicipio } from "@/components/dengue-municipio";
 import { ProcedenciaImpressa } from "@/components/procedencia-impressa";
 import { type Carga } from "@/lib/carga";
 import { FichaIndicador } from "@/components/ficha-indicador";
@@ -373,6 +374,8 @@ function BoletimInner() {
               <FichaIndicador id="icsap-pct" contexto={`${icsap.municipio_nome ?? cod} (${icsap.uf_sigla}), ${icsap.ano}`} />
             </>
           )}
+
+          <DengueMunicipio cod={cod} nome={atual.municipio_nome ?? cod} />
 
           <Bloco carga={cargaImuno} recarregar={recarregarImuno} titulo="Internações evitáveis por vacina"
                  vazio="Sem internações do grupo 1 da ICSAP publicadas para este município."
