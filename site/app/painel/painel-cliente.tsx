@@ -27,7 +27,7 @@ import { particionarMunicipios } from "@/lib/municipios";
 import { BotaoExportarCsv } from "@/components/exportar-csv";
 import { ProcedenciaImpressa } from "@/components/procedencia-impressa";
 import { FichaIndicador } from "@/components/ficha-indicador";
-import { casaMunicipio } from "@/lib/busca";
+import { casaMunicipio, semAcento } from "@/lib/busca";
 import { incompletosDe, notaCompletude, type ManifestoCompletude } from "@/lib/completude";
 
 type Sexo = "TOTAL" | "M" | "F";
@@ -105,6 +105,7 @@ function PainelInner() {
   });
   const alternar = (k: string) => setColunas((c) => ({ ...c, [k]: !c[k] }));
   const [detalhe, setDetalhe] = useState<string | null>(null);
+  const [buscaCid, setBuscaCid] = useState("");
 
   const historico = ano < ANO_DETALHE; // grão reduzido: sexo/faixa só TOTAL
 
@@ -332,6 +333,29 @@ function PainelInner() {
     : `Capítulo ${capitulo} — ${capitulos.find((c) => c.capitulo === capitulo)?.descricao ?? ""}`;
 
   /**
+   * Capítulos que casam com a busca — por NOME ou por CÓDIGO.
+   *
+   * A lista tinha 22 opções com a descrição cortada em 48 caracteres, e
+   * "Doenças endócrinas, nutricionais e metabólic…" não é um rótulo, é um
+   * enigma. Quem sabe CID procura por `I00-I99` ou por `IX`; quem não sabe
+   * procura por "circulatório". Os dois passam a funcionar, e a descrição
+   * deixa de ser cortada.
+   *
+   * O capítulo SELECIONADO nunca é filtrado para fora: um `<select>` cujo
+   * `value` não está entre as opções mostra a primeira, e o filtro trocaria o
+   * recorte do visitante sem que ele pedisse.
+   */
+  const capitulosFiltrados = useMemo(() => {
+    const q = semAcento(buscaCid);
+    if (!q) return capitulos;
+    return capitulos.filter((c) =>
+      c.capitulo === capitulo
+      || semAcento(c.descricao).includes(q)
+      || semAcento(c.faixa).includes(q)
+      || semAcento(c.capitulo).includes(q));
+  }, [capitulos, buscaCid, capitulo]);
+
+  /**
    * Os filtros que DIFEREM do padrão, cada um com como desfazê-lo.
    *
    * O painel tem sete controles espalhados por dois blocos, e um recorte
@@ -398,14 +422,32 @@ function PainelInner() {
         </div>
         <div>
           <label className="label" htmlFor="f-cap">Causa (capítulo CID-10)</label>
+          <input
+            id="f-cap-busca"
+            className="select mb-1"
+            placeholder="filtrar por nome ou código — ex.: circulatório, I00-I99, IX"
+            value={buscaCid}
+            onChange={(e) => setBuscaCid(e.target.value)}
+            aria-label="Filtrar capítulos CID-10 por nome ou código"
+          />
           <select id="f-cap" className="select" value={capitulo} onChange={(e) => setCapitulo(e.target.value)}>
             <option value="TOTAL">Todas as causas</option>
-            {capitulos.map((c) => (
+            {capitulosFiltrados.map((c) => (
               <option key={c.capitulo} value={c.capitulo}>
-                {c.capitulo} ({c.faixa}) — {c.descricao.slice(0, 48)}
+                {c.capitulo} ({c.faixa}) — {c.descricao}
               </option>
             ))}
           </select>
+          {/* Total encontrado contra total exibido: sem isto, uma busca que
+              não casa com nada e uma busca que casa com tudo têm a mesma
+              aparência — a lista simplesmente muda de tamanho em silêncio. */}
+          {buscaCid.trim() !== "" && (
+            <p className="mt-1 text-[11px] text-ink-500">
+              {capitulosFiltrados.length === 0
+                ? "Nenhum capítulo casa com a busca — o filtro segue em " + capDesc + "."
+                : `${capitulosFiltrados.length} de ${capitulos.length} capítulos`}
+            </p>
+          )}
         </div>
         <div>
           <label className="label" htmlFor="f-sexo">Sexo</label>
