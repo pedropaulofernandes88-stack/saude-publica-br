@@ -8,6 +8,7 @@ import { Kpi, Skeleton } from "@/components/kpi";
 import {
   Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { Bloco, useCarga } from "@/components/bloco";
 import { FichaIndicador } from "@/components/ficha-indicador";
 import { IcsapPares } from "@/components/icsap-pares";
 import { Imunopreveniveis as CardImuno } from "@/components/imunopreveniveis";
@@ -39,11 +40,54 @@ function BoletimInner() {
   const [linhas, setLinhas] = useState<LinhaMunicipio[] | null>(null);
   const [capitulos, setCapitulos] = useState<(LinhaMunicipio & { capitulo_cid: string })[] | null>(null);
   const [capsDim, setCapsDim] = useState<CapituloCid[]>([]);
-  const [ivs, setIvs] = useState<Ivs | null>(null);
-  const [cluster, setCluster] = useState<ClusterMunicipio | null>(null);
   const [icsap, setIcsap] = useState<TIcsapPares | null>(null);
-  const [imuno, setImuno] = useState<{ mun: Imunopreveniveis; uf: Imunopreveniveis[] } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+
+  /**
+   * Contexto social, estrato e imunopreveníveis passam por `useCarga`.
+   *
+   * Antes eram `catch(() => {})`: a consulta falhava, o cartão virava `null` e
+   * a página passava a AFIRMAR, pela ausência, que este município não tem
+   * contexto social nem internações evitáveis. Falha de rede não pode produzir
+   * uma afirmação sobre o dado. Ver `lib/carga.ts`.
+   */
+  const [cargaIvs, recarregarIvs] = useCarga<{ ivs: Ivs; cluster: ClusterMunicipio | null }>(
+    async () => {
+      if (!cod) throw new Error("sem município");
+      const [i, c] = await Promise.all([
+        rest<Ivs>("dim_ivs", {
+          select: "municipio_cod,taxa_analfabetismo,pct_sem_agua,ivs_score,ivs_quartil",
+          municipio_cod: `eq.${cod}`,
+        }),
+        rest<ClusterMunicipio>("dim_cluster_municipio", {
+          select: "municipio_cod,cluster,estrato_cod,perfil", municipio_cod: `eq.${cod}`,
+        }),
+      ]);
+      return i[0] ? { ivs: i[0], cluster: c[0] ?? null } : null as never;
+    },
+    [cod],
+    (d) => !d?.ivs,
+  );
+
+  const [cargaImuno, recarregarImuno] = useCarga<{ mun: Imunopreveniveis; uf: Imunopreveniveis[] }>(
+    async () => {
+      if (!cod) throw new Error("sem município");
+      const r = await rest<Imunopreveniveis>("mart_icsap_municipio", {
+        select: "municipio_cod,uf_sigla,ano,internacoes_g1,g1_100k,internacoes_icsap",
+        municipio_cod: `eq.${cod}`, order: "ano.desc", limit: "1",
+      });
+      const mun = r[0];
+      if (!mun) return null as never;
+      // O município contra os demais da mesma UF: taxa isolada não diz se é alta.
+      const uf = await rest<Imunopreveniveis>("mart_icsap_municipio", {
+        select: "municipio_cod,uf_sigla,ano,internacoes_g1,g1_100k,internacoes_icsap",
+        uf_sigla: `eq.${mun.uf_sigla}`, ano: `eq.${mun.ano}`,
+      });
+      return { mun, uf };
+    },
+    [cod],
+    (d) => !d?.mun,
+  );
 
   useEffect(() => {
     if (!cod) return;
@@ -67,32 +111,6 @@ function BoletimInner() {
     ])
       .then(([l, c, dim]) => { setLinhas(l); setCapitulos(c); setCapsDim(dim); })
       .catch((e) => setErro(String(e)));
-    rest<Ivs>("dim_ivs", {
-      select: "municipio_cod,taxa_analfabetismo,pct_sem_agua,ivs_score,ivs_quartil",
-      municipio_cod: `eq.${cod}`,
-    }).then((r) => setIvs(r[0] ?? null)).catch(() => {});
-    rest<ClusterMunicipio>("dim_cluster_municipio", {
-      select: "municipio_cod,cluster,estrato_cod,perfil",
-      municipio_cod: `eq.${cod}`,
-    }).then((r) => setCluster(r[0] ?? null)).catch(() => {});
-    // Grupo 1 do ICSAP: o município e os demais da mesma UF, para o número
-    // ter contra o que ser lido. Taxa municipal isolada não diz se é alta.
-    setImuno(null);
-    rest<Imunopreveniveis>("mart_icsap_municipio", {
-      select: "municipio_cod,uf_sigla,ano,internacoes_g1,g1_100k,internacoes_icsap",
-      municipio_cod: `eq.${cod}`,
-      order: "ano.desc",
-      limit: "1",
-    }).then(async (r) => {
-      const mun = r[0];
-      if (!mun) return;
-      const uf = await rest<Imunopreveniveis>("mart_icsap_municipio", {
-        select: "municipio_cod,uf_sigla,ano,internacoes_g1,g1_100k,internacoes_icsap",
-        uf_sigla: `eq.${mun.uf_sigla}`,
-        ano: `eq.${mun.ano}`,
-      });
-      setImuno({ mun, uf });
-    }).catch(() => {});
     setIcsap(null);
     rest<TIcsapPares>("mart_icsap_pares", {
       select: "municipio_cod,municipio_nome,uf_sigla,ano,populacao,internacoes_total,internacoes_icsap,"
@@ -275,7 +293,10 @@ function BoletimInner() {
             </p>
           )}
 
-          {ivs && (
+          <Bloco carga={cargaIvs} recarregar={recarregarIvs} titulo="Contexto social"
+                 vazio="Este município não tem linha no proxy de vulnerabilidade do Censo 2022."
+                 altura={220}>
+            {({ ivs, cluster }) => (
             <div className="card mt-6">
               <h2 className="font-serif text-xl font-semibold text-ink-900">Contexto social (Censo 2022)</h2>
               <div className="mt-3 grid gap-4 sm:grid-cols-3">
@@ -315,7 +336,8 @@ function BoletimInner() {
               )}
               <FichaIndicador id="ivs-proxy" contexto={`${atual.municipio_nome ?? cod} (${atual.uf_sigla}), Censo 2022`} />
             </div>
-          )}
+            )}
+          </Bloco>
 
           {icsap && (
             <>
@@ -324,12 +346,16 @@ function BoletimInner() {
             </>
           )}
 
-          {imuno && (
-            <>
-              <CardImuno mun={imuno.mun} uf={imuno.uf} />
-              <FichaIndicador id="imunopreveniveis-g1" contexto={`${atual.municipio_nome ?? cod} (${imuno.mun.uf_sigla}), ${imuno.mun.ano}`} />
-            </>
-          )}
+          <Bloco carga={cargaImuno} recarregar={recarregarImuno} titulo="Internações evitáveis por vacina"
+                 vazio="Sem internações do grupo 1 da ICSAP publicadas para este município."
+                 altura={180}>
+            {(imuno) => (
+              <>
+                <CardImuno mun={imuno.mun} uf={imuno.uf} />
+                <FichaIndicador id="imunopreveniveis-g1" contexto={`${atual.municipio_nome ?? cod} (${imuno.mun.uf_sigla}), ${imuno.mun.ano}`} />
+              </>
+            )}
+          </Bloco>
 
           <div className="card mt-6">
             {/* O gráfico traz a série INTEIRA, então o título segue a janela
