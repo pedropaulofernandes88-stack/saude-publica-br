@@ -1,10 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { sdata } from "@/lib/api";
 import { indicador } from "@/lib/indicadores";
 import { tituloDoSlug } from "@/lib/metodologia-secoes";
 import { periodoCoberto, tabelaPublicada, type Manifesto } from "@/lib/manifesto";
+import { CITACAO_MINIMA, carregarManifesto, carregarMeta, valorMeta } from "@/lib/procedencia";
 
 /**
  * "Como este número foi calculado?" — o contexto ao lado do número.
@@ -26,27 +26,11 @@ import { periodoCoberto, tabelaPublicada, type Manifesto } from "@/lib/manifesto
  * `cobertura()`: o que pode ser derivado é derivado.
  *
  * O manifesto é buscado uma vez e compartilhado entre as fichas da página, por
- * um cache de módulo. Sem ele, uma página com cinco cartões faria cinco
- * requisições ao mesmo JSON.
+ * um cache de módulo em `lib/procedencia.ts`. Sem ele, uma página com cinco
+ * cartões faria cinco requisições ao mesmo JSON — e o botão de exportar, uma
+ * sexta. Os loaders saíram daqui quando a exportação passou a precisar dos
+ * mesmos dois fatos: a alternativa era uma segunda cópia deles.
  */
-
-let cache: Promise<Manifesto> | null = null;
-function carregarManifesto(): Promise<Manifesto> {
-  cache ??= sdata<Manifesto>("manifesto");
-  return cache;
-}
-
-/**
- * A citação vem de `meta_dataset`, que a deriva do `CITATION.cff` — não é uma
- * terceira cópia da frase. Marts derivados estão sob CC BY 4.0, em que
- * atribuição é condição da licença: a ficha é onde ela fica ao alcance de quem
- * está olhando o número, e não a três cliques dele.
- */
-let cacheMeta: Promise<{ chave: string; valor: string }[]> | null = null;
-function carregarMeta(): Promise<{ chave: string; valor: string }[]> {
-  cacheMeta ??= sdata<{ chave: string; valor: string }[]>("meta");
-  return cacheMeta;
-}
 
 function Linha({ termo, children }: { termo: string; children: React.ReactNode }) {
   return (
@@ -71,7 +55,7 @@ export function FichaIndicador({ id, contexto }: { id: string; contexto?: string
     if (!aberta || manifesto) return;
     carregarManifesto().then(setManifesto).catch(() => setManifesto(null));
     carregarMeta()
-      .then((m) => setCitacao(m.find((r) => r.chave === "como_citar")?.valor ?? null))
+      .then((m) => setCitacao(valorMeta(m, "como_citar")))
       .catch(() => setCitacao(null));
   }, [aberta, manifesto]);
 
@@ -79,7 +63,7 @@ export function FichaIndicador({ id, contexto }: { id: string; contexto?: string
   const textoCitacao = () => {
     const hoje = new Date().toISOString().slice(0, 10);
     const url = typeof window === "undefined" ? "" : window.location.href;
-    return `${citacao ?? "Fernandes, P. P. Saúde em Dado. https://saudeemdado.com"}`
+    return `${citacao ?? CITACAO_MINIMA}`
       + ` Indicador: ${ind.rotulo}${contexto ? ` (${contexto})` : ""}.`
       + ` Consulta: ${url} Acesso em: ${hoje}.`;
   };

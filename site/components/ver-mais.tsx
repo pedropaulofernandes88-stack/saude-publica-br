@@ -35,9 +35,20 @@ export function VerMais({
 
   return (
     <div>
+      {/*
+        `overflow-x-auto` SEMPRE, `overflow-y-hidden` só quando fechado.
+        Antes era `overflow-hidden` nos dois eixos, e isso não recortava só a
+        altura: numa tela de 375px a tabela do painel mede 852px, e as colunas
+        além do corte ficavam INALCANÇÁVEIS — o `overflow-x-auto` do container
+        de fora nunca via transbordo nenhum, porque este div já havia cortado.
+        Não era tabela apertada, era dado escondido.
+        Deixar o eixo X rolável aqui também torna ESTE o container de rolagem
+        nos dois estados, aberto e fechado, que é o que a coluna presa
+        (`col-id`) precisa para ter contra o que ficar parada.
+      */}
       <div
         id={id}
-        className={aberto ? undefined : "relative overflow-hidden"}
+        className={`relative overflow-x-auto${aberto ? "" : " overflow-y-hidden"}`}
         style={aberto ? undefined : { maxHeight: alturaFechada }}
       >
         {children}

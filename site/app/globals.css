@@ -86,8 +86,12 @@ body {
   header, footer, .no-print {
     display: none !important;
   }
+  /* `revert` e nao `inline`: o bloco de procedencia impressa e um <section>
+     com paragrafos dentro, e `inline` num container assim cria caixas
+     anonimas e alinhamento erratico. `revert` devolve o display padrao do
+     proprio elemento — inline para <span>, block para <section>. */
   .print-only {
-    display: inline;
+    display: revert;
   }
   /* A ficha de indicador abre sozinha no papel. Um "clique para expandir"
      impresso é instrução que ninguém pode seguir, e o boletim em PDF é
@@ -139,4 +143,74 @@ body {
 }
 .prose-doc td {
   @apply border-b border-ink-200 px-3 py-2 text-ink-700;
+}
+
+/* ---------------------------------------------------------------------------
+   Tabela larga em tela estreita: a coluna que IDENTIFICA a linha fica parada
+   ---------------------------------------------------------------------------
+   As tabelas do site vão de 4 a 9 colunas e vivem dentro de `overflow-x-auto`.
+   Em 375px isso significa rolar para a direita até a taxa que interessa — e,
+   ao chegar lá, não saber mais de que município é a linha, porque o nome ficou
+   para trás. Rolagem horizontal sem âncora não é leitura, é adivinhação.
+
+   A cada tabela cabe DECLARAR qual é a sua coluna de identificação, marcando a
+   célula com `col-id` (no `<th>` e no `<td>`). Não dá para derivar: no painel a
+   primeira coluna é a posição no ranking, e o que identifica é a segunda.
+
+   Só vale abaixo de 768px. No desktop a tabela cabe inteira e uma coluna presa
+   só criaria uma borda sem motivo. */
+@media (max-width: 767px) {
+  /* `w-full` numa tabela de sete colunas dentro de 301px NAO rola: ela
+     ESPREME. Medido no painel — scrollWidth == clientWidth == 301, com as
+     colunas numericas reduzidas a poucos pixels e o nome do municipio
+     quebrando letra a letra. O container tinha `overflow-x-auto` desde sempre
+     e nunca chegou a rolar, porque nunca houve o que rolar.
+     `max-content` deixa a tabela ocupar a largura que o conteudo pede: quem
+     tem muitas colunas passa a rolar de verdade (e ganha a coluna presa), e
+     quem tem poucas continua cabendo, porque aí `max-content` e menor que o
+     container e o `w-full` segue valendo. */
+  .tabela-rolavel table {
+    min-width: max-content;
+  }
+  .tabela-rolavel .col-id {
+    position: sticky;
+    left: 0;
+    z-index: 1;
+    /* Fundo opaco é obrigatório: sem ele o conteúdo das outras colunas passa
+       por baixo e as duas se sobrepõem ilegivelmente. Branco porque toda
+       tabela do site vive dentro de `.card`. */
+    background-color: #fff;
+    box-shadow: 1px 0 0 0 theme("colors.ink.200");
+    max-width: 11rem;
+  }
+  .tabela-rolavel tbody tr:hover .col-id {
+    background-color: theme("colors.ink.50");
+  }
+  .tabela-rolavel thead .col-id {
+    background-color: theme("colors.ink.50");
+    z-index: 2;
+  }
+}
+
+/* O Recharts mantém o tooltip no DOM mesmo inativo, com `visibility: hidden` e
+   um `transform` que o joga para a direita do gráfico. Elemento invisível
+   continua contando no `scrollWidth`: em 375px o documento media 550px e a
+   PÁGINA INTEIRA rolava na horizontal, em toda tela com gráfico. Não veio das
+   tabelas — aparece igual sem elas —, mas foi medindo a rolagem das tabelas
+   que apareceu.
+   `clip` e não `hidden`: `hidden` transformaria o body em container de
+   rolagem e quebraria `position: sticky` de qualquer elemento futuro que
+   dependa da rolagem da página. `clip` corta sem criar container. */
+body {
+  overflow-x: clip;
+}
+
+/* A dica de rolagem só faz sentido onde há rolagem. */
+.dica-rolagem {
+  display: none;
+}
+@media (max-width: 767px) {
+  .dica-rolagem {
+    display: block;
+  }
 }

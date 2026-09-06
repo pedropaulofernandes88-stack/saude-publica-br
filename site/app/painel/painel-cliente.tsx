@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Barras, SerieLinha } from "@/components/charts";
 import { Kpi, Skeleton } from "@/components/kpi";
@@ -24,6 +24,8 @@ import {
   type SerieTotalItem,
 } from "@/lib/api";
 import { particionarMunicipios } from "@/lib/municipios";
+import { BotaoExportarCsv } from "@/components/exportar-csv";
+import { ProcedenciaImpressa } from "@/components/procedencia-impressa";
 import { FichaIndicador } from "@/components/ficha-indicador";
 import { casaMunicipio } from "@/lib/busca";
 import { incompletosDe, notaCompletude, type ManifestoCompletude } from "@/lib/completude";
@@ -85,6 +87,24 @@ function PainelInner() {
     () => { const v = params.get(PARAM.ord); return (ORDENS as readonly string[]).includes(v ?? "") ? (v as Ordem) : "taxa_pad"; },
   );
   const [linkCopiado, setLinkCopiado] = useState(false);
+
+  /**
+   * Quais colunas a tabela mostra.
+   *
+   * Sete colunas em 375px viram rolagem horizontal longa. Esconder por padrão
+   * seria decidir pelo leitor o que importa; o que a tela faz é OFERECER a
+   * escolha, com todas ligadas de saída — e a linha de detalhe garante que
+   * nada fica inacessível por ter sido desmarcado.
+   *
+   * O estado não vai para a URL: é preferência de leitura desta sessão, não
+   * recorte de dado. Link compartilhado tem que abrir no mesmo RECORTE, e a
+   * escolha de colunas não muda um número sequer.
+   */
+  const [colunas, setColunas] = useState<Record<string, boolean>>({
+    uf: true, obitos: true, populacao: true, bruta: true, padronizada: true,
+  });
+  const alternar = (k: string) => setColunas((c) => ({ ...c, [k]: !c[k] }));
+  const [detalhe, setDetalhe] = useState<string | null>(null);
 
   const historico = ano < ANO_DETALHE; // grão reduzido: sexo/faixa só TOTAL
 
@@ -236,7 +256,18 @@ function PainelInner() {
     [municipios],
   );
 
-  const ranking = useMemo(() => {
+  /**
+   * O recorte inteiro, filtrado e ordenado — sem o corte de 100.
+   *
+   * A tabela mostra 100; a EXPORTAÇÃO leva tudo. Antes ela levava os mesmos
+   * 100 e não dizia: quem filtrava São Paulo e exportava recebia um arquivo
+   * com 100 dos 645 municípios, sem nada no arquivo indicando o corte. Limite
+   * visual é decisão de tela, não recorte de dado.
+   *
+   * O filtro também morava em dois memos idênticos (aqui e na contagem), o que
+   * é a forma clássica de os dois divergirem numa edição futura.
+   */
+  const recorteCompleto = useMemo(() => {
     if (!particao) return null;
     return particao.identificados
       .filter((m) => (m.populacao ?? 0) >= popMin || sexo !== "TOTAL")
@@ -249,9 +280,10 @@ function PainelInner() {
           : ordenarPor === "taxa"
             ? (b.taxa_obitos_100k ?? -1) - (a.taxa_obitos_100k ?? -1)
             : b.obitos - a.obitos,
-      )
-      .slice(0, 100);
+      );
   }, [particao, busca, popMin, ordenarPor, sexo]);
+
+  const ranking = useMemo(() => recorteCompleto?.slice(0, 100) ?? null, [recorteCompleto]);
 
   /**
    * Quantos o recorte tem, contra quantos a tabela mostra.
@@ -261,13 +293,7 @@ function PainelInner() {
    * o fim do recorte ou o fim da página — limite visual e ausência de registro
    * têm a mesma aparência quando ninguém conta.
    */
-  const totalNoRecorte = useMemo(() => {
-    if (!particao) return null;
-    return particao.identificados
-      .filter((m) => (m.populacao ?? 0) >= popMin || sexo !== "TOTAL")
-      .filter((m) => casaMunicipio(busca, m.municipio_nome, m.municipio_cod))
-      .length;
-  }, [particao, busca, popMin, sexo]);
+  const totalNoRecorte = recorteCompleto?.length ?? null;
 
   /**
    * As quinze principais causas, com DESCRIÇÃO e não só o código.
@@ -300,23 +326,6 @@ function PainelInner() {
     () => serie?.filter((r) => r.mes.startsWith(String(ano))).reduce((s, r) => s + r.obitos, 0),
     [serie, ano],
   );
-
-  function exportarCsv() {
-    if (!ranking) return;
-    const linhas = [
-      "municipio;uf;obitos;populacao;taxa_bruta_100k;ic95_inf;ic95_sup;taxa_padronizada_100k",
-      ...ranking.map((m) =>
-        [m.municipio_nome, m.uf_sigla, m.obitos, m.populacao ?? "", m.taxa_obitos_100k ?? "",
-         m.ic95_inf ?? "", m.ic95_sup ?? "", m.taxa_padronizada_100k ?? ""].join(";"),
-      ),
-    ].join("\n");
-    const blob = new Blob(["﻿" + linhas], { type: "text/csv;charset=utf-8" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `mortalidade_${uf}_${ano}_${capitulo}_${sexo}.csv`;
-    a.click();
-    URL.revokeObjectURL(a.href);
-  }
 
   const capDesc = capitulo === "TOTAL"
     ? "Todas as causas"
@@ -518,7 +527,36 @@ function PainelInner() {
             <button onClick={copiarLink} className="btn-ghost" title="Copia o endereço com o recorte atual">
               {linkCopiado ? "✓ Link copiado" : "🔗 Copiar link desta análise"}
             </button>
-            <button onClick={exportarCsv} className="btn-ghost" disabled={!ranking?.length}>⬇ Exportar CSV</button>
+            <BotaoExportarCsv
+              base="mortalidade"
+              desabilitado={!recorteCompleto?.length}
+              recorte={{
+                titulo: "Mortalidade por município",
+                filtros: [
+                  ["UF", uf],
+                  ["Ano", String(ano)],
+                  ["Capítulo CID-10", capDesc],
+                  ["Sexo", sexo === "TOTAL" ? "ambos" : sexo === "M" ? "masculino" : "feminino"],
+                  ["População mínima", popMin ? fmtInt(popMin) + " habitantes" : ""],
+                  ["Busca", busca],
+                ],
+                tabelas: ["mart_mortalidade_municipio"],
+                ressalvas: [
+                  ehPreliminar(ano)
+                    ? `${ano} é PRELIMINAR: vem do diretório que o DataSUS ainda não fechou e será revisado — os valores só crescem, e a codificação também muda.`
+                    : `${ano} é consolidado.`,
+                  "Taxa padronizada por idade é o indicador comparável entre municípios; a bruta não é. Ambas só existem quando sexo = ambos.",
+                  "Códigos agregados UF0000 (óbito sem município identificado) ficam FORA deste arquivo; seus óbitos entram no total da tela.",
+                  "Célula vazia em taxa = município sem população publicada para o ano, não taxa zero.",
+                ],
+              }}
+              colunas={["municipio_cod", "municipio", "uf", "obitos", "populacao",
+                        "taxa_bruta_100k", "ic95_inf", "ic95_sup", "taxa_padronizada_100k"]}
+              linhas={() => (recorteCompleto ?? []).map((m) => [
+                m.municipio_cod, m.municipio_nome, m.uf_sigla, m.obitos, m.populacao,
+                m.taxa_obitos_100k, m.ic95_inf, m.ic95_sup, m.taxa_padronizada_100k,
+              ])}
+            />
           </div>
         </div>
 
@@ -548,26 +586,48 @@ function PainelInner() {
           </div>
         </div>
 
-        <div className="mt-4 overflow-x-auto">
+        {/* Escolha de colunas: a tabela tem sete e o celular tem 375px. */}
+        <fieldset className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 no-print">
+          <legend className="sr-only">Colunas visíveis</legend>
+          <span className="text-xs font-semibold uppercase tracking-wide text-ink-500">Colunas</span>
+          {COLUNAS_OPCIONAIS.map(([chave, rotulo]) => (
+            <label key={chave} className="flex items-center gap-1.5 text-xs text-ink-600">
+              <input type="checkbox" checked={colunas[chave]} onChange={() => alternar(chave)} />
+              {rotulo}
+            </label>
+          ))}
+          <span className="text-xs text-ink-400">
+            Município fica sempre visível. A exportação leva todas as colunas.
+          </span>
+        </fieldset>
+
+        <p className="dica-rolagem mt-2 text-xs text-ink-500 no-print">
+          Tabela rolável na horizontal — o município fica parado à esquerda. Toque em
+          <strong> ⋯ </strong> para ver todos os campos de uma linha.
+        </p>
+
+        <div className="mt-2 overflow-x-auto tabela-rolavel">
           {ranking ? (
             <VerMais total={ranking.length} rotulo="municípios">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
                   <th className="px-3 py-2">#</th>
-                  <th className="px-3 py-2">Município</th>
-                  <th className="px-3 py-2">UF</th>
-                  <th className="px-3 py-2 text-right">Óbitos</th>
-                  <th className="px-3 py-2 text-right">População</th>
-                  <th className="px-3 py-2 text-right">Taxa bruta (IC95%)</th>
-                  <th className="px-3 py-2 text-right">Taxa padronizada</th>
+                  <th className="col-id px-3 py-2">Município</th>
+                  {colunas.uf && <th className="px-3 py-2">UF</th>}
+                  {colunas.obitos && <th className="px-3 py-2 text-right">Óbitos</th>}
+                  {colunas.populacao && <th className="px-3 py-2 text-right">População</th>}
+                  {colunas.bruta && <th className="px-3 py-2 text-right">Taxa bruta (IC95%)</th>}
+                  {colunas.padronizada && <th className="px-3 py-2 text-right">Taxa padronizada</th>}
+                  <th className="px-3 py-2 text-right no-print"><span className="sr-only">Detalhes</span></th>
                 </tr>
               </thead>
               <tbody>
                 {ranking.map((m, i) => (
-                  <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
+                  <Fragment key={m.municipio_cod}>
+                  <tr className="border-b border-ink-100 hover:bg-ink-50">
                     <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-ink-900">
+                    <td className="col-id px-3 py-2 font-medium text-ink-900">
                       {/* O ano viaja junto. Sem ele o boletim abria no mais
                           recente da série — em 2025, preliminar — enquanto o
                           painel de origem estava em 2024: o visitante trocava
@@ -581,19 +641,51 @@ function PainelInner() {
                         <span title="População pequena: taxas instáveis — observe o IC95%" className="ml-1 text-amber-600">⚠</span>
                       )}
                     </td>
-                    <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
-                    <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.obitos)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(m.populacao)}</td>
-                    <td className="px-3 py-2 text-right tabular-nums text-ink-700">
-                      {fmtDec(m.taxa_obitos_100k)}
-                      {m.ic95_inf != null && (
-                        <span className="text-xs text-ink-500"> ({fmtDec(m.ic95_inf)}–{fmtDec(m.ic95_sup)})</span>
-                      )}
-                    </td>
-                    <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">
-                      {fmtDec(m.taxa_padronizada_100k)}
+                    {colunas.uf && <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>}
+                    {colunas.obitos && <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.obitos)}</td>}
+                    {colunas.populacao && <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(m.populacao)}</td>}
+                    {colunas.bruta && (
+                      <td className="px-3 py-2 text-right tabular-nums text-ink-700">
+                        {fmtDec(m.taxa_obitos_100k)}
+                        {m.ic95_inf != null && (
+                          <span className="text-xs text-ink-500"> ({fmtDec(m.ic95_inf)}–{fmtDec(m.ic95_sup)})</span>
+                        )}
+                      </td>
+                    )}
+                    {colunas.padronizada && (
+                      <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">
+                        {fmtDec(m.taxa_padronizada_100k)}
+                      </td>
+                    )}
+                    <td className="px-1 py-2 text-right no-print">
+                      <button
+                        onClick={() => setDetalhe((d) => (d === m.municipio_cod ? null : m.municipio_cod))}
+                        aria-expanded={detalhe === m.municipio_cod}
+                        aria-label={`Todos os campos de ${m.municipio_nome ?? m.municipio_cod}`}
+                        className="rounded px-2 py-0.5 text-ink-400 hover:bg-ink-100 hover:text-ink-700"
+                      >⋯</button>
                     </td>
                   </tr>
+                  {/* Detalhe da linha: TODOS os campos, inclusive os que a
+                      escolha de colunas escondeu. Sem isto, desmarcar uma
+                      coluna tornaria o dado inalcançável na tela — que é
+                      esconder, não escolher. */}
+                  {detalhe === m.municipio_cod && (
+                    <tr className="border-b border-ink-100 bg-ink-50/60">
+                      <td colSpan={9} className="px-3 py-2">
+                        <dl className="grid gap-x-4 gap-y-1 text-xs sm:grid-cols-3">
+                          <Campo termo="Código IBGE" valor={m.municipio_cod} />
+                          <Campo termo="UF" valor={m.uf_sigla} />
+                          <Campo termo="Óbitos" valor={fmtInt(m.obitos)} />
+                          <Campo termo="População" valor={m.populacao == null ? null : fmtInt(m.populacao)} />
+                          <Campo termo="Taxa bruta /100 mil" valor={m.taxa_obitos_100k == null ? null : fmtDec(m.taxa_obitos_100k)} />
+                          <Campo termo="IC95%" valor={m.ic95_inf == null ? null : `${fmtDec(m.ic95_inf)}–${fmtDec(m.ic95_sup)}`} />
+                          <Campo termo="Taxa padronizada /100 mil" valor={m.taxa_padronizada_100k == null ? null : fmtDec(m.taxa_padronizada_100k)} />
+                        </dl>
+                      </td>
+                    </tr>
+                  )}
+                  </Fragment>
                 ))}
               </tbody>
             </table>
@@ -628,6 +720,56 @@ function PainelInner() {
           <a className="text-accent-700 underline" href="/metodologia/">metodologia</a>.
         </p>
       </div>
+
+      <ProcedenciaImpressa
+        recorte={{
+          titulo: "Painel de mortalidade por município",
+          filtros: [
+            ["UF", uf],
+            ["Ano", String(ano)],
+            ["Capítulo CID-10", capDesc],
+            ["Sexo", sexo === "TOTAL" ? "ambos" : sexo === "M" ? "masculino" : "feminino"],
+            ["População mínima", popMin ? `${fmtInt(popMin)} habitantes` : ""],
+            ["Busca", busca],
+            ["Exibidos", totalNoRecorte != null
+              ? `${Math.min(100, totalNoRecorte)} de ${fmtInt(totalNoRecorte)} no recorte`
+              : ""],
+          ],
+          tabelas: ["mart_mortalidade_municipio"],
+          ressalvas: [
+            "A tabela impressa mostra no máximo 100 municípios; o recorte pode ser maior — o campo 'Exibidos' diz quantos.",
+            "Taxa padronizada por idade é a comparável entre municípios; a bruta não é.",
+            "Códigos agregados UF0000 (óbito sem município identificado) não entram na tabela.",
+          ],
+        }}
+      />
+    </div>
+  );
+}
+
+/** As colunas que podem ser escondidas. Município e posição, não. */
+const COLUNAS_OPCIONAIS: [string, string][] = [
+  ["uf", "UF"],
+  ["obitos", "Óbitos"],
+  ["populacao", "População"],
+  ["bruta", "Taxa bruta"],
+  ["padronizada", "Taxa padronizada"],
+];
+
+/**
+ * Um campo do detalhe da linha.
+ *
+ * `null` vira "—" com o motivo no `title`, e nunca 0: no painel a taxa ausente
+ * significa município sem população publicada para o ano, que é outra coisa
+ * que taxa igual a zero.
+ */
+function Campo({ termo, valor }: { termo: string; valor: string | null }) {
+  return (
+    <div className="flex justify-between gap-2 border-b border-ink-200/60 py-0.5 sm:block sm:border-0">
+      <dt className="font-medium text-ink-500">{termo}</dt>
+      <dd className="tabular-nums text-ink-800">
+        {valor ?? <span className="text-ink-400" title="Sem dado publicado para este recorte">—</span>}
+      </dd>
     </div>
   );
 }

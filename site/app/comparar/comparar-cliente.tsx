@@ -5,6 +5,8 @@ import { useSearchParams } from "next/navigation";
 import {
   CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
+import { BotaoExportarCsv } from "@/components/exportar-csv";
+import { ProcedenciaImpressa } from "@/components/procedencia-impressa";
 import { Skeleton } from "@/components/kpi";
 import { FichaIndicador } from "@/components/ficha-indicador";
 import { ehPreliminar, fmtDec, fmtInt, rest, sdata, type ClusterMunicipio, type Ivs, type LinhaMunicipio } from "@/lib/api";
@@ -266,6 +268,55 @@ function CompararInner() {
                 </select>
               </div>
             </div>
+
+            {/* A exportação leva a MESMA matriz que o gráfico desenha — uma
+                coluna por município, uma linha por ano — e leva junto a
+                ressalva da métrica escolhida. Quem baixa a série em óbitos
+                absolutos precisa do aviso dentro do arquivo, porque é
+                exatamente ali que a comparação engana. */}
+            <div className="mt-3">
+              <BotaoExportarCsv
+                base="comparar"
+                desabilitado={!dados.length}
+                recorte={{
+                  titulo: `Comparação de municípios — ${rotuloMetrica}`,
+                  filtros: [
+                    ["Municípios", escolhidos.map((m) => `${m[1]} (${m[0]})`).join(", ")],
+                    ["Métrica", rotuloMetrica],
+                    ["Período", dados.length ? `${dados[0]?.ano}–${dados[dados.length - 1]?.ano}` : ""],
+                  ],
+                  tabelas: ["mart_mortalidade_municipio"],
+                  ressalvas: [
+                    metrica === "taxa_padronizada_100k"
+                      ? "Taxa padronizada por idade: é a métrica comparável entre municípios de estruturas etárias diferentes."
+                      : metrica === "obitos"
+                        ? "ÓBITOS ABSOLUTOS acompanham o tamanho do município — a série mais alta é quase sempre a cidade maior. NÃO use para comparar desempenho."
+                        : "TAXA BRUTA não corrige a estrutura etária: um município envelhecido aparece pior sem que ninguém adoeça mais.",
+                    "Uma coluna por município, uma linha por ano. Célula vazia = o município não tem linha publicada naquele ano.",
+                    "O ano mais recente pode ser preliminar e será revisado.",
+                  ],
+                }}
+                colunas={["ano", ...escolhidos.map((m) => `${m[1]}_${m[0]}`)]}
+                linhas={() => dados.map((d) => [d.ano, ...codigos.map((c) => d[c])])}
+              />
+            </div>
+
+            <ProcedenciaImpressa
+              recorte={{
+                titulo: `Comparação de municípios — ${rotuloMetrica}`,
+                filtros: [
+                  ["Municípios", escolhidos.map((m) => `${m[1]} (${m[0]})`).join(", ")],
+                  ["Métrica", rotuloMetrica],
+                  ["Período", dados.length ? `${dados[0]?.ano}–${dados[dados.length - 1]?.ano}` : ""],
+                ],
+                tabelas: ["mart_mortalidade_municipio"],
+                ressalvas: [
+                  metrica === "taxa_padronizada_100k"
+                    ? "Taxa padronizada por idade: métrica comparável entre municípios."
+                    : "ATENÇÃO: a métrica escolhida NÃO é comparável entre municípios de estruturas etárias ou portes diferentes.",
+                ],
+              }}
+            />
 
             {metrica !== "taxa_padronizada_100k" && (
               <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800">

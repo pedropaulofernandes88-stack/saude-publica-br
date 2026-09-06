@@ -190,11 +190,11 @@ function TabelaVigilancia({
   rotulo?: string;
 }) {
   return (
-    <div className="mt-4 overflow-x-auto">
+    <div className="mt-4 overflow-x-auto tabela-rolavel">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-            <th className="py-2 pr-3">{rotulo}</th>
+            <th className="col-id py-2 pr-3">{rotulo}</th>
             <th className="py-2 pr-3">Alerta</th>
             <th className="py-2 pr-3 text-right">Notificados</th>
             <th className="py-2 pr-3 text-right">Estimados</th>
@@ -205,7 +205,7 @@ function TabelaVigilancia({
         <tbody>
           {capitais.map((c) => (
             <tr key={c.geocode} className="border-b border-ink-100">
-              <td className="py-2 pr-3 font-medium text-ink-900">
+              <td className="col-id py-2 pr-3 font-medium text-ink-900">
                 {c.municipio} <span className="text-ink-500">{c.uf}</span>
               </td>
               <td className="py-2 pr-3"><NivelBadge nivel={c.nivel} /></td>
@@ -406,11 +406,11 @@ function BoletimInner() {
             <p className="mt-1 text-sm text-ink-500">
               Municípios da rede sentinela em cada UF e quantos estão em alerta na SE {vig.semana_epi}/{vig.ano_epi}.
             </p>
-            <div className="mt-4 overflow-x-auto">
+            <div className="mt-4 overflow-x-auto tabela-rolavel">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                    <th className="py-2 pr-3">UF</th>
+                    <th className="col-id py-2 pr-3">UF</th>
                     <th className="py-2 pr-3 text-right">Monitorados</th>
                     <th className="py-2 pr-3 text-right">Em alerta</th>
                     <th className="py-2 pr-3 text-right">Notificados</th>
@@ -420,7 +420,7 @@ function BoletimInner() {
                 <tbody>
                   {vig.dengue.por_uf.map((u) => (
                     <tr key={u.uf} className="border-b border-ink-100">
-                      <td className="py-2 pr-3 font-medium text-ink-900">{u.uf}</td>
+                      <td className="col-id py-2 pr-3 font-medium text-ink-900">{u.uf}</td>
                       <td className="py-2 pr-3 text-right tabular-nums text-ink-600">{u.municipios}</td>
                       <td className={`py-2 pr-3 text-right tabular-nums ${u.em_alerta > 0 ? "font-medium text-orange-700" : "text-ink-500"}`}>
                         {u.em_alerta || "—"}
@@ -482,11 +482,11 @@ function BoletimInner() {
           <p className="mt-1 text-sm text-ink-500">
             Estados que passaram 13+ semanas (≥ 1 trimestre) acima do próprio canal endêmico em {dengue.ano_ref}, ordenados por volume de casos.
           </p>
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto tabela-rolavel">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="py-2 pr-4">UF</th>
+                  <th className="col-id py-2 pr-4">UF</th>
                   <th className="py-2 pr-4 text-right">Casos prováveis</th>
                   <th className="py-2 pr-4 text-right">Óbitos</th>
                   <th className="py-2 text-right">Semanas acima do P75</th>
@@ -495,7 +495,7 @@ function BoletimInner() {
               <tbody>
                 {ufsAlertaDengue.map((u) => (
                   <tr key={u.uf} className="border-b border-ink-100">
-                    <td className="py-2 pr-4 font-medium text-ink-900">{u.uf}</td>
+                    <td className="col-id py-2 pr-4 font-medium text-ink-900">{u.uf}</td>
                     <td className="py-2 pr-4 text-right tabular-nums">{fmtInt(u.casos)}</td>
                     <td className="py-2 pr-4 text-right tabular-nums">{fmtInt(u.obitos)}</td>
                     <td className="py-2 text-right tabular-nums font-medium text-red-700">{u.semanas_acima_p75}</td>
@@ -536,11 +536,11 @@ function BoletimInner() {
           <h3 className="font-serif text-xl font-semibold text-ink-900">
             Maiores excessos em {mesPt(mortalidade.ultimo_mes)}
           </h3>
-          <div className="mt-4 overflow-x-auto">
+          <div className="mt-4 overflow-x-auto tabela-rolavel">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="py-2 pr-4">UF</th>
+                  <th className="col-id py-2 pr-4">UF</th>
                   <th className="py-2 pr-4 text-right">Óbitos</th>
                   <th className="py-2 pr-4 text-right">Esperado</th>
                   <th className="py-2 text-right">Excesso</th>
@@ -549,7 +549,7 @@ function BoletimInner() {
               <tbody>
                 {ufsExcesso.map((u) => (
                   <tr key={u.uf} className="border-b border-ink-100">
-                    <td className="py-2 pr-4 font-medium text-ink-900">{u.uf}</td>
+                    <td className="col-id py-2 pr-4 font-medium text-ink-900">{u.uf}</td>
                     <td className="py-2 pr-4 text-right tabular-nums">{fmtInt(u.obitos)}</td>
                     <td className="py-2 pr-4 text-right tabular-nums">{fmtInt(u.esperado)}</td>
                     <td className="py-2 text-right tabular-nums font-medium text-red-700">{fmtPct(u.pct_excesso ?? 0)}</td>

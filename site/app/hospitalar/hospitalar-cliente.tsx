@@ -238,11 +238,11 @@ export function HospitalarCliente() {
               />
             </div>
 
-            <div className="mt-5 overflow-x-auto">
+            <div className="mt-5 overflow-x-auto tabela-rolavel">
               <table className="w-full min-w-[640px] text-sm">
                 <thead>
                   <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                    <th className="py-2 pr-3">Ano</th>
+                    <th className="col-id py-2 pr-3">Ano</th>
                     <th className="py-2 pr-3 text-right">Leitos totais</th>
                     <th className="py-2 pr-3 text-right">Leitos SUS</th>
                     <th className="py-2 pr-3 text-right">% SUS</th>
@@ -254,7 +254,7 @@ export function HospitalarCliente() {
                 <tbody>
                   {serieLeitos.map((r) => (
                     <tr key={r.ano} className="border-b border-ink-100 tabular-nums">
-                      <td className="py-1.5 pr-3 font-medium text-ink-900">{r.ano}</td>
+                      <td className="col-id py-1.5 pr-3 font-medium text-ink-900">{r.ano}</td>
                       <td className="py-1.5 pr-3 text-right">{fmtInt(r.leitos)}</td>
                       <td className="py-1.5 pr-3 text-right">{fmtInt(r.sus)}</td>
                       <td className="py-1.5 pr-3 text-right">{r.leitos ? fmtDec((r.sus / r.leitos) * 100, 1) : "—"}</td>
@@ -341,11 +341,11 @@ export function HospitalarCliente() {
                detalhe="o efeito bruto (+1,9 p.p.) era quase todo porte" />
         </div>
 
-        <div className="mt-5 overflow-x-auto">
+        <div className="mt-5 overflow-x-auto tabela-rolavel">
           <table className="w-full min-w-[560px] text-sm">
             <thead>
               <tr className="border-b border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                <th className="py-2 pr-3">Porte</th>
+                <th className="col-id py-2 pr-3">Porte</th>
                 <th className="py-2 pr-3 text-right">Taxa padr. — sem leito</th>
                 <th className="py-2 pr-3 text-right">Taxa padr. — com leito</th>
                 <th className="py-2 pr-3 text-right">Diferença</th>
@@ -360,7 +360,7 @@ export function HospitalarCliente() {
                 { p: "Q4 (maiores)", ts: 709.9, tc: 716.1, ds: 20.3, dc: 20.6 },
               ].map((r) => (
                 <tr key={r.p} className="border-b border-ink-100 tabular-nums">
-                  <td className="py-1.5 pr-3 font-medium text-ink-900">{r.p}</td>
+                  <td className="col-id py-1.5 pr-3 font-medium text-ink-900">{r.p}</td>
                   <td className="py-1.5 pr-3 text-right">{fmtDec(r.ts, 1)}</td>
                   <td className="py-1.5 pr-3 text-right">{fmtDec(r.tc, 1)}</td>
                   <td className="py-1.5 pr-3 text-right">{fmtDec(r.ts - r.tc, 1)}</td>
@@ -397,7 +397,7 @@ export function HospitalarCliente() {
       </div>
 
       {/* HSMR */}
-      <div className="card mt-6 overflow-x-auto">
+      <div className="card mt-6 overflow-x-auto tabela-rolavel">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-serif text-xl font-semibold text-ink-900">
@@ -451,7 +451,7 @@ export function HospitalarCliente() {
                     {/* Sem coluna de posição: numerar as linhas transforma
                         qualquer ordenação em classificação aos olhos de quem
                         lê, inclusive a de volume. O CNES já identifica a linha. */}
-                    <th className="px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                    <th className="col-id px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                     <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">Óbitos obs.</th>
                     <th className="px-3 py-2 text-right">Leitos</th><th className="px-3 py-2 text-center">UTI</th>
                     <th className="px-3 py-2 text-right">HSMR no estrato (IC95%)</th>
@@ -460,7 +460,7 @@ export function HospitalarCliente() {
                 <tbody>
                   {hsmr.map((h) => (
                     <tr key={h.cnes} className="border-b border-ink-100 hover:bg-ink-50">
-                      <td className="px-3 py-2 tabular-nums text-ink-500">{h.cnes}</td>
+                      <td className="col-id px-3 py-2 tabular-nums text-ink-500">{h.cnes}</td>
                       <td className="px-3 py-2 font-medium text-ink-900">{h.municipio_nome ?? h.municipio_cod}</td>
                       <td className="px-3 py-2 text-ink-600">{h.uf_sigla}</td>
                       <td className="px-3 py-2 text-right tabular-nums">{fmtInt(h.internacoes)}</td>
@@ -548,7 +548,7 @@ export function HospitalarCliente() {
       </div>
 
       {/* LOS esperado */}
-      <div className="card mt-6 overflow-x-auto">
+      <div className="card mt-6 overflow-x-auto tabela-rolavel">
         <h2 className="font-serif text-xl font-semibold text-ink-900">
           Tempo de permanência: hospital vs. esperado — {uf === "Brasil" ? "Brasil" : uf}, {ano}
         </h2>
@@ -568,7 +568,7 @@ export function HospitalarCliente() {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                    <th className="px-3 py-2">Hospital</th><th className="px-3 py-2">UF</th><th className="px-3 py-2">CID-3</th>
+                    <th className="col-id px-3 py-2">Hospital</th><th className="px-3 py-2">UF</th><th className="px-3 py-2">CID-3</th>
                     <th className="px-3 py-2">Cap.</th><th className="px-3 py-2 text-right">Internações</th>
                     <th className="px-3 py-2 text-right">Mediana hospital</th><th className="px-3 py-2 text-right">Mediana nacional</th>
                     <th className="px-3 py-2 text-right">Desvio</th>
@@ -577,7 +577,7 @@ export function HospitalarCliente() {
                 <tbody>
                   {los.map((l, i) => (
                     <tr key={`${l.cnes}-${l.cid3}-${i}`} className="border-b border-ink-100 hover:bg-ink-50">
-                      <td className="px-3 py-2 font-medium text-ink-900">{l.municipio_nome ?? l.municipio_cod}</td>
+                      <td className="col-id px-3 py-2 font-medium text-ink-900">{l.municipio_nome ?? l.municipio_cod}</td>
                       <td className="px-3 py-2 text-ink-600">{l.uf_sigla}</td>
                       <td className="px-3 py-2 tabular-nums text-ink-500">{l.cid3}</td>
                       <td className="px-3 py-2 text-ink-500">{l.capitulo_cid}</td>
@@ -643,7 +643,7 @@ export function HospitalarCliente() {
                 <table className="mt-2 w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                      <th className="px-3 py-2">Mês</th>
+                      <th className="col-id px-3 py-2">Mês</th>
                       <th className="px-3 py-2 text-right">O modelo estima</th>
                       {/* O intervalo deixa de ser coluna acessória: com z calibrado
                           pelo backtest ele é largo (mediana de 74% da previsão nos
@@ -656,7 +656,7 @@ export function HospitalarCliente() {
                   <tbody>
                     {forecast.map((f) => (
                       <tr key={f.ano_mes_previsto} className="border-b border-ink-100">
-                        <td className="px-3 py-2 font-medium text-ink-900">{f.ano_mes_previsto}</td>
+                        <td className="col-id px-3 py-2 font-medium text-ink-900">{f.ano_mes_previsto}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtDec(f.internacoes_previstas, 0)}</td>
                         <td className="px-3 py-2 text-right tabular-nums font-medium text-ink-900">
                           {fmtDec(f.ic_inferior, 0)}–{fmtDec(f.ic_superior, 0)}

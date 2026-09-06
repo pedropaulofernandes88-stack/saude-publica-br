@@ -295,7 +295,7 @@ export function InternacoesCliente() {
         </div>
       </div>
 
-      <div className="card mt-6 overflow-x-auto">
+      <div className="card mt-6 overflow-x-auto tabela-rolavel">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <h2 className="font-serif text-xl font-semibold text-ink-900">Municípios ({ano})</h2>
           <div>
@@ -314,7 +314,7 @@ export function InternacoesCliente() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="px-3 py-2">#</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                  <th className="px-3 py-2">#</th><th className="col-id px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                   <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">Perm. média</th>
                   <th className="px-3 py-2 text-right">Mortalidade</th><th className="px-3 py-2 text-right">Custo médio</th>
                 </tr>
@@ -323,7 +323,7 @@ export function InternacoesCliente() {
                 {ranking.map((m, i) => (
                   <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
                     <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
+                    <td className="col-id px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                     <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.internacoes)}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(m.permanencia_media)}</td>
@@ -359,13 +359,13 @@ export function InternacoesCliente() {
             <Kpi rotulo="Municípios analisados" valor={icsap ? fmtInt(icsap.length) : "…"} detalhe="com internações em 2024" />
           </div>
         )}
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 overflow-x-auto tabela-rolavel">
           {icsapRank ? (
             <VerMais total={icsapRank.length} rotulo="municípios (ICSAP)">
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="px-3 py-2">#</th><th className="px-3 py-2">Município (≥200 intern.)</th><th className="px-3 py-2">UF</th>
+                  <th className="px-3 py-2">#</th><th className="col-id px-3 py-2">Município (≥200 intern.)</th><th className="px-3 py-2">UF</th>
                   <th className="px-3 py-2 text-right">% evitáveis</th><th className="px-3 py-2 text-right">ICSAP</th><th className="px-3 py-2 text-right">Total</th>
                   <th className="px-3 py-2 text-right">R$ evitável (est.)</th>
                 </tr>
@@ -377,7 +377,7 @@ export function InternacoesCliente() {
                   return (
                     <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
                       <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
-                      <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
+                      <td className="col-id px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                       <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                       <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">
                         {fmtDec(m.pct_icsap, 1)}%
@@ -437,14 +437,14 @@ export function InternacoesCliente() {
                 <table className="mt-2 w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                      <th className="px-3 py-2">Destino</th><th className="px-3 py-2">UF</th>
+                      <th className="col-id px-3 py-2">Destino</th><th className="px-3 py-2">UF</th>
                       <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">% do fluxo</th>
                     </tr>
                   </thead>
                   <tbody>
                     {fluxoSai.map((f) => (
                       <tr key={f.municipio_mov} className="border-b border-ink-100">
-                        <td className="px-3 py-2 font-medium text-ink-900">{f.municipio_mov_nome ?? f.municipio_mov}</td>
+                        <td className="col-id px-3 py-2 font-medium text-ink-900">{f.municipio_mov_nome ?? f.municipio_mov}</td>
                         <td className="px-3 py-2 text-ink-600">{f.uf_mov}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtInt(f.internacoes)}</td>
                         <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(f.internacoes / fluxoTotalSai * 100, 1)}%</td>
@@ -467,12 +467,12 @@ export function InternacoesCliente() {
           Condições traçadoras isoladas no nível de CID-10 (3 caracteres): permanência média,
           mortalidade hospitalar e custo médio por agravo. Clique numa linha para ver o ranking de municípios.
         </p>
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 overflow-x-auto tabela-rolavel">
           {agravoPanoramaCalc ? (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="px-3 py-2">Agravo</th><th className="px-3 py-2">Grupo</th>
+                  <th className="col-id px-3 py-2">Agravo</th><th className="px-3 py-2">Grupo</th>
                   <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">Perm. média</th>
                   <th className="px-3 py-2 text-right">Mortalidade</th><th className="px-3 py-2 text-right">Custo médio</th>
                 </tr>
@@ -482,7 +482,7 @@ export function InternacoesCliente() {
                   <tr key={a.agravo}
                       className={`cursor-pointer border-b border-ink-100 hover:bg-ink-50 ${a.agravo === agravoSel ? "bg-accent-50" : ""}`}
                       onClick={() => setAgravoSel(a.agravo)}>
-                    <td className="px-3 py-2 font-medium text-ink-900">{a.agravo_label}</td>
+                    <td className="col-id px-3 py-2 font-medium text-ink-900">{a.agravo_label}</td>
                     <td className="px-3 py-2 text-ink-500">{a.grupo}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtInt(a.internacoes)}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(a.permanencia_media)}</td>
@@ -501,7 +501,7 @@ export function InternacoesCliente() {
             <strong className="text-ink-700">{agravoPanorama?.find((p) => p.agravo === agravoSel)?.agravo_label ?? agravoSel}</strong>{" "}
             (≥ 20 internações, por 100k hab.)
           </p>
-          <div className="mt-3 overflow-x-auto">
+          <div className="mt-3 overflow-x-auto tabela-rolavel">
             {agravoRank ? (
               agravoRank.length === 0 ? (
                 <p className="text-sm text-ink-500">Sem municípios com ≥ 20 internações para este agravo no recorte.</p>
@@ -510,7 +510,7 @@ export function InternacoesCliente() {
                 <table className="w-full text-sm">
                   <thead>
                     <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                      <th className="px-3 py-2">#</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                      <th className="px-3 py-2">#</th><th className="col-id px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                       <th className="px-3 py-2 text-right">Internações</th><th className="px-3 py-2 text-right">por 100k</th>
                       <th className="px-3 py-2 text-right">Mortalidade</th>
                     </tr>
@@ -519,7 +519,7 @@ export function InternacoesCliente() {
                     {agravoRank.map((m, i) => (
                       <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
                         <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
-                        <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
+                        <td className="col-id px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                         <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                         <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.internacoes)}</td>
                         <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">{fmtDec(m.internacoes_100k)}</td>
@@ -536,7 +536,7 @@ export function InternacoesCliente() {
       </div>
 
       {/* Item 3 — Visão hospitalar (CNES) */}
-      <div className="card mt-6 overflow-x-auto">
+      <div className="card mt-6 overflow-x-auto tabela-rolavel">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <h2 className="font-serif text-xl font-semibold text-ink-900">
@@ -563,7 +563,7 @@ export function InternacoesCliente() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="px-3 py-2">#</th><th className="px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                  <th className="px-3 py-2">#</th><th className="col-id px-3 py-2">CNES</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                   <th className="px-3 py-2">Cap.</th><th className="px-3 py-2 text-right">Internações</th>
                   <th className="px-3 py-2 text-right">Perm.</th><th className="px-3 py-2 text-right">Mortalidade</th><th className="px-3 py-2 text-right">Custo médio</th>
                 </tr>
@@ -572,7 +572,7 @@ export function InternacoesCliente() {
                 {hospRank.map((hh, i) => (
                   <tr key={hh.cnes} className="border-b border-ink-100 hover:bg-ink-50">
                     <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
-                    <td className="px-3 py-2 tabular-nums text-ink-500">{hh.cnes}</td>
+                    <td className="col-id px-3 py-2 tabular-nums text-ink-500">{hh.cnes}</td>
                     <td className="px-3 py-2 font-medium text-ink-900">{hh.municipio_nome ?? hh.municipio_cod}</td>
                     <td className="px-3 py-2 text-ink-600">{hh.uf_sigla}</td>
                     <td className="px-3 py-2 text-ink-500">{hh.capitulo_principal}</td>

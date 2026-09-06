@@ -122,12 +122,12 @@ export function TendenciasCliente() {
       </div>
 
       {resumo && (
-        <div className="card mt-6 overflow-x-auto">
+        <div className="card mt-6 overflow-x-auto tabela-rolavel">
           <h2 className="font-serif text-xl font-semibold text-ink-900">Resumo anual do excesso</h2>
           <table className="mt-3 w-full text-sm">
             <thead>
               <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                <th className="px-3 py-2">Ano</th>
+                <th className="col-id px-3 py-2">Ano</th>
                 <th className="px-3 py-2 text-right">Observado</th>
                 <th className="px-3 py-2 text-right">Esperado</th>
                 <th className="px-3 py-2 text-right">Excesso</th>
@@ -137,7 +137,7 @@ export function TendenciasCliente() {
             <tbody>
               {resumo.map((r) => (
                 <tr key={r.ano} className="border-b border-ink-100">
-                  <td className="px-3 py-2 font-medium">{r.ano}{ehPreliminar(r.ano) ? " *" : ""}</td>
+                  <td className="col-id px-3 py-2 font-medium">{r.ano}{ehPreliminar(r.ano) ? " *" : ""}</td>
                   <td className="px-3 py-2 text-right tabular-nums">{fmtInt(Math.round(r.obs))}</td>
                   <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(Math.round(r.esp))}</td>
                   <td className={`px-3 py-2 text-right font-semibold tabular-nums ${r.exc > 0 ? "text-red-700" : "text-accent-800"}`}>

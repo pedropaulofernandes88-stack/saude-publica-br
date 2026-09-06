@@ -9,6 +9,9 @@ import {
   Line, LineChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from "recharts";
 import { Bloco, useCarga } from "@/components/bloco";
+import { BotaoExportarCsv } from "@/components/exportar-csv";
+import { ProcedenciaImpressa } from "@/components/procedencia-impressa";
+import { type Carga } from "@/lib/carga";
 import { FichaIndicador } from "@/components/ficha-indicador";
 import { IcsapPares } from "@/components/icsap-pares";
 import { Imunopreveniveis as CardImuno } from "@/components/imunopreveniveis";
@@ -224,7 +227,29 @@ function BoletimInner() {
   return (
     <>
       {erro && <div className="card mt-6 border-red-200 bg-red-50 text-sm text-red-800">Falha: {erro}</div>}
-      {!atual && !erro && <Skeleton altura={400} />}
+      {/* Consulta que VOLTOU VAZIA não é consulta em andamento. Um `?m=` que
+          não existe deixava o esqueleto girando para sempre, e a página não
+          dizia nem "carregando" nem "não achei" — o visitante ficava olhando
+          um retângulo cinza. É a mesma confusão que `lib/carga.ts` resolve nos
+          cartões, aqui no nível da página. */}
+      {!atual && !erro && linhas === null && <Skeleton altura={400} />}
+      {!atual && !erro && linhas !== null && (
+        <div className="card mx-auto mt-10 max-w-xl text-center">
+          <p className="text-ink-700">
+            Não há boletim publicado para o código <span className="font-mono">{cod}</span>.
+            A consulta respondeu — o código é que não existe na base de mortalidade.
+          </p>
+          <p className="mt-2 text-sm text-ink-500">
+            O código do município aqui tem <strong>6 dígitos</strong> (o do IBGE sem o dígito
+            verificador): Penápolis é <span className="font-mono">353730</span>, não 3536505.
+          </p>
+          <p className="mt-3">
+            <Link href="/painel/" className="font-medium text-accent-700 underline">
+              Escolher um município no painel
+            </Link>
+          </p>
+        </div>
+      )}
       {atual && (
         <>
           <div className="flex flex-wrap items-start justify-between gap-4">
@@ -251,6 +276,9 @@ function BoletimInner() {
               <button onClick={() => window.print()} className="btn-primary">🖨 Imprimir / PDF</button>
             </div>
           </div>
+
+          <ResumoExecutivo atual={atual} icsap={icsap} cargaIvs={cargaIvs} janela={janelaSerie}
+                           primeiro={linhas?.[0] ?? null} />
 
           <div className="mt-6 grid gap-4 sm:grid-cols-3">
             <Kpi rotulo={`Óbitos em ${atual.ano}${ehPreliminar(atual.ano) ? " (preliminar)" : ""}`} valor={fmtInt(atual.obitos)}
@@ -392,12 +420,158 @@ function BoletimInner() {
             </p>
             <p className="mt-2">
               Gerado por <b>saudeemdado.com</b> — plataforma aberta e sem fins lucrativos.
-              Boletim: <span className="font-mono">saudeemdado.com/boletim/?m={cod}</span>
             </p>
+            <div className="mt-3 no-print">
+              <BotaoExportarCsv
+                base="boletim"
+                rotulo="⬇ Exportar a série em CSV"
+                recorte={{
+                  titulo: `Boletim municipal — ${atual.municipio_nome ?? cod} (${atual.uf_sigla})`,
+                  filtros: [
+                    ["Município", `${atual.municipio_nome ?? cod} (${cod})`],
+                    ["UF", atual.uf_sigla],
+                    ["Série", janelaSerie],
+                  ],
+                  tabelas: ["mart_mortalidade_municipio"],
+                  ressalvas: [
+                    "Óbitos não fetais, por município de RESIDÊNCIA.",
+                    "Padronização direta pelo padrão Brasil/Censo 2022; IC95% por método gamma.",
+                    "O ano mais recente pode ser preliminar (SIM/PRELIM/DORES) e será revisado — os valores só crescem, e a codificação também muda.",
+                    "Taxa padronizada é a comparável entre municípios; a bruta não é.",
+                  ],
+                }}
+                colunas={["ano", "municipio_cod", "municipio", "uf", "populacao", "obitos",
+                          "obitos_hospital", "obitos_domicilio", "taxa_bruta_100k",
+                          "ic95_inf", "ic95_sup", "taxa_padronizada_100k"]}
+                linhas={() => (linhas ?? []).map((l) => [
+                  l.ano, l.municipio_cod, l.municipio_nome, l.uf_sigla, l.populacao, l.obitos,
+                  l.obitos_hospital, l.obitos_domicilio, l.taxa_obitos_100k,
+                  l.ic95_inf, l.ic95_sup, l.taxa_padronizada_100k,
+                ])}
+              />
+            </div>
           </div>
+
+          {/* No papel, o que `@media print` tira do cabeçalho e do rodapé:
+              endereço, versão da publicação, checksum e citação. */}
+          <ProcedenciaImpressa
+            recorte={{
+              titulo: `Boletim municipal — ${atual.municipio_nome ?? cod} (${atual.uf_sigla}), ${atual.ano}`,
+              filtros: [
+                ["Município", `${atual.municipio_nome ?? cod} (${cod})`],
+                ["Ano de referência", `${atual.ano}${ehPreliminar(atual.ano) ? " — PRELIMINAR" : " — consolidado"}`],
+                ["Série exibida", janelaSerie],
+              ],
+              tabelas: ["mart_mortalidade_municipio", "mart_icsap_pares", "dim_ivs"],
+              ressalvas: [
+                "Óbitos não fetais, por município de residência.",
+                "Taxa padronizada pelo padrão Brasil/Censo 2022 é a comparável entre municípios.",
+              ],
+            }}
+          />
         </>
       )}
     </>
+  );
+}
+
+/**
+ * O essencial em prosa, antes de qualquer gráfico.
+ *
+ * O boletim abria em três KPIs e nove cartões: quem chegava com uma pergunta
+ * simples — "como está meu município?" — tinha de montar a resposta sozinho,
+ * lendo número por número. Este bloco responde primeiro e deixa o resto como
+ * aprofundamento.
+ *
+ * NENHUM NÚMERO AQUI É DIGITADO. Todos saem de `atual`, de `icsap` e da carga
+ * do IVS — inclusive as comparações, que são calculadas na hora. Um resumo com
+ * número escrito à mão é a forma mais rápida de a prosa e a tabela discordarem.
+ *
+ * O que não carregou simplesmente NÃO É AFIRMADO: cada frase depende do seu
+ * dado existir. Resumo é onde a tentação de completar a frase com uma suposição
+ * é maior, e é onde ela custaria mais caro.
+ */
+function ResumoExecutivo({
+  atual, icsap, cargaIvs, janela, primeiro,
+}: {
+  atual: LinhaMunicipio;
+  icsap: TIcsapPares | null;
+  cargaIvs: Carga<{ ivs: Ivs; cluster: ClusterMunicipio | null }>;
+  janela: string;
+  primeiro: LinhaMunicipio | null;
+}) {
+  const ivs = cargaIvs.estado === "ok" ? cargaIvs.dados.ivs : null;
+
+  // Variação da taxa padronizada entre a primeira e a última ponta da série.
+  // Só existe se as DUAS pontas tiverem taxa: comparar contra `null` produziria
+  // uma variação inventada.
+  const varPad =
+    primeiro && primeiro.ano !== atual.ano
+      && primeiro.taxa_padronizada_100k != null && atual.taxa_padronizada_100k != null
+      ? ((atual.taxa_padronizada_100k - primeiro.taxa_padronizada_100k)
+         / primeiro.taxa_padronizada_100k) * 100
+      : null;
+
+  return (
+    <div className="card mt-6 border-accent-200 bg-accent-50/40">
+      <h2 className="font-serif text-lg font-semibold text-ink-900">Em resumo</h2>
+      <ul className="mt-2 space-y-1.5 text-sm leading-relaxed text-ink-700">
+        <li>
+          <strong>{fmtInt(atual.obitos)} óbitos</strong> em {atual.ano}
+          {ehPreliminar(atual.ano) && <> (ano <strong>preliminar</strong>, será revisado)</>}
+          {atual.taxa_padronizada_100k != null && (
+            <> — taxa padronizada de <strong>{fmtDec(atual.taxa_padronizada_100k)}</strong> por
+            100 mil, que é a comparável com outros municípios</>
+          )}.
+        </li>
+
+        {varPad != null && (
+          <li>
+            Na série {janela}, a taxa padronizada{" "}
+            <strong>{varPad > 0 ? "subiu" : varPad < 0 ? "caiu" : "ficou estável"}</strong>
+            {varPad !== 0 && <> {fmtDec(Math.abs(varPad), 1)}%</>} em relação a {primeiro!.ano}.
+            {" "}Variação entre duas pontas não é tendência: veja a série completa abaixo.
+          </li>
+        )}
+
+        {icsap && (
+          <li>
+            Internações evitáveis: <strong>{fmtDec(icsap.pct_icsap, 1)}%</strong> das internações
+            de {icsap.ano} eram sensíveis à atenção primária,{" "}
+            {icsap.diferenca_pp > 0 ? (
+              <>
+                <strong>{fmtDec(icsap.diferenca_pp, 1)} p.p. acima</strong> da mediana dos{" "}
+                {fmtInt(icsap.n_pares)} municípios do mesmo estrato de saúde
+                {icsap.internacoes_acima_pares > 0 && (
+                  <> — {fmtInt(icsap.internacoes_acima_pares)} internações a mais que essa mediana</>
+                )}
+              </>
+            ) : (
+              <>
+                <strong>na mediana ou abaixo</strong> dos {fmtInt(icsap.n_pares)} municípios do
+                mesmo estrato de saúde
+              </>
+            )}.
+          </li>
+        )}
+
+        {ivs && (
+          <li>
+            Contexto social: vulnerabilidade-proxy no <strong>{ivs.ivs_quartil}</strong> de 4
+            quartis (Q4 = mais vulnerável), com {fmtDec(ivs.taxa_analfabetismo, 1)}% de analfabetismo
+            e {fmtDec(ivs.pct_sem_agua, 1)}% dos domicílios sem água encanada (Censo 2022).
+            {" "}A associação é ecológica: descreve o município, não pessoas.
+          </li>
+        )}
+
+        {cargaIvs.estado === "erro" && (
+          <li className="text-red-800">
+            O contexto social não carregou — {cargaIvs.mensagem}. Isto é falha de consulta,
+            não ausência de dado.
+          </li>
+        )}
+      </ul>
+    </div>
   );
 }
 

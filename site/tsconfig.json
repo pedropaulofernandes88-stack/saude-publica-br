@@ -6,6 +6,13 @@
     "skipLibCheck": true,
     "strict": true,
     "noEmit": true,
+    // Permite `import { x } from "./y.ts"`. O test runner nativo do Node resolve
+    // o caminho LITERAL: sem a extensão ele não acha o módulo, e foi por isso
+    // que `indicadores.ts` teve de largar o import de `metodologia-secoes` e
+    // mover a função de lugar. Contornar movendo código funciona uma vez; na
+    // terceira vez o layout do `lib/` passa a ser ditado pelo test runner.
+    // Webpack e SWC resolvem a extensão explícita sem ajuste.
+    "allowImportingTsExtensions": true,
     "esModuleInterop": true,
     "module": "esnext",
     "moduleResolution": "bundler",

@@ -249,7 +249,7 @@ export function DengueCliente() {
         </div>
       </div>
 
-      <div className="card mt-6 overflow-x-auto">
+      <div className="card mt-6 overflow-x-auto tabela-rolavel">
         <h2 className="font-serif text-xl font-semibold text-ink-900">
           Municípios por incidência ({ano}, pop. ≥ 50 mil)
         </h2>
@@ -260,7 +260,7 @@ export function DengueCliente() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="px-3 py-2">#</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                  <th className="px-3 py-2">#</th><th className="col-id px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                   <th className="px-3 py-2 text-right">Casos</th><th className="px-3 py-2 text-right">Incidência /100k</th>
                   <th className="px-3 py-2 text-right">Óbitos</th><th className="px-3 py-2 text-right">Letalidade</th>
                 </tr>
@@ -269,7 +269,7 @@ export function DengueCliente() {
                 {rankingInc.map((m, i) => (
                   <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
                     <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
+                    <td className="col-id px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                     <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.casos_provaveis)}</td>
                     <td className="px-3 py-2 text-right font-semibold tabular-nums text-red-700">{fmtDec(m.incidencia_100k)}</td>

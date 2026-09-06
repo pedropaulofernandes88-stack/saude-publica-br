@@ -100,7 +100,7 @@ export function NascimentosCliente() {
         <div className="mt-4">{tmiUf ? <Barras data={tmiUf} horizontal altura={460} cor={ALERTA} titulo={`Taxa de Mortalidade Infantil por UF (${Math.min(ano, 2022)})`} unidade="Óbitos por mil nascidos vivos" /> : <Skeleton altura={460} />}</div>
       </div>
 
-      <div className="card mt-6 overflow-x-auto">
+      <div className="card mt-6 overflow-x-auto tabela-rolavel">
         <h2 className="font-serif text-xl font-semibold text-ink-900">
           Municípios por % de baixo peso ao nascer ({ano}, ≥200 nascidos)
         </h2>
@@ -110,7 +110,7 @@ export function NascimentosCliente() {
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="px-3 py-2">#</th><th className="px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
+                  <th className="px-3 py-2">#</th><th className="col-id px-3 py-2">Município</th><th className="px-3 py-2">UF</th>
                   <th className="px-3 py-2 text-right">Nascidos</th><th className="px-3 py-2 text-right">Baixo peso</th>
                   <th className="px-3 py-2 text-right">Prematuro</th><th className="px-3 py-2 text-right">Pré-natal 7+</th>
                   <th className="px-3 py-2 text-right">Idade mãe</th>
@@ -120,7 +120,7 @@ export function NascimentosCliente() {
                 {ranking.map((m, i) => (
                   <tr key={m.municipio_cod} className="border-b border-ink-100 hover:bg-ink-50">
                     <td className="px-3 py-2 tabular-nums text-ink-500">{i + 1}</td>
-                    <td className="px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
+                    <td className="col-id px-3 py-2 font-medium text-ink-900">{m.municipio_nome ?? m.municipio_cod}</td>
                     <td className="px-3 py-2 text-ink-600">{m.uf_sigla}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{fmtInt(m.nascidos)}</td>
                     <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">{fmtDec(m.pct_baixo_peso, 1)}%</td>

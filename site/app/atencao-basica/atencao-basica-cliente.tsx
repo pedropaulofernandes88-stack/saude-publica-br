@@ -208,12 +208,12 @@ export function AtencaoBasicaCliente() {
           </div>
         )}
 
-        <div className="mt-4 overflow-x-auto">
+        <div className="mt-4 overflow-x-auto tabela-rolavel">
           {estratos ? (
             <table className="w-full text-sm">
               <thead>
                 <tr className="border-b-2 border-ink-200 text-left text-xs uppercase tracking-wide text-ink-500">
-                  <th className="px-3 py-2">Porte do município</th>
+                  <th className="col-id px-3 py-2">Porte do município</th>
                   <th className="px-3 py-2 text-right">Municípios</th>
                   <th className="px-3 py-2 text-right">Cobertura mediana</th>
                   <th className="px-3 py-2 text-right">Saturados (&gt;100%)</th>
@@ -224,7 +224,7 @@ export function AtencaoBasicaCliente() {
               <tbody>
                 {estratos.map((e) => (
                   <tr key={e.rotulo} className="border-b border-ink-100 hover:bg-ink-50">
-                    <td className="px-3 py-2 font-medium text-ink-900">{e.rotulo}</td>
+                    <td className="col-id px-3 py-2 font-medium text-ink-900">{e.rotulo}</td>
                     <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtInt(e.n)}</td>
                     <td className="px-3 py-2 text-right font-semibold tabular-nums text-accent-800">{fmtDec(e.cobertura, 1)}%</td>
                     <td className="px-3 py-2 text-right tabular-nums text-ink-600">{fmtDec(e.saturados, 0)}%</td>
