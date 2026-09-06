@@ -14,6 +14,7 @@ Os testes aqui cobrem as duas invariantes que impedem a repetição:
 from __future__ import annotations
 
 import sys
+from collections import Counter
 from pathlib import Path
 
 import pandas as pd
@@ -189,3 +190,71 @@ def test_conferidor_acusa_carimbo_incompleto(tmp_path, monkeypatch):
                         lambda *a, **k: list(range(1, 13)))
     problemas = cc.conferir_carimbo()
     assert problemas and "fluxo_MA_2023_v2.parquet" in problemas[0]
+
+
+# ── datas mascaradas: ausência declarada pela fonte, não corrupção ──────────
+#
+# O SINAN preenche data opcional não informada com b"********". O parser padrão
+# do dbfread levanta ValueError e derruba a leitura do arquivo INTEIRO — em
+# SIFCBR23 são 25.240 dos 25.291 registros com LABC_DT mascarada, ou seja, a
+# sífilis congênita era simplesmente ilegível por este módulo.
+#
+# A tolerância não pode virar "engole tudo": máscara é ausência e vira None em
+# silêncio; dígito que não forma data de calendário é corrupção e tem de ser
+# CONTADO, para o pipeline poder abortar. É a mesma distinção entre
+# ArquivoAusente e FalhaDeColeta, um nível abaixo.
+
+class _CampoFalso:
+    def __init__(self, nome="DT_QUALQUER"):
+        self.name = nome
+        self.type = "D"
+
+
+class _TabelaFalsa:
+    """O mínimo que `dbfread.FieldParser.__init__` exige para existir."""
+    encoding = "latin-1"
+    char_decode_errors = "replace"
+    header = type("H", (), {"dbversion": 3})()
+
+
+def _parse(dado: bytes, contador):
+    parser = ftp._parser_de_data_tolerante(contador)(_TabelaFalsa())
+    return parser.parseD(_CampoFalso(), dado)
+
+
+def test_data_valida_continua_sendo_data():
+    import datetime as dt
+    c = Counter()
+    assert _parse(b"20230501", c) == dt.date(2023, 5, 1)
+    assert not c
+
+
+def test_asterisco_e_ausencia_e_nao_derruba_a_leitura():
+    c = Counter()
+    assert _parse(b"********", c) is None
+    assert c["mascarada"] == 1
+    assert c["impossivel"] == 0
+
+
+def test_branco_e_zero_continuam_nulos_sem_contar_como_mascara():
+    """O dbfread já trata os dois; a tolerância não pode roubar esse caminho."""
+    c = Counter()
+    assert _parse(b"        ", c) is None
+    assert _parse(b"00000000", c) is None
+    assert not c, "branco e zero nem chegam ao ramo tolerante"
+
+
+def test_data_impossivel_e_contada_como_corrupcao():
+    """b'20241350' são dígitos: não é máscara, é mês 13. Tem de aparecer."""
+    c = Counter()
+    assert _parse(b"20241350", c) is None
+    assert c["impossivel"] == 1
+    assert c["mascarada"] == 0
+    assert c["impossivel:DT_QUALQUER"] == 1
+
+
+def test_corrupcao_nao_e_confundida_com_mascara():
+    c = Counter()
+    _parse(b"********", c)
+    _parse(b"20241350", c)
+    assert (c["mascarada"], c["impossivel"]) == (1, 1)

@@ -447,6 +447,10 @@ NAO_SERVIDAS = frozenset({
     # de existir quem consulte é gastar o teto por antecipação; o Parquet já é
     # citável, versionado e com checksum. Servir é um passo separado.
     "mart_oncologia_municipio",
+    # Sífilis do SINAN: mesma decisão e mesmo motivo do Painel Oncologia —
+    # cabe no banco, mas ainda não há tela que a consulte. O Parquet já é
+    # citável, versionado e com checksum; servir é um passo separado.
+    "mart_sifilis_municipio",
 })
 
 

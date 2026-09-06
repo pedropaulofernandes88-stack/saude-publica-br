@@ -35,9 +35,11 @@ from __future__ import annotations
 
 import contextlib
 import io
+import re
 import tempfile
 import threading
 import time
+from collections import Counter
 from collections.abc import Iterator
 from ftplib import FTP
 from pathlib import Path
@@ -136,19 +138,60 @@ def baixar(diretorio: str, nome: str, host: str = HOST_PADRAO,
     raise FalhaDeColeta(f"{nome}: {tentativas} tentativas falharam ({erro})")
 
 
-def registros_dbc(dados: bytes, nome: str) -> Iterator[dict]:
-    """Descompacta um .dbc do DataSUS e itera os registros do .dbf resultante."""
-    import datasus_dbc
+# O SINAN preenche data OPCIONAL nao informada com asterisco: b"********".
+# O parser do dbfread ja trata espaco e zero como nulo (data.strip(b" 0")) e o
+# parser de FLOAT do mesmo modulo ja descarta "*" como enchimento do DataSUS --
+# mas o de DATA nao, entao um unico campo mascarado levanta ValueError e derruba
+# a leitura do arquivo INTEIRO. Em SIFCBR23 sao 25.240 de 25.291 registros com
+# LABC_DT mascarada: o agravo era simplesmente ilegivel por este modulo.
+#
+# Mascara e AUSENCIA declarada pela fonte, e vira None sem alarde. Digito que
+# nao forma data de calendario (b"20241350") e CORRUPCAO, e tambem vira None --
+# mas contado, para que o chamador possa abortar em vez de publicar em silencio.
+# As duas coisas nao podem cair no mesmo balde: era exatamente assim que
+# "ausencia" e "falha" viravam a mesma coisa no resto deste modulo.
+_MASCARA_DE_DATA = re.compile(rb"^[\s*0]*$")
+
+
+def _parser_de_data_tolerante(contador: Counter):
     import dbfread
+
+    class ParserTolerante(dbfread.FieldParser):
+        def parseD(self, field, data):
+            try:
+                return dbfread.FieldParser.parseD(self, field, data)
+            except ValueError:
+                if _MASCARA_DE_DATA.match(bytes(data)):
+                    contador["mascarada"] += 1
+                else:
+                    contador["impossivel"] += 1
+                    contador[f"impossivel:{field.name}"] += 1
+                return None
+
+    return ParserTolerante
+
+
+def registros_dbc(dados: bytes, nome: str,
+                  contador: Counter | None = None) -> Iterator[dict]:
+    """Descompacta um .dbc do DataSUS e itera os registros do .dbf resultante.
+
+    `contador` recebe as datas que o parser padrao rejeitaria, separadas em
+    "mascarada" (ausencia) e "impossivel" (corrupcao, tambem por campo).
+    """
+    import datasus_dbc
 
     tmp = Path(tempfile.gettempdir())
     dbc = tmp / f"{nome}.dbc"
     dbf = tmp / f"{nome}.dbf"
     dbc.write_bytes(dados)
     try:
+        import dbfread
+
         datasus_dbc.decompress(str(dbc), str(dbf))
         yield from dbfread.DBF(str(dbf), encoding="latin-1",
-                               char_decode_errors="replace", load=False)
+                               char_decode_errors="replace", load=False,
+                               parserclass=_parser_de_data_tolerante(
+                                   contador if contador is not None else Counter()))
     except Exception as e:          # noqa: BLE001 — reempacotada
         raise FalhaDeColeta(f"{nome}: falha ao ler o DBC ({e})") from e
     finally:

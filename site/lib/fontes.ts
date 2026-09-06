@@ -71,6 +71,24 @@ export const FONTES: Fonte[] = [
       "Notificação não é incidência. As semanas mais recentes sobem com o atraso de digitação.",
   },
   {
+    id: "sifilis",
+    nome: "Sífilis",
+    sistema: "SINAN",
+    orgao: "DataSUS/MS",
+    traz:
+      "sífilis adquirida, em gestante e congênita por município de residência, com o que houve "
+      + "com a mãe do caso congênito: pré-natal, momento do diagnóstico e tratamento",
+    observacao:
+      "Toda a sífilis do SINAN é PRELIMINAR: não há SIFA/SIFG/SIFC em DADOS/FINAIS, nem para "
+      + "2007 — dezenove anos que nunca foram promovidos. O último ano cobre só metade: os "
+      + "arquivos de 2025 param em junho, e a coluna meses_cobertos carimba isso linha a "
+      + "linha. A defasagem é estrutural — foram reescritos em 30/06/2026 e mesmo assim não "
+      + "passam de junho de 2025, enquanto a dengue do mesmo diretório já cobre 2026. A "
+      + "sífilis adquirida só passou a ser de notificação compulsória em 2010, e os primeiros "
+      + "anos medem a implantação da notificação, não a doença. A taxa por mil nascidos vivos "
+      + "existe só em 2021–2024, onde há denominador.",
+  },
+  {
     id: "sinasc",
     nome: "Nascimentos",
     sistema: "SINASC",
@@ -187,6 +205,7 @@ export const FONTE_DA_TABELA: Record<string, string> = {
   // SINAN
   mart_dengue_municipio_ano: "sinan",
   mart_dengue_semana: "sinan",
+  mart_sifilis_municipio: "sifilis",
   // SINASC
   mart_natalidade_municipio: "sinasc",
   mart_mortalidade_infantil_uf: "sinasc",

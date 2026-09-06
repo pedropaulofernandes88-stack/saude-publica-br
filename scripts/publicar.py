@@ -91,6 +91,8 @@ TABELAS = [
     "mart_correlacao_causas",
     # Painel Oncologia (FTP do DataSUS): prazo da Lei dos 60 dias por município.
     "mart_oncologia_municipio",
+    # Sífilis do SINAN (SIFA/SIFG/SIFC): congênita como falha de pré-natal.
+    "mart_sifilis_municipio",
     "mart_perfil_mortalidade_municipio",
     "mart_anomalia_causa_municipio",
     "mart_contexto_social_municipio",

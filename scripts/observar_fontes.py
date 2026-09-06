@@ -68,11 +68,56 @@ FTP_HOST = "ftp.datasus.gov.br"
 DIRETORIOS_FTP = [
     ("SINAN", "/dissemin/publicos/SINAN/DADOS/FINAIS", r"^DENGBR\d{2}\.dbc$"),
     ("SINAN", "/dissemin/publicos/SINAN/DADOS/PRELIM", r"^DENGBR\d{2}\.dbc$"),
+    # Sífilis: SÓ existe em PRELIM (não há SIF* em FINAIS, nem para 2007), e é
+    # a fonte mais defasada que o projeto publica — os arquivos de 2025 foram
+    # reescritos em 30/06/2026 e ainda param em junho de 2025. Justamente por
+    # isso precisa ser observada: o dia em que sair um SIFxBR26 é o dia de
+    # reingerir, e ninguém teria como saber sem isto.
+    ("SINAN", "/dissemin/publicos/SINAN/DADOS/PRELIM", r"^SIF[ACG]BR\d{2}\.dbc$"),
+    # SIM pelo FTP, que é de onde o projeto REALMENTE lê. A observação por S3
+    # (abaixo) devolve 403 em todos os anos desde que existe: estava vigiando
+    # uma porta fechada e chamando isso de cobertura. O 403 continua registrado
+    # — se um dia virar 200, é mudança —, mas quem responde "o SIM mexeu?" é
+    # esta linha. Era o maior ponto cego do projeto: a fonte de mais peso,
+    # observada por uma rota morta.
+    ("SIM", "/dissemin/publicos/SIM/CID10/DORES", r"^DO[A-Z]{2}20(1[89]|2\d)\.dbc$"),
     ("SIH", "/dissemin/publicos/SIHSUS/200801_/Dados", r"^RD[A-Z]{2}(2[2-9])\d{2}\.dbc$"),
     ("SINASC", "/dissemin/publicos/SINASC/NOV/DNRES", r"^DN[A-Z]{2}20(1[89]|2\d)\.dbc$"),
+    ("ONCOLOGIA", "/dissemin/publicos/painel_oncologia/Dados", r"^POBR\d{4}\.dbc$"),
+    # CNES grupo LT: o pipeline ingere só a competência de DEZEMBRO de cada ano
+    # (LT{UF}{AA}12). Observar as outras onze competências seria vigiar arquivo
+    # que o projeto não usa — ruído que treina a gente a ignorar a issue.
+    ("CNES", "/dissemin/publicos/CNES/200508_/Dados/LT", r"^LT[A-Z]{2}(1[5-9]|2\d)12\.dbc$"),
 ]
 
 ANOS_SIM = range(2022, date.today().year + 1)
+
+# PNI/RNDS não vive no FTP: são zips mensais no mesmo bucket do SIM.
+S3_PNI = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv"
+MESES_PNI = ["jan", "fev", "mar", "abr", "mai", "jun",
+             "jul", "ago", "set", "out", "nov", "dez"]
+ANOS_PNI = range(2023, date.today().year + 1)
+
+#: Fonte publicada (id em `site/lib/fontes.ts`) → rótulo `base` da observação.
+#:
+#: Esta tabela existe porque a cobertura envelheceu em silêncio duas vezes: o
+#: Painel Oncologia e a sífilis entraram no site sem entrar aqui, e o SIM era
+#: "observado" por uma URL que devolve 403 desde sempre. Uma fonte não observada
+#: não dá erro — ela só deixa de avisar, que é o mesmo que não existir.
+OBSERVADAS: dict[str, str] = {
+    "sim": "SIM", "sih": "SIH", "sinan": "SINAN", "sifilis": "SINAN",
+    "sinasc": "SINASC", "pni": "PNI", "oncologia": "ONCOLOGIA", "cnes": "CNES",
+}
+
+#: Fonte publicada que NÃO é observada, com o motivo. Estar aqui é uma decisão;
+#: não estar em lugar nenhum é esquecimento — e é isso que o teste separa.
+NAO_OBSERVADAS: dict[str, str] = {
+    "aps": "e-Gestor/SISAB serve painel, não arquivo com tamanho e data estáveis",
+    "siops": "SIOPS publica por consulta interativa, sem diretório versionado",
+    "ans": "ANS tem calendário próprio de divulgação, fora do DataSUS",
+    "ibge": "população censitária/projeções não são revisadas de surpresa",
+    "derivado": "não é coleta: sai dos marts acima e muda quando eles mudam",
+}
 
 
 def _data_ftp(pedaco: str) -> str | None:
@@ -84,31 +129,56 @@ def _data_ftp(pedaco: str) -> str | None:
     return f"20{ano}-{mes}-{dia}"
 
 
+def _head_s3(base: str, nome: str, url: str, ano_ref: int) -> dict | None:
+    """Um HEAD no bucket do ckan → registro de observação, ou None se a rede caiu.
+
+    Ausência (404) NÃO é None: vira `disponivel: false` e fica registrada. Mês
+    que ainda não saiu é informação — é o registro dele que permite ver, na
+    semana seguinte, que ele saiu.
+    """
+    try:
+        r = requests.head(url, allow_redirects=True, timeout=30)
+    except requests.RequestException as e:
+        print(f"  ! {nome}: {type(e).__name__}", flush=True)
+        return None
+    ok = r.status_code == 200
+    iso = None
+    if (mod := r.headers.get("Last-Modified")):
+        try:
+            iso = datetime.strptime(mod, "%a, %d %b %Y %H:%M:%S %Z") \
+                    .replace(tzinfo=timezone.utc).date().isoformat()
+        except ValueError:
+            iso = None
+    return {
+        "base": base, "arquivo": nome, "fonte": "s3", "ano_ref": ano_ref,
+        "disponivel": ok, "http": r.status_code,
+        "bytes": int(r.headers["Content-Length"]) if ok and "Content-Length" in r.headers else None,
+        "modificado_em": iso,
+        "etag": (r.headers.get("ETag") or "").strip('"') or None,
+    }
+
+
 def observar_sim() -> list[dict]:
     fora = []
     for ano in ANOS_SIM:
         nome = f"DO{str(ano)[2:]}OPEN.csv"
-        try:
-            r = requests.head(f"{S3_SIM}/{nome}", timeout=30)
-        except requests.RequestException as e:
-            print(f"  ! {nome}: {type(e).__name__}", flush=True)
-            continue
-        ok = r.status_code == 200
-        mod = r.headers.get("Last-Modified")
-        iso = None
-        if mod:
-            try:
-                iso = datetime.strptime(mod, "%a, %d %b %Y %H:%M:%S %Z") \
-                        .replace(tzinfo=timezone.utc).date().isoformat()
-            except ValueError:
-                iso = None
-        fora.append({
-            "base": "SIM", "arquivo": nome, "fonte": "s3", "ano_ref": ano,
-            "disponivel": ok, "http": r.status_code,
-            "bytes": int(r.headers["Content-Length"]) if ok and "Content-Length" in r.headers else None,
-            "modificado_em": iso,
-            "etag": (r.headers.get("ETag") or "").strip('"') or None,
-        })
+        if (r := _head_s3("SIM", nome, f"{S3_SIM}/{nome}", ano)):
+            fora.append(r)
+    return fora
+
+
+def observar_pni() -> list[dict]:
+    """Os zips mensais do PNI/RNDS. O S3 reescreve mês já publicado.
+
+    Medido pelo próprio pipeline: maio/2025 foi regravado em 28/08/2026. Sem
+    observar, o mart de imunização fica com o retrato antigo para sempre.
+    """
+    fora = []
+    for ano in ANOS_PNI:
+        for mes in MESES_PNI:
+            nome = f"vacinacao_{mes}_{ano}_csv.zip"
+            if (r := _head_s3("PNI", nome, f"{S3_PNI}/{nome}", ano)):
+                fora.append(r)
     return fora
 
 
@@ -194,6 +264,13 @@ def main() -> None:
         estado = f"{r['bytes'] / 1024 / 1024:.0f} MB, modificado {r['modificado_em']}" \
                  if r["disponivel"] else f"indisponivel (HTTP {r['http']})"
         print(f"  {r['arquivo']:<16} {estado}", flush=True)
+
+    print("\nPNI (S3, HEAD):", flush=True)
+    pni = observar_pni()
+    publicados = [r for r in pni if r["disponivel"]]
+    print(f"  {len(publicados)} de {len(pni)} meses publicados; "
+          f"mais recente: {max((r['arquivo'] for r in publicados), default='—')}", flush=True)
+    arquivos += pni
 
     print("\nFTP (LIST):", flush=True)
     arquivos += observar_ftp()
