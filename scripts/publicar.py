@@ -89,6 +89,8 @@ TABELAS = [
     "mart_mortalidade_causa_municipio",
     # Analises derivadas das duas acima (V037/V038). Pequenas e servidas.
     "mart_correlacao_causas",
+    # Painel Oncologia (FTP do DataSUS): prazo da Lei dos 60 dias por município.
+    "mart_oncologia_municipio",
     "mart_perfil_mortalidade_municipio",
     "mart_anomalia_causa_municipio",
     "mart_contexto_social_municipio",

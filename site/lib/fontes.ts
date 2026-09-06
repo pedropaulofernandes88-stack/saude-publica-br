@@ -134,6 +134,17 @@ export const FONTES: Fonte[] = [
       "O Censo é de 2022 e não se atualiza todo ano; os demais anos são estimativa ou interpolação.",
   },
   {
+    id: "oncologia",
+    nome: "Oncologia",
+    sistema: "Painel Oncologia",
+    orgao: "DataSUS/MS",
+    traz: "prazo entre diagnóstico e início do tratamento de câncer, por município de residência",
+    observacao:
+      "A proporção sem tratamento registrado NÃO é comparável entre anos: o ano recente é "
+      + "censurado (o tratamento pode ocorrer depois do corte do arquivo) e o Painel mudou de "
+      + "escopo em 2018, quando os casos saltaram de 196 mil para 352 mil.",
+  },
+  {
     id: "derivado",
     nome: "Análises derivadas",
     sistema: "—",
@@ -151,6 +162,7 @@ export const FONTES: Fonte[] = [
  * classificar.
  */
 export const FONTE_DA_TABELA: Record<string, string> = {
+  mart_oncologia_municipio: "oncologia",
   // SIM
   mart_mortalidade_municipio: "sim",
   mart_mortalidade_uf_mes: "sim",

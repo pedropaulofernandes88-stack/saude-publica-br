@@ -442,6 +442,11 @@ NAO_SERVIDAS = frozenset({
     # — já lê o Parquet. Terceira vez que o teto do banco morde, terceira vez
     # que sai a tabela e não o limite. Ver V041.
     "mart_correlacao_causas",
+    # Painel Oncologia: 76.462 linhas, 0,7 MB. Cabe no banco de sobra — fica
+    # fora porque ainda NÃO tem tela nem consumidor. Entrar no Postgres antes
+    # de existir quem consulte é gastar o teto por antecipação; o Parquet já é
+    # citável, versionado e com checksum. Servir é um passo separado.
+    "mart_oncologia_municipio",
 })
 
 
