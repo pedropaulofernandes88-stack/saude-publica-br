@@ -74,12 +74,18 @@ DIRETORIOS_FTP = [
     # isso precisa ser observada: o dia em que sair um SIFxBR26 é o dia de
     # reingerir, e ninguém teria como saber sem isto.
     ("SINAN", "/dissemin/publicos/SINAN/DADOS/PRELIM", r"^SIF[ACG]BR\d{2}\.dbc$"),
-    # SIM pelo FTP, que é de onde o projeto REALMENTE lê. A observação por S3
-    # (abaixo) devolve 403 em todos os anos desde que existe: estava vigiando
-    # uma porta fechada e chamando isso de cobertura. O 403 continua registrado
-    # — se um dia virar 200, é mudança —, mas quem responde "o SIM mexeu?" é
-    # esta linha. Era o maior ponto cego do projeto: a fonte de mais peso,
-    # observada por uma rota morta.
+    # SIM pelo FTP, que é de onde o projeto REALMENTE lê — e que virou a única
+    # rota em 2026-09-06.
+    #
+    # A observação por S3 (abaixo) funcionou até 31/08/2026: DO22, DO23 e DO24
+    # respondiam 200 com 528, 506 e 494 MB. Entre 31/08 e 06/09 os três caíram
+    # para 403, enquanto o PNI, no MESMO bucket, seguiu em 200 — não é rede nem
+    # bucket, é o prefixo do SIM. (DO25 e DO26 sempre foram 403: esses anos não
+    # existem no CSV aberto.)
+    #
+    # As duas rotas ficam. O S3 porque o 403 é informação e o dia em que voltar
+    # a 200 é mudança que se quer ver; o FTP porque, com o S3 fora, é o único
+    # lugar que responde "o SIM mexeu?".
     ("SIM", "/dissemin/publicos/SIM/CID10/DORES", r"^DO[A-Z]{2}20(1[89]|2\d)\.dbc$"),
     ("SIH", "/dissemin/publicos/SIHSUS/200801_/Dados", r"^RD[A-Z]{2}(2[2-9])\d{2}\.dbc$"),
     ("SINASC", "/dissemin/publicos/SINASC/NOV/DNRES", r"^DN[A-Z]{2}20(1[89]|2\d)\.dbc$"),

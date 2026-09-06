@@ -85,9 +85,15 @@ def test_base_declarada_existe_de_fato_na_configuracao():
 
 
 def test_o_sim_e_observado_pelo_ftp_e_nao_so_pelo_s3():
-    """A rota do S3 devolve 403 em todos os anos; ela sozinha não é cobertura."""
+    """Depender de uma rota só é o que quebrou em 2026-09-06.
+
+    O S3 servia DO22/DO23/DO24 em 200 até 31/08/2026 e passou a 403 na semana
+    seguinte — com o PNI, no mesmo bucket, seguindo em 200. Enquanto o SIM
+    tiver as duas rotas observadas, a queda de uma aparece como mudança em vez
+    de aparecer como silêncio.
+    """
     diretorios = [d for base, d, _ in obs.DIRETORIOS_FTP if base == "SIM"]
-    assert diretorios, "o SIM voltou a ser observado só pelo S3, que sempre nega"
+    assert diretorios, "o SIM voltou a depender só do S3, que hoje devolve 403"
     assert any("SIM" in d for d in diretorios)
 
 
