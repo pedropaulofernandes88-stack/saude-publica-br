@@ -32,7 +32,7 @@ jobs:
       SUPABASE_URL: ${{ vars.SUPABASE_URL || 'https://zekjhmxjamatlxpkykde.supabase.co' }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # 24, nao 20: build-boletim.mjs importa site/lib/completude.ts, e type
           # stripping exige Node 22.6+ (padrao do 23 em diante). Sem isto o cron

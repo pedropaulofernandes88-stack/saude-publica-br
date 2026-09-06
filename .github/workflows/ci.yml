@@ -145,7 +145,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           # 24, nao 20: o prebuild (build-static-data.mjs) importa lib/completude.ts
           # direto, e os testes rodam em .mts no runner nativo. Type stripping so
@@ -217,7 +217,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
