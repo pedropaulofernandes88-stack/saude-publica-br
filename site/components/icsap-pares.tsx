@@ -1,6 +1,8 @@
 "use client";
 
-import { fmtDec, fmtInt, type IcsapPares } from "@/lib/api";
+import { useState } from "react";
+import { Bloco, useCarga } from "@/components/bloco";
+import { fmtDec, fmtInt, rest, type IcsapPares } from "@/lib/api";
 
 const fmtReais = (v: number | null | undefined) =>
   v == null ? "—"
@@ -16,6 +18,103 @@ const fmtReais = (v: number | null | undefined) =>
  * ressalvas no rodapé do card — elas não são disclaimer decorativo, são o que
  * separa um número útil de um número enganoso.
  */
+/**
+ * Quem são os pares — a lista, não só a contagem.
+ *
+ * O cartão dizia "comparado com 272 municípios do mesmo grupo" e nunca dizia
+ * QUAIS. Uma comparação cujo grupo de referência é invisível não é conferível:
+ * quem discorda do resultado não tem o que examinar, e quem concorda também
+ * não. O grupo é definido pelo arquétipo (estrato de saúde), então ele é
+ * exatamente reprodutível por uma consulta.
+ *
+ * A consulta só sai quando alguém abre a lista — 272 linhas que não servem a
+ * quem veio ler o número.
+ */
+function ListaDePares({ dados }: { dados: IcsapPares }) {
+  const [aberta, setAberta] = useState(false);
+  const [carga, recarregar] = useCarga<IcsapPares[]>(
+    async () => {
+      if (!aberta) return [] as IcsapPares[];
+      return rest<IcsapPares>("mart_icsap_pares", {
+        select: "municipio_cod,municipio_nome,uf_sigla,pct_icsap,populacao,internacoes_total",
+        arquetipo: `eq.${dados.arquetipo}`,
+        ano: `eq.${dados.ano}`,
+        order: "pct_icsap.desc.nullslast",
+      });
+    },
+    [aberta, dados.arquetipo, dados.ano],
+    (d) => aberta && d.length === 0,
+  );
+
+  return (
+    <div className="mt-4 border-t border-ink-100 pt-3">
+      <button
+        onClick={() => setAberta((v) => !v)}
+        className="text-sm font-medium text-accent-700 underline underline-offset-2 no-print"
+      >
+        {/* Sem contagem no rótulo fechado: antes de abrir, a consulta ainda
+            não saiu e o único número disponível é `n_pares` — que conta
+            município-ANO, não município (68 municípios x 4 anos = 272). Rótulo
+            que promete um número errado é pior que rótulo sem número. */}
+        {aberta ? "Ocultar" : "Ver os municípios do grupo"}
+      </button>
+
+      {aberta && (
+        <div className="mt-3">
+          <p className="text-xs text-ink-500">
+            Grupo: <strong>{dados.arquetipo}</strong> — {dados.criterio_pares}, {dados.ano}.
+            Ordenado pela proporção de ICSAP; este município aparece destacado.
+          </p>
+          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+            <strong>Limitação declarada:</strong> a mediana de referência do grupo é calculada
+            sobre 2021–2024 <em>somados</em>, não sobre o ano exibido — e a proporção de ICSAP
+            variou bastante nesse intervalo. A lista acima é do ano; a mediana, do período.
+            Está registrado na migração que introduziu os estratos e é decisão pendente.
+          </p>
+          <Bloco carga={carga} recarregar={recarregar} titulo="Lista de pares" altura={160}
+                 vazio="Nenhum outro município neste grupo e ano.">
+            {(pares) => (
+              <div className="mt-2 max-h-80 overflow-y-auto rounded-lg border border-ink-200">
+                <table className="w-full text-sm">
+                  <thead className="bg-ink-50">
+                    <tr className="text-left text-xs uppercase tracking-wide text-ink-500">
+                      <th className="px-3 py-2">Município</th>
+                      <th className="px-3 py-2 text-right">População</th>
+                      <th className="px-3 py-2 text-right">% ICSAP</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pares.map((m) => {
+                      const eh = m.municipio_cod === dados.municipio_cod;
+                      return (
+                        <tr key={m.municipio_cod}
+                            className={`border-t border-ink-100 ${eh ? "bg-accent-50 font-semibold text-accent-800" : ""}`}>
+                          <td className="px-3 py-1.5">
+                            {eh ? "▸ " : ""}
+                            <a href={`/boletim/?m=${m.municipio_cod}`} className="hover:underline">
+                              {m.municipio_nome} <span className="font-normal text-ink-500">· {m.uf_sigla}</span>
+                            </a>
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">
+                            {m.populacao ? fmtInt(m.populacao) : "—"}
+                          </td>
+                          <td className="px-3 py-1.5 text-right tabular-nums">
+                            {fmtDec(m.pct_icsap, 1)}%
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Bloco>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function IcsapPares({ dados }: { dados: IcsapPares }) {
   const acima = dados.internacoes_acima_pares > 0;
 
@@ -25,11 +124,12 @@ export function IcsapPares({ dados }: { dados: IcsapPares }) {
         Internações evitáveis — distância até municípios semelhantes
       </h2>
       <p className="mt-1 text-sm text-ink-500">
-        Comparado com <strong>{fmtInt(dados.n_pares)}</strong> municípios do mesmo grupo
-        ({dados.criterio_pares}
+        Comparado com os municípios do mesmo grupo ({dados.criterio_pares}
         {dados.arquetipo ? `: ${dados.arquetipo}` : ""}). ICSAP = internações por condições
         sensíveis à atenção primária (Lista Brasileira), {dados.ano}.
       </p>
+
+      <ListaDePares dados={dados} />
 
       <div className="mt-4 grid gap-4 sm:grid-cols-3">
         <div>
