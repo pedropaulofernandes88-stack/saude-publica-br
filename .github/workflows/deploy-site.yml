@@ -31,6 +31,18 @@ jobs:
           cache-dependency-path: site/package-lock.json
       - name: Build estático
         working-directory: site
+        env:
+          # Endereço do Cemitério Digital, que roda FORA daqui (o Pages serve
+          # arquivo estático; a ferramenta precisa de Python persistente).
+          #
+          # É uma *variable* de repositório, não um secret: o valor é uma URL
+          # pública que vai para o HTML de qualquer jeito. A chave interna do
+          # serviço (CEMITERIO_API_KEY) nunca passa por aqui — ela vive só no
+          # gateway do servidor que hospeda a ferramenta.
+          #
+          # Sem a variável, o acesso simplesmente não aparece no menu. Ver
+          # site/lib/cemiterio.ts e docs/CEMITERIO_DIGITAL.md.
+          NEXT_PUBLIC_CEMITERIO_URL: ${{ vars.NEXT_PUBLIC_CEMITERIO_URL }}
         run: |
           npm ci
           npm run build

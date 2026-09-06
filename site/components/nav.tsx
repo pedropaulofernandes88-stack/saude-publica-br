@@ -4,7 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-type Item = { href: string; label: string; curto: string };
+import { cemiterioConfigurado } from "@/lib/cemiterio";
+
+/** `externo` marca serviço em OUTRO host: sai por <a>, não por <Link>. */
+type Item = { href: string; label: string; curto: string; externo?: boolean };
 type Grupo = { label: string; curto: string; group: Item[] };
 type Entry = Item | Grupo;
 
@@ -50,6 +53,24 @@ function isGroup(e: Entry): e is Grupo {
   return "group" in e;
 }
 
+/**
+ * Acrescenta o Cemitério Digital ao grupo "Explorar" — e SÓ se ele existir.
+ *
+ * O endereço vem de `NEXT_PUBLIC_CEMITERIO_URL` em tempo de build. Sem a
+ * variável, o item não é criado: nada no menu, nenhum link morto. Ver
+ * `lib/cemiterio.ts` para o motivo de falhar fechado.
+ */
+function comCemiterio(entradas: Entry[], url: string | null): Entry[] {
+  if (!url) return entradas;
+  return entradas.map((e) =>
+    isGroup(e) && e.label === "Explorar"
+      ? { ...e, group: [...e.group, {
+          href: url, label: "Cemitério Digital", curto: "Cemitério", externo: true,
+        }] }
+      : e,
+  );
+}
+
 /** Fecha ao clicar fora e ao pressionar Escape; devolve o foco a quem abriu. */
 function useFecharAoSair(
   aberto: boolean,
@@ -74,9 +95,33 @@ function useFecharAoSair(
   }, [aberto, fechar, refs]);
 }
 
+/**
+ * Um item de grupo: `<Link>` no site, `<a>` quando mora em outro host.
+ *
+ * O `↗` e o "abre em nova aba" no rótulo acessível existem porque o Cemitério
+ * Digital é OUTRO serviço, com outra hospedagem e outro ciclo de dados. Sair
+ * do site sem aviso seria fazer o visitante achar que continua aqui.
+ */
+function ItemDeGrupo({ item, className }: { item: Item; className: string }) {
+  if (item.externo) {
+    return (
+      <a href={item.href} target="_blank" rel="noreferrer"
+         className={`${className} inline-flex items-center gap-1`}>
+        {item.label}
+        <span aria-hidden className="text-[10px] text-ink-500">↗</span>
+        <span className="sr-only"> (serviço externo, abre em nova aba)</span>
+      </a>
+    );
+  }
+  return <Link href={item.href} className={className}>{item.label}</Link>;
+}
+
 export function Nav() {
   const pathname = usePathname();
   const isActive = (href: string) => (href === "/" ? pathname === "/" : pathname?.startsWith(href));
+
+  // Endereço resolvido em tempo de build; `null` mantém o menu como está hoje.
+  const entradas = comCemiterio(NAV, cemiterioConfigurado());
 
   // Um grupo aberto por vez, por rótulo. Abre por clique — não por hover: hover
   // não existe em toque, e tablet cai no breakpoint de desktop.
@@ -110,7 +155,7 @@ export function Nav() {
     <div ref={barraRef} className="flex items-center">
       {/* ── Desktop: barra com dropdowns por clique ───────────────────────── */}
       <nav aria-label="Navegação principal" className="hidden items-center gap-1 sm:flex">
-        {NAV.map((item) => {
+        {entradas.map((item) => {
           if (!isGroup(item)) {
             return (
               <Link key={item.href} href={item.href} className={itemDesktop(!!isActive(item.href))}>
@@ -120,7 +165,8 @@ export function Nav() {
           }
           const aberto = grupoAberto === item.label;
           const painelId = `nav-grupo-${item.label.toLowerCase()}`;
-          const ativoNoGrupo = item.group.some((g) => isActive(g.href));
+          // Item externo nunca fica "ativo": ele não é uma rota deste site.
+          const ativoNoGrupo = item.group.some((g) => !g.externo && isActive(g.href));
           return (
             <div key={item.label} className="relative">
               <button
@@ -141,15 +187,15 @@ export function Nav() {
                 className="absolute left-0 top-full z-50 mt-1 min-w-[200px] rounded-lg border border-ink-200 bg-white py-1.5 shadow-lg"
               >
                 {item.group.map((g) => (
-                  <Link
+                  <ItemDeGrupo
                     key={g.href}
-                    href={g.href}
+                    item={g}
                     className={`block whitespace-nowrap px-3.5 py-2 text-sm ${
-                      isActive(g.href) ? "font-medium text-accent-800" : "text-ink-700 hover:bg-ink-50"
+                      !g.externo && isActive(g.href)
+                        ? "font-medium text-accent-800"
+                        : "text-ink-700 hover:bg-ink-50"
                     }`}
-                  >
-                    {g.label}
-                  </Link>
+                  />
                 ))}
               </div>
             </div>
@@ -184,16 +230,18 @@ export function Nav() {
           className="absolute inset-x-0 top-full max-h-[calc(100dvh-3.5rem)] overflow-y-auto border-b border-ink-200 bg-white px-3 pb-4 pt-2 shadow-lg sm:hidden"
         >
           <nav aria-label="Navegação principal" className="flex flex-col gap-0.5">
-            {NAV.map((item) =>
+            {entradas.map((item) =>
               isGroup(item) ? (
                 <div key={item.label} className="mt-2 first:mt-0">
                   <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-ink-500">
                     {item.label}
                   </p>
                   {item.group.map((g) => (
-                    <Link key={g.href} href={g.href} className={itemMobile(!!isActive(g.href))}>
-                      {g.label}
-                    </Link>
+                    <ItemDeGrupo
+                      key={g.href}
+                      item={g}
+                      className={itemMobile(!g.externo && !!isActive(g.href))}
+                    />
                   ))}
                 </div>
               ) : (

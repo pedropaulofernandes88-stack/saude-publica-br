@@ -99,6 +99,21 @@ def test_fontes_sao_consistentes_entre_as_declaracoes_do_site():
         f"a prosa de /sobre diz {tabelas_prosa} tabelas e a home diz {tabelas_home}"
     )
 
+    # A CHAMADA DO HERO — o ponto cego que faltava.
+    #
+    # Ela é a primeira linha que o visitante lê e ficou dizendo "dez fontes"
+    # depois que o Painel Oncologia entrou como décima primeira, no mesmo
+    # arquivo em que o cartão logo abaixo já dizia 11. As outras quatro
+    # declarações batiam entre si, e por isso a guarda passava: contagem
+    # inconsistente não reprova quando ninguém a lê.
+    hero = re.search(r"Dados abertos · (\w+) fontes oficiais", _texto(HOME))
+    assert hero, "a chamada do hero mudou de forma — a guarda precisa saber onde olhar"
+    fontes_hero = POR_EXTENSO.get(hero.group(1).lower())
+    assert fontes_hero, f"número por extenso desconhecido no hero: {hero.group(1)!r}"
+    assert fontes_hero == fontes_home, (
+        f"o hero da home anuncia {fontes_hero} fontes e o cartão logo abaixo diz {fontes_home}"
+    )
+
 
 # ── coeficientes ─────────────────────────────────────────────────────────────
 # Um coeficiente publicado tem duas formas de envelhecer, e a segunda é a que
