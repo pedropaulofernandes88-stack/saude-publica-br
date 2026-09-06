@@ -9,6 +9,7 @@ import {
 import { Kpi, Skeleton } from "@/components/kpi";
 import { LinhasExcesso } from "@/components/charts";
 import { AssinarAlertas } from "@/components/assinar-alertas";
+import { MudouDesde } from "@/components/mudou-desde";
 import { fmtDec, fmtInt, sdata } from "@/lib/api";
 import { ALERTA, EIXO, GRADE, REFERENCIA } from "@/lib/tokens";
 
@@ -573,6 +574,9 @@ function BoletimInner() {
         <Kpi rotulo="Permanência média" valor={`${fmtDec(internacoes.permanencia_media, 1)} dias`} />
         <Kpi rotulo="Valor aprovado" valor={`R$ ${fmtDec(internacoes.valor_total / 1e9, 1)} bi`} />
       </div>
+
+      <MudouDesde edicao={boletim.edicao}
+                  ehMaisAntiga={!!index && index[index.length - 1]?.edicao === boletim.edicao} />
 
       {/* ── Arquivo + rodapé ── */}
       {index && index.length > 1 && (
