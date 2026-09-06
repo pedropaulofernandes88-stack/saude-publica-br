@@ -466,6 +466,23 @@ def descrever(nome: str, caminho: Path, origem: str, id_pub: str) -> Tabela:
 # Postgres → Parquet (bootstrap)
 # ---------------------------------------------------------------------------
 
+# Uma VIEW não declara PRIMARY KEY no Postgres, então ela nunca aparece no
+# `schema.sql` de onde `chaves_primarias()` lê — e sem chave a exportação
+# paginada é recusada, porque LIMIT/OFFSET sem ORDER BY duplica e perde linhas.
+# Resultado: a única view publicada não tinha caminho de reexportação, e o
+# Parquet dela ficou preso na versão do dia em que foi gerado por outro meio.
+# Apareceu ao aplicar a V042: a definição da view mudou, os VALORES mudaram, e
+# `publicar.py` seguiu dizendo "inalterada" — porque a checagem é de contagem
+# de linhas, e a contagem não mudou (22.280 antes e depois).
+#
+# A chave natural é declarada aqui porque não há de onde derivá-la. Não é
+# tomada como verdade: `conferir_chave_unica` roda sobre o que voltou do banco
+# e aborta se a chave repetir. Declaração + verificação, não declaração só.
+CHAVES_DE_VIEW: dict[str, list[str]] = {
+    "mart_icsap_pares": ["municipio_cod", "ano"],
+}
+
+
 def chaves_primarias() -> dict[str, list[str]]:
     """Chave primária de cada tabela, lida do `schema.sql` versionado.
 
@@ -506,11 +523,12 @@ def exportar_do_postgres(tabela: str, env: dict[str, str], destino: Path,
     chave = env["SUPABASE_ANON_KEY"]
     cabecalho = {"apikey": chave, "Authorization": f"Bearer {chave}"}
 
-    pk = chaves_primarias().get(tabela)
+    pk = chaves_primarias().get(tabela) or CHAVES_DE_VIEW.get(tabela)
     if not pk:
         raise RuntimeError(
             f"{tabela}: sem chave primária conhecida em schema.sql — exportar sem "
-            "ordenação determinística produziria linhas duplicadas e ausentes")
+            "ordenação determinística produziria linhas duplicadas e ausentes. "
+            "Se for view, declare a chave natural em CHAVES_DE_VIEW.")
     ordem = ",".join(f"{c}.asc" for c in pk)
 
     linhas: list[dict] = []

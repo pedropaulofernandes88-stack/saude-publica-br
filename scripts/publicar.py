@@ -199,6 +199,16 @@ def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
     if local.exists():
         import pandas as pd
         n_local = len(pd.read_parquet(local))
+        # LIMITE CONHECIDO desta comparação: ela detecta parquet com linhas a
+        # mais ou a menos, e NADA além disso. Uma mudança que reescreve todos os
+        # valores sem mexer na contagem passa reto — e passou: a V042 trocou a
+        # mediana de referência de `mart_icsap_pares` e 945 municípios mudaram
+        # de lado, com as mesmas 22.280 linhas antes e depois. Este script
+        # imprimiu "inalterada" e teria publicado o Parquet velho.
+        # Enquanto a origem for o banco e não o pipeline, quem mexe na
+        # definição de uma view precisa apagar o Parquet local para forçar a
+        # reexportação. Comparar SHA exigiria baixar tudo — o custo é a razão
+        # de a guarda ser esta, não a de que ela baste.
         if n_local == n_banco:
             # Ordem de confiança: o que o ARQUIVO declara, depois o sidecar,
             # depois "desconhecida". Nunca "pipeline" por omissão — foi assim
@@ -220,8 +230,14 @@ def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
         print(f"   ↓ {tabela}: exportando {n_banco:,} linhas do Postgres "
               f"({-(-n_banco // 1000)} requisições)", flush=True)
     exportar_do_postgres(tabela, env, local, quieto=quieto)
-    registrar_origem(tabela, "postgres-bootstrap")
-    return local, "postgres-bootstrap"
+    # Exportar uma VIEW não é dívida a pagar: exportação é o ÚNICO jeito de
+    # materializar o Parquet dela — não existe produtor de arquivo. Rotulá-la
+    # `postgres-bootstrap` só porque passou por aqui contradiria o que
+    # `views_do_esquema()` explica, e faria a origem oscilar entre `view` e
+    # `postgres-bootstrap` conforme o arquivo local estivesse ou não em dia.
+    origem = ORIGEM_VIEW if tabela in views_do_esquema() else "postgres-bootstrap"
+    registrar_origem(tabela, origem)
+    return local, origem
 
 
 def main() -> None:

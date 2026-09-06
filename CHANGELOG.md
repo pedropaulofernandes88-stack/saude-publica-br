@@ -7,6 +7,63 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [3.6.0] — 2026-09-06 — A mediana dos pares era de quatro anos somados
+
+> O cartão dizia "comparado com 272 municípios do mesmo grupo". São 68,
+> contados quatro vezes — e a mediana contra a qual cada município era medido
+> misturava 2021 a 2024. Um município de 2021 estava sendo comparado com o
+> futuro dos seus pares. Corrigido na origem; **números publicados mudaram**.
+
+### Corrigido
+
+- **`mart_icsap_pares`: a mediana de referência passa a ser do ano** (V042). A
+  CTE `medianas` agrupava só por `grupo_id`; agora agrupa por `grupo_id, ano`.
+  A pendência estava registrada no cabeçalho da V032 como decisão adiada de
+  propósito — para medir separadamente o efeito da troca do k-means pelos
+  estratos. Esse efeito já foi medido e publicado, então o motivo do adiamento
+  expirou. A prosa da metodologia (§17) já dizia "no ano": documentação e
+  código descreviam coisas diferentes.
+  - `n_pares` deixa de contar município-**ano** e passa a contar município.
+  - **945 municípios trocam de lado em 2021** (de abaixo da mediana dos pares
+    para acima, ou o contrário), 366 em 2022, 353 em 2023, 275 em 2024. Erro
+    médio absoluto em `diferenca_pp`: 2,83 pp em 2021, ~1,0 pp nos demais.
+  - O total nacional de internações acima dos pares em 2021 vai de 146.800 para
+    **273.435** (R$ 239 mi → R$ 445 mi): com a proporção nacional mais baixa
+    naquele ano, a mediana somada era alta demais e fazia os municípios
+    parecerem melhores do que os pares contemporâneos. Nos demais anos cai —
+    2022: 389.728 → 314.690; 2023: 412.430 → 336.773; 2024: 385.172 → 332.811.
+  - Caso citado externamente: **Penápolis 2022** saía como +0,31 pp acima dos
+    pares, com 14 internações e R$ 22.751 associados. Estava **abaixo**: −1,37
+    pp, zero internações acima. Penápolis 2024 não muda.
+  - Critério de desistência declarado antes de medir: abandonaríamos a correção
+    se algum grupo caísse abaixo de 20 municípios num ano, ou se alguma linha
+    perdesse a mediana. Nenhum dos dois ocorreu — 37 grupos por ano, o menor com
+    40 municípios, e as 22.280 linhas seguem 22.280. Somar os anos não comprava
+    poder estatístico nenhum.
+- **A única view publicada não tinha caminho de reexportação.** Uma view não
+  declara `PRIMARY KEY`, então nunca aparecia em `chaves_primarias()`, e
+  `exportar_do_postgres` recusava exportá-la sem ordenação determinística. O
+  Parquet dela estava preso na versão de 2026-08-29. Entra `CHAVES_DE_VIEW` com
+  a chave natural declarada — e **verificada** por `conferir_chave_unica` sobre
+  o que volta do banco, não tomada como verdade. A origem no manifesto continua
+  `view` mesmo após exportar: exportação é o único jeito de materializar o
+  Parquet de uma view, não é dívida a pagar.
+- **A guarda de atualidade do Parquet é de contagem de linhas, e não viu nada.**
+  A V042 mudou todos os valores da view sem mudar uma linha; `publicar.py`
+  seguiu imprimindo "inalterada desde 2026-08-29". Registrado no código, no
+  ponto onde a comparação acontece. É a terceira vez que contagem de linhas
+  deixa passar corrupção de valor.
+
+### Alterado
+
+- **O cartão de ICSAP abre a lista dos pares.** A comparação dizia contra
+  quantos municípios era feita, nunca contra quais — foi abrindo a lista que a
+  divergência entre 272 e 68 apareceu. Se `n_pares` e o tamanho da lista
+  divergirem (municípios com menos de 100 internações no ano entram na lista mas
+  não no cálculo da mediana), a tela **diz** em vez de escolher um número.
+
+---
+
 ## [3.5.0] — 2026-08-29 — O agrupamento que mudava sozinho saiu do ar
 
 > Um município que abrisse o boletim duas vezes podia ler dois arquétipos

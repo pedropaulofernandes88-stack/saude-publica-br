@@ -889,6 +889,20 @@ export default function Metodologia() {
         da mediana do grupo (proporção instável), mas recebem a própria comparação
         sinalizada.
       </p>
+      <p className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+        <strong>Correção em 2026-09-06 — números anteriores mudaram.</strong> Até esta
+        data a mediana de referência era calculada sobre 2021–2024 <em>somados</em>, e
+        não sobre o ano de cada linha: um município de 2021 era comparado com uma
+        referência que incluía o futuro dos seus pares. A proporção de ICSAP não é
+        estável no intervalo — 2021 é o ano em que a internação eletiva desabou —, então
+        o efeito não é pequeno: <strong>945 municípios trocaram de lado</strong> em 2021
+        (de abaixo da mediana para acima, ou o contrário), 366 em 2022, 353 em 2023 e
+        275 em 2024. O total nacional de internações acima dos pares em 2021 passou de
+        146.800 para 273.435. Também mudou <code>n_pares</code>, que contava
+        município-ano e agora conta município. Quem citou estes números antes de
+        2026-09-06 deve conferir contra a versão atual: veja a V042 em{" "}
+        <code>migrations/</code> e a entrada 3.6.0 do CHANGELOG.
+      </p>
       <p>
         <strong>Conversão.</strong> As internações acima dos pares são
         (<code>pct_icsap</code> − mediana dos pares) × internações totais. Custo e

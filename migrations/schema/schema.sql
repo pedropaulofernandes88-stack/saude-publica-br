@@ -13,7 +13,7 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-02 09:20 UTC
+-- Extraído em: 2026-09-06 10:53 UTC
 -- Objetos: 237
 -- =============================================================================
 
@@ -1285,12 +1285,13 @@ create or replace view public.mart_icsap_pares with (security_invoker=on) as  WI
              LEFT JOIN dim_cluster_municipio c ON c.municipio_cod = i.municipio_cod
         ), medianas AS (
          SELECT base.grupo_id,
+            base.ano,
             percentile_cont(0.5::double precision) WITHIN GROUP (ORDER BY (base.pct_icsap::double precision)) AS mediana_pct_icsap,
             percentile_cont(0.25::double precision) WITHIN GROUP (ORDER BY (base.pct_icsap::double precision)) AS p25_pct_icsap,
             count(*) AS n_pares
            FROM base
           WHERE base.internacoes_total >= 100 AND base.pct_icsap IS NOT NULL
-          GROUP BY base.grupo_id
+          GROUP BY base.grupo_id, base.ano
         ), calc AS (
          SELECT b.municipio_cod,
             b.municipio_nome,
@@ -1314,7 +1315,7 @@ create or replace view public.mart_icsap_pares with (security_invoker=on) as  WI
             GREATEST(0::double precision, b.internacoes_total::double precision * (b.pct_icsap::double precision - m.mediana_pct_icsap) / 100.0::double precision) AS excedente,
             GREATEST(0::double precision, b.internacoes_total::double precision * (b.pct_icsap::double precision - m.p25_pct_icsap) / 100.0::double precision) AS excedente_p25
            FROM base b
-             JOIN medianas m ON m.grupo_id = b.grupo_id
+             JOIN medianas m ON m.grupo_id = b.grupo_id AND m.ano = b.ano
              CROSS JOIN parametros p
           WHERE b.pct_icsap IS NOT NULL
         )
@@ -1431,7 +1432,7 @@ comment on column public.mart_icsap_municipio.g1_100k is 'Internacoes do grupo 1
 
 comment on column public.mart_icsap_municipio.internacoes_g1 is 'Internacoes do grupo 1 da Lista Brasileira de ICSAP: doencas preveniveis por imunizacao e condicoes sensiveis (tuberculoses, tetano, difteria, coqueluche, sifilis, febre amarela, sarampo, rubeola, hepatite B, parotidite, malaria, ascaridiase, meningite, febre reumatica). Subconjunto de internacoes_icsap.';
 
-comment on view public.mart_icsap_pares is 'Distância de cada município até a mediana dos seus pares em internações sensíveis à atenção primária (ICSAP). Pares = estrato de saúde (tercis fixos de mortalidade × vulnerabilidade × internação); sem estrato, faixa populacional × região. security_invoker=true: lê com a permissão de quem consulta (ver V025). NÃO é economia garantida: alcançar a mediana exige investimento em atenção primária, nem toda ICSAP é evitável, e a associação é ecológica (municipal), não individual.';
+comment on view public.mart_icsap_pares is 'Distância de cada município até a mediana dos seus pares em internações sensíveis à atenção primária (ICSAP), traduzida em internações, custo, leitos-dia e leitos equivalentes/ano. Pares = estrato de saúde (tercis fixos de mortalidade × vulnerabilidade × internação) NO MESMO ANO; sem estrato, faixa populacional × região. n_pares conta municípios do grupo naquele ano (V042; antes contava município-ano). security_invoker=true: lê com a permissão de quem consulta (ver V025). NÃO é economia garantida: alcançar a mediana exige investimento em atenção primária, nem toda ICSAP é evitável, e a associação é ecológica (municipal), não individual.';
 
 comment on table public.mart_internacoes_municipio is 'Internações SUS (SIH/AIH) por município, ano e capítulo CID-10: volume, permanência média, mortalidade intra-hospitalar e custo médio. Fonte: SIH/DataSUS + IBGE.';
 

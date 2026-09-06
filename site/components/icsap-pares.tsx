@@ -21,14 +21,18 @@ const fmtReais = (v: number | null | undefined) =>
 /**
  * Quem são os pares — a lista, não só a contagem.
  *
- * O cartão dizia "comparado com 272 municípios do mesmo grupo" e nunca dizia
+ * O cartão dizia "comparado com N municípios do mesmo grupo" e nunca dizia
  * QUAIS. Uma comparação cujo grupo de referência é invisível não é conferível:
  * quem discorda do resultado não tem o que examinar, e quem concorda também
  * não. O grupo é definido pelo arquétipo (estrato de saúde), então ele é
  * exatamente reprodutível por uma consulta.
  *
- * A consulta só sai quando alguém abre a lista — 272 linhas que não servem a
- * quem veio ler o número.
+ * Foi abrindo esta lista que se viu que `n_pares` valia 272 onde a consulta
+ * trazia 68: a view contava município-ANO. A V042 corrigiu na origem — a
+ * mediana e a contagem passaram a ser do ano. O número do rótulo e o tamanho
+ * da lista agora vêm do mesmo fato, e a asserção abaixo cobra isso.
+ *
+ * A consulta só sai quando alguém abre a lista.
  */
 function ListaDePares({ dados }: { dados: IcsapPares }) {
   const [aberta, setAberta] = useState(false);
@@ -52,11 +56,7 @@ function ListaDePares({ dados }: { dados: IcsapPares }) {
         onClick={() => setAberta((v) => !v)}
         className="text-sm font-medium text-accent-700 underline underline-offset-2 no-print"
       >
-        {/* Sem contagem no rótulo fechado: antes de abrir, a consulta ainda
-            não saiu e o único número disponível é `n_pares` — que conta
-            município-ANO, não município (68 municípios x 4 anos = 272). Rótulo
-            que promete um número errado é pior que rótulo sem número. */}
-        {aberta ? "Ocultar" : "Ver os municípios do grupo"}
+        {aberta ? "Ocultar" : `Ver os ${fmtInt(dados.n_pares)} municípios do grupo`}
       </button>
 
       {aberta && (
@@ -65,12 +65,20 @@ function ListaDePares({ dados }: { dados: IcsapPares }) {
             Grupo: <strong>{dados.arquetipo}</strong> — {dados.criterio_pares}, {dados.ano}.
             Ordenado pela proporção de ICSAP; este município aparece destacado.
           </p>
-          <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
-            <strong>Limitação declarada:</strong> a mediana de referência do grupo é calculada
-            sobre 2021–2024 <em>somados</em>, não sobre o ano exibido — e a proporção de ICSAP
-            variou bastante nesse intervalo. A lista acima é do ano; a mediana, do período.
-            Está registrado na migração que introduziu os estratos e é decisão pendente.
-          </p>
+          {/* `n_pares` conta quem entra no cálculo da mediana (≥100 internações
+              no ano); a lista traz todos do grupo naquele ano. Hoje os dois
+              coincidem em todos os estratos, mas isso é contingente, não
+              definicional — um município do estrato pode cair abaixo de 100 na
+              próxima carga. Se divergirem, a tela diz; não escolhe um número. */}
+          {carga.estado === "ok" && carga.dados.length !== dados.n_pares && (
+            <p className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              <strong>Contagens diferentes:</strong> o grupo tem{" "}
+              {fmtInt(carga.dados.length)} municípios neste ano, mas a mediana de referência
+              foi calculada sobre {fmtInt(dados.n_pares)} — ficam de fora os que tiveram menos
+              de 100 internações no ano, cuja proporção é instável demais para servir de
+              referência. Eles continuam na lista, e recebem a própria comparação.
+            </p>
+          )}
           <Bloco carga={carga} recarregar={recarregar} titulo="Lista de pares" altura={160}
                  vazio="Nenhum outro município neste grupo e ano.">
             {(pares) => (
@@ -124,7 +132,8 @@ export function IcsapPares({ dados }: { dados: IcsapPares }) {
         Internações evitáveis — distância até municípios semelhantes
       </h2>
       <p className="mt-1 text-sm text-ink-500">
-        Comparado com os municípios do mesmo grupo ({dados.criterio_pares}
+        Comparado com <strong>{fmtInt(dados.n_pares)}</strong> municípios do mesmo grupo
+        no mesmo ano ({dados.criterio_pares}
         {dados.arquetipo ? `: ${dados.arquetipo}` : ""}). ICSAP = internações por condições
         sensíveis à atenção primária (Lista Brasileira), {dados.ano}.
       </p>
