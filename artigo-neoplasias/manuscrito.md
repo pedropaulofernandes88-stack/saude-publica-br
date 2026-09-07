@@ -227,12 +227,12 @@ Não há, nesta série, um componente de "avanço da doença" a ser explicado. H
 
 | Ano | Observado | Esperado (risco de 2019) | Diferença | % |
 |---|---|---|---|---|
-| 2020 | 224.829 | 237.532 | -12.703 | -5,3 |
-| 2021 | 230.764 | 243.321 | -12.557 | -5,2 |
-| 2022 | 238.623 | 249.414 | -10.791 | -4,3 |
-| 2023 | 249.941 | 256.752 | -6.810 | -2,7 |
+| 2020 | 224.828 | 237.532 | -12.703 | -5,3 |
+| 2021 | 230.763 | 243.321 | -12.557 | -5,2 |
+| 2022 | 238.622 | 249.414 | -10.791 | -4,3 |
+| 2023 | 249.942 | 256.752 | -6.810 | -2,7 |
 | 2024 | 259.083 | 264.766 | -5.682 | -2,1 |
-| 2020–2024 | 1.203.240 | 1.251.785 | -48.543 | -3,9 |
+| 2020–2024 | 1.203.238 | 1.251.785 | -48.543 | -3,9 |
 
 Mantido o risco de 2019, teriam sido registrados 48.543 óbitos por câncer a mais entre 2020 e 2024 — 3,9% acima do observado. O déficit encolhe monotonicamente: 5,3% em 2020, 4,3% em 2022, **2,1% em 2024**.
 
@@ -265,11 +265,11 @@ Dos sítios que aparecem nessa tabela, o do colo do útero é o único **evitáv
 | 1 | C50 Mama | 96.080 | 16,5 | C61 Próstata | 83.653 | 13,5 |
 | 2 | C34 Brônquios e pulmões | 68.832 | 11,8 | C34 Brônquios e pulmões | 81.641 | 13,1 |
 | 3 | C18 Cólon | 36.951 | 6,4 | C16 Estômago | 45.675 | 7,3 |
-| 4 | C53 Colo do útero | 34.918 | 6 | C18 Cólon | 35.130 | 5,6 |
+| 4 | C53 Colo do útero | 34.917 | 6 | C18 Cólon | 35.130 | 5,6 |
 | 5 | C25 Pâncreas | 32.653 | 5,6 | C15 Esôfago | 33.324 | 5,4 |
 | 6 | C16 Estômago | 26.512 | 4,6 | C25 Pâncreas | 31.750 | 5,1 |
 | 7 | C22 Fígado e vias biliares intra-hepáticas | 23.204 | 4 | C22 Fígado e vias biliares intra-hepáticas | 31.657 | 5,1 |
-| 8 | C56 Ovário | 21.184 | 3,6 | C71 Encéfalo | 22.352 | 3,6 |
+| 8 | C56 Ovário | 21.183 | 3,6 | C71 Encéfalo | 22.352 | 3,6 |
 | 9 | C71 Encéfalo | 20.370 | 3,5 | C32 Laringe | 20.071 | 3,2 |
 | 10 | C80 Sem especificação de localização | 14.246 | 2,5 | C67 Bexiga | 16.919 | 2,7 |
 
@@ -336,24 +336,24 @@ Se a diferença remanescente fosse detecção, ela deveria ser aproximadamente u
 
 | CID | Sítio | Óbitos | Taxa Q1 | Taxa Q4 | Razão Q4/Q1 |
 |---|---|---|---|---|---|
-| C44 | Outras neoplasias malignas da pele | 10.691 | 1,54 | 2,18 | 1,42 |
+| C44 | Outras neoplasias malignas da pele | 10.692 | 1,54 | 2,18 | 1,42 |
 | C53 | Colo do útero | 21.682 | 3,2 | 4,07 | 1,27 |
-| C76 | Outras localizações e mal definidas | 16.158 | 2,35 | 2,88 | 1,22 |
-| C15 | Esôfago | 25.732 | 3,83 | 4,01 | 1,05 |
+| C76 | Outras localizações e mal definidas | 16.159 | 2,35 | 2,88 | 1,22 |
+| C15 | Esôfago | 25.733 | 3,83 | 4,01 | 1,05 |
 | C61 | Próstata | 51.507 | 7,92 | 8,23 | 1,04 |
 | C16 | Estômago | 44.076 | 7 | 7,17 | 1,03 |
-| C32 | Laringe | 14.000 | 2,23 | 2,07 | 0,93 |
+| C32 | Laringe | 14.001 | 2,23 | 2,07 | 0,93 |
 | C22 | Fígado e vias biliares intra-hepáticas | 33.497 | 5,57 | 4,54 | 0,81 |
 | C71 | Encéfalo | 26.190 | 4,41 | 3,14 | 0,71 |
 | C26 | Outros órgãos digestivos e mal definidos | 13.130 | 2,14 | 1,48 | 0,69 |
 | C34 | Brônquios e pulmões | 93.089 | 16,09 | 10,54 | 0,65 |
-| C24 | Outras partes das vias biliares | 8.657 | 1,54 | 0,98 | 0,64 |
-| C92 | Leucemia mieloide | 11.495 | 2,07 | 1,2 | 0,58 |
+| C24 | Outras partes das vias biliares | 8.656 | 1,54 | 0,98 | 0,64 |
 | C56 | Ovário | 13.226 | 2,4 | 1,39 | 0,58 |
+| C92 | Leucemia mieloide | 11.495 | 2,07 | 1,2 | 0,58 |
 | C80 | Sem especificação de localização | 17.248 | 3,02 | 1,73 | 0,57 |
 | C50 | Mama | 60.886 | 11,07 | 5,85 | 0,53 |
 | C90 | Mieloma múltiplo | 11.845 | 2,18 | 1,08 | 0,5 |
-| C25 | Pâncreas | 40.530 | 7,51 | 3,69 | 0,49 |
+| C25 | Pâncreas | 40.531 | 7,51 | 3,69 | 0,49 |
 | C64 | Rim | 12.775 | 2,38 | 1,15 | 0,48 |
 | C67 | Bexiga | 15.854 | 2,91 | 1,35 | 0,46 |
 | C20 | Reto | 18.340 | 3,4 | 1,53 | 0,45 |

@@ -336,12 +336,18 @@ def obitos_idade_exata(con: duckdb.DuckDBPyConnection) -> None:
                    from ob_bruto where idade is not null),
       sem as (select ano, causabas_3, sum(ob) ob from ob_bruto
               where idade is null group by 1,2),
+      -- A fração é DECIMAL, e não DOUBLE, por reprodutibilidade: a soma paralela
+      -- de ponto flutuante não é associativa, e duas execuções do mesmo código
+      -- sobre o mesmo dado devolviam contagens que diferiam em UM óbito quando
+      -- o valor caía em cima do arredondamento. Medido em 2026-09-07 — quatro
+      -- tabelas do artigo mudavam de bytes sem nada ter mudado no dado.
       peso as (select c.ano, c.causabas_3, c.sexo, c.municipio_cod, c.idade,
-                      c.ob::double / sum(c.ob) over (partition by c.ano, c.causabas_3) fr
+                      c.ob::decimal(18,6)
+                        / sum(c.ob) over (partition by c.ano, c.causabas_3) fr
                from com c)
       select p.ano, coalesce(m.uf_sigla, u.uf_sigla, 'ND') uf_sigla, p.sexo,
              p.causabas_3, p.municipio_cod, p.idade,
-             sum(c.ob + coalesce(s.ob, 0) * p.fr) ob
+             sum((c.ob + coalesce(s.ob, 0) * p.fr)::decimal(18,6)) ob
       from peso p
         join com c on c.ano=p.ano and c.causabas_3=p.causabas_3 and c.sexo=p.sexo
                   and c.municipio_cod=p.municipio_cod and c.idade=p.idade
@@ -699,7 +705,7 @@ def territorio(con: duckdb.DuckDBPyConnection) -> None:
              sum(a.c53) obitos_colo_utero,
              round(1e5*sum(a.c53/a.py*w.w)/sum(w.w),2) taxa_padr_colo_utero_100k
       from a join padrao w on w.fx=a.fx group by 1
-      order by taxa_padronizada_100k desc""").df(), "tab07_uf")
+      order by taxa_padronizada_100k desc, uf_sigla""").df(), "tab07_uf")
 
     print(f"  maior taxa padronizada: {tab.iloc[0].uf_sigla} {tab.iloc[0].taxa_padronizada_100k}"
           f" · menor: {tab.iloc[-1].uf_sigla} {tab.iloc[-1].taxa_padronizada_100k} "
@@ -811,7 +817,8 @@ def vulnerabilidade(con: duckdb.DuckDBPyConnection) -> None:
                    /nullif(max(case when r.q='Q1' then r.padr end),0),2) razao_Q4_Q1
       from r join tot t using(causabas_3) left join cat c using(causabas_3)
       where t.ob >= 8000 and r.causabas_3 between 'C00' and 'C97'
-      group by 1,2,3 order by razao_Q4_Q1 desc""").df(), "tab09_sitio_por_vulnerabilidade")
+      group by 1,2,3
+      order by razao_Q4_Q1 desc, causabas_3""").df(), "tab09_sitio_por_vulnerabilidade")
 
     piores = tab09[tab09.razao_Q4_Q1 > 1]
     print(f"  sítios com mortalidade MAIOR no quartil vulnerável: "
@@ -887,8 +894,12 @@ def social(con: duckdb.DuckDBPyConnection) -> None:
                            "taxa_bruta_100k": round(1e5 * g.ob.sum() / g.py.sum(), casas),
                            "taxa_padronizada_100k": round(taxa, casas),
                            "ic95_inf": round(inf, casas), "ic95_sup": round(sup, casas)})
+        # Desempate por nome: `sort_values` numa coluna só devolve ordens
+        # diferentes para valores iguais, e duas execuções do mesmo código
+        # passariam a gerar bytes diferentes. Ver a nota em `ob_uf_idade`.
         return (pd.DataFrame(linhas)
-                .sort_values("taxa_padronizada_100k", ascending=False, ignore_index=True))
+                .sort_values(["taxa_padronizada_100k", "raca"],
+                             ascending=[False, True], ignore_index=True))
 
     escrever(_tabela("ob", None, 1), "tab10_raca")
 
@@ -926,7 +937,7 @@ def social(con: duckdb.DuckDBPyConnection) -> None:
              round(100.0*sum((neoplasia and c3='C80')::int)/nullif(sum(neoplasia::int),0),2)
                pct_c80_entre_neoplasias
       from micro where idade_anos between 30 and 69 group by 1
-      order by obitos_neoplasia desc""").df(), "tab13_raca_acesso_30_69")
+      order by obitos_neoplasia desc, raca""").df(), "tab13_raca_acesso_30_69")
 
     escrever(con.execute(f"""
       select fx faixa_etaria, sum(neoplasia::int) obitos_neoplasia,
