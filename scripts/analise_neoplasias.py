@@ -17,8 +17,8 @@ TRÊS DECISÕES DE MÉTODO QUE MUDAM O RESULTADO
 ----------------------------------------------
 
 1. **Padronizar por idade não é refinamento, é o achado.** A taxa bruta sobe
-   18% entre 2015 e 2024 (101,2 → 119,0 por 100 mil) e a padronizada CAI 4,4%
-   (122,5 → 117,2). Quem publica a bruta publica a pirâmide etária do Brasil
+   19,7% entre 2015 e 2024 (101,8 → 121,9 por 100 mil) e a padronizada CAI 2,3%
+   (123,0 → 120,2). Quem publica a bruta publica a pirâmide etária do Brasil
    com nome de epidemiologia. A decomposição de três termos (tamanho da
    população, estrutura etária, taxas específicas) está em `tab03` e é a forma
    honesta de dizer isso.
@@ -49,17 +49,40 @@ O QUE A ANÁLISE NÃO PODE AFIRMAR
   mesma pessoa do mesmo jeito, e a razão entre elas carrega esse erro.
 * **2025 é preliminar** e fica fora de tudo (ver `_sim_obitos.ANOS_CONSOLIDADOS`).
 
+O QUE A AUDITORIA DE 2026-09-07 MUDOU
+--------------------------------------
+O numerador saía de `mart_mortalidade_causa_municipio_faixa`, que agrupa em oito
+faixas e **perde 241 óbitos** sem idade declarada; o denominador saía da projeção
+IBGE de **2018**, anterior ao Censo 2022, que superestima a população em 5,8% —
+e de forma desigual por idade, o que desloca taxa padronizada. Havia ainda três
+bases de denominador convivendo no mesmo artigo (projeção 2018, Censo municipal
+e Censo por cor/raça), com a Tabela de UF e a de quartil em escalas diferentes.
+
+Agora o numerador é derivado do SIM cru com **idade exata** (os 241 voltam, por
+redistribuição pro-rata dentro do ano e da causa) e o denominador é a **Projeção
+revisão 2024**, por idade simples, reconciliada com o Censo pela Pesquisa de
+Pós-Enumeração. O eixo municipal usa forma do Censo e nível da projeção, de modo
+que todas as tabelas ficam na mesma escala. Ver `pipeline_projecao_ibge.py`.
+
+O achado não mudou de sinal: a padronizada caía 4,4% e cai 2,3%; a decomposição
+atribuía −19,9% ao risco e atribui −10,6%; os seis sítios que invertem o
+gradiente do IVS são **os mesmos seis**.
+
 FONTES
 ------
-* `mart_mortalidade_causa_municipio_faixa` — óbitos por município × ano ×
-  categoria CID × faixa × sexo, 2015–2024 consolidados.
+* SIM/DataSUS pela união canônica de `_sim_obitos.sql_uniao_fontes` — `.dbc` por
+  UF (2015–2021, 2024) e CSV nacional (2022–2023), com idade exata.
 * `data/raw/SIM/DO22OPEN.csv`, `DO23OPEN.csv` — microdado com as variáveis
   sociais (RACACOR, ESC2010, LOCOCOR), que o recorte `.dbc` dos demais anos
   **não** traz. Por isso todo eixo social é 2022–2023.
-* `data/refs/pop_idade_uf_ano.parquet` — denominador por UF × ano × faixa.
-* `dim_pop_padrao` — população padrão (Censo 2022, Brasil) do método direto.
+* `data/refs/pop_proj2024_uf_ano_idade.parquet` — denominador oficial pós-Censo,
+  por UF × ano × idade simples × sexo (`pipeline_projecao_ibge.py`).
+* `dim_pop_padrao` — padrão Brasil/Censo 2022; `PADRAO_OMS` — padrão mundial da
+  OMS 2000–2025, que torna a série comparável com INCA, IARC e GLOBOCAN.
 * SIDRA t/9606 — população por cor/raça × sexo × idade, Censo 2022. Baixada uma
   vez e cacheada em `data/refs/pop_raca_idade_sexo_2022.parquet`.
+* `mart_mortalidade_causa_municipio_faixa` — só para as séries de qualidade de
+  registro (causa mal definida e C80), que não precisam de grão etário.
 
 Uso: .venv311/Scripts/python scripts/analise_neoplasias.py
 """
@@ -119,6 +142,22 @@ SIDRA_FAIXA = {
 
 #: Ordem de exibição das faixas — alfabética coloca '5-14' depois de '45-59'.
 ORDEM_FX = ("0-4", "5-14", "15-29", "30-44", "45-59", "60-74", "75+")
+
+#: População padrão mundial da OMS (2000–2025), em grupos quinquenais, somando
+#: 1.000.000. Ahmad OB, Boschi-Pinto C, Lopez AD, Murray CJL, Lozano R, Inoue M.
+#: *Age standardization of rates: a new WHO standard*. Genebra: OMS; 2001 (GPE
+#: Discussion Paper 31). Valores conforme a tabela publicada pelo SEER/NCI.
+#:
+#: Existe aqui, e não em `data/refs/`, porque é constante publicada e fechada:
+#: um arquivo poderia divergir da referência sem que nada avisasse, e a chave é
+#: a idade inicial do grupo, que o código usa diretamente. Os grupos de 90 em
+#: diante são fundidos porque a projeção do IBGE termina em "90 ou mais".
+PADRAO_OMS = {
+    0: 88_569, 5: 86_870, 10: 85_970, 15: 84_670, 20: 82_171, 25: 79_272,
+    30: 76_073, 35: 71_475, 40: 65_877, 45: 60_379, 50: 53_681, 55: 45_484,
+    60: 37_187, 65: 29_590, 70: 22_092, 75: 15_195, 80: 9_097, 85: 4_398,
+    90: 1_500 + 400 + 50,
+}
 
 #: Decodifica o campo IDADE do SIM (unidade no 1º dígito) em anos completos.
 #: Mesma regra de `_sim_obitos.criar_obitos_t`; repetida aqui porque este script
@@ -232,32 +271,144 @@ def pop_raca(con: duckdb.DuckDBPyConnection) -> None:
       from '{destino.as_posix()}' group by 1,2,3""")
 
 
+def _sql_faixa7(coluna: str) -> str:
+    """As sete faixas do projeto, a partir de idade em anos completos."""
+    return f"""case when {coluna} < 5 then '0-4' when {coluna} < 15 then '5-14'
+        when {coluna} < 30 then '15-29' when {coluna} < 45 then '30-44'
+        when {coluna} < 60 then '45-59' when {coluna} < 75 then '60-74'
+        else '75+' end"""
+
+
+def _sql_quinquenal(coluna: str) -> str:
+    """Grupos quinquenais até 90 ou mais, o grão do padrão mundial da OMS."""
+    return f"case when {coluna} >= 90 then 90 else ({coluna} / 5)::int * 5 end"
+
+
+def obitos_idade_exata(con: duckdb.DuckDBPyConnection) -> None:
+    """`ob_uf_idade` — óbitos por UF, ano, sexo, categoria da CID e IDADE EXATA.
+
+    POR QUE NÃO SAI MAIS DO MART DE FAIXA
+    --------------------------------------
+    `mart_mortalidade_causa_municipio_faixa` traz o óbito já agrupado em oito
+    faixas, três delas de quinze anos e a última aberta em 75. Auditado em
+    2026-09-07, ele também **perde 241 óbitos** por neoplasia maligna na década
+    — os que não têm idade declarada, que não cabem em faixa nenhuma e somem sem
+    aviso (0,0105% da série, e a reconstrução a partir da fonte devolve
+    exatamente 2.293.075, que é o total do mart municipal).
+
+    Derivar daqui resolve as duas coisas de uma vez: recupera os 241 por
+    redistribuição pro-rata dentro do ano, e devolve a idade exata, sem a qual
+    não existe nem grupo quinquenal nem o recorte de 30 a 69 anos da OMS.
+
+    A união das fontes vem de `_sim_obitos.sql_uniao_fontes`, que é a definição
+    única de "o que conta como óbito" neste projeto — este script escolhe o
+    agrupamento, nunca a regra.
+    """
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from _sim_obitos import ANOS_CONSOLIDADOS, sql_uniao_fontes
+
+    uniao = sql_uniao_fontes(list(ANOS_CONSOLIDADOS))
+    a0, a1 = ANOS_CONSOLIDADOS[0], ANOS_CONSOLIDADOS[-1]
+    con.execute(f"""create table ob_bruto as
+      with t as (
+        select lpad(DTOBITO, 8, '0') dt,
+               upper(coalesce(trim(CAUSABAS), '')) cb,
+               trim(coalesce(SEXO, '')) sx,
+               coalesce(nullif(trim(CODMUNRES), ''), '000000') mun,
+               {SQL_IDADE.format(c="trim(coalesce(IDADE,''))")} ia
+        from ({uniao})
+        where coalesce(nullif(trim(TIPOBITO), ''), '2') <> '1')
+      select try_cast(substr(dt, 5, 4) as smallint) ano,
+             substr(cb, 1, 3) causabas_3,
+             case sx when '1' then 'M' when '2' then 'F' else 'I' end sexo,
+             mun municipio_cod, ia idade, count(*) ob
+      from t
+      where try_cast(substr(dt, 5, 4) as smallint) between {a0} and {a1}
+      group by 1,2,3,4,5""")
+
+    # Redistribuição pro-rata da idade ignorada, DENTRO do mesmo ano e da mesma
+    # categoria de causa: o óbito sem idade entra na distribuição etária que os
+    # óbitos com idade daquela causa e ano descrevem. É o tratamento que
+    # `pipeline_v2` já usa; descartá-los seria perder 241 mortes em silêncio, e
+    # atribuí-los a uma faixa qualquer seria pior.
+    con.execute(f"""create table ob_uf_idade as
+      with com as (select ano, causabas_3, sexo, municipio_cod, idade, ob
+                   from ob_bruto where idade is not null),
+      sem as (select ano, causabas_3, sum(ob) ob from ob_bruto
+              where idade is null group by 1,2),
+      peso as (select c.ano, c.causabas_3, c.sexo, c.municipio_cod, c.idade,
+                      c.ob::double / sum(c.ob) over (partition by c.ano, c.causabas_3) fr
+               from com c)
+      select p.ano, coalesce(m.uf_sigla, u.uf_sigla, 'ND') uf_sigla, p.sexo,
+             p.causabas_3, p.municipio_cod, p.idade,
+             sum(c.ob + coalesce(s.ob, 0) * p.fr) ob
+      from peso p
+        join com c on c.ano=p.ano and c.causabas_3=p.causabas_3 and c.sexo=p.sexo
+                  and c.municipio_cod=p.municipio_cod and c.idade=p.idade
+        left join sem s on s.ano=p.ano and s.causabas_3=p.causabas_3
+        left join '{(MARTS / 'dim_municipio.parquet').as_posix()}' m
+               on m.municipio_cod = p.municipio_cod
+        -- Códigos terminados em 0000 são "município ignorado" DENTRO de uma UF
+        -- (330000 = Rio de Janeiro, município ignorado). Não existem no
+        -- `dim_municipio`, e cair no 'ND' jogaria fora 378 óbitos por câncer que
+        -- têm unidade da federação perfeitamente conhecida — os dois primeiros
+        -- dígitos. Perder o município é inevitável; perder a UF, não.
+        left join (select distinct substr(municipio_cod, 1, 2) uf2, uf_sigla
+                   from '{(MARTS / 'dim_municipio.parquet').as_posix()}') u
+               on u.uf2 = substr(p.municipio_cod, 1, 2)
+      group by 1,2,3,4,5,6""")
+
+
 def preparar(con: duckdb.DuckDBPyConnection) -> None:
-    """Views e tabelas base: óbitos agregados, denominadores e população padrão."""
+    """Views e tabelas base: óbitos com idade exata, denominador e padrões."""
     con.execute("create view faixa as select * from "
                 f"'{(MARTS / 'mart_mortalidade_causa_municipio_faixa.parquet').as_posix()}'")
     con.execute(f"create view cat as select * from '{(MARTS / 'dim_cid10_categoria.parquet').as_posix()}'")
     con.execute(f"create view ivs as select * from '{(MARTS / 'dim_ivs.parquet').as_posix()}'")
     con.execute("create view pop_mun_fx as select * from "
                 f"'{(MARTS / 'dim_pop_faixa.parquet').as_posix()}'")
-    # A população padrão vem em oito faixas; o denominador anual por UF, em sete.
-    # Padronizar com pesos de um recorte e taxas de outro seria erro mudo.
+
+    # ── numerador ────────────────────────────────────────────────────────────
+    obitos_idade_exata(con)
+    con.execute(f"""create table ob_br as
+      select ano, sexo, {_sql_faixa7('idade')} fx, causabas_3, sum(ob) ob
+      from ob_uf_idade
+      where causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'
+      group by 1,2,3,4""")
+
+    # ── denominador ──────────────────────────────────────────────────────────
+    # Projeção revisão 2024 do IBGE, por idade simples: a única série com o
+    # total reconciliado com o Censo 2022 (via Pesquisa de Pós-Enumeração) E a
+    # estrutura etária oficial. Ver `scripts/pipeline_projecao_ibge.py` para a
+    # medida que descarta as outras duas candidatas.
+    proj = REFS / "pop_proj2024_uf_ano_idade.parquet"
+    if not proj.exists():
+        raise SystemExit(
+            f"{proj.relative_to(ROOT).as_posix()} não existe. Rode "
+            "`python scripts/pipeline_projecao_ibge.py` — sem o denominador "
+            "oficial pós-Censo a análise usaria a projeção de 2018, que é "
+            "anterior ao Censo 2022 e superestima a população em 5,8%.")
+    con.execute(f"create table pop_idade as select * from '{proj.as_posix()}'")
+    con.execute(f"""create table pop_uf as
+      select uf_sigla, ano, {_sql_faixa7('idade')} fx, sum(populacao) pop
+      from pop_idade where sexo='T' group by 1,2,3""")
+    con.execute("create table pop_br as select ano, fx, sum(pop) pop from pop_uf group by 1,2")
+
+    # ── populações padrão ────────────────────────────────────────────────────
+    # Duas, de propósito. A do Brasil mantém a série comparável com o resto da
+    # plataforma; a da OMS torna as taxas comparáveis com INCA, IARC e qualquer
+    # série internacional — que era limitação declarada da primeira versão.
     con.execute(f"""create table padrao as
       select case when faixa_etaria in ('<1','1-4') then '0-4' else faixa_etaria end fx,
              sum(populacao) w
       from '{(MARTS / 'dim_pop_padrao.parquet').as_posix()}' group by 1""")
     con.execute("create table padrao_mun as select faixa_etaria fx, populacao w from "
                 f"'{(MARTS / 'dim_pop_padrao.parquet').as_posix()}'")
-    con.execute("create table pop_uf as select uf_sigla, ano, faixa fx, populacao pop from "
-                f"'{(REFS / 'pop_idade_uf_ano.parquet').as_posix()}'")
-    con.execute("create table pop_br as select ano, fx, sum(pop) pop from pop_uf group by 1,2")
-    con.execute("""create table ob_br as
-      select ano, sexo,
-             case when faixa_etaria in ('<1','1-4') then '0-4' else faixa_etaria end fx,
-             causabas_3, sum(obitos) ob
-      from faixa
-      where not preliminar and causabas_3 between ? and ?
-      group by 1,2,3,4""", list(CID_MALIGNA))
+    con.execute("create table padrao_oms (g5 integer, w bigint)")
+    con.executemany("insert into padrao_oms values (?,?)", list(PADRAO_OMS.items()))
+    total_oms = con.execute("select sum(w) from padrao_oms").fetchone()[0]
+    if total_oms != 1_000_000:
+        raise SystemExit(f"padrão mundial da OMS soma {total_oms:,}, não 1.000.000.")
 
 
 def serie_nacional(con: duckdb.DuckDBPyConnection) -> None:
@@ -266,7 +417,8 @@ def serie_nacional(con: duckdb.DuckDBPyConnection) -> None:
       with a as (select o.ano, o.fx, sum(o.ob) ob, any_value(p.pop) pop
                  from (select ano, fx, sum(ob) ob from ob_br group by 1,2) o
                  join pop_br p on p.ano=o.ano and p.fx=o.fx group by 1,2)
-      select ano, fx faixa_etaria, ob obitos, pop populacao, round(1e5*ob/pop, 2) taxa_100k
+      select ano, fx faixa_etaria, round(ob)::bigint obitos, pop populacao,
+             round(1e5*ob/pop, 2) taxa_100k
       from a order by {_sql_ordem('fx')}, ano""").df(), "tab02_taxa_por_faixa_ano")
 
     # As duas colunas de registro NÃO são enfeite: elas sustentam a leitura do
@@ -276,7 +428,7 @@ def serie_nacional(con: duckdb.DuckDBPyConnection) -> None:
     # a hipótese fica em aberto; com ela, é descartável, porque a imprecisão
     # CAIU no período. Afirmação de prosa que depende de número tem de trazer o
     # número junto.
-    tab01 = escrever(con.execute("""
+    tab01 = escrever(con.execute(f"""
       with a as (select o.ano, o.fx, sum(o.ob) ob, any_value(p.pop) pop
                  from (select ano, fx, sum(ob) ob from ob_br group by 1,2) o
                  join pop_br p on p.ano=o.ano and p.fx=o.fx group by 1,2),
@@ -286,13 +438,31 @@ def serie_nacional(con: duckdb.DuckDBPyConnection) -> None:
                 100.0*sum(case when causabas_3='C80' then obitos else 0 end)
                   /nullif(sum(case when causabas_3 between 'C00' and 'C97'
                                    then obitos else 0 end),0) c80
-              from faixa where not preliminar group by 1)
-      select a.ano, sum(a.ob) obitos, sum(a.pop) populacao,
+              from faixa where not preliminar group by 1),
+      -- Padronização pelo padrão MUNDIAL da OMS, em grupos quinquenais. É o que
+      -- torna esta série comparável com INCA, IARC e GLOBOCAN; a coluna do
+      -- padrão brasileiro, ao lado, mantém a comparabilidade interna com o
+      -- resto da plataforma. As duas usam os mesmos óbitos.
+      oms as (select q.ano,
+                1e5*sum(q.ob/q.pop*s.w)/sum(s.w) padr_oms
+              from (select o.ano, o.g5, sum(o.ob) ob, any_value(p.pop) pop from
+                      (select ano, {_sql_quinquenal('idade')} g5, sum(ob) ob
+                       from ob_uf_idade
+                       where causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'
+                       group by 1,2) o
+                    join (select ano, {_sql_quinquenal('idade')} g5, sum(populacao) pop
+                          from pop_idade where sexo='T' group by 1,2) p
+                      on p.ano=o.ano and p.g5=o.g5
+                    group by 1,2) q
+              join padrao_oms s on s.g5=q.g5 group by 1)
+      select a.ano, round(sum(a.ob))::bigint obitos, sum(a.pop) populacao,
              round(1e5*sum(a.ob)/sum(a.pop), 2) taxa_bruta_100k,
              round(1e5*sum(a.ob/a.pop*w.w)/sum(w.w), 2) taxa_padronizada_100k,
+             round(any_value(o.padr_oms), 2) taxa_padronizada_oms_100k,
              round(any_value(r.maldef), 2) pct_causa_mal_definida,
              round(any_value(r.c80), 2) pct_c80_entre_neoplasias
       from a join padrao w on w.fx=a.fx join reg r on r.ano=a.ano
+             join oms o on o.ano=a.ano
       group by 1 order by 1""").df(), "tab01_serie_nacional")
 
     p = tab01.set_index("ano")
@@ -300,6 +470,112 @@ def serie_nacional(con: duckdb.DuckDBPyConnection) -> None:
                      ("taxa padronizada", "taxa_padronizada_100k")]:
         ini, fim = p[col][2015], p[col][2024]
         print(f"  {rot:18s} {ini:>10,.1f} → {fim:>10,.1f}  ({100*(fim/ini-1):+5.1f}%)")
+
+
+def sensibilidade_denominador(con: duckdb.DuckDBPyConnection) -> None:
+    """tab16 — o estudo inteiro refeito sob os quatro denominadores candidatos.
+
+    A auditoria de 2026-09-07 achou três séries populacionais em uso simultâneo
+    e trocou todas por uma. Uma troca dessas muda **todos** os números do artigo,
+    e afirmar em prosa que "o achado sobreviveu" seria pedir confiança: aqui ele
+    é refeito sob cada candidata, e a tabela é a evidência.
+
+    As quatro:
+
+      projeção rev. 2024   adotada. Oficial, pós-Censo, reconciliada com a
+                           Pesquisa de Pós-Enumeração
+      projeção rev. 2018   a que a plataforma usava. Anterior ao Censo
+      Censo 2022           a contagem bruta, sem correção de subcontagem;
+                           estática, replicada em todos os anos
+      reconciliada interna total certo, forma etária aproximada pela projeção
+                           de 2018
+
+    As duas últimas não têm série anual por idade que sustente a decomposição,
+    então entram só com o que dá para calcular. É informação, não omissão: uma
+    candidata que não permite decompor já se desqualifica para este artigo.
+    """
+    padroes = {
+        "Projeção rev. 2024 (adotada)":
+            "select ano, fx, pop from pop_br",
+        "Projeção rev. 2018 (anterior)":
+            f"select ano, faixa fx, sum(populacao) pop from "
+            f"'{(REFS / 'pop_idade_uf_ano.parquet').as_posix()}' group by 1,2",
+        "Reconciliada interna":
+            f"select ano, fx, sum(pop) pop from "
+            f"'{(REFS / 'pop_idade_uf_ano_reconciliada.parquet').as_posix()}' group by 1,2",
+        "Censo 2022 (contagem bruta)":
+            "select a.ano, c.fx, c.pop from (select distinct ano from pop_br) a cross join "
+            "(select case when faixa_etaria in ('<1','1-4') then '0-4' else faixa_etaria end fx,"
+            " sum(populacao) pop from pop_mun_fx group by 1) c",
+    }
+    linhas = []
+    for nome, sql in padroes.items():
+        d = con.execute(f"""with p as ({sql}),
+          a as (select o.ano, o.fx, sum(o.ob) ob, any_value(p.pop) pop
+                from (select ano, fx, sum(ob) ob from ob_br group by 1,2) o
+                join p on p.ano=o.ano and p.fx=o.fx group by 1,2)
+          select a.ano, sum(a.pop) pop, 1e5*sum(a.ob/a.pop*w.w)/sum(w.w) padr
+          from a join padrao w on w.fx=a.fx group by 1 order by 1""").df()
+        if d.empty:
+            continue
+        ini, fim = d[d.ano == 2015].iloc[0], d[d.ano == 2024].iloc[0]
+        pop22 = d[d.ano == 2022].iloc[0]["pop"]
+        linhas.append({"denominador": nome, "populacao_2022": int(round(pop22)),
+                       "taxa_padr_2015": round(ini.padr, 2),
+                       "taxa_padr_2024": round(fim.padr, 2),
+                       "variacao_pct": round(100 * (fim.padr / ini.padr - 1), 1)})
+    escrever(pd.DataFrame(linhas), "tab16_sensibilidade_denominador")
+    for r in linhas:
+        print(f"  {r['denominador']:32s} pop2022 {r['populacao_2022']:>12,}  "
+              f"padr {r['taxa_padr_2015']:>6} → {r['taxa_padr_2024']:>6}  "
+              f"({r['variacao_pct']:+.1f}%)")
+
+
+def prematura_30_69(con: duckdb.DuckDBPyConnection) -> None:
+    """tab15 — probabilidade de morrer de câncer entre 30 e 70 anos.
+
+    É o indicador de mortalidade prematura por doença crônica não transmissível
+    da OMS, alvo do ODS 3.4: a probabilidade **incondicional** de uma pessoa de
+    30 anos morrer da causa antes dos 70, calculada por tábua de vida sobre as
+    taxas quinquenais:
+
+        ₅q_x = 5·m_x / (1 + 2,5·m_x)      ⁴⁰q₃₀ = 1 − Π(1 − ₅q_x)
+
+    Não existia na primeira versão desta análise, e não por escolha: o
+    denominador do projeto tinha faixas de quinze anos (45–59, 60–74) e não
+    permitia recortar 30–69. A projeção revisão 2024, por idade simples,
+    destrava o recorte — que é o que torna esta série comparável com a base de
+    indicadores da OMS e com a meta brasileira do ODS 3.4.
+
+    Diferente de uma taxa padronizada, esta quantidade não depende de população
+    padrão nenhuma: é uma probabilidade sintética, e por isso comparável entre
+    países sem convenção de padrão.
+    """
+    d = con.execute(f"""
+      with o as (select ano, {_sql_quinquenal('idade')} g5, sum(ob) ob
+                 from ob_uf_idade
+                 where causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'
+                   and idade between 30 and 69 group by 1,2),
+      p as (select ano, {_sql_quinquenal('idade')} g5, sum(populacao) pop
+            from pop_idade where sexo='T' and idade between 30 and 69 group by 1,2)
+      select o.ano, o.g5, o.ob, p.pop from o join p on p.ano=o.ano and p.g5=o.g5
+      order by 1,2""").df()
+
+    linhas = []
+    for ano, g in d.groupby("ano"):
+        m = (g.ob / g["pop"]).values
+        q5 = 5 * m / (1 + 2.5 * m)
+        q = 1 - np.prod(1 - q5)
+        linhas.append({"ano": int(ano), "obitos_30_69": int(round(g.ob.sum())),
+                       "populacao_30_69": int(g["pop"].sum()),
+                       "taxa_bruta_30_69_100k": round(1e5 * g.ob.sum() / g["pop"].sum(), 1),
+                       "prob_morrer_30_69_pct": round(100 * q, 3)})
+    tab = escrever(pd.DataFrame(linhas), "tab15_prematura_30_69")
+    ini, fim = tab.iloc[0], tab.iloc[-1]
+    print(f"  probabilidade de morrer de câncer entre 30 e 70: "
+          f"{ini.prob_morrer_30_69_pct}% ({int(ini.ano)}) → "
+          f"{fim.prob_morrer_30_69_pct}% ({int(fim.ano)})"
+          f"  ({100 * (fim.prob_morrer_30_69_pct / ini.prob_morrer_30_69_pct - 1):+.1f}%)")
 
 
 def decomposicao(con: duckdb.DuckDBPyConnection) -> None:
@@ -407,12 +683,11 @@ def territorio(con: duckdb.DuckDBPyConnection) -> None:
     """
     a0, a1 = ANOS_RECENTE
     tab = escrever(con.execute(f"""
-      with ob as (select uf_sigla, ano,
-                    case when faixa_etaria in ('<1','1-4') then '0-4' else faixa_etaria end fx,
+      with ob as (select uf_sigla, ano, {_sql_faixa7('idade')} fx,
                     sum(case when causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'
-                             then obitos else 0 end) ob,
-                    sum(case when causabas_3='C53' then obitos else 0 end) c53
-                  from faixa where not preliminar and ano between {a0} and {a1} group by 1,2,3),
+                             then ob else 0 end) ob,
+                    sum(case when causabas_3='C53' then ob else 0 end) c53
+                  from ob_uf_idade where ano between {a0} and {a1} group by 1,2,3),
       a as (select p.uf_sigla, p.fx, sum(p.pop) py,
                    sum(coalesce(o.ob,0)) ob, sum(coalesce(o.c53,0)) c53
             from pop_uf p left join ob o
@@ -447,14 +722,50 @@ def vulnerabilidade(con: duckdb.DuckDBPyConnection) -> None:
     que o gradiente não é só qualidade de registro — e ele sobrevive ao teste.
     """
     a0, a1 = ANOS_RECENTE
-    anos = a1 - a0 + 1
+
+    # O denominador municipal é o Censo 2022 — é a única fonte com grão de
+    # município por faixa. Mas o Censo é a CONTAGEM, e o resto desta análise usa
+    # a projeção revisão 2024, que reconcilia a subcontagem medida pela Pesquisa
+    # de Pós-Enumeração. Publicar as duas lado a lado deixaria a Tabela 8 (UF) e
+    # a Tabela 9 (quartil) em escalas diferentes por ~4%, e o leitor as compara.
+    #
+    # A saída é a que o próprio `pipeline_v2` já usa para anos não censitários:
+    # **forma do Censo, nível da projeção**. Cada município é escalado pelo fator
+    # da sua UF e faixa, ano a ano. A composição municipal continua sendo a
+    # enumerada; só o patamar passa a ser o oficial.
+    con.execute(f"""create table fator_uf as
+      with cen as (select m.uf_sigla,
+                     case when p.faixa_etaria in ('<1','1-4') then '0-4'
+                          else p.faixa_etaria end fx,
+                     sum(p.populacao) pop
+                   from pop_mun_fx p
+                   join '{(MARTS / 'dim_municipio.parquet').as_posix()}' m using(municipio_cod)
+                   group by 1,2)
+      select u.uf_sigla, u.ano, u.fx, u.pop / cen.pop k
+      from pop_uf u join cen on cen.uf_sigla=u.uf_sigla and cen.fx=u.fx
+      where u.ano between {a0} and {a1}""")
     con.execute(f"""create table denom_q as
-      select i.ivs_quartil q, p.faixa_etaria fx, sum(p.populacao)*{anos} py
-      from pop_mun_fx p join ivs i using(municipio_cod) group by 1,2""")
+      select i.ivs_quartil q, p.faixa_etaria fx,
+             sum(p.populacao * f.k) py
+      from pop_mun_fx p
+        join ivs i using(municipio_cod)
+        join '{(MARTS / 'dim_municipio.parquet').as_posix()}' m using(municipio_cod)
+        join fator_uf f on f.uf_sigla=m.uf_sigla
+                       and f.fx = case when p.faixa_etaria in ('<1','1-4') then '0-4'
+                                       else p.faixa_etaria end
+      group by 1,2""")
+    # O numerador vem da mesma tabela de idade exata que o resto da análise, e
+    # não do mart de faixa: assim os 241 óbitos sem idade declarada entram aqui
+    # também, e não há dois numeradores com totais diferentes no mesmo artigo.
+    # A faixa `<1`/`1-4` é reconstruída porque a população padrão municipal
+    # (`padrao_mun`) tem oito faixas, não sete.
     con.execute(f"""create table ob_q as
-      select i.ivs_quartil q, f.faixa_etaria fx, f.causabas_3, sum(f.obitos) ob
-      from faixa f join ivs i using(municipio_cod)
-      where f.ano between {a0} and {a1} and not f.preliminar group by 1,2,3""")
+      select i.ivs_quartil q,
+             case when o.idade < 1 then '<1' when o.idade < 5 then '1-4'
+                  else {_sql_faixa7('o.idade')} end fx,
+             o.causabas_3, sum(o.ob) ob
+      from ob_uf_idade o join ivs i using(municipio_cod)
+      where o.ano between {a0} and {a1} group by 1,2,3""")
 
     tab08 = escrever(con.execute(f"""
       with a as (select d.q, d.fx, d.py,
@@ -634,7 +945,7 @@ def _br(n: float) -> str:
     saber que "2292834" é contagem. O número sai daqui já formatado, e o mesmo
     valor serve à prosa e à tabela.
     """
-    return f"{int(n):,}".replace(",", ".")
+    return f"{round(n):,}".replace(",", ".")
 
 
 def base(con: duckdb.DuckDBPyConnection) -> None:
@@ -661,6 +972,20 @@ def base(con: duckdb.DuckDBPyConnection) -> None:
                / nullif(sum(case when causabas_3 between 'C00' and 'D48'
                                  then obitos else 0 end), 0)
       from faixa where not preliminar""").fetchone()
+
+    # As três perdas que a auditoria de 2026-09-07 mediu. Entram na tabela em vez
+    # de ficarem numa nota porque a soma delas é a diferença entre o total deste
+    # artigo e o do mart municipal — e um leitor que conferisse os dois sem esta
+    # linha encontraria 241 óbitos sem explicação.
+    sem_idade = con.execute(
+        f"select sum(ob) from ob_bruto where idade is null "
+        f"and causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'").fetchone()[0]
+    sem_sexo = con.execute(
+        f"select sum(ob) from ob_uf_idade where sexo='I' "
+        f"and causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'").fetchone()[0]
+    sem_mun = con.execute(
+        f"select sum(ob) from ob_uf_idade where right(municipio_cod,4)='0000' "
+        f"and causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'").fetchone()[0]
     linhas = [
         ("Fonte dos óbitos", "SIM/DataSUS — .dbc por UF (2015–2021, 2024) e "
                              "CSV nacional do OpenDataSUS (2022–2023)"),
@@ -670,8 +995,13 @@ def base(con: duckdb.DuckDBPyConnection) -> None:
         ("Óbitos em D00–D48, excluídos do recorte", _br(dd48[0])),
         ("D00–D48 como fração do capítulo II", f"{100 * dd48[1]:.1f}%".replace(".", ",")),
         ("Óbitos por neoplasia maligna", _br(tot)),
-        ("Denominador populacional", "IBGE — população por UF, ano e faixa etária"),
-        ("População padrão", "Brasil, Censo 2022 (método direto)"),
+        ("Óbitos sem idade declarada, redistribuídos pro-rata", _br(sem_idade)),
+        ("Óbitos com sexo ignorado", _br(sem_sexo)),
+        ("Óbitos com município ignorado, UF recuperada do código", _br(sem_mun)),
+        ("Denominador populacional", "IBGE — Projeções da População, revisão 2024 "
+                                     "(por UF, ano e idade simples)"),
+        ("População padrão", "Brasil, Censo 2022, e padrão mundial da OMS "
+                             "2000–2025 (método direto, as duas)"),
         ("Período do eixo social", f"{ANOS_SOCIAL[0]}–{ANOS_SOCIAL[-1]}"),
         ("Óbitos no microdado social (todas as causas)", _br(mic[0])),
         ("Óbitos por neoplasia maligna no microdado social", _br(mic[1])),
@@ -692,19 +1022,23 @@ def main() -> None:
     preparar(con)
     print("\n=== 1. série nacional: mais mortes, menos risco ===")
     serie_nacional(con)
-    print("\n=== 2. decomposição do aumento 2015→2024 ===")
+    print("\n=== 2. sensibilidade ao denominador (auditoria de 2026-09-07) ===")
+    sensibilidade_denominador(con)
+    print("\n=== 3. mortalidade prematura, 30 a 69 anos (OMS / ODS 3.4) ===")
+    prematura_30_69(con)
+    print("\n=== 4. decomposição do aumento 2015→2024 ===")
     decomposicao(con)
-    print("\n=== 3. contrafactual: risco de 2019 mantido ===")
+    print("\n=== 5. contrafactual: risco de 2019 mantido ===")
     contrafactual(con)
-    print("\n=== 4. sítios por idade e por sexo ===")
+    print("\n=== 6. sítios por idade e por sexo ===")
     sitios(con)
-    print("\n=== 5. território ===")
+    print("\n=== 7. território ===")
     territorio(con)
-    print("\n=== 6. vulnerabilidade municipal ===")
+    print("\n=== 8. vulnerabilidade municipal ===")
     vulnerabilidade(con)
-    print("\n=== 7. eixo social (microdado 2022–2023) ===")
+    print("\n=== 9. eixo social (microdado 2022–2023) ===")
     social(con)
-    print("\n=== 8. números de enquadramento ===")
+    print("\n=== 10. números de enquadramento ===")
     base(con)
     print(f"\n[done] tabelas em {SAIDA.relative_to(ROOT).as_posix()}")
 

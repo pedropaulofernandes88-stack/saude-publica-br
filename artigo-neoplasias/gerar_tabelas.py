@@ -1,5 +1,5 @@
 """
-gerar_tabelas.py — as quinze tabelas do artigo sobre mortalidade por câncer
+gerar_tabelas.py — as dezessete tabelas do artigo sobre mortalidade por câncer
 ===========================================================================
 
 Nenhum número do manuscrito é digitado. Cada tabela sai daqui, e daqui sai de
@@ -136,7 +136,8 @@ def tabela_2_serie() -> pd.DataFrame:
         "Óbitos": d.obitos.astype(int),
         "População": d.populacao.astype(int),
         "Taxa bruta": d.taxa_bruta_100k,
-        "Taxa padronizada": d.taxa_padronizada_100k,
+        "Padronizada (Brasil)": d.taxa_padronizada_100k,
+        "Padronizada (OMS)": d.taxa_padronizada_oms_100k,
         "% causa mal definida": d.pct_causa_mal_definida,
         "% C80 entre os cânceres": d.pct_c80_entre_neoplasias,
     })
@@ -326,6 +327,44 @@ def tabela_14_raca_acesso() -> pd.DataFrame:
     })
 
 
+def tabela_17_sensibilidade() -> pd.DataFrame:
+    """O estudo refeito sob os quatro denominadores candidatos.
+
+    Vive num apêndice, e não na seção de métodos, para não renumerar as
+    dezesseis tabelas que já estavam citadas na prosa — troca deliberada entre
+    ordem de leitura e estabilidade das referências.
+    """
+    d = _ler("tab16_sensibilidade_denominador")
+    return pd.DataFrame({
+        "Série populacional": d.denominador,
+        "População em 2022": d.populacao_2022.astype(int),
+        "Taxa padronizada 2015": d.taxa_padr_2015,
+        "Taxa padronizada 2024": d.taxa_padr_2024,
+        "Variação (%)": d.variacao_pct,
+    })
+
+
+def tabela_16_prematura() -> pd.DataFrame:
+    """Probabilidade de morrer de câncer entre 30 e 70 anos.
+
+    Existe porque o denominador passou a ter idade simples. Com as faixas de
+    quinze anos da primeira versão (45–59, 60–74) o recorte 30–69 da OMS era
+    impossível de montar, e o artigo declarava isso como pendência.
+
+    A coluna que interessa é a última: probabilidade sintética, calculada por
+    tábua de vida, que não depende de população padrão nenhuma e por isso é
+    comparável com a base de indicadores da OMS sem convenção intermediária.
+    """
+    d = _ler("tab15_prematura_30_69")
+    return pd.DataFrame({
+        "Ano": d.ano,
+        "Óbitos de 30 a 69": d.obitos_30_69.astype(int),
+        "População de 30 a 69": d.populacao_30_69.astype(int),
+        "Taxa bruta": d.taxa_bruta_30_69_100k,
+        "Prob. de morrer antes dos 70 (%)": d.prob_morrer_30_69_pct,
+    })
+
+
 def tabela_15_local_obito() -> pd.DataFrame:
     d = _ler("tab14_local_obito_por_faixa")
     return pd.DataFrame({
@@ -356,6 +395,9 @@ TABELAS = [
     ("tabela_14_raca_acesso", "cor/raça, acesso e registro, 30 a 69 anos",
      tabela_14_raca_acesso),
     ("tabela_15_local_obito", "local do óbito por faixa etária", tabela_15_local_obito),
+    ("tabela_16_prematura", "mortalidade prematura, 30 a 69 anos", tabela_16_prematura),
+    ("tabela_17_sensibilidade", "o estudo sob os quatro denominadores",
+     tabela_17_sensibilidade),
 ]
 
 
