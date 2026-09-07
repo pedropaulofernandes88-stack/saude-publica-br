@@ -121,6 +121,8 @@ export interface DengueAno {
   populacao: number | null;
   incidencia_100k: number | null;
   letalidade_pct: number | null;
+  /** Semanas com notificação no arquivo daquele ano (nacional). 52/53 = fechado. */
+  semanas_cobertas: number | null;
 }
 
 export interface Internacao {
@@ -548,6 +550,35 @@ export const ANO_PADRAO: number = [...ANOS].reverse().find((a) => !ehPreliminar(
  * página.
  */
 export const ANOS_SINASC = [2021, 2022, 2023, 2024] as const;
+
+/**
+ * Anos da dengue servidos por `mart_dengue_semana` / `mart_dengue_municipio_ano`.
+ *
+ * Separado de `ANOS` porque a dengue anda na frente: o SINAN publica o ano
+ * CORRENTE em DADOS/PRELIM, enquanto o SIM só fecha o ano anterior. Em
+ * 2026-09-07 a dengue tinha 2026 (34 semanas) e a mortalidade parava em 2025.
+ *
+ * Estava dentro de `app/dengue/dengue-cliente.tsx`, fora do alcance de
+ * `test_anos_declarados_batem_com_o_publicado` — e foi assim que o seletor
+ * ficou parado em 2025 com o mart já tendo 2026. Mesma história do ANOS_SINASC
+ * logo acima: constante escondida numa página não tem como ser conferida.
+ */
+export const ANOS_DENGUE = [
+  2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026,
+] as const;
+
+/** Um ano fechado de dengue tem 52 ou 53 semanas epidemiológicas. */
+export const SEMANAS_DE_ANO_FECHADO = 52;
+
+/**
+ * O ano está em andamento? Vem do DADO, não de um ano escrito à mão.
+ *
+ * `a === 2026` envelheceria em janeiro, exatamente como o `a === 2025 ? 2.8 :
+ * 1.8` que já existiu no gráfico de curvas e destacava o ano errado assim que
+ * a série avançava.
+ */
+export const emAndamento = (semanasCobertas: number | null | undefined) =>
+  semanasCobertas != null && semanasCobertas < SEMANAS_DE_ANO_FECHADO;
 
 /** "2015–2025" — o alcance da série, para texto corrido. */
 export const PERIODO = `${ANOS[0]}–${ANOS[ANOS.length - 1]}`;

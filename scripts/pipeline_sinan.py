@@ -12,13 +12,18 @@ Denominador populacional: dim_populacao (IBGE), já carregado pela base.
 
 Saídas:
   - mart_dengue_semana          : município × ano × semana (casos, graves, óbitos)
-  - mart_dengue_municipio_ano   : município × ano (+ incidência/100k e letalidade)
+  - mart_dengue_municipio_ano   : município × ano (+ incidência/100k, letalidade
+                                  e `semanas_cobertas`, que diz se o ano fechou)
 
 Convenções (documentadas em saudeemdado.com/metodologia):
   - Caso provável = notificação NÃO descartada (CLASSI_FIN != '5').
   - Grave = CLASSI_FIN em {11 (alarme), 12 (grave)} ou legado {3 (FHD), 4 (SCD)}.
   - Óbito = EVOLUCAO == '2' (óbito pelo agravo).
   - Município e semana pela RESIDÊNCIA e DATA DOS PRIMEIROS SINTOMAS (SEM_PRI).
+  - `semanas_cobertas` < 52 marca ano em andamento: o total dele NÃO é
+    comparável com o de um ano fechado. Medido em 2026-09-07, o ano corrente
+    tinha 34 semanas — e as semanas 1–34 concentram de 84% a 97% do total de um
+    ano fechado, então o recorte comparável é semana a semana, não o total.
 
 Uso:
   .venv311/Scripts/python scripts/pipeline_sinan.py --anos 2015 2016 ... 2024
@@ -228,6 +233,22 @@ def build(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     anual["letalidade_pct"] = (
         anual["obitos"] / anual["casos_provaveis"] * 100
     ).round(2).where(anual["casos_provaveis"] > 0)
+
+    # Quantas semanas epidemiológicas o ano REALMENTE tem no arquivo.
+    #
+    # O ano corrente é um retrato em andamento: 2026 traz 34 semanas contra as
+    # 52/53 de um ano fechado. Sem este carimbo, os 449.101 casos de 2026
+    # apareceriam ao lado dos 1.643.215 de 2025 como se fossem comparáveis, e a
+    # leitura óbvia — "a dengue despencou" — misturaria queda real com
+    # calendário. Vai como COLUNA porque quem lê o Parquet direto não tem
+    # rodapé; é o mesmo desenho de `meses_cobertos` em mart_sifilis_municipio.
+    #
+    # Contar por ano NACIONAL, e não por município: a semana que falta falta
+    # para todo mundo, e um município pequeno pode legitimamente notificar em
+    # poucas semanas sem que o ano esteja incompleto.
+    cobertura = (semana[semana["semana_epi"] > 0]
+                 .groupby("ano_epi")["semana_epi"].nunique())
+    anual["semanas_cobertas"] = anual["ano_epi"].map(cobertura).astype("Int64")
 
     # ordena semana para chave determinística
     semana = semana.sort_values(["municipio_cod", "ano_epi", "semana_epi"]).reset_index(drop=True)

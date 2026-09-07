@@ -7,16 +7,20 @@ import {
 } from "recharts";
 import { Kpi, Skeleton } from "@/components/kpi";
 import { VerMais } from "@/components/ver-mais";
-import { UFS, fmtDec, fmtInt, rest, sdata, type DengueAno, type DengueSemana } from "@/lib/api";
+import { ANOS_DENGUE, UFS, emAndamento, fmtDec, fmtInt, rest, sdata, type DengueAno, type DengueSemana } from "@/lib/api";
 import { ALERTA, EIXO, GRADE, REFERENCIA } from "@/lib/tokens";
 
-const ANOS_DENGUE = [2025, 2024, 2023, 2022, 2021, 2020, 2019, 2018, 2017, 2016, 2015];
+/** "2015–2026" — o alcance real da dengue, para texto corrido. */
+const PERIODO_DENGUE = `${ANOS_DENGUE[0]}–${ANOS_DENGUE[ANOS_DENGUE.length - 1]}`;
+/** Do mais recente para o mais antigo — a ordem em que o seletor abre. */
+const ANOS_DESC = [...ANOS_DENGUE].sort((a, b) => b - a);
 /** Os quatro anos do gráfico de curvas, o mais recente primeiro — ele leva o traço
  *  grosso. Era `a === 2025 ? 2.8 : 1.8`, que destacaria o ano errado assim que a
  *  série avançasse: o realce é de "ano corrente", não de 2025. */
-const ANOS_SERIE = ANOS_DENGUE.slice(0, 4);
+const ANOS_SERIE = ANOS_DESC.slice(0, 4);
 const CORES_ANO: Record<number, string> = {
-  2025: "#7b5cd6", 2024: ALERTA, 2023: "#e07a1f", 2022: "#1fb87b", 2021: EIXO, 2019: REFERENCIA,
+  2026: "#0f7b8a", 2025: "#7b5cd6", 2024: ALERTA, 2023: "#e07a1f", 2022: "#1fb87b",
+  2021: EIXO, 2019: REFERENCIA,
 };
 
 export function DengueCliente() {
@@ -43,7 +47,7 @@ export function DengueCliente() {
     setAnual(null);
     const ufF: Record<string, string> = uf === "Brasil" ? {} : { uf_sigla: `eq.${uf}` };
     rest<DengueAno>("mart_dengue_municipio_ano", {
-      select: "municipio_cod,municipio_nome,uf_sigla,regiao,ano_epi,casos_provaveis,casos_graves,obitos,populacao,incidencia_100k,letalidade_pct",
+      select: "municipio_cod,municipio_nome,uf_sigla,regiao,ano_epi,casos_provaveis,casos_graves,obitos,populacao,incidencia_100k,letalidade_pct,semanas_cobertas",
       ano_epi: `eq.${ano}`,
       order: "municipio_cod",
       ...ufF,
@@ -115,6 +119,12 @@ export function DengueCliente() {
 
   const doAno = totaisAno?.find((t) => t.ano === ano);
 
+  // `semanas_cobertas` é NACIONAL e vem repetida em toda linha do mart, então
+  // ler a primeira basta — e continua valendo com o filtro de UF aplicado, que
+  // é justamente o motivo de não contar as semanas da série filtrada aqui.
+  const semanasCobertas = anual?.[0]?.semanas_cobertas ?? null;
+  const anoParcial = emAndamento(semanasCobertas);
+
   const rankingInc = useMemo(() => {
     if (!anual) return null;
     return [...anual]
@@ -127,9 +137,9 @@ export function DengueCliente() {
     <div className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h1 className="font-serif text-3xl font-semibold tracking-tight text-ink-950">Dengue no Brasil</h1>
       <p className="mt-2 max-w-3xl text-ink-600">
-        Casos prováveis, gravidade, óbitos e incidência da dengue (SINAN/DataSUS,
-        2015–2025) por município e semana epidemiológica. Inclui a epidemia
-        recorde de 2024 e o refluxo de 2025.
+        Casos prováveis, gravidade, óbitos e incidência da dengue (SINAN/DataSUS,{" "}
+        {PERIODO_DENGUE}) por município e semana epidemiológica. Inclui a epidemia
+        recorde de 2024 e o refluxo dos anos seguintes.
       </p>
 
       <div className="card mt-6 grid gap-4 sm:grid-cols-2">
@@ -143,16 +153,31 @@ export function DengueCliente() {
         <div>
           <label className="label" htmlFor="d-ano">Ano (ranking municipal)</label>
           <select id="d-ano" className="select" value={ano} onChange={(e) => setAno(Number(e.target.value))}>
-            {ANOS_DENGUE.map((a) => <option key={a} value={a}>{a}{a === 2024 ? " (epidemia recorde)" : ""}</option>)}
+            {ANOS_DESC.map((a) => <option key={a} value={a}>{a}{a === 2024 ? " (epidemia recorde)" : ""}</option>)}
           </select>
         </div>
       </div>
 
       {erro && <div className="card mt-6 border-red-200 bg-red-50 text-sm text-red-800">Falha: {erro}</div>}
 
+      {anoParcial && (
+        <div className="card mt-6 border-amber-200 bg-amber-50 text-sm text-amber-900">
+          <strong>{ano} ainda está aberto:</strong> o arquivo do SINAN cobre{" "}
+          {semanasCobertas} semanas epidemiológicas, não 52. O total do ano{" "}
+          <em>não</em> é comparável com o de um ano fechado — as semanas 1–34
+          concentram de 84% a 97% do total de um ano fechado, e a última semana
+          ainda recebe notificação atrasada. Para comparar, use a curva sazonal
+          abaixo, que põe as mesmas semanas lado a lado.
+        </div>
+      )}
+
       {doAno && (
         <div className="mt-6 grid gap-4 sm:grid-cols-4">
-          <Kpi rotulo={`Casos prováveis ${ano}`} valor={fmtInt(doAno.casos)} detalhe={uf === "Brasil" ? "Brasil" : uf} />
+          <Kpi rotulo={`Casos prováveis ${ano}${anoParcial ? " (ano em andamento)" : ""}`}
+               valor={fmtInt(doAno.casos)}
+               detalhe={anoParcial
+                 ? `${uf === "Brasil" ? "Brasil" : uf} · ${semanasCobertas} semanas de 52`
+                 : (uf === "Brasil" ? "Brasil" : uf)} />
           <Kpi rotulo="Casos graves" valor={fmtInt(doAno.graves)} detalhe="alarme + grave" />
           <Kpi rotulo="Óbitos por dengue" valor={fmtInt(doAno.obitos)}
                detalhe={`letalidade ${fmtDec((doAno.obitos / doAno.casos) * 100, 2)}%`} />

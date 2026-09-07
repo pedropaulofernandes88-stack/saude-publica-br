@@ -260,6 +260,8 @@ create table if not exists public.mart_dengue_municipio_ano (
     populacao integer,
     incidencia_100k numeric(10,1),
     letalidade_pct numeric(6,2),
+    -- 52/53 = ano fechado; menos = ano em andamento, total nao comparavel. V043.
+    semanas_cobertas smallint,
     constraint mart_dengue_municipio_ano_pkey PRIMARY KEY (municipio_cod, ano_epi)
 );
 

@@ -405,10 +405,15 @@ def test_nenhuma_pagina_crava_o_periodo_da_base():
 # Nada quebrou, nada apareceu em log: um seletor com menos opções é apenas um
 # seletor com menos opções. Só comparando com a fonte dá para ver.
 # --------------------------------------------------------------------------
-#: vetor declarado em lib/api.ts -> mart de onde os anos têm de vir
+#: vetor declarado em lib/api.ts -> (mart de onde os anos têm de vir, coluna do ano)
+#:
+#: A coluna é explícita porque a dengue não usa `ano`: ela agrega por SEMANA
+#: EPIDEMIOLÓGICA, e o ano dela é `ano_epi` — que pode diferir do ano do arquivo,
+#: já que a semana vem da data dos primeiros sintomas.
 VETORES_DE_ANO = {
-    "ANOS": "mart_mortalidade_municipio",
-    "ANOS_SINASC": "mart_natalidade_municipio",
+    "ANOS": ("mart_mortalidade_municipio", "ano"),
+    "ANOS_SINASC": ("mart_natalidade_municipio", "ano"),
+    "ANOS_DENGUE": ("mart_dengue_municipio_ano", "ano_epi"),
 }
 
 
@@ -419,13 +424,33 @@ def _anos_do_vetor(nome: str) -> set[int]:
     return {int(a) for a in re.findall(r"\d{4}", m.group(1))}
 
 
-@pytest.mark.parametrize("vetor,mart", sorted(VETORES_DE_ANO.items()))
-def test_anos_declarados_batem_com_o_publicado(vetor: str, mart: str):
+def test_as_paginas_de_dengue_nao_cravam_um_periodo_vencido():
+    """A dengue anda na frente da mortalidade, e a guarda geral usa ANOS.
+
+    `test_nenhuma_pagina_crava_o_periodo_da_base` compara contra `ANOS`, que é
+    a série do SIM. Enquanto a dengue terminava no mesmo ano, "2015–2025" nas
+    páginas de dengue passava — e continuou passando quando o SINAN publicou
+    2026, porque o intervalo não termina ANTES do último ano de `ANOS`. Dois
+    textos de metadados ficaram anunciando um alcance menor que o real.
+    """
+    ultimo = max(_anos_do_vetor("ANOS_DENGUE"))
+    for arquivo in (RAIZ / "site" / "app" / "dengue").glob("*.tsx"):
+        for ini, fim in re.findall(r"(20\d{2})[–-](20\d{2})", _texto(arquivo)):
+            if ini == "2015" and int(fim) < ultimo:
+                assert (arquivo.name, ini, fim) in {
+                    # o baseline do diagrama de controle é fixo por metodologia
+                    ("dengue-cliente.tsx", "2015", "2023"),
+                }, (f"{arquivo.name} crava {ini}–{fim} e a dengue vai até {ultimo}")
+
+
+@pytest.mark.parametrize("vetor,mart,coluna",
+                         [(v, m, c) for v, (m, c) in sorted(VETORES_DE_ANO.items())])
+def test_anos_declarados_batem_com_o_publicado(vetor: str, mart: str, coluna: str):
     caminho = RAIZ / "data" / "marts" / f"{mart}.parquet"
     if not caminho.exists():
         pytest.skip(f"{mart}.parquet ausente")
     import pandas as pd
-    tem = set(pd.read_parquet(caminho, columns=["ano"]).ano.unique().tolist())
+    tem = set(pd.read_parquet(caminho, columns=[coluna])[coluna].unique().tolist())
     oferece = _anos_do_vetor(vetor)
     escondidos = sorted(tem - oferece)
     inventados = sorted(oferece - tem)
