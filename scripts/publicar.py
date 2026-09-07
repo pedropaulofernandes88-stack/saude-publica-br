@@ -99,6 +99,7 @@ TABELAS = [
     "mart_mortalidade_municipio",
     "mart_internacoes_municipio",
     "mart_dengue_semana",
+    "mart_dengue_uf_semana",
     "mart_internacoes_agravo",
     "mart_los_hospital",
     "mart_cobertura_aps_municipio",

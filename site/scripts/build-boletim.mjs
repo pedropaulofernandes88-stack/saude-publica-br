@@ -282,10 +282,10 @@ try {
 
 // ── 2. Dengue: canal endêmico + alertas por UF ─────────────────────────────
 console.log("[boletim] dengue — série semanal por UF…");
-const dengueRaw = await rest("mart_dengue_semana", {
-  select:
-    "uf_sigla,ano_epi,semana_epi,casos:casos_provaveis.sum(),graves:casos_graves.sum(),obitos:obitos.sum()",
-  semana_epi: "gte.1",
+// Tabela ja agregada por UF (V044); os apelidos seguem os mesmos, entao o
+// resto do boletim nao muda uma linha.
+const dengueRaw = await rest("mart_dengue_uf_semana", {
+  select: "uf_sigla,ano_epi,semana_epi,casos:casos_provaveis,graves:casos_graves,obitos",
   order: "uf_sigla,ano_epi,semana_epi",
 });
 

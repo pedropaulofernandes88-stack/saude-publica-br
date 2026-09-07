@@ -12,6 +12,9 @@ Denominador populacional: dim_populacao (IBGE), já carregado pela base.
 
 Saídas:
   - mart_dengue_semana          : município × ano × semana (casos, graves, óbitos)
+                                  PUBLICADO, NÃO SERVIDO — só Parquet (V044)
+  - mart_dengue_uf_semana       : UF × ano × semana, servido pela API no lugar
+                                  do municipal (1,95% das linhas)
   - mart_dengue_municipio_ano   : município × ano (+ incidência/100k, letalidade
                                   e `semanas_cobertas`, que diz se o ano fechou)
 
@@ -199,7 +202,7 @@ def _aggregate_year(ano: int) -> pd.DataFrame:
     return df
 
 
-def build(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def build(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     partes = [_aggregate_year(ano) for ano in anos]
     semana = pd.concat(partes, ignore_index=True)
     # consolida (um ano pode aparecer em checkpoints vizinhos via SEM_PRI)
@@ -250,12 +253,26 @@ def build(anos: list[int]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
                  .groupby("ano_epi")["semana_epi"].nunique())
     anual["semanas_cobertas"] = anual["ano_epi"].map(cobertura).astype("Int64")
 
+    # Agregado por UF: 16.496 linhas contra 847.927 municipais (1,95%).
+    #
+    # Existe porque TRÊS dos quatro consumidores da série semanal — o boletim, o
+    # build dos dados estáticos e o canal endêmico do MCP — só usavam o grão de
+    # UF e reagregavam no servidor a cada chamada. Guardar 848 mil linhas no
+    # Postgres para responder 16 mil era o desenho errado. Ver V044.
+    uf_semana = (semana.groupby(["uf_sigla", "ano_epi", "semana_epi"], as_index=False)
+                 .agg(casos_provaveis=("casos_provaveis", "sum"),
+                      casos_graves=("casos_graves", "sum"),
+                      obitos=("obitos", "sum"),
+                      municipios_com_casos=("municipio_cod", "nunique")))
+    uf_semana = uf_semana.sort_values(["uf_sigla", "ano_epi", "semana_epi"]).reset_index(drop=True)
+
     # ordena semana para chave determinística
     semana = semana.sort_values(["municipio_cod", "ano_epi", "semana_epi"]).reset_index(drop=True)
 
-    print(f"[dengue] semana: {len(semana):,} linhas | anual: {len(anual):,} linhas")
+    print(f"[dengue] semana: {len(semana):,} linhas | uf×semana: {len(uf_semana):,} | "
+          f"anual: {len(anual):,} linhas")
     print(f"[dengue] total casos prováveis {min(anos)}–{max(anos)}: {int(semana['casos_provaveis'].sum()):,}")
-    return semana, anual, municipios
+    return semana, uf_semana, anual, municipios
 
 
 class SupabaseLoader:
@@ -302,10 +319,12 @@ def main() -> None:
     anos = sorted(args.anos)
     env = load_env()
 
-    semana, anual, _ = build(anos)
+    semana, uf_semana, anual, _ = build(anos)
 
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
-    for df, nome_mart in ((semana, "mart_dengue_semana"), (anual, "mart_dengue_municipio_ano")):
+    for df, nome_mart in ((semana, "mart_dengue_semana"),
+                          (uf_semana, "mart_dengue_uf_semana"),
+                          (anual, "mart_dengue_municipio_ano")):
         escrever_parquet(df, MARTS_DIR / f"{nome_mart}.parquet", origem="pipeline",
                          produtor="scripts/pipeline_sinan.py")
 
@@ -316,7 +335,9 @@ def main() -> None:
     if not url or not key:
         sys.exit("Defina SUPABASE_URL e SUPABASE_ANON_KEY no .env")
     loader = SupabaseLoader(url, key)
-    loader.load_df("mart_dengue_semana", semana)
+    # mart_dengue_semana NÃO sobe: saiu do Postgres na V044 e vive como Parquet
+    # publicado. Ver NAO_SERVIDAS em scripts/_publicacao.py.
+    loader.load_df("mart_dengue_uf_semana", uf_semana)
     loader.load_df("mart_dengue_municipio_ano", anual)
 
     # marca metadados de dengue

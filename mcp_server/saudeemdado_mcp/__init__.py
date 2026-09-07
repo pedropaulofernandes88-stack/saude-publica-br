@@ -27,7 +27,7 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server import MCPServer
 
-__version__ = "0.6.0"
+__version__ = "0.7.0"
 
 # A 2.0.0 do SDK renomeou FastMCP para MCPServer e removeu mcp.server.fastmcp.
 # A API de decorators nao mudou: as 19 @mcp.tool() seguem iguais.
@@ -513,9 +513,11 @@ def canal_endemico_dengue(uf: str, ano: int = 2024) -> dict:
     semanas nos anos anteriores, 2015+, excluindo o ano observado). Retorna a banda
     semana a semana, quantas semanas ficaram acima do P75 (sinal de surto) e o status.
     Semanas acima ≥13 (um trimestre) = surto prolongado."""
-    linhas = sd._get("mart_dengue_semana",
-                     {"select": "ano_epi,semana_epi,casos:casos_provaveis.sum()",
-                      "uf_sigla": f"eq.{uf.upper()}", "semana_epi": "gte.1",
+    # Tabela agregada por UF (V044). O canal endemico sempre foi por UF: antes
+    # esta chamada somava linhas municipais no servidor a cada invocacao.
+    linhas = sd._get("mart_dengue_uf_semana",
+                     {"select": "ano_epi,semana_epi,casos:casos_provaveis",
+                      "uf_sigla": f"eq.{uf.upper()}",
                       "order": "ano_epi,semana_epi"})
     if not linhas:
         return {"erro": f"sem dados de dengue para a UF {uf.upper()}"}

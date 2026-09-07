@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "saudeemdado"
-version = "2.0.0"
+version = "3.0.0"
 description = "Cliente Python para a API pública do Saúde em Dado — mortalidade no Brasil (SIM/DataSUS, 2015–2024)"
 readme = "README.md"
 license = { text = "MIT" }

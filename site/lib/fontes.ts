@@ -205,6 +205,7 @@ export const FONTE_DA_TABELA: Record<string, string> = {
   // SINAN
   mart_dengue_municipio_ano: "sinan",
   mart_dengue_semana: "sinan",
+  mart_dengue_uf_semana: "sinan",
   mart_sifilis_municipio: "sifilis",
   // SINASC
   mart_natalidade_municipio: "sinasc",

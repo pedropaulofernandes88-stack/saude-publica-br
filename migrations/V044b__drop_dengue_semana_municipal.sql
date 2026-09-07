@@ -1,0 +1,28 @@
+-- V044b — remove do Postgres a série semanal MUNICIPAL de dengue
+--
+-- Aplicada logo depois da V044, e separada dela de propósito: a tabela nova
+-- precisou existir, ser populada e ser CONFERIDA contra a antiga antes de a
+-- antiga sair. A ordem é a garantia.
+--
+-- O que foi conferido antes deste drop (2026-09-07):
+--
+--   1. a agregação por UF reproduz o recálculo a partir do grão municipal,
+--      linha a linha (`DataFrame.equals` sobre as 16.496 linhas);
+--   2. os totais batem: 18.345.686 casos prováveis, 285.892 graves, 14.533
+--      óbitos, idênticos nos dois grãos;
+--   3. o Parquet municipal está publicado com SHA-256 183d913e2b669b20… na
+--      publicação 2026-09-07, marcado `servida=false` no manifesto;
+--   4. os três consumidores de grão de UF foram migrados e testados contra a
+--      tabela nova, devolvendo os mesmos campos e os mesmos totais.
+--
+-- REVERSÃO
+-- --------
+-- Recriar pelo bloco da V044 anterior a esta e recarregar de
+-- `data/marts/mart_dengue_semana.parquet` (ou do Storage, pelo manifesto). São
+-- ~10 minutos de upload. O dado não se perde aqui: o que sai é a API, não o
+-- registro.
+--
+-- CUSTO RECUPERADO: 95 MB (64 heap + 26 do pkey + 5,9 do índice de UF). O banco
+-- foi de 740 para 650 MB, e a folga sobre o teto de 750 de 10 para 100 MB.
+
+drop table if exists public.mart_dengue_semana;

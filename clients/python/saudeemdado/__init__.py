@@ -32,7 +32,7 @@ from typing import Any, Optional
 
 import requests
 
-__version__ = "2.0.0"
+__version__ = "3.0.0"
 
 BASE_URL = "https://zekjhmxjamatlxpkykde.supabase.co/rest/v1"
 ANON_KEY = (
@@ -156,15 +156,34 @@ def dengue(
     nivel: str = "ano",
     as_df: bool = False,
 ):
-    """Dengue (SINAN). nivel='ano' → resumo municipal anual com incidência e
-    letalidade; nivel='semana' → série por semana epidemiológica."""
+    """Dengue (SINAN).
+
+    nivel='ano'  → resumo municipal anual, com incidência e letalidade;
+    nivel='uf'   → série semanal por UF (casos, graves, óbitos e quantos
+                   municípios notificaram na semana).
+
+    nivel='semana' (série semanal MUNICIPAL) saiu da API: eram 848 mil linhas
+    servindo consultas que pediam grão de UF. O dado continua publicado — o
+    Parquet `mart_dengue_semana` está no manifesto, com SHA-256 — e é o caminho
+    para quem precisa do detalhe municipal. Ver `saudeemdado.com/dados`.
+    """
     if nivel == "semana":
+        # Erro explícito em vez de devolver o grão de UF calado. Trocar a
+        # unidade de análise sem avisar é pior que falhar: quem somasse este
+        # retorno acharia que tem município e teria UF.
+        raise ValueError(
+            "nivel='semana' (municipal) não é mais servido pela API REST. "
+            "Use nivel='uf' para a série semanal por UF, ou baixe o Parquet "
+            "mart_dengue_semana em saudeemdado.com/dados para o grão municipal."
+        )
+    if nivel == "uf":
         params = {
-            "select": "municipio_cod,uf_sigla,ano_epi,semana_epi,casos_provaveis,casos_graves,obitos",
+            "select": "uf_sigla,ano_epi,semana_epi,casos_provaveis,casos_graves,"
+                      "obitos,municipios_com_casos",
             "ano_epi": f"eq.{ano}",
-            "order": "municipio_cod,semana_epi",
+            "order": "uf_sigla,semana_epi",
         }
-        table = "mart_dengue_semana"
+        table = "mart_dengue_uf_semana"
     else:
         params = {
             "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano_epi,"

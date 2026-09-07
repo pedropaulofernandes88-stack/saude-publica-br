@@ -265,17 +265,18 @@ create table if not exists public.mart_dengue_municipio_ano (
     constraint mart_dengue_municipio_ano_pkey PRIMARY KEY (municipio_cod, ano_epi)
 );
 
-create table if not exists public.mart_dengue_semana (
-    municipio_cod text not null,
-    municipio_nome text,
+-- O grao MUNICIPAL semanal saiu do Postgres na V044: 95 MB para servir
+-- consultas que pediam UF em 3 dos 4 consumidores. Continua publicado como
+-- Parquet (mart_dengue_semana, 847.927 linhas, servida=false no manifesto).
+create table if not exists public.mart_dengue_uf_semana (
     uf_sigla text not null,
-    regiao text,
     ano_epi smallint not null,
     semana_epi smallint not null,
     casos_provaveis integer not null,
     casos_graves integer not null,
     obitos integer not null,
-    constraint mart_dengue_semana_pkey PRIMARY KEY (municipio_cod, ano_epi, semana_epi)
+    municipios_com_casos smallint not null,
+    constraint mart_dengue_uf_semana_pkey PRIMARY KEY (uf_sigla, ano_epi, semana_epi)
 );
 
 create table if not exists public.mart_equidade_aps_municipio (
@@ -700,7 +701,6 @@ CREATE INDEX idx_anomalia_causa_ano ON public.mart_anomalia_causa_municipio USIN
 
 CREATE INDEX idx_dengueano_uf ON public.mart_dengue_municipio_ano USING btree (uf_sigla, ano_epi);
 
-CREATE INDEX idx_dengue_uf_ano ON public.mart_dengue_semana USING btree (uf_sigla, ano_epi);
 
 CREATE INDEX idx_fluxo_mov ON public.mart_fluxo_intermunicipal USING btree (municipio_mov, ano);
 
@@ -1110,7 +1110,7 @@ alter table public.mart_demanda_mensal_hospital enable row level security;
 
 alter table public.mart_dengue_municipio_ano enable row level security;
 
-alter table public.mart_dengue_semana enable row level security;
+alter table public.mart_dengue_uf_semana enable row level security;
 
 alter table public.mart_equidade_aps_municipio enable row level security;
 
@@ -1197,7 +1197,7 @@ create policy leitura_publica on public.mart_demanda_mensal_hospital for select 
 
 create policy leitura_publica on public.mart_dengue_municipio_ano for select to anon, authenticated using (true);
 
-create policy leitura_publica on public.mart_dengue_semana for select to anon, authenticated using (true);
+create policy leitura_publica on public.mart_dengue_uf_semana for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_equidade_aps_municipio for select to public using (true);
 
@@ -1392,7 +1392,7 @@ comment on table public.mart_demanda_mensal_hospital is 'Série mensal de intern
 
 comment on table public.mart_dengue_municipio_ano is 'Dengue (SINAN) anual por município: casos, incidência por 100 mil hab. e letalidade. Fonte: SINAN/DataSUS + IBGE.';
 
-comment on table public.mart_dengue_semana is 'Dengue (SINAN): casos prováveis, graves e óbitos por município e semana epidemiológica (data dos primeiros sintomas). Casos prováveis = notificações exceto descartadas.';
+comment on table public.mart_dengue_uf_semana is 'Dengue (SINAN) por UF de residência × ano × semana epidemiológica (data dos primeiros sintomas). Casos prováveis = notificações exceto descartadas. O grão municipal semanal é publicado como Parquet, fora do Postgres — ver V044.';
 
 comment on table public.mart_equidade_aps_municipio is 'Teste de robustez do Caso 3 (indicadores nao comparam): compara cada municipio apenas aos pares do MESMO quartil de porte populacional, usando densidade de ESF por 10k hab. (nao a cobertura % que satura) e %ICSAP (nao ICSAP/100k, que embute o confundimento de acesso hospitalar geral). RESULTADO: nulo. A correlacao esf_por_10k x %ICSAP dentro do porte e proxima de zero (rho entre -0.02 e +0.18 conforme o quartil); a co-ocorrencia observada de baixa densidade de equipe + alto %ICSAP (campo atencao) e 0,94x o que a independencia estatistica preveria — ou seja, nao ha sinergia real, e a leve associacao com vulnerabilidade (IVS) e explicada pela alocacao de equipes (que ja responde a vulnerabilidade), nao por uma relacao causal ICSAP-vulnerabilidade. NAO usar o campo atencao como ranking ou flag de prioridade municipal — a razao observado/esperado de 0,94 mostra que a co-ocorrencia e estatisticamente indistinguivel do acaso.';
 

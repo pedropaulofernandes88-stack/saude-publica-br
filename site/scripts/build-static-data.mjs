@@ -89,9 +89,10 @@ console.log(
 
 console.log("[sdata] dengue — agregado por UF × ano × semana (server-side)…");
 try {
-  const dengue = await rest("mart_dengue_semana", {
-    select: "uf_sigla,ano_epi,semana_epi,casos_provaveis:casos_provaveis.sum(),casos_graves:casos_graves.sum(),obitos:obitos.sum()",
-    semana_epi: "gte.1",
+  // Le a tabela JA agregada por UF (V044). Antes somava 848 mil linhas
+  // municipais no servidor a cada build para chegar nestas 16.496.
+  const dengue = await rest("mart_dengue_uf_semana", {
+    select: "uf_sigla,ano_epi,semana_epi,casos_provaveis,casos_graves,obitos",
     order: "uf_sigla,ano_epi,semana_epi",
   });
   await writeFile(path.join(OUT, "dengue_uf_semana.json"), JSON.stringify(dengue));
