@@ -219,6 +219,43 @@ def taxa_padronizada_ic(obitos, pessoas_ano, peso, por: float = 1e5
     return taxa * por, float(inf) * por, float(sup) * por
 
 
+def razao_taxas_ic(d1, n1, d2, n2, alfa: float = 0.05) -> tuple[float, float, float]:
+    """Razão entre duas taxas de Poisson, com IC exato condicional.
+
+    `d1/n1` é a taxa do grupo no numerador (aqui, os idosos) e `d2/n2` a do
+    denominador (os jovens). Devolve (razão, inferior, superior).
+
+    POR QUE O INTERVALO É EXATO, E NÃO NORMAL
+    ------------------------------------------
+    Condicionando no total de óbitos T = d1 + d2, o número de óbitos do primeiro
+    grupo é **binomial** com T ensaios e probabilidade p = n1·λ1 / (n1·λ1 +
+    n2·λ2). Isso é exato, não aproximação — e a razão sai de p por
+
+        RR = p/(1−p) · n2/n1
+
+    Basta então um intervalo exato de Clopper–Pearson para p e transformá-lo. O
+    método não depende de contagem grande, o que importa aqui: por sítio, alguns
+    capítulos têm poucas centenas de óbitos na faixa jovem, e a aproximação
+    normal do log da razão devolveria intervalo simétrico e estreito demais.
+
+    É o mesmo princípio do intervalo de Fay–Feuer usado nas taxas padronizadas:
+    condicionar no que é fixo e usar a distribuição exata do que varia.
+    """
+    from scipy.stats import beta
+
+    d1, d2 = float(d1), float(d2)
+    total = d1 + d2
+    if total == 0 or n1 <= 0 or n2 <= 0:
+        return float("nan"), float("nan"), float("nan")
+    escala = n2 / n1
+    razao = (d1 / n1) / (d2 / n2) if d2 > 0 else float("inf")
+    p_inf = 0.0 if d1 == 0 else float(beta.ppf(alfa / 2, d1, total - d1 + 1))
+    p_sup = 1.0 if d1 == total else float(beta.ppf(1 - alfa / 2, d1 + 1, total - d1))
+    inf = p_inf / (1 - p_inf) * escala if p_inf < 1 else float("inf")
+    sup = p_sup / (1 - p_sup) * escala if p_sup < 1 else float("inf")
+    return razao, inf, sup
+
+
 def escrever(df: pd.DataFrame, nome: str) -> pd.DataFrame:
     SAIDA.mkdir(parents=True, exist_ok=True)
     df.to_csv(SAIDA / f"{nome}.csv", index=False, encoding="utf-8")
@@ -476,6 +513,99 @@ def serie_nacional(con: duckdb.DuckDBPyConnection) -> None:
                      ("taxa padronizada", "taxa_padronizada_100k")]:
         ini, fim = p[col][2015], p[col][2024]
         print(f"  {rot:18s} {ini:>10,.1f} → {fim:>10,.1f}  ({100*(fim/ini-1):+5.1f}%)")
+
+
+def razao_idoso_jovem(con: duckdb.DuckDBPyConnection) -> None:
+    """tab17/tab18 — o quanto cada causa é doença de velho, com intervalo.
+
+    Razão entre a taxa específica de 60 anos ou mais e a de 15 a 49, por
+    capítulo da CID-10 e, dentro das neoplasias, por sítio. Reportada em log2:
+    zero significa que a causa mata igualmente nas duas faixas, e cada unidade é
+    uma duplicação.
+
+    AS TRÊS ESCOLHAS DO RECORTE, E O QUE CADA UMA CUSTA
+    ----------------------------------------------------
+    **A faixa jovem começa em 15**, não em zero. Abaixo disso o perfil de causa é
+    outro — perinatal, malformação, leucemia da infância — e misturá-lo diluiria
+    justamente o que a pergunta quer ver: quem morre cedo na vida adulta.
+
+    **Há um intervalo morto de 50 a 59 anos.** Faixas contíguas fazem a razão
+    depender de onde exatamente se corta; deixar dez anos entre elas separa os
+    grupos sem que o resultado penda do limiar. A sensibilidade a essa escolha
+    está na coluna `razao_50_59_incluidos`.
+
+    **A faixa idosa é aberta em 60+.** Consequência: a razão mistura "ocorre mais
+    tarde" com "ocorre em idade muito avançada", e uma causa concentrada aos 85
+    anos aparece mais alta que outra concentrada aos 62. É propriedade da
+    pergunta, não defeito — mas quem comparar dois capítulos precisa saber.
+
+    A razão é **crua dentro de cada faixa**, sem padronizar: como as duas faixas
+    usam a mesma população para todas as causas, a composição etária interna é
+    idêntica entre capítulos, e padronizar mudaria todos os valores na mesma
+    direção sem alterar o ordenamento — que é o que a pergunta pede.
+    """
+    a0, a1 = ANOS_RECENTE
+    pop = con.execute(f"""
+      select sum(case when idade between 15 and 49 then populacao else 0 end) jovem,
+             sum(case when idade between 15 and 59 then populacao else 0 end) jovem_amplo,
+             sum(case when idade >= 60 then populacao else 0 end) idoso
+      from pop_idade where sexo='T' and ano between {a0} and {a1}""").fetchone()
+
+    con.execute("create or replace table cap10 "
+                "(capitulo varchar, num smallint, ini varchar, fim varchar, descricao varchar)")
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from _sim_obitos import CID10_CAPITULOS
+    con.executemany("insert into cap10 values (?,?,?,?,?)", CID10_CAPITULOS)
+
+    def _montar(sql: str, rotulo: str, chave: str, minimo: int) -> pd.DataFrame:
+        d = con.execute(sql).df()
+        linhas = []
+        for r in d.itertuples():
+            if r.ob_jovem < minimo or r.ob_idoso < minimo:
+                continue
+            razao, inf, sup = razao_taxas_ic(r.ob_idoso, pop[2], r.ob_jovem, pop[0])
+            amplo, _, _ = razao_taxas_ic(r.ob_idoso, pop[2], r.ob_jovem_amplo, pop[1])
+            linhas.append({
+                chave: getattr(r, chave), rotulo: r.descricao,
+                "obitos_15_49": int(round(r.ob_jovem)),
+                "obitos_60_mais": int(round(r.ob_idoso)),
+                "taxa_15_49_100k": round(1e5 * r.ob_jovem / pop[0], 2),
+                "taxa_60_mais_100k": round(1e5 * r.ob_idoso / pop[2], 2),
+                "log2_razao": round(np.log2(razao), 2),
+                "ic95_inf": round(np.log2(inf), 2),
+                "ic95_sup": round(np.log2(sup), 2),
+                "razao_50_59_incluidos": round(np.log2(amplo), 2),
+            })
+        return pd.DataFrame(linhas).sort_values("log2_razao", ignore_index=True)
+
+    cap = _montar(f"""
+      select coalesce(c.capitulo,'N/D') capitulo, any_value(c.descricao) descricao,
+             sum(case when o.idade between 15 and 49 then o.ob else 0 end) ob_jovem,
+             sum(case when o.idade between 15 and 59 then o.ob else 0 end) ob_jovem_amplo,
+             sum(case when o.idade >= 60 then o.ob else 0 end) ob_idoso
+      from ob_uf_idade o
+        left join cap10 c on o.causabas_3 >= c.ini and o.causabas_3 <= c.fim
+      where o.ano between {a0} and {a1} group by 1""", "descricao", "capitulo", 500)
+    escrever(cap, "tab17_razao_idoso_jovem_capitulo")
+
+    sitio = _montar(f"""
+      select o.causabas_3 causabas_3, any_value(d.descricao) descricao,
+             sum(case when o.idade between 15 and 49 then o.ob else 0 end) ob_jovem,
+             sum(case when o.idade between 15 and 59 then o.ob else 0 end) ob_jovem_amplo,
+             sum(case when o.idade >= 60 then o.ob else 0 end) ob_idoso
+      from ob_uf_idade o left join cat d using(causabas_3)
+      where o.ano between {a0} and {a1}
+        and o.causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'
+      group by 1""", "descricao", "causabas_3", 300)
+    escrever(sitio, "tab18_razao_idoso_jovem_sitio")
+
+    ii = cap[cap.capitulo == "II"].iloc[0]
+    print(f"  capítulos: {cap.iloc[0].capitulo} ({cap.iloc[0].descricao[:28]}) é o mais jovem, "
+          f"log2 {cap.iloc[0].log2_razao} [{cap.iloc[0].ic95_inf}, {cap.iloc[0].ic95_sup}]")
+    print(f"  neoplasias (cap. II): log2 {ii.log2_razao} [{ii.ic95_inf}, {ii.ic95_sup}] "
+          f"— {2 ** ii.log2_razao:.0f}x mais no idoso")
+    print(f"  sítios: mais jovem {sitio.iloc[0].causabas_3} ({sitio.iloc[0].log2_razao}), "
+          f"mais idoso {sitio.iloc[-1].causabas_3} ({sitio.iloc[-1].log2_razao})")
 
 
 def sensibilidade_denominador(con: duckdb.DuckDBPyConnection) -> None:
@@ -1037,6 +1167,8 @@ def main() -> None:
     sensibilidade_denominador(con)
     print("\n=== 3. mortalidade prematura, 30 a 69 anos (OMS / ODS 3.4) ===")
     prematura_30_69(con)
+    print("\n=== 3b. razão idoso/jovem por capítulo e por sítio ===")
+    razao_idoso_jovem(con)
     print("\n=== 4. decomposição do aumento 2015→2024 ===")
     decomposicao(con)
     print("\n=== 5. contrafactual: risco de 2019 mantido ===")

@@ -1,5 +1,5 @@
 """
-gerar_tabelas.py — as dezessete tabelas do artigo sobre mortalidade por câncer
+gerar_tabelas.py — as dezenove tabelas do artigo sobre mortalidade por câncer
 ===========================================================================
 
 Nenhum número do manuscrito é digitado. Cada tabela sai daqui, e daqui sai de
@@ -74,6 +74,22 @@ SITIOS = {
     "C80": "Sem especificação de localização",
     "C85": "Linfoma não-Hodgkin", "C90": "Mieloma múltiplo",
     "C91": "Leucemia linfoide", "C92": "Leucemia mieloide",
+    # Acrescentados quando as tabelas de razão idoso/jovem entraram no artigo —
+    # o `_sitio` levantou em C81 e listou os demais, que é o comportamento
+    # pretendido: rótulo faltando vira erro alto, não abreviação do DataSUS
+    # impressa na página.
+    "C02": "Outras partes da língua", "C06": "Outras partes da boca",
+    "C10": "Orofaringe", "C17": "Intestino delgado",
+    "C19": "Junção retossigmoide", "C21": "Ânus e canal anal",
+    "C38": "Coração, mediastino e pleura",
+    "C43": "Melanoma maligno da pele",
+    "C48": "Tecidos moles do retroperitônio e peritônio",
+    "C49": "Tecido conjuntivo e outros tecidos moles",
+    "C54": "Corpo do útero", "C55": "Útero, porção não especificada",
+    "C78": "Metástase em órgãos respiratórios e digestivos",
+    "C79": "Metástase em outras localizações",
+    "C81": "Doença de Hodgkin", "C83": "Linfoma não-Hodgkin difuso",
+    "C95": "Leucemia de tipo celular não especificado",
 }
 
 #: Nenhuma tabela é truncada: a maior tem 27 linhas (as unidades da federação) e
@@ -327,6 +343,41 @@ def tabela_14_raca_acesso() -> pd.DataFrame:
     })
 
 
+def _razao(nome: str, coluna_chave: str, rotulo: str, nomear) -> pd.DataFrame:
+    """Formata uma tabela de razão idoso/jovem, com o intervalo numa coluna só."""
+    d = _ler(nome)
+    return pd.DataFrame({
+        coluna_chave: d[coluna_chave],
+        rotulo: [nomear(r) for r in d.itertuples()],
+        "Óbitos 15–49": d.obitos_15_49.astype(int),
+        "Óbitos 60+": d.obitos_60_mais.astype(int),
+        "Taxa 15–49": d.taxa_15_49_100k,
+        "Taxa 60+": d.taxa_60_mais_100k,
+        "log2 da razão": d.log2_razao,
+        "IC95%": [f"{_pt(a, 2)} a {_pt(b, 2)}" for a, b in zip(d.ic95_inf, d.ic95_sup,
+                                                               strict=True)],
+        "log2 com 50–59 no jovem": d.razao_50_59_incluidos,
+    })
+
+
+def tabela_18_razao_capitulo() -> pd.DataFrame:
+    """Razão idoso/jovem por capítulo da CID-10.
+
+    É a única tabela do artigo que sai do capítulo II, e de propósito: ela
+    situa o câncer entre as demais causas. Sem ela, "neoplasia é doença de
+    idade avançada" fica sendo asserção; com ela é uma posição medida numa
+    escala que vai de 0,67 a 5,59.
+    """
+    return _razao("tab17_razao_idoso_jovem_capitulo", "capitulo", "Capítulo",
+                  lambda r: r.descricao)
+
+
+def tabela_19_razao_sitio() -> pd.DataFrame:
+    """Razão idoso/jovem por sítio do tumor."""
+    return _razao("tab18_razao_idoso_jovem_sitio", "causabas_3", "Sítio",
+                  lambda r: _sitio(r.causabas_3))
+
+
 def tabela_17_sensibilidade() -> pd.DataFrame:
     """O estudo refeito sob os quatro denominadores candidatos.
 
@@ -398,6 +449,10 @@ TABELAS = [
     ("tabela_16_prematura", "mortalidade prematura, 30 a 69 anos", tabela_16_prematura),
     ("tabela_17_sensibilidade", "o estudo sob os quatro denominadores",
      tabela_17_sensibilidade),
+    ("tabela_18_razao_capitulo", "razão idoso/jovem por capítulo da CID-10",
+     tabela_18_razao_capitulo),
+    ("tabela_19_razao_sitio", "razão idoso/jovem por sítio do tumor",
+     tabela_19_razao_sitio),
 ]
 
 

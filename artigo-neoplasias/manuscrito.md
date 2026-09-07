@@ -14,11 +14,11 @@
 
 **Objetivo.** Separar, na mortalidade por neoplasia maligna registrada no Brasil entre 2015 e 2024, o que é crescimento e envelhecimento populacional do que é mudança de risco; e descrever como o risco remanescente se distribui por idade, sítio do tumor, território e posição social.
 
-**Métodos.** Todos os óbitos por neoplasia maligna (CID-10 C00–C97, causa básica truncada em três caracteres) registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024, agregados por município de residência, ano, faixa etária e sexo (Tabela 1). Denominador pela Projeção da População do IBGE, revisão 2024, por idade simples. Taxas padronizadas pelo método direto com duas populações padrão — Brasil/Censo 2022 e padrão mundial da OMS —, esta última para permitir comparação externa. O aumento no número de óbitos foi decomposto em três termos — tamanho da população, estrutura etária e taxas específicas por idade — pela média das seis ordens de aplicação. O eixo social usa o microdado nacional de 2022–2023, único recorte em disco que traz cor/raça, escolaridade e local de ocorrência; o denominador por cor/raça vem da tabela 9606 do SIDRA (Censo 2022). O gradiente municipal usa quartis de um índice de vulnerabilidade social construído sobre analfabetismo e falta de água, com análise de sensibilidade por redistribuição pro-rata das causas mal definidas.
+**Métodos.** Todos os óbitos por neoplasia maligna (CID-10 C00–C97, causa básica truncada em três caracteres) registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024, agregados por município de residência, ano, faixa etária e sexo (Tabela 1). Denominador pela Projeção da População do IBGE, revisão 2024, por idade simples. Taxas padronizadas pelo método direto com duas populações padrão — Brasil/Censo 2022 e padrão mundial da OMS —, esta última para permitir comparação externa. O aumento no número de óbitos foi decomposto em três termos — tamanho da população, estrutura etária e taxas específicas por idade — pela média das seis ordens de aplicação. O eixo social usa o microdado nacional de 2022–2023, único recorte em disco que traz cor/raça, escolaridade e local de ocorrência; o denominador por cor/raça vem da tabela 9606 do SIDRA (Censo 2022). O gradiente municipal usa quartis de um índice de vulnerabilidade social construído sobre analfabetismo e falta de água, com análise de sensibilidade por redistribuição pro-rata das causas mal definidas. A razão entre a mortalidade de 60 anos ou mais e a de 15 a 49, por capítulo e por sítio, é reportada em log2 com intervalo exato condicional.
 
-**Resultados.** Os óbitos por neoplasia maligna passaram de 205.998 em 2015 para 259.084 em 2024, enquanto a taxa padronizada por idade caiu de 123,04 para 120,18 por 100 mil pelo padrão brasileiro e de 84,56 para 81,43 pelo padrão mundial da OMS (Tabela 2). A decomposição atribui +47.314 óbitos ao envelhecimento e +11.390 ao crescimento populacional, contra −5.619 devidos à queda das taxas específicas (Tabela 4): o aumento é integralmente demográfico. A probabilidade de uma pessoa de 30 anos morrer de câncer antes dos 70 caiu de 7,428% para 7,138% (Tabela 16). Mantido o risco de 2019, teriam sido registrados mais 48.543 óbitos entre 2020 e 2024 (Tabela 5), com o déficit encolhendo de 5,3% para 2,1% ao longo do período. O sítio predominante muda com a idade — leucemias e encéfalo na infância, mama e colo do útero entre 30 e 44 anos, brônquios/pulmões e próstata depois dos 60 (Tabela 6). A mortalidade padronizada é maior onde há menos vulnerabilidade: 127,3 por 100 mil no quartil menos vulnerável contra 91,5 no mais vulnerável, com causas mal definidas em 4,09% e 7,24% dos óbitos respectivamente; redistribuídas as mal definidas, o gradiente cai de 39% para 35% e **persiste** (Tabela 9). Entre 23 sítios, seis são mais letais no quartil vulnerável, encabeçados pelo colo do útero (razão 1,27), enquanto o cólon é 0,33 (Tabela 10). O mesmo padrão reaparece no recorte individual: a taxa padronizada é 132,7 entre pessoas brancas e 98,3 entre pretas, mas o colo do útero mata 10,54 por 100 mil entre indígenas e 5,73 entre brancas, e a próstata 19,82 entre pretos e 16,54 entre brancos (Tabelas 11 e 12).
+**Resultados.** Os óbitos por neoplasia maligna passaram de 205.998 em 2015 para 259.084 em 2024, enquanto a taxa padronizada por idade caiu de 123,04 para 120,18 por 100 mil pelo padrão brasileiro e de 84,56 para 81,43 pelo padrão mundial da OMS (Tabela 2). A decomposição atribui +47.314 óbitos ao envelhecimento e +11.390 ao crescimento populacional, contra −5.619 devidos à queda das taxas específicas (Tabela 4): o aumento é integralmente demográfico. A probabilidade de uma pessoa de 30 anos morrer de câncer antes dos 70 caiu de 7,428% para 7,138% (Tabela 16). Mantido o risco de 2019, teriam sido registrados mais 48.543 óbitos entre 2020 e 2024 (Tabela 5), com o déficit encolhendo de 5,3% para 2,1% ao longo do período. O sítio predominante muda com a idade — leucemias e encéfalo na infância, mama e colo do útero entre 30 e 44 anos, brônquios/pulmões e próstata depois dos 60 (Tabela 6). A mortalidade padronizada é maior onde há menos vulnerabilidade: 127,3 por 100 mil no quartil menos vulnerável contra 91,5 no mais vulnerável, com causas mal definidas em 4,09% e 7,24% dos óbitos respectivamente; redistribuídas as mal definidas, o gradiente cai de 39% para 35% e **persiste** (Tabela 9). Entre 23 sítios, seis são mais letais no quartil vulnerável, encabeçados pelo colo do útero (razão 1,27), enquanto o cólon é 0,33 (Tabela 10). O colo do útero é também o segundo sítio mais precoce entre os 43 examinados: a razão em log2 entre a mortalidade dos idosos e a dos jovens é de 1,92, contra 9,11 na próstata (Tabela 19). O mesmo padrão reaparece no recorte individual: a taxa padronizada é 132,7 entre pessoas brancas e 98,3 entre pretas, mas o colo do útero mata 10,54 por 100 mil entre indígenas e 5,73 entre brancas, e a próstata 19,82 entre pretos e 16,54 entre brancos (Tabelas 11 e 12).
 
-**Conclusões.** O aumento das mortes por câncer no Brasil não é aumento de risco. O gradiente social da mortalidade registrada é dominado por diferenças de detecção e de risco competitivo, e por isso aparece invertido em relação à expectativa; os sítios que dependem de rastreamento — colo do útero acima de todos — resistem a essa inversão e são os candidatos naturais a indicador de equidade oncológica no Brasil.
+**Conclusões.** O aumento das mortes por câncer no Brasil não é aumento de risco. O gradiente social da mortalidade registrada é dominado por diferenças de detecção e de risco competitivo, e por isso aparece invertido em relação à expectativa; os sítios que dependem de rastreamento — colo do útero acima de todos — resistem a essa inversão e são os candidatos naturais a indicador de equidade oncológica no Brasil. O colo do útero acumula as quatro desigualdades medidas neste trabalho: território, vulnerabilidade municipal, cor/raça e idade ao morrer.
 
 **Palavras-chave:** neoplasias; mortalidade; padronização por idade; desigualdades em saúde; sistemas de informação em saúde; colo do útero.
 
@@ -134,7 +134,17 @@ Os municípios brasileiros foram ordenados por um índice de vulnerabilidade soc
 
 Como a hipótese concorrente ao gradiente é a qualidade do registro, a Tabela 9 traz uma **taxa corrigida** ao lado da observada: as mortes por causa mal definida (R00–R99) de cada estrato são redistribuídas pro-rata sobre as causas definidas do mesmo estrato, o que equivale a supor que os óbitos sem diagnóstico se distribuem como os diagnosticados. É a correção mais favorável possível à hipótese de subdiagnóstico, e serve como teste: se o gradiente sobrevive a ela, não é só registro.
 
-### 2.8 O que este desenho não faz
+### 2.8 A razão idoso/jovem, e o intervalo exato
+
+A §3.3 compara a mortalidade de 60 anos ou mais com a de 15 a 49, por capítulo da CID-10 e por sítio do tumor, em log2.
+
+O recorte tem três decisões declaradas. A faixa jovem **começa aos 15 anos**: abaixo disso o perfil de causa é outro — perinatal, malformação, leucemia da infância — e misturá-lo diluiria exatamente o que a pergunta procura. Há um **intervalo morto de 50 a 59 anos** entre os dois grupos, porque faixas contíguas fazem a razão pender de onde se corta; a última coluna das Tabelas 18 e 19 traz o mesmo cálculo com esses dez anos incluídos no grupo jovem, como sensibilidade. E a faixa idosa é **aberta em 60 ou mais**, de modo que a razão mistura "ocorre mais tarde" com "ocorre em idade muito avançada" — propriedade da pergunta, não defeito, mas necessária para comparar dois capítulos.
+
+A razão é crua dentro de cada faixa, sem padronização interna. Como as duas faixas usam a mesma população para todas as causas, a composição etária interna é idêntica entre capítulos: padronizar deslocaria todos os valores na mesma direção sem alterar o ordenamento, que é o que a pergunta usa.
+
+O intervalo é **exato**, e não normal. Condicionando no total de óbitos das duas faixas, o número de óbitos entre os idosos é binomial, e a razão se obtém da probabilidade dessa binomial por uma transformação fechada; basta então um intervalo de Clopper–Pearson. O método não depende de contagem grande — e por sítio há categorias com poucas centenas de óbitos na faixa jovem, onde a aproximação normal do logaritmo devolveria intervalo simétrico e estreito demais. É o mesmo princípio do intervalo de Fay–Feuer da §2.6: condicionar no que é fixo e usar a distribuição exata do que varia.
+
+### 2.9 O que este desenho não faz
 
 Não há teste de hipótese nem modelo de regressão neste trabalho, e o intervalo de confiança aparece só onde a contagem o exige (§2.7). Nos demais recortes o menor grupo comparado tem dezenas de milhares de óbitos, e o que limita a interpretação não é erro amostral: é confundimento estrutural — detecção, sobrevida e classificação. Um intervalo estreito em torno de uma taxa que mede parcialmente o acesso ao diagnóstico daria falsa impressão de precisão sobre a quantidade errada, e é por isso que as comparações centrais deste artigo se apoiam no **comportamento sítio a sítio**, e não na largura de um intervalo.
 
@@ -206,7 +216,95 @@ A quantidade merece destaque por uma propriedade que nenhuma outra tabela deste 
 
 O perfil no tempo repete o das taxas padronizadas, inclusive o degrau: 7,407% em 2019, 6,989% em 2020, e recuperação lenta até 7,138% em 2024.
 
-### 3.3 A decomposição
+### 3.3 Onde o câncer se situa entre as causas, e qual câncer mata cedo
+
+A pergunta "o câncer está matando mais jovens?" tem duas partes, e a §3.1 respondeu só a primeira — a do tempo. A segunda é de posição: quão precoce é o câncer *em relação às demais causas*, e quais tumores puxam essa posição.
+
+A medida é a razão entre a taxa específica de 60 anos ou mais e a de 15 a 49, em log2. Zero significa que a causa mata igualmente nas duas faixas; cada unidade é uma duplicação. O intervalo é exato, condicional no total de óbitos (§2.8).
+
+**Tabela 18. Razão entre a mortalidade de 60 anos ou mais e a de 15 a 49 anos, por capítulo da CID-10, 2022–2024 (`tabela_18_razao_capitulo.csv`).**
+
+| capitulo | Capítulo | Óbitos 15–49 | Óbitos 60+ | Taxa 15–49 | Taxa 60+ | log2 da razão | IC95% | log2 com 50–59 no jovem |
+|---|---|---|---|---|---|---|---|---|
+| XX | Causas externas de morbidade e de mortalidade | 273.764 | 128.485 | 81,8 | 129,76 | 0,67 | 0,66 a 0,68 | 0,71 |
+| XVII | Malformações congênitas, deformidades e anomalias cromossômicas | 3.009 | 1.754 | 0,9 | 1,77 | 0,98 | 0,89 a 1,06 | 0,87 |
+| V | Transtornos mentais e comportamentais | 13.923 | 32.553 | 4,16 | 32,88 | 2,98 | 2,95 a 3,01 | 2,45 |
+| III | Doenças do sangue e dos órgãos hematopoéticos e transtornos imunitários | 4.640 | 14.103 | 1,39 | 14,24 | 3,36 | 3,31 a 3,41 | 3,06 |
+| I | Algumas doenças infecciosas e parasitárias | 47.728 | 193.999 | 14,26 | 195,93 | 3,78 | 3,77 a 3,79 | 3,34 |
+| XIII | Doenças do sistema osteomuscular e do tecido conjuntivo | 3.838 | 15.703 | 1,15 | 15,86 | 3,79 | 3,74 a 3,84 | 3,37 |
+| XVIII | Sintomas, sinais e achados anormais não classificados em outra parte | 37.237 | 154.490 | 11,13 | 156,03 | 3,81 | 3,79 a 3,83 | 3,32 |
+| XI | Doenças do aparelho digestivo | 35.614 | 160.472 | 10,64 | 162,07 | 3,93 | 3,91 a 3,95 | 3,19 |
+| II | Neoplasias (tumores) | 86.255 | 558.175 | 25,77 | 563,72 | 4,45 | 4,44 a 4,46 | 3,52 |
+| VI | Doenças do sistema nervoso | 16.854 | 141.666 | 5,04 | 143,07 | 4,83 | 4,81 a 4,85 | 4,51 |
+| IV | Doenças endócrinas, nutricionais e metabólicas | 21.943 | 218.903 | 6,56 | 221,08 | 5,08 | 5,06 a 5,10 | 4,14 |
+| IX | Doenças do aparelho circulatório | 91.877 | 964.588 | 27,45 | 974,18 | 5,15 | 5,14 a 5,16 | 4,18 |
+| XII | Doenças da pele e do tecido subcutâneo | 2.385 | 26.982 | 0,71 | 27,25 | 5,26 | 5,20 a 5,32 | 4,41 |
+| XIV | Doenças do aparelho geniturinário | 10.788 | 152.716 | 3,22 | 154,23 | 5,58 | 5,55 a 5,61 | 4,77 |
+| X | Doenças do aparelho respiratório | 32.272 | 461.311 | 9,64 | 465,9 | 5,59 | 5,58 a 5,61 | 4,8 |
+
+A escala vai de **0,67** nas causas externas a **5,59** nas doenças do aparelho respiratório — de uma causa que mata quase igualmente nas duas faixas a uma que mata 48 vezes mais no idoso. As neoplasias ficam em **4,45** (IC95% 4,44 a 4,46), ou 22 vezes mais no idoso: câncer é, sem ambiguidade, doença de idade avançada, e o aumento de risco descrito na §3.1 não altera essa posição.
+
+Duas leituras merecem registro. A primeira é que **causa externa é o que mata jovem no Brasil**, e por uma margem que nenhuma causa clínica se aproxima: 273.764 óbitos entre 15 e 49 anos no triênio, contra 128.485 entre os de 60 ou mais. A segunda é que os transtornos mentais (2,98) aparecem como a causa clínica mais precoce — posição que, dado o peso do capítulo, merece exame que este trabalho não faz.
+
+Dentro do câncer, porém, a dispersão é quase tão grande quanto entre capítulos.
+
+**Tabela 19. Razão entre a mortalidade de 60 anos ou mais e a de 15 a 49 anos, por sítio do tumor, 2022–2024 (`tabela_19_razao_sitio.csv`).**
+
+| causabas_3 | Sítio | Óbitos 15–49 | Óbitos 60+ | Taxa 15–49 | Taxa 60+ | log2 da razão | IC95% | log2 com 50–59 no jovem |
+|---|---|---|---|---|---|---|---|---|
+| C81 | Doença de Hodgkin | 731 | 765 | 0,22 | 0,77 | 1,82 | 1,67 a 1,97 | 1,73 |
+| C53 | Colo do útero | 8.123 | 9.116 | 2,43 | 9,21 | 1,92 | 1,88 a 1,97 | 1,58 |
+| C49 | Tecido conjuntivo e outros tecidos moles | 1.380 | 2.482 | 0,41 | 2,51 | 2,6 | 2,51 a 2,70 | 2,24 |
+| C91 | Leucemia linfoide | 1.509 | 3.130 | 0,45 | 3,16 | 2,81 | 2,72 a 2,90 | 2,65 |
+| C41 | Ossos e cartilagens articulares | 1.296 | 3.368 | 0,39 | 3,4 | 3,13 | 3,04 a 3,23 | 2,68 |
+| C50 | Mama | 13.113 | 34.613 | 3,92 | 34,96 | 3,16 | 3,13 a 3,19 | 2,44 |
+| C92 | Leucemia mieloide | 2.582 | 7.116 | 0,77 | 7,19 | 3,22 | 3,15 a 3,29 | 2,89 |
+| C83 | Linfoma não-Hodgkin difuso | 624 | 1.811 | 0,19 | 1,83 | 3,29 | 3,16 a 3,43 | 2,88 |
+| C71 | Encéfalo | 5.112 | 15.247 | 1,53 | 15,4 | 3,33 | 3,29 a 3,38 | 2,67 |
+| C72 | Medula espinhal e outros do sistema nervoso central | 721 | 2.166 | 0,22 | 2,19 | 3,34 | 3,22 a 3,47 | 2,71 |
+| C55 | Útero, porção não especificada | 1.077 | 3.431 | 0,32 | 3,47 | 3,43 | 3,33 a 3,53 | 2,76 |
+| C38 | Coração, mediastino e pleura | 497 | 1.681 | 0,15 | 1,7 | 3,51 | 3,37 a 3,66 | 2,94 |
+| C56 | Ovário | 2.169 | 8.330 | 0,65 | 8,41 | 3,7 | 3,63 a 3,77 | 2,82 |
+| C85 | Linfoma não-Hodgkin | 1.456 | 6.428 | 0,44 | 6,49 | 3,9 | 3,82 a 3,98 | 3,31 |
+| C95 | Leucemia de tipo celular não especificado | 598 | 2.781 | 0,18 | 2,81 | 3,97 | 3,85 a 4,10 | 3,57 |
+| C21 | Ânus e canal anal | 377 | 1.827 | 0,11 | 1,85 | 4,03 | 3,87 a 4,20 | 3,11 |
+| C43 | Melanoma maligno da pele | 865 | 4.256 | 0,26 | 4,3 | 4,06 | 3,95 a 4,16 | 3,31 |
+| C48 | Tecidos moles do retroperitônio e peritônio | 730 | 3.830 | 0,22 | 3,87 | 4,15 | 4,03 a 4,26 | 3,24 |
+| C02 | Outras partes da língua | 553 | 2.936 | 0,17 | 2,96 | 4,16 | 4,03 a 4,30 | 2,89 |
+| C79 | Metástase em outras localizações | 565 | 3.483 | 0,17 | 3,52 | 4,38 | 4,25 a 4,51 | 3,42 |
+| C10 | Orofaringe | 715 | 4.402 | 0,21 | 4,45 | 4,38 | 4,26 a 4,49 | 2,83 |
+| C20 | Reto | 2.063 | 13.090 | 0,62 | 13,22 | 4,42 | 4,36 a 4,49 | 3,36 |
+| C16 | Estômago | 5.061 | 32.176 | 1,51 | 32,5 | 4,43 | 4,38 a 4,47 | 3,48 |
+| C76 | Outras localizações e mal definidas | 1.731 | 11.533 | 0,52 | 11,65 | 4,49 | 4,42 a 4,57 | 3,39 |
+| C19 | Junção retossigmoide | 586 | 4.192 | 0,18 | 4,23 | 4,6 | 4,47 a 4,72 | 3,48 |
+| C06 | Outras partes da boca | 311 | 2.462 | 0,09 | 2,49 | 4,74 | 4,57 a 4,92 | 3,31 |
+| C18 | Cólon | 4.399 | 35.258 | 1,31 | 35,61 | 4,76 | 4,71 a 4,81 | 3,69 |
+| C80 | Sem especificação de localização | 1.601 | 13.055 | 0,48 | 13,19 | 4,78 | 4,71 a 4,86 | 3,69 |
+| C64 | Rim | 1.140 | 9.466 | 0,34 | 9,56 | 4,81 | 4,72 a 4,90 | 3,63 |
+| C78 | Metástase em órgãos respiratórios e digestivos | 602 | 5.187 | 0,18 | 5,24 | 4,86 | 4,74 a 4,99 | 3,66 |
+| C17 | Intestino delgado | 436 | 4.029 | 0,13 | 4,07 | 4,96 | 4,82 a 5,11 | 3,89 |
+| C15 | Esôfago | 1.961 | 18.199 | 0,59 | 18,38 | 4,97 | 4,90 a 5,04 | 3,32 |
+| C26 | Outros órgãos digestivos e mal definidos | 1.061 | 10.257 | 0,32 | 10,36 | 5,03 | 4,94 a 5,12 | 3,88 |
+| C22 | Fígado e vias biliares intra-hepáticas | 2.411 | 26.117 | 0,72 | 26,38 | 5,19 | 5,13 a 5,25 | 3,89 |
+| C54 | Corpo do útero | 535 | 5.911 | 0,16 | 5,97 | 5,22 | 5,09 a 5,35 | 3,87 |
+| C32 | Laringe | 900 | 10.231 | 0,27 | 10,33 | 5,26 | 5,17 a 5,36 | 3,49 |
+| C24 | Outras partes das vias biliares | 601 | 6.848 | 0,18 | 6,92 | 5,27 | 5,15 a 5,39 | 3,97 |
+| C25 | Pâncreas | 2.617 | 32.188 | 0,78 | 32,51 | 5,38 | 5,32 a 5,44 | 3,99 |
+| C90 | Mieloma múltiplo | 654 | 9.483 | 0,2 | 9,58 | 5,61 | 5,50 a 5,73 | 4,05 |
+| C44 | Outras neoplasias malignas da pele | 518 | 9.348 | 0,15 | 9,44 | 5,93 | 5,80 a 6,06 | 4,85 |
+| C34 | Brônquios e pulmões | 4.191 | 77.507 | 1,25 | 78,28 | 5,97 | 5,92 a 6,01 | 4,36 |
+| C67 | Bexiga | 370 | 14.421 | 0,11 | 14,56 | 7,04 | 6,89 a 7,19 | 5,38 |
+| C61 | Próstata | 300 | 49.205 | 0,09 | 49,69 | 9,11 | 8,95 a 9,28 | 6,46 |
+
+O intervalo vai de **1,82** na doença de Hodgkin a **9,11** na próstata — de um tumor que mata 3,5 vezes mais no idoso a outro que mata 550 vezes mais. E o segundo sítio mais precoce de todos, entre os 43 com massa suficiente, é o **colo do útero**: log2 de **1,92** (IC95% 1,88 a 1,97), com 8.123 óbitos entre 15 e 49 anos contra 9.116 entre os de 60 ou mais.
+
+É o mesmo sítio que inverte o gradiente de vulnerabilidade municipal (§3.8), o mesmo que inverte o gradiente de cor/raça (§3.9) e o mesmo cuja mortalidade separa o Amazonas de Minas Gerais por mais de quatro vezes (§3.7). **As quatro desigualdades recaem sobre o mesmo tumor**, e é o tumor com programa de rastreamento.
+
+A mama vem em seguida entre os sítios comuns (3,16), o que fecha a leitura da §3.1: as duas faixas etárias em que o risco subiu na década são justamente aquelas em que os dois cânceres mais precoces dominam a mortalidade.
+
+A última coluna das duas tabelas mede quanto o resultado depende de onde se corta a faixa jovem. Incluindo os 50 a 59 anos no grupo jovem, todos os valores caem — o que é aritmético, já que a faixa acrescentada é mais velha — mas o **ordenamento se preserva**, e é o ordenamento que a pergunta usa.
+
+### 3.4 A decomposição
 
 **Tabela 4. Decomposição do aumento de óbitos entre 2015 e 2024 (`tabela_4_decomposicao.csv`).**
 
@@ -221,7 +319,7 @@ O envelhecimento da população responde por 89,1% do aumento e o crescimento po
 
 Não há, nesta série, um componente de "avanço da doença" a ser explicado. Há uma população que envelheceu.
 
-### 3.4 O degrau que a pandemia deixou
+### 3.5 O degrau que a pandemia deixou
 
 **Tabela 5. Óbitos observados e esperados sob o risco por idade de 2019 (`tabela_5_contrafactual.csv`).**
 
@@ -240,7 +338,7 @@ A forma da curva é informativa, e ela mudou de leitura com o denominador corrig
 
 A quarta explicação candidata é a que a Tabela 2 descarta. Se o degrau fosse artefato de registro — câncer que passou a ser codificado como causa mal definida —, a fração de causas mal definidas teria de subir em 2020 e permanecer alta. Ela sobe de 5,53% para 5,78% em 2020, volta a 5,11% em 2021 e chega a 4,48% em 2024, o menor valor da série; a fração de C80 entre os cânceres cai de 2,39% para 2,32% no mesmo intervalo. O degrau da mortalidade não é acompanhado por degrau nenhum na imprecisão. As três leituras da §2.5 permanecem abertas, e provavelmente todas contribuem.
 
-### 3.5 Cada idade tem o seu câncer
+### 3.6 Cada idade tem o seu câncer
 
 **Tabela 6. Os três sítios mais letais em cada faixa etária, 2020–2024 (`tabela_6_sitios_por_faixa.csv`).**
 
@@ -275,7 +373,7 @@ Dos sítios que aparecem nessa tabela, o do colo do útero é o único **evitáv
 
 Entre mulheres, a mama lidera com 16,5% dos óbitos por câncer, seguida de brônquios e pulmões com 11,8%; o colo do útero é o quarto sítio, com 6%. Entre homens, próstata (13,5%) e brônquios e pulmões (13,1%) lideram praticamente empatados. A categoria "sem especificação de localização" (C80) figura entre os dez sítios femininos, com 2,5%, o que é uma medida de imprecisão diagnóstica ocupando lugar de doença.
 
-### 3.6 O território
+### 3.7 O território
 
 **Tabela 8. Taxa de mortalidade por câncer por unidade da federação, 2022–2024 (`tabela_8_uf.csv`).**
 
@@ -315,7 +413,7 @@ Ninguém sustentaria que se adoece 80% menos de câncer no Maranhão do que no R
 
 (A taxa de colo do útero está calculada sobre a população total, e não apenas a feminina, porque o denominador por unidade da federação não tem grão de sexo. Ela serve para comparar unidades entre si, não como taxa de mortalidade feminina.)
 
-### 3.7 O gradiente municipal, e o que sobrevive à correção
+### 3.8 O gradiente municipal, e o que sobrevive à correção
 
 **Tabela 9. Mortalidade por câncer e qualidade do registro por quartil de vulnerabilidade social, 2022–2024 (`tabela_9_vulnerabilidade.csv`).**
 
@@ -364,7 +462,7 @@ Dos 23 sítios com pelo menos 8 mil óbitos no período, **seis matam mais no qu
 
 Duas linhas dessa tabela não são doença e sim codificação, e apontam em sentidos contrários: "outras localizações e mal definidas" (C76) tem razão 1,22, enquanto "sem especificação de localização" (C80) tem 0,57. Se o quartil vulnerável simplesmente codificasse pior, as duas subiriam juntas. Elas divergem, o que sugere práticas de codificação **distintas** — categorias residuais diferentes, escolhidas por serviços diferentes — e não apenas piores.
 
-### 3.8 Cor e raça
+### 3.9 Cor e raça
 
 **Tabela 11. Taxa de mortalidade por câncer por cor ou raça, 2022–2023 (`tabela_11_raca.csv`).**
 
@@ -418,7 +516,7 @@ O contraste entre os dois achados indígenas é o ponto. **A mesma população, 
 
 Mama e cólon seguem o gradiente do agregado; colo do útero e próstata o desobedecem. São exatamente os dois sítios cuja mortalidade a literatura associa, respectivamente, à ausência de rastreamento e ao diagnóstico tardio em populações com menor acesso.
 
-### 3.9 Escolaridade, e onde se morre
+### 3.10 Escolaridade, e onde se morre
 
 **Tabela 13. Óbitos de 30 a 69 anos por escolaridade, 2022–2023 (`tabela_13_escolaridade.csv`).**
 
@@ -488,6 +586,10 @@ Entre todos os sítios examinados, o do colo do útero é o que se comporta de m
 A coerência importa porque o colo do útero é um caso quase experimental dentro da oncologia: tem etiologia infecciosa estabelecida, vacina disponível, história natural longa o bastante para que a detecção precoce mude o desfecho, e é o único tumor para o qual a Organização Mundial da Saúde definiu uma **meta de eliminação** — incidência abaixo de 4 casos por 100 mil mulheres ao ano, sustentada pelas metas 90–70–90 de vacinação, rastreamento e tratamento até 2030 [3]. Mortalidade elevada por câncer de colo do útero mede, com pouca ambiguidade, ausência de programa alcançando aquela população — e não maior ocorrência da doença por acaso geográfico. É, por isso, o candidato natural a indicador-síntese de equidade oncológica no Brasil, papel que a mortalidade total por câncer não pode cumprir pelas razões da seção anterior.
 
 O achado tem validação externa por uma via independente. A Estimativa de Incidência de Câncer no Brasil para 2023–2025 [4], construída a partir dos Registros de Câncer de Base Populacional e não do SIM, aponta a Região Norte como a de maior incidência de câncer do colo do útero e o registra como **o tumor mais incidente** no Amazonas e no Amapá. Duas bases que não compartilham numerador, denominador nem método concordam em qual unidade da federação está no topo. É a concordância que se esperaria se o sinal fosse doença, e não artefato de codificação do SIM.
+
+Há um quarto recorte, e ele fecha o argumento. Entre os 43 sítios com massa suficiente, o colo do útero é o **segundo mais precoce** do país: a razão entre a mortalidade dos idosos e a dos jovens é de 1,92 em log2, contra 9,11 na próstata e 5,97 no pulmão (Tabela 19). O mesmo tumor que inverte o gradiente municipal, o gradiente de cor/raça e o mapa entre unidades da federação é também aquele que mata mais cedo.
+
+Isso não é coincidência de quatro medidas independentes: é o que se espera de um tumor cuja prevenção depende de um programa que alcança desigualmente. Onde o rastreamento não chega, o câncer de colo do útero não é apenas mais frequente na morte — ele mata mulheres em idade produtiva, e mata as mais pobres, as não brancas e as do Norte. As quatro desigualdades recaem sobre o mesmo alvo, e é o alvo com maior potencial de prevenção conhecido em oncologia.
 
 O achado da Tabela 3 — aumento do risco justamente nas faixas de 15 a 29 e de 30 a 44 anos — merece leitura conjunta com este, ainda que o presente desenho não estabeleça a ligação. São as faixas em que mama e colo do útero mais pesam — entre 30 e 44 anos eles são os dois primeiros sítios, com quase 30% dos óbitos por câncer da faixa (Tabela 6) —, e são as únicas em que o risco subiu na década.
 

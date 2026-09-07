@@ -7,7 +7,7 @@ escrito a partir do levantamento executado em 2026-09-03.
 |---|---|
 | `manuscrito.md` | **a fonte.** É aqui que se edita — menos as tabelas |
 | `gerar_tabelas.py` | executa a análise e produz `tabelas/*.csv` |
-| `tabelas/` | as dezessete tabelas do artigo, em CSV |
+| `tabelas/` | as dezenove tabelas do artigo, em CSV |
 | `manuscrito.html`, `manuscrito.pdf` | derivados — **não se editam à mão** |
 
 ```
