@@ -121,7 +121,14 @@ def main() -> None:
         check(f"conciliação causa {ano}", abs(c - total) / total < 0.005, f"causa={c:,} total={total:,}")
 
     # 4. Excesso: 28 séries (27 UFs + BR) por ano desde 2020
-    exc = agg("mart_excesso_uf_mes", {"select": "ano,uf_sigla"})
+    #
+    # AGREGADO NO SERVIDOR, e não baixando linhas: `select=ano,uf_sigla` devolve
+    # LINHA, e o PostgREST corta em 1000. A tabela tem 502.232 — a checagem via
+    # apenas o primeiro pedaço, achava 27 UFs distintas nele e acusava série
+    # faltando em TODOS os anos. Seis alarmes falsos, com o banco íntegro (a
+    # consulta direta devolve as 28). Com `count()` o servidor devolve uma linha
+    # por grupo: 28 linhas, bem abaixo do teto.
+    exc = agg("mart_excesso_uf_mes", {"select": "ano,uf_sigla,n:obitos.count()"})
     series = {(x["ano"], x["uf_sigla"]) for x in exc}
     anos_exc = sorted({a for a, _ in series})
     check("excesso cobre 2020+", min(anos_exc, default=0) == 2020, str(anos_exc))
