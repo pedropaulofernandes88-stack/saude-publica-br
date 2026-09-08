@@ -198,6 +198,37 @@ def agregar(registros, agravo: str, ano_arquivo: int) -> tuple[pd.DataFrame, Cou
     return df, rel
 
 
+#: Fração máxima de notificações em código que não é município da dimensão.
+#: Medido em 2026-09-08: 3.301 de 26.700.522 = 0,012%.
+TETO_FORA_DA_DIMENSAO = 0.001
+
+
+def fora_da_dimensao(df: pd.DataFrame) -> pd.DataFrame:
+    """As linhas cujo código não é município do IBGE — e não são lixo.
+
+    São 94 códigos, 0,012% das notificações, em três famílias:
+
+      UF+0000 (27 códigos, 1.304 notificações)
+          "município ignorado" dentro daquela UF. É informação: a UF se sabe.
+      53xxxx (38 códigos, 1.916)
+          Regiões Administrativas do DF — Ceilândia, Taguatinga e afins. O
+          DataSUS as codifica à parte; a dimensão IBGE tem só 530010 (Brasília).
+      resto (30 códigos, 87)
+          municípios extintos e códigos históricos, sobretudo 52xxxx (Goiás,
+          antes do desmembramento do Tocantins em 1988).
+
+    Ficam no mart: são notificações que aconteceram, e descartá-las perderia
+    3.301 registros em silêncio. O que não podem é passar por município da
+    dimensão — foi isso que fez o log anunciar "5.665 municípios" num país de
+    5.570, número que teria ido para a tela sem ninguém notar.
+    """
+    alvo = MARTS / "dim_municipio.parquet"
+    if not alvo.exists():
+        return df.iloc[0:0]
+    dim = set(pd.read_parquet(alvo)["municipio_cod"].astype(str))
+    return df[~df["municipio_cod"].isin(dim)]
+
+
 def guardas(df: pd.DataFrame, cobertura: pd.DataFrame) -> None:
     """Aborta antes de gravar."""
     if df.empty:
@@ -216,6 +247,19 @@ def guardas(df: pd.DataFrame, cobertura: pd.DataFrame) -> None:
     na_cobertura = set(cobertura[cobertura["arquivos_lidos"] > 0]["agravo"])
     if no_mart - na_cobertura:
         raise SystemExit(f"[sinan] agravos no mart e fora da cobertura: {no_mart - na_cobertura}")
+
+    # Código fora da dimensão é aceitável em dose pequena — ver
+    # `fora_da_dimensao`. Crescer aí significaria que a leitura de ID_MN_RESI
+    # mudou, e nada mais avisaria: o mart continuaria "completo".
+    ruins = fora_da_dimensao(df)
+    if len(ruins):
+        frac = ruins["notificacoes"].sum() / df["notificacoes"].sum()
+        if frac > TETO_FORA_DA_DIMENSAO:
+            raise SystemExit(
+                f"[sinan] {frac:.3%} das notificações em código fora de dim_municipio "
+                f"({ruins['municipio_cod'].nunique()} códigos) — acima do teto de "
+                f"{TETO_FORA_DA_DIMENSAO:.1%}. Era 0,012%; se subiu, a leitura de "
+                "ID_MN_RESI mudou.")
 
 
 def main() -> None:
@@ -303,9 +347,16 @@ def main() -> None:
     cob = pd.DataFrame(cobertura)
     guardas(out, cob)
 
+    ruins = fora_da_dimensao(out)
     print(f"\n[sinan] {len(out):,} linhas · {out['agravo'].nunique()} agravos · "
-          f"{out['municipio_cod'].nunique():,} municípios · "
-          f"{out['notificacoes'].sum():,} notificações")
+          f"{out['municipio_cod'].nunique() - ruins['municipio_cod'].nunique():,} municípios "
+          f"da dimensão · {out['notificacoes'].sum():,} notificações")
+    if len(ruins):
+        print(f"[sinan] {ruins['municipio_cod'].nunique()} códigos fora da dimensão "
+              f"({ruins['notificacoes'].sum():,} notificações, "
+              f"{ruins['notificacoes'].sum() / out['notificacoes'].sum():.3%}): "
+              "município ignorado (UF+0000), Regiões Administrativas do DF e "
+              "municípios extintos. Ficam no mart, mas não são municípios do IBGE.")
     print(f"[sinan] fora por unidade de análise (surto/inquérito): {sorted(SURTO_OU_INQUERITO)}")
     print(f"[sinan] fora por ter pipeline próprio: {sorted(COM_PIPELINE_PROPRIO)}")
     refs = cob.groupby("referencia_do_ano")["agravo"].count().to_dict()

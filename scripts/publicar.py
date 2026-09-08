@@ -93,6 +93,9 @@ TABELAS = [
     "mart_oncologia_municipio",
     # Sífilis do SINAN (SIFA/SIFG/SIFC): congênita como falha de pré-natal.
     "mart_sifilis_municipio",
+    # SINAN multi-agravo: notificações de 40 agravos por município e ano.
+    "mart_sinan_agravo_municipio",
+    "mart_sinan_agravo_cobertura",
     "mart_perfil_mortalidade_municipio",
     "mart_anomalia_causa_municipio",
     "mart_contexto_social_municipio",

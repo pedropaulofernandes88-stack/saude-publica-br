@@ -463,6 +463,12 @@ NAO_SERVIDAS = frozenset({
     # por mart_dengue_uf_semana na V044. O grão municipal continua publicado
     # como Parquet citável, com SHA-256; o que saiu foi a API, não o dado.
     "mart_dengue_semana",
+    # SINAN multi-agravo: 723.765 linhas, 40 agravos. Mesma decisão da oncologia
+    # e da sífilis — cabe no banco, mas ainda não há tela que a consulte. A
+    # cobertura anda junto: ela é o que diz o que o "ano" significa em cada
+    # agravo, e publicar o mart sem ela seria publicar número sem a ressalva.
+    "mart_sinan_agravo_municipio",
+    "mart_sinan_agravo_cobertura",
 })
 
 
