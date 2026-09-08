@@ -154,9 +154,16 @@ def main() -> None:
             falhas.append({"agravo": prefixo, "motivo": "não está em FINAIS"})
             print(f"[{i:2d}/{len(alvos)}] {prefixo}: não está em FINAIS", flush=True)
             continue
-        ano = anos[-1]
+        # Recua de ano enquanto o arquivo vier VAZIO. Arquivo vazio é fato
+        # epidemiológico — COLE 2022 e TETN 2021 têm zero notificações —, mas
+        # não informa NADA sobre o esquema. Era assim que dois agravos normais
+        # apareciam com "0 campos", indistinguíveis de arquivo quebrado.
+        d: dict | None = None
         try:
-            d = sondar(prefixo, ano)
+            for ano in reversed(anos[-6:]):
+                d = sondar(prefixo, ano)
+                if d["registros_lidos"] > 0:
+                    break
         except ArquivoAusente as e:
             falhas.append({"agravo": prefixo, "motivo": f"ausente: {e}"})
             print(f"[{i:2d}/{len(alvos)}] {prefixo}: ausente", flush=True)
@@ -166,6 +173,9 @@ def main() -> None:
             # segue — o produto aqui é o inventário, não um recorte publicável.
             falhas.append({"agravo": prefixo, "motivo": f"falha de coleta: {str(e)[:160]}"})
             print(f"[{i:2d}/{len(alvos)}] {prefixo}: FALHA — {str(e)[:80]}", flush=True)
+            continue
+        if d is None:
+            falhas.append({"agravo": prefixo, "motivo": "nenhum ano legível"})
             continue
         achados.append(d)
         print(f"[{i:2d}/{len(alvos)}] {prefixo} {ano}: {d['n_campos']:3d} campos · "
@@ -191,6 +201,28 @@ def main() -> None:
 
     if falhas:
         print(f"\n[sinan] {len(falhas)} sem sondagem: {falhas}")
+
+    # MESCLA, não sobrescreve. Rodar com `--agravos` para reconferir dois deles
+    # apagava os outros 42 do arquivo — foi o que aconteceu em 2026-09-08, e o
+    # resultado da varredura completa só não se perdeu porque estava no log.
+    # Sondagem parcial não pode apagar o que já se sabia.
+    anterior: dict = {"sondados": [], "falhas": []}
+    if SAIDA.exists():
+        try:
+            anterior = json.loads(SAIDA.read_text(encoding="utf-8"))
+        except ValueError:
+            pass
+
+    def _mesclar(velhos: list[dict], novos: list[dict]) -> list[dict]:
+        por_agravo = {x["agravo"]: x for x in velhos}
+        por_agravo.update({x["agravo"]: x for x in novos})
+        return [por_agravo[k] for k in sorted(por_agravo)]
+
+    achados = _mesclar(anterior.get("sondados", []), achados)
+    sondados_ok = {a["agravo"] for a in achados}
+    # Agravo que passou a ser sondado sai da lista de falhas.
+    falhas = [f for f in _mesclar(anterior.get("falhas", []), falhas)
+              if f["agravo"] not in sondados_ok]
 
     SAIDA.parent.mkdir(parents=True, exist_ok=True)
     SAIDA.write_text(json.dumps(
