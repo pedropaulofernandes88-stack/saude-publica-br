@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import pytest
 
+from scripts import _sisagua as sis
 from scripts._sisagua import Fatia, Relatorio
 from scripts.pipeline_sisagua import agregar, cobertura, guardas
 
@@ -171,3 +172,94 @@ def test_relatorio_lista_as_fatias_vazias():
     ])
     assert rel.vazias == [("AC", 2024), ("AP", 2023)]
     assert rel.registros == 1
+
+
+# ── cache por fatia: retomar sem recomeçar, e sem afrouxar a guarda ─────────
+#
+# A coleta aborta inteira quando uma fatia falha, e isso está certo: fatia que
+# falha não pode virar mart incompleto. O problema era outro — não havia
+# persistência, então um 502 na fatia 1 de 162 jogava fora as outras 161 que já
+# tinham vindo. Foi o que aconteceu em 2026-09-08, em AC/2020, offset 4000.
+#
+# O cache guarda SÓ fatia completa. A invariante que o sustenta: `coletar_fatia`
+# grava depois do laço de paginação, e `_get` levanta no meio — então recorte
+# parcial nunca chega à gravação.
+
+import gzip  # noqa: E402
+
+
+def _fatia(uf="AC", ano=2020, n=3):
+    return sis.Fatia(uf=uf, ano=ano, registros=[{"i": i} for i in range(n)],
+                     paginas=1, vazia_de_fato=not n)
+
+
+def test_cache_ida_e_volta(tmp_path, monkeypatch):
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    sis.gravar_cache("endp", _fatia())
+    lida = sis.ler_cache("endp", "AC", 2020)
+    assert lida is not None
+    assert [r["i"] for r in lida.registros] == [0, 1, 2]
+    assert lida.paginas == 1 and lida.vazia_de_fato is False
+
+
+def test_fatia_vazia_de_fato_sobrevive_ao_cache(tmp_path, monkeypatch):
+    """Vazio verificado é resultado, não ausência — e tem de voltar como vazio."""
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    sis.gravar_cache("endp", _fatia(n=0))
+    lida = sis.ler_cache("endp", "AC", 2020)
+    assert lida.vazia_de_fato is True and lida.registros == []
+
+
+def test_cache_ausente_devolve_none(tmp_path, monkeypatch):
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    assert sis.ler_cache("endp", "ZZ", 1999) is None
+
+
+def test_cache_corrompido_e_tratado_como_ausente(tmp_path, monkeypatch):
+    """Arquivo truncado por interrupção não pode passar por fatia completa."""
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    alvo = sis._caminho_cache("endp", "AC", 2020)
+    alvo.parent.mkdir(parents=True, exist_ok=True)
+    alvo.write_bytes(gzip.compress(b'{"registros": [1, 2'))  # JSON cortado
+    assert sis.ler_cache("endp", "AC", 2020) is None
+
+
+def test_fatia_interrompida_no_meio_nao_deixa_cache(tmp_path, monkeypatch):
+    """A invariante central: erro na paginação levanta ANTES de gravar."""
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    chamadas = {"n": 0}
+
+    def falha_na_segunda(endpoint, params):
+        chamadas["n"] += 1
+        if chamadas["n"] == 1:
+            return [{"i": i} for i in range(sis.PAGINA)]   # página cheia: continua
+        raise sis.FalhaDeColeta("502 no meio da paginação")
+
+    monkeypatch.setattr(sis, "_get", falha_na_segunda)
+    with pytest.raises(sis.FalhaDeColeta):
+        sis.coletar_fatia("endp", "AC", 2020, quieto=True)
+    assert not sis._caminho_cache("endp", "AC", 2020).exists(), (
+        "fatia interrompida foi gravada — a próxima execução a leria como completa")
+
+
+def test_cache_evita_a_segunda_ida_a_rede(tmp_path, monkeypatch):
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    idas = {"n": 0}
+
+    def uma_pagina(endpoint, params):
+        idas["n"] += 1
+        return [{"i": 1}]
+
+    monkeypatch.setattr(sis, "_get", uma_pagina)
+    sis.coletar_fatia("endp", "AC", 2020, quieto=True)
+    sis.coletar_fatia("endp", "AC", 2020, quieto=True)
+    assert idas["n"] == 1, "a segunda chamada foi à rede apesar do cache"
+
+
+def test_usar_cache_falso_ignora_o_disco(tmp_path, monkeypatch):
+    """Quem suspeita do cache tem como refazer sem apagar arquivo."""
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    sis.gravar_cache("endp", _fatia(n=99))
+    monkeypatch.setattr(sis, "_get", lambda e, p: [{"i": 1}])
+    f = sis.coletar_fatia("endp", "AC", 2020, quieto=True, usar_cache=False)
+    assert len(f.registros) == 1

@@ -48,11 +48,13 @@ mais que uma varredura de milhões de linhas que precisa recomeçar do zero.
 """
 from __future__ import annotations
 
+import gzip
 import json
 import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass, field
+from pathlib import Path
 
 BASE = "https://apidadosabertos.saude.gov.br/sisagua"
 
@@ -60,9 +62,21 @@ BASE = "https://apidadosabertos.saude.gov.br/sisagua"
 #: pedir mais devolveria 1000 e um coletor ingênuo acharia que a página acabou.
 PAGINA = 1000
 
-#: Tentativas por requisição. Oito porque o 502 chega a repetir três vezes
-#: seguidas no mesmo ponto; a espera cresce até 30 s.
-TENTATIVAS = 8
+#: Tentativas por requisição. Eram oito, com espera até 30 s (~1,5 min por
+#: requisição). Não bastou: em 2026-09-08 a coleta abortou na PRIMEIRA fatia
+#: (AC/2020, offset 4000) com 502 nas oito. O proxy fica fora por minutos, não
+#: por segundos. Doze tentativas com espera até 60 s dão ~6 min por requisição.
+TENTATIVAS = 12
+ESPERA_MAXIMA = 60
+
+#: Onde ficam as fatias JÁ COLETADAS, para que retomar não recomece do zero.
+#:
+#: Só entra aqui fatia COMPLETA: `coletar_fatia` grava depois que a paginação
+#: termina, e qualquer erro no meio levanta antes disso. O cache não afrouxa a
+#: guarda — o mart continua exigindo TODAS as fatias, e continua não sendo
+#: gravado se faltar uma. Ele só impede que um 502 na fatia 1 de 162 jogue fora
+#: as outras 161 que já tinham vindo.
+CACHE = Path(__file__).resolve().parents[1] / "data" / "raw" / "SISAGUA" / "fatias"
 
 
 class FalhaDeColeta(RuntimeError):
@@ -125,18 +139,62 @@ def _get(endpoint: str, params: dict[str, object]) -> list[dict]:
         except Exception as e:  # noqa: BLE001 — a causa vai na exceção final
             ultimo = e
         if i < TENTATIVAS - 1:
-            time.sleep(min(2 ** i, 30))
+            time.sleep(min(2 ** i, ESPERA_MAXIMA))
     raise FalhaDeColeta(f"{TENTATIVAS} tentativas falharam em {url}: {ultimo}")
 
 
+def _caminho_cache(endpoint: str, uf: str, ano: int) -> Path:
+    return CACHE / endpoint.replace("/", "_") / f"{uf}_{ano}.json.gz"
+
+
+def ler_cache(endpoint: str, uf: str, ano: int) -> Fatia | None:
+    """A fatia já coletada, ou None. Cache ilegível é tratado como ausente."""
+    alvo = _caminho_cache(endpoint, uf, ano)
+    if not alvo.exists():
+        return None
+    try:
+        with gzip.open(alvo, "rt", encoding="utf-8") as fh:
+            d = json.load(fh)
+    except (OSError, ValueError, EOFError):
+        # Arquivo truncado por interrupção: refazer é barato e correto.
+        return None
+    return Fatia(uf=uf, ano=ano, registros=d["registros"], paginas=d["paginas"],
+                 vazia_de_fato=d["vazia_de_fato"])
+
+
+def gravar_cache(endpoint: str, f: Fatia) -> None:
+    alvo = _caminho_cache(endpoint, f.uf, f.ano)
+    alvo.parent.mkdir(parents=True, exist_ok=True)
+    # Grava em temporário e renomeia: interrupção no meio deixaria um .json.gz
+    # pela metade que a próxima execução leria como fatia completa.
+    tmp = alvo.with_suffix(".parcial")
+    with gzip.open(tmp, "wt", encoding="utf-8") as fh:
+        json.dump({"uf": f.uf, "ano": f.ano, "paginas": f.paginas,
+                   "vazia_de_fato": f.vazia_de_fato, "registros": f.registros},
+                  fh, ensure_ascii=False)
+    tmp.replace(alvo)
+
+
 def coletar_fatia(endpoint: str, uf: str, ano: int, campo_ano: str = "ano_de_referencia",
-                  quieto: bool = False) -> Fatia:
+                  quieto: bool = False, usar_cache: bool = True) -> Fatia:
     """Todas as páginas de uma UF num ano.
 
     A paginação para quando uma página vem com menos de `PAGINA` linhas — e
     NÃO quando vem vazia, porque vazia já é menor que `PAGINA`. Parar por erro
     é impossível por construção: `_get` levanta.
+
+    Fatia completa vai para o cache em disco. A gravação acontece DEPOIS do
+    laço: fatia interrompida no meio levanta e nunca chega a ser gravada, então
+    o cache nunca guarda recorte parcial.
     """
+    if usar_cache:
+        em_disco = ler_cache(endpoint, uf, ano)
+        if em_disco is not None:
+            if not quieto:
+                marca = "vazia" if em_disco.vazia_de_fato else f"{len(em_disco.registros):,} linhas"
+                print(f"   {uf} {ano}: {marca} (cache)", flush=True)
+            return em_disco
+
     registros: list[dict] = []
     offset = 0
     paginas = 0
@@ -150,8 +208,11 @@ def coletar_fatia(endpoint: str, uf: str, ano: int, campo_ano: str = "ano_de_ref
         offset += PAGINA
         if not quieto and paginas % 20 == 0:
             print(f"      {uf} {ano}: {len(registros):,} linhas…", flush=True)
-    return Fatia(uf=uf, ano=ano, registros=registros, paginas=paginas,
-                 vazia_de_fato=not registros)
+    f = Fatia(uf=uf, ano=ano, registros=registros, paginas=paginas,
+              vazia_de_fato=not registros)
+    if usar_cache:
+        gravar_cache(endpoint, f)
+    return f
 
 
 def coletar(endpoint: str, ufs: list[str], anos: list[int],
@@ -165,9 +226,10 @@ def coletar(endpoint: str, ufs: list[str], anos: list[int],
     rel = Relatorio()
     for ano in anos:
         for uf in ufs:
+            antes = _caminho_cache(endpoint, uf, ano).exists()
             f = coletar_fatia(endpoint, uf, ano, campo_ano=campo_ano, quieto=quieto)
             rel.fatias.append(f)
-            if not quieto:
+            if not quieto and not antes:
                 marca = "vazia" if f.vazia_de_fato else f"{len(f.registros):,} linhas"
                 print(f"   {uf} {ano}: {marca}", flush=True)
     return rel
