@@ -93,8 +93,10 @@ COM_PIPELINE_PROPRIO = {"DENG"}
 #: casos, não notificação individual. Medido pela sondagem, não suposto.
 SURTO_OU_INQUERITO = {"ESPO", "NTRA", "SDTA", "TRAC"}
 
-#: Fração de registros com ano(DT_NOTIFIC) fora do ano do arquivo que se aceita.
-TOLERANCIA_ANO = 0.02
+#: Alinhamento mínimo entre o ano do arquivo e a melhor das duas datas. Abaixo
+#: disso o arquivo não é o que o nome promete, e o ano dele não significa nada
+#: que dê para escrever numa coluna.
+PISO_ALINHAMENTO = 0.90
 
 
 def _cod(valor) -> str:
@@ -160,20 +162,34 @@ def agregar(registros, agravo: str, ano_arquivo: int) -> tuple[pd.DataFrame, Cou
     # nenhuma. Subir a tolerância teria escondido a descoberta; o certo era
     # descobrir CONTRA O QUE o ano do arquivo se alinha.
     rel["ano_arquivo"] = ano_arquivo
-    referencia = "indeterminado"
+
+    # A pergunta é "com QUAL data o ano do arquivo alinha melhor?", não "alinha
+    # acima de X?". A primeira versão usava limiar fixo de 98% e reprovou HANT
+    # 2020 com 487/499 = 97,6% — doze notificações tardias num arquivo de 499
+    # registros. O limiar estava medindo tamanho de amostra, não alinhamento.
+    #
+    # Escolher o MELHOR entre as duas datas responde a pergunta certa e não
+    # depende de o arquivo ser grande. O piso existe só para o caso em que
+    # nenhuma das duas alinha de verdade — aí realmente não se sabe o que o ano
+    # é, e publicar sem saber é inventar a série.
+    alinhamentos = {}
     for campo, nome in (("DT_NOTIFIC", "notificacao"), ("DT_DIAG", "diagnostico")):
         tem = rel[f"tem:{campo}"]
-        if tem and rel[f"bate:{campo}"] / tem >= 1 - TOLERANCIA_ANO:
-            referencia = nome
-            break
-    rel["referencia"] = referencia  # type: ignore[assignment]
+        if tem:
+            alinhamentos[nome] = rel[f"bate:{campo}"] / tem
 
-    if referencia == "indeterminado" and rel["lidos"]:
+    referencia, melhor = "indeterminado", 0.0
+    if alinhamentos:
+        referencia, melhor = max(alinhamentos.items(), key=lambda kv: kv[1])
+    rel["referencia"] = referencia          # type: ignore[assignment]
+    rel["alinhamento_pct"] = round(melhor * 100, 1)   # type: ignore[assignment]
+
+    if rel["lidos"] and melhor < PISO_ALINHAMENTO:
         raise SystemExit(
-            f"[sinan] {agravo} {ano_arquivo}: nem DT_NOTIFIC nem DT_DIAG se alinham "
-            f"ao ano do arquivo (notif {rel['bate:DT_NOTIFIC']}/{rel['tem:DT_NOTIFIC']}, "
-            f"diag {rel['bate:DT_DIAG']}/{rel['tem:DT_DIAG']}) — não dá para dizer o "
-            "que este ano significa, e publicar sem saber é inventar a série.")
+            f"[sinan] {agravo} {ano_arquivo}: nenhuma data se alinha ao ano do arquivo "
+            f"({ {k: f'{v:.1%}' for k, v in alinhamentos.items()} or 'sem data'}) — "
+            "não dá para dizer o que este ano significa, e publicar sem saber é "
+            "inventar a série.")
 
     df = pd.DataFrame(
         [{"agravo": agravo, "municipio_cod": m, "ano": ano_arquivo, "notificacoes": n}
@@ -228,6 +244,7 @@ def main() -> None:
         ausentes: list[int] = []
         referencias: set[str] = set()
         datas_ruins = 0
+        alinhamento_min = 100.0
         for ano in anos:
             nome = f"{agravo}BR{ano % 100:02d}.dbc"
             try:
@@ -266,12 +283,14 @@ def main() -> None:
             sem_resid += rel["sem_residencia"]
             if rel["lidos"]:
                 referencias.add(str(rel["referencia"]))
+                alinhamento_min = min(alinhamento_min, float(rel["alinhamento_pct"]))
             arquivos += 1
         cobertura.append({"agravo": agravo, "anos_pedidos": len(anos),
                           "arquivos_lidos": arquivos, "anos_ausentes": len(ausentes),
                           "registros_lidos": lidos, "sem_residencia": sem_resid,
                           "referencia_do_ano": "/".join(sorted(referencias)) or "sem dado",
-                          "datas_impossiveis_fora_do_uso": datas_ruins})
+                          "datas_impossiveis_fora_do_uso": datas_ruins,
+                          "alinhamento_min_pct": round(alinhamento_min, 1)})
         print(f"[{i:2d}/{len(alvos)}] {agravo}: {arquivos} arquivos · {lidos:,} registros · "
               f"{sem_resid:,} sem residência", flush=True)
 
