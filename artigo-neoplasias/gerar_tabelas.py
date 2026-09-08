@@ -427,6 +427,49 @@ def tabela_15_local_obito() -> pd.DataFrame:
     })
 
 
+def tabela_20_obito_por_caso() -> pd.DataFrame:
+    d = _ler("tab19_obito_por_caso_vulnerabilidade")
+    rotulo = {"Q1": "Q1 (menos vulnerável)", "Q2": "Q2", "Q3": "Q3",
+              "Q4": "Q4 (mais vulnerável)"}
+    return pd.DataFrame({
+        "Quartil": d.quartil_ivs.map(rotulo),
+        "Óbitos": d.obitos_C00_C97.astype(int),
+        "Casos no Painel": d.casos_painel_C00_C97.astype(int),
+        "Óbitos por caso": [f"{_pt(r.obitos_por_caso, 3)} "
+                            f"[{_pt(r.ic95_inferior, 3)}–{_pt(r.ic95_superior, 3)}]"
+                            for r in d.itertuples()],
+        "Padronizada por idade": d.obitos_por_caso_padronizado.round(3),
+        "Sem C44 e C80": d.obitos_por_caso_sem_C44_C80.round(3),
+        "% com estádio informado": d.pct_casos_com_estadio_0_4,
+        "% em estádio III/IV": d.pct_estadio_III_IV_entre_informados,
+        "Planos por 100 hab.": d.vinculos_plano_por_100_hab,
+    })
+
+
+def tabela_21_obito_por_caso_sitio() -> pd.DataFrame:
+    d = _ler("tab20_obito_por_caso_sitio")
+    return pd.DataFrame({
+        "CID": d.sitio,
+        "Sítio": d.sitio.map(_sitio),
+        "Óbitos": d.obitos.astype(int),
+        "Casos": d.casos.astype(int),
+        "Óbitos/caso Q1": d.ob_por_caso_Q1,
+        "Óbitos/caso Q4": d.ob_por_caso_Q4,
+        "Razão Q4/Q1": d.razao_Q4_Q1,
+        "Grupo pré-especificado": d.grupo_deteccao,
+    })
+
+
+def tabela_22_contraste_deteccao() -> pd.DataFrame:
+    d = _ler("tab21_contraste_deteccao")
+    return pd.DataFrame({
+        "Grupo pré-especificado": d.grupo_deteccao,
+        "Sítios": d.sitios.astype(int),
+        "Óbitos": d.obitos.astype(int),
+        "Razão Q4/Q1 mediana": d.mediana_razao,
+    })
+
+
 TABELAS = [
     ("tabela_1_base", "enquadramento do estudo", tabela_1_base),
     ("tabela_2_serie_nacional", "série nacional 2015–2024", tabela_2_serie),
@@ -453,6 +496,12 @@ TABELAS = [
      tabela_18_razao_capitulo),
     ("tabela_19_razao_sitio", "razão idoso/jovem por sítio do tumor",
      tabela_19_razao_sitio),
+    ("tabela_20_obito_por_caso", "óbitos por caso diagnosticado, por quartil",
+     tabela_20_obito_por_caso),
+    ("tabela_21_obito_por_caso_sitio", "óbitos por caso diagnosticado, por sítio",
+     tabela_21_obito_por_caso_sitio),
+    ("tabela_22_contraste_deteccao", "o teste pré-especificado que reprovou",
+     tabela_22_contraste_deteccao),
 ]
 
 

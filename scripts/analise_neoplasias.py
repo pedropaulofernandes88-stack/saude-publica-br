@@ -159,6 +159,50 @@ PADRAO_OMS = {
     90: 1_500 + 400 + 50,
 }
 
+#: Sítios cuja DETECÇÃO depende de programa de rastreamento ou de imagem de
+#: média/alta complexidade, contra os que se manifestam clinicamente de qualquer
+#: forma. Escrita em 2026-09-07 **antes** de a Tabela 20 existir, e commitada
+#: antes dos números: uma lista montada depois de ver o resultado consegue
+#: produzir qualquer contraste que se queira. Ver [[criterio-antes-do-dado]].
+#:
+#: A distinção existe porque separa as duas explicações concorrentes para uma
+#: razão óbito/caso maior nos municípios vulneráveis:
+#:
+#: * se for **sub-registro administrativo** (o caso existe, o papel não chega ao
+#:   Painel), o efeito é de sistema de informação e atinge todo sítio por igual;
+#: * se for **detecção** (a pessoa nunca foi diagnosticada), o efeito tem de ser
+#:   maior onde encontrar o tumor exige um programa que não chegou àquela
+#:   população, e menor onde o tumor se apresenta sozinho na emergência.
+#:
+#: Um artefato de papelada não sabe distinguir pâncreas de mama. A dispersão
+#: entre os dois grupos é, portanto, o teste que separa as hipóteses — e ele
+#: pode reprovar: se os dois grupos derem a mesma coisa, a leitura de detecção
+#: cai e sobra a de registro.
+SITIOS_DEPENDENTES_DE_DETECCAO = {
+    "C50": "mama (mamografia, rastreamento organizado)",
+    "C53": "colo do útero (citologia, rastreamento organizado)",
+    "C18": "cólon (colonoscopia)",
+    "C19": "junção retossigmoide (colonoscopia)",
+    "C20": "reto (colonoscopia)",
+    "C61": "próstata (PSA, rastreamento oportunístico)",
+    "C64": "rim (imagem, achado incidental)",
+    "C67": "bexiga (imagem e cistoscopia)",
+    "C73": "tireoide (ultrassom, achado incidental)",
+}
+
+#: Os que chegam sintomáticos ao serviço, com ou sem programa de detecção.
+SITIOS_DE_APRESENTACAO_CLINICA = {
+    "C15": "esôfago", "C16": "estômago", "C22": "fígado", "C25": "pâncreas",
+    "C34": "pulmão", "C71": "encéfalo", "C92": "leucemia mieloide",
+}
+
+#: Fora dos dois grupos de propósito: `C44` é pele não melanoma, de letalidade
+#: baixíssima e diagnóstico proporcional à oferta de dermatologista, e `C80` é
+#: "sítio primário não especificado" — um óbito codificado em C80 é, ele mesmo,
+#: medida de investigação diagnóstica ausente, e entraria dos dois lados da
+#: conta com sinais opostos.
+SITIOS_FORA_DO_CONTRASTE = ("C44", "C80")
+
 #: Decodifica o campo IDADE do SIM (unidade no 1º dígito) em anos completos.
 #: Mesma regra de `_sim_obitos.criar_obitos_t`; repetida aqui porque este script
 #: lê o CSV cru, e não `obitos_t`. Se uma das duas mudar, os totais divergem.
@@ -576,7 +620,15 @@ def razao_idoso_jovem(con: duckdb.DuckDBPyConnection) -> None:
                 "ic95_sup": round(np.log2(sup), 2),
                 "razao_50_59_incluidos": round(np.log2(amplo), 2),
             })
-        return pd.DataFrame(linhas).sort_values("log2_razao", ignore_index=True)
+        # O desempate por `chave` não é cosmético. A ordenação é sobre o valor
+        # JÁ ARREDONDADO, e dois sítios que diferem na quarta casa empatam na
+        # segunda: C10 e C79 dão 4,38 os dois. Sem critério estável, a ordem
+        # entre eles vem da ordem de linha do DuckDB, que a agregação paralela
+        # não garante — e duas execuções do mesmo código produziam tabelas
+        # diferentes. Mesma correção dos três `ORDER BY` de f8501ad; este
+        # escapou porque o empate só nasce depois do `round`.
+        return pd.DataFrame(linhas).sort_values(["log2_razao", chave],
+                                                ignore_index=True)
 
     cap = _montar(f"""
       select coalesce(c.capitulo,'N/D') capitulo, any_value(c.descricao) descricao,
@@ -955,6 +1007,248 @@ def vulnerabilidade(con: duckdb.DuckDBPyConnection) -> None:
           f"{', '.join(piores.causabas_3) or '(nenhum)'}")
 
 
+def deteccao(con: duckdb.DuckDBPyConnection) -> None:
+    """tab19/tab20 — óbitos por caso diagnosticado, por quartil de IVS e por sítio.
+
+    POR QUE ESTA TABELA EXISTE
+    ---------------------------
+    O gradiente invertido da mortalidade por câncer no Brasil já está descrito
+    (Barbosa et al., estudo ecológico em 268 municípios; revisão de 32 estudos
+    ecológicos 1998–2008). O que a literatura de mortalidade NÃO consegue fazer
+    é separar "menos câncer" de "menos diagnóstico" — é limite de desenho, não
+    de esforço. Esta tabela separa, porque traz um denominador que não vem do
+    SIM.
+
+    E O DENOMINADOR NÃO PODE SER A ESTIMATIVA DO INCA
+    --------------------------------------------------
+    Seria circular: a Estimativa de Incidência do INCA **deriva** incidência da
+    mortalidade, aplicando a razão I/M dos Registros de Câncer de Base
+    Populacional (e, onde não há registro, a mediana da razão da Região).
+    Confrontar a mortalidade com ela seria confrontar a mortalidade consigo
+    mesma. O Painel de Oncologia é contagem administrativa de quem entrou na
+    assistência oncológica do SUS — erra por outros motivos, e não pelo mesmo.
+
+    OS DOIS VIESES GRANDES EMPURRAM CONTRA O ACHADO
+    ------------------------------------------------
+    1. **Diagnóstico privado não entra no Painel, mas o óbito entra no SIM.**
+       Plano de saúde concentra-se nos municípios menos vulneráveis, o que
+       INFLA a razão de Q1. A coluna `vinculos_plano_por_100_hab` mede a
+       exposição a esse viés por quartil.
+    2. **Q1 é mais velho**, e idade sobe letalidade. Por isso a razão sai também
+       padronizada por idade, com a mesma população padrão dos dois lados.
+
+    Se o gradiente sobrevive aos dois, ele é piso, não estimativa.
+
+    O QUE ESTA TABELA NÃO É
+    ------------------------
+    Não é razão mortalidade/incidência. O Painel não é registro de câncer: não
+    cobre quem foi diagnosticado fora do SUS nem quem nunca chegou a serviço
+    algum, e o óbito de 2022 pode ser de caso diagnosticado antes da janela.
+    O que ela mede é **óbitos registrados por caso que a assistência oncológica
+    pública viu** — e é a comparação ENTRE quartis que carrega o argumento, não
+    o nível absoluto de nenhum deles.
+
+    O intervalo de confiança sai de `razao_taxas_ic`, que supõe as duas
+    contagens independentes. Elas não são: a mesma pessoa pode ser caso de 2022
+    e óbito de 2023. O intervalo entra por convenção e porque revisor pede, não
+    porque o erro amostral seja o que limita a leitura — com dezenas de milhares
+    de óbitos em cada quartil, ele é estreito de qualquer maneira, e o que
+    manda é o viés. Mesmo argumento de §2.9 do artigo.
+    """
+    a0, a1 = ANOS_RECENTE
+    mart = MARTS / "mart_oncologia_estadiamento.parquet"
+    if not mart.exists():
+        raise SystemExit(
+            f"{mart.relative_to(ROOT).as_posix()} não existe. Rode "
+            "`python scripts/pipeline_painel_oncologia.py --todos-os-anos`. "
+            "Seguir sem ele publicaria o gradiente invertido sem o denominador "
+            "que o interpreta.")
+
+    # O mart é reconstruído por sobrescrita, e uma corrida com `--anos` cobre só
+    # o que se pediu. Sem esta conferência, uma janela de três anos calculada
+    # sobre um ano de casos sairia com aparência normal — e a razão óbito/caso
+    # ficaria três vezes maior, no sentido do achado que se quer testar.
+    anos_mart = {int(a) for (a,) in con.execute(
+        f"select distinct ano from '{mart.as_posix()}'").fetchall()}
+    faltam = sorted(set(range(a0, a1 + 1)) - anos_mart)
+    if faltam:
+        raise SystemExit(
+            f"[deteccao] {mart.name} não cobre {faltam} — a janela do recorte é "
+            f"{a0}–{a1}. Rode `pipeline_painel_oncologia.py --todos-os-anos`.")
+
+    # ── denominador e numerador nas MESMAS sete faixas ───────────────────────
+    con.execute("""create table denom_q7 as
+      select q, case when fx in ('<1','1-4') then '0-4' else fx end fx, sum(py) py
+      from denom_q group by 1,2""")
+    con.execute(f"""create table ob_q7 as
+      select q, case when fx in ('<1','1-4') then '0-4' else fx end fx,
+             causabas_3, sum(ob) ob
+      from ob_q where causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'
+      group by 1,2,3""")
+
+    con.execute(f"""create table onco_bruto as
+      select i.ivs_quartil q, o.faixa_etaria fx, o.sitio, o.estadiam, sum(o.casos) casos
+      from '{mart.as_posix()}' o join ivs i using(municipio_cod)
+      where o.ano between {a0} and {a1}
+        and o.sitio between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'
+      group by 1,2,3,4""")
+
+    # A idade ilegível do Painel é redistribuída pro-rata dentro de quartil ×
+    # sítio, como os 241 óbitos sem idade do SIM (ver `obitos_idade_exata`). A
+    # fração vai para DECIMAL porque soma paralela em DOUBLE já produziu duas
+    # execuções com tabelas diferentes neste mesmo script.
+    con.execute("""create table onco_q7 as
+      with com as (select q, fx, sitio, sum(casos) casos from onco_bruto
+                   where fx <> 'ignorada' group by 1,2,3),
+      sem as (select q, sitio, sum(casos) casos from onco_bruto
+              where fx = 'ignorada' group by 1,2),
+      peso as (select c.q, c.fx, c.sitio,
+                      c.casos::decimal(18,6)
+                        / sum(c.casos) over (partition by c.q, c.sitio) fr
+               from com c)
+      select c.q, c.fx, c.sitio,
+             sum((c.casos + coalesce(s.casos, 0) * p.fr)::decimal(18,6)) casos
+      from com c
+        join peso p on p.q=c.q and p.fx=c.fx and p.sitio=c.sitio
+        left join sem s on s.q=c.q and s.sitio=c.sitio
+      group by 1,2,3""")
+
+    # Redistribuir não pode criar nem sumir com caso. Um sítio cujos casos
+    # fossem TODOS de idade ilegível não teria sobre o que se espalhar e
+    # evaporaria em silêncio — é isso que esta conta pega.
+    antes, depois = con.execute("""select
+        (select sum(casos) from onco_bruto),
+        (select sum(casos) from onco_q7)""").fetchone()
+    if abs(float(antes) - float(depois)) > 1:
+        raise SystemExit(
+            f"[deteccao] redistribuição de idade mudou o total de casos: "
+            f"{float(antes):,.0f} → {float(depois):,.0f}.")
+
+    def _razao(excluir: tuple[str, ...] = ()) -> pd.DataFrame:
+        """Razão óbito/caso por quartil, bruta e padronizada, sem os sítios dados."""
+        fora_ob = "".join(f" and o.causabas_3 <> '{s}'" for s in excluir)
+        fora_ca = "".join(f" and n.sitio <> '{s}'" for s in excluir)
+        return con.execute(f"""
+          with ob as (select o.q, o.fx, sum(o.ob) ob from ob_q7 o
+                      where true {fora_ob} group by 1,2),
+          ca as (select n.q, n.fx, sum(n.casos) casos from onco_q7 n
+                 where true {fora_ca} group by 1,2),
+          a as (select d.q, d.fx, d.py, coalesce(ob.ob,0) ob, coalesce(ca.casos,0) casos
+                from denom_q7 d
+                  left join ob on ob.q=d.q and ob.fx=d.fx
+                  left join ca on ca.q=d.q and ca.fx=d.fx)
+          select a.q quartil_ivs, sum(a.ob) obitos, sum(a.casos) casos,
+                 sum(a.ob)/nullif(sum(a.casos),0) bruta,
+                 (sum(a.ob/a.py*w.w)/sum(w.w))
+                   /nullif(sum(a.casos/a.py*w.w)/sum(w.w),0) padronizada
+          from a join padrao w on w.fx=a.fx group by 1 order by 1""").df()
+
+    base = _razao()
+    sem_c44 = _razao(("C44",))
+    sem_c44_c80 = _razao(("C44", "C80"))
+
+    est = con.execute("""
+      select q quartil_ivs, sum(casos) casos_est,
+             sum(case when estadiam in ('0','1','2','3','4') then casos else 0 end) com_estadio,
+             sum(case when estadiam in ('3','4') then casos else 0 end) est_3_4
+      from onco_bruto group by 1 order by 1""").df()
+
+    plano = con.execute(f"""
+      with p as (select municipio_cod, vinculos_plano_por_100_hab v
+                 from '{(MARTS / 'mart_contexto_social_municipio.parquet').as_posix()}'),
+      pop as (select municipio_cod, sum(populacao) pop from pop_mun_fx group by 1)
+      select i.ivs_quartil quartil_ivs,
+             sum(p.v * pop.pop) / nullif(sum(pop.pop), 0) plano_por_100_hab
+      from ivs i join p using(municipio_cod) join pop using(municipio_cod)
+      where p.v is not null group by 1 order by 1""").df()
+
+    tab = base.merge(sem_c44[["quartil_ivs", "bruta"]], on="quartil_ivs",
+                     suffixes=("", "_sem_c44"))
+    tab = tab.merge(sem_c44_c80[["quartil_ivs", "bruta"]], on="quartil_ivs",
+                    suffixes=("", "_sem_c44_c80"))
+    tab = tab.merge(est, on="quartil_ivs").merge(plano, on="quartil_ivs")
+
+    ic = [razao_taxas_ic(float(r.obitos), 1.0, float(r.casos), 1.0)
+          for r in tab.itertuples()]
+    saida = pd.DataFrame({
+        "quartil_ivs": tab.quartil_ivs,
+        "obitos_C00_C97": tab.obitos.round().astype("int64"),
+        "casos_painel_C00_C97": tab.casos.round().astype("int64"),
+        "obitos_por_caso": tab.bruta.astype(float).round(4),
+        "ic95_inferior": [round(i[1], 4) for i in ic],
+        "ic95_superior": [round(i[2], 4) for i in ic],
+        "obitos_por_caso_padronizado": tab.padronizada.astype(float).round(4),
+        "obitos_por_caso_sem_C44": tab.bruta_sem_c44.astype(float).round(4),
+        "obitos_por_caso_sem_C44_C80": tab.bruta_sem_c44_c80.astype(float).round(4),
+        "pct_casos_com_estadio_0_4": (100 * tab.com_estadio / tab.casos_est).astype(float).round(1),
+        "pct_estadio_III_IV_entre_informados":
+            (100 * tab.est_3_4 / tab.com_estadio).astype(float).round(1),
+        "vinculos_plano_por_100_hab": tab.plano_por_100_hab.astype(float).round(1),
+    })
+    escrever(saida, "tab19_obito_por_caso_vulnerabilidade")
+
+    q1, q4 = saida.iloc[0], saida.iloc[-1]
+    print(f"  óbitos por caso: Q1 {q1.obitos_por_caso:.3f} "
+          f"[{q1.ic95_inferior:.3f}–{q1.ic95_superior:.3f}] vs "
+          f"Q4 {q4.obitos_por_caso:.3f} "
+          f"[{q4.ic95_inferior:.3f}–{q4.ic95_superior:.3f}] — "
+          f"{100*(q4.obitos_por_caso/q1.obitos_por_caso-1):+.0f}%")
+    print(f"  padronizada por idade: Q1 {q1.obitos_por_caso_padronizado:.3f} vs "
+          f"Q4 {q4.obitos_por_caso_padronizado:.3f} — "
+          f"{100*(q4.obitos_por_caso_padronizado/q1.obitos_por_caso_padronizado-1):+.0f}%")
+    print(f"  sem C44 e C80: Q1 {q1.obitos_por_caso_sem_C44_C80:.3f} vs "
+          f"Q4 {q4.obitos_por_caso_sem_C44_C80:.3f} — "
+          f"{100*(q4.obitos_por_caso_sem_C44_C80/q1.obitos_por_caso_sem_C44_C80-1):+.0f}%")
+    print(f"  plano de saúde por 100 hab: Q1 {q1.vinculos_plano_por_100_hab} vs "
+          f"Q4 {q4.vinculos_plano_por_100_hab}")
+    print(f"  estadiamento informado: Q1 {q1.pct_casos_com_estadio_0_4}% vs "
+          f"Q4 {q4.pct_casos_com_estadio_0_4}%")
+
+    sitio = con.execute("""
+      with ob as (select q, causabas_3 sitio, sum(ob) ob from ob_q7 group by 1,2),
+      ca as (select q, sitio, sum(casos) casos from onco_q7 group by 1,2),
+      j as (select coalesce(ob.q, ca.q) q, coalesce(ob.sitio, ca.sitio) sitio,
+                   coalesce(ob.ob,0) ob, coalesce(ca.casos,0) casos
+            from ob full join ca on ca.q=ob.q and ca.sitio=ob.sitio),
+      tot as (select sitio, sum(ob) ob, sum(casos) casos from j group by 1)
+      select j.sitio, trim(regexp_replace(c.descricao, '^C[0-9]+\\s+', '')) rotulo,
+             t.ob obitos, t.casos casos,
+             max(case when j.q='Q1' then j.ob/nullif(j.casos,0) end) ob_por_caso_Q1,
+             max(case when j.q='Q4' then j.ob/nullif(j.casos,0) end) ob_por_caso_Q4
+      from j join tot t using(sitio) left join cat c on c.causabas_3=j.sitio
+      where t.ob >= 8000
+      group by 1,2,3,4""").df()
+    sitio["razao_Q4_Q1"] = (sitio.ob_por_caso_Q4.astype(float)
+                            / sitio.ob_por_caso_Q1.astype(float))
+    for col in ("ob_por_caso_Q1", "ob_por_caso_Q4", "razao_Q4_Q1"):
+        sitio[col] = sitio[col].astype(float).round(3)
+    sitio["obitos"] = sitio.obitos.round().astype("int64")
+    sitio["casos"] = sitio.casos.round().astype("int64")
+    sitio["grupo_deteccao"] = sitio.sitio.map(
+        lambda s: "depende de detecção" if s in SITIOS_DEPENDENTES_DE_DETECCAO
+        else "apresentação clínica" if s in SITIOS_DE_APRESENTACAO_CLINICA
+        else "fora do contraste" if s in SITIOS_FORA_DO_CONTRASTE
+        else "não classificado")
+    escrever(sitio.sort_values(["razao_Q4_Q1", "sitio"], ascending=[False, True]),
+             "tab20_obito_por_caso_sitio")
+
+    # O TESTE QUE SEPARA SUB-REGISTRO DE DETECÇÃO. Ver a justificativa em
+    # `SITIOS_DEPENDENTES_DE_DETECCAO`, escrita antes destes números existirem.
+    # Papelada não sabe distinguir pâncreas de mama; detecção sabe.
+    grupos = (sitio[sitio.grupo_deteccao.isin(["depende de detecção",
+                                               "apresentação clínica"])]
+              .groupby("grupo_deteccao")
+              .agg(sitios=("sitio", "count"),
+                   mediana_razao=("razao_Q4_Q1", "median"),
+                   obitos=("obitos", "sum"))
+              .reset_index()
+              .sort_values("grupo_deteccao"))
+    escrever(grupos, "tab21_contraste_deteccao")
+    for r in grupos.itertuples():
+        print(f"  {r.grupo_deteccao}: {r.sitios} sítios, "
+              f"razão Q4/Q1 mediana {r.mediana_razao:.3f}")
+
+
 def social(con: duckdb.DuckDBPyConnection) -> None:
     """tab10–tab14 — cor/raça, escolaridade e local do óbito (2022–2023)."""
     arquivos = [RAW / f"DO{str(a)[2:]}OPEN.csv" for a in ANOS_SOCIAL]
@@ -1179,6 +1473,8 @@ def main() -> None:
     territorio(con)
     print("\n=== 8. vulnerabilidade municipal ===")
     vulnerabilidade(con)
+    print("\n=== 8b. óbitos por caso diagnosticado (Painel de Oncologia) ===")
+    deteccao(con)
     print("\n=== 9. eixo social (microdado 2022–2023) ===")
     social(con)
     print("\n=== 10. números de enquadramento ===")

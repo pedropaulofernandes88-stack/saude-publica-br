@@ -16,11 +16,16 @@ import pandas as pd
 import pytest
 
 from scripts.pipeline_painel_oncologia import (
+    FAIXA_IGNORADA,
     PRAZO_LEGAL_DIAS,
     SENTINELA_TEMPO,
+    Estadiamento,
+    _faixa,
     _tempo,
     agregar,
+    guarda_nao_encolher,
     guardas,
+    guardas_estadiamento,
 )
 
 
@@ -173,3 +178,149 @@ def test_guarda_pega_faixas_que_nao_somam_com_tratamento():
 def test_guarda_reprova_agregacao_vazia():
     with pytest.raises(SystemExit, match="vazia"):
         guardas(pd.DataFrame())
+
+
+# ── estadiamento: a ausência é maioria, e não pode virar filtro ─────────────
+#
+# O campo ESTADIAM é 51,0% '9', 19,0% '5' e 5,0% vazio em POBR2023 — só 24,9%
+# dos casos trazem estádio 0–4. Um mart que já chegasse com "avançado sim/não"
+# publicaria a completude do preenchimento como se fosse estágio da doença.
+
+def caso_est(**kw):
+    base = {"MUN_RESID": "431630", "ANO_DIAGN": "2024", "TRATAMENTO": "1",
+            "TEMPO_TRAT": "+0030", "DIAG_DETH": "C50", "IDADE": "070",
+            "ESTADIAM": "2"}
+    base.update(kw)
+    return base
+
+
+@pytest.mark.parametrize(("valor", "esperado"), [
+    ("000", "0-4"), ("004", "0-4"), ("005", "5-14"), ("014", "5-14"),
+    ("015", "15-29"), ("029", "15-29"), ("030", "30-44"), ("044", "30-44"),
+    ("045", "45-59"), ("059", "45-59"), ("060", "60-74"), ("074", "60-74"),
+    ("075", "75+"), ("070", "60-74"), ("130", "75+"),
+])
+def test_faixa_etaria_respeita_os_limites_do_projeto(valor, esperado):
+    assert _faixa(valor) == esperado
+
+
+@pytest.mark.parametrize("valor", ["", "   ", None, "abc", "999", "131"])
+def test_idade_ilegivel_vira_categoria_e_nao_descarte(valor):
+    """Idade impossível não some: vira faixa própria, como `sem_tratamento`."""
+    assert _faixa(valor) == FAIXA_IGNORADA
+
+
+def test_estadiamento_guarda_o_valor_bruto_sem_traduzir():
+    """'9' e '' são preservados. Traduzir aqui esconderia a completude."""
+    est = Estadiamento()
+    for v in ("0", "4", "5", "9", ""):
+        est(caso_est(ESTADIAM=v))
+    df = est.df(2024)
+    assert sorted(df["estadiam"]) == ["", "0", "4", "5", "9"]
+    assert df["casos"].sum() == 5
+
+
+def test_estadiamento_agrega_pela_chave_completa():
+    est = Estadiamento()
+    est(caso_est())
+    est(caso_est())
+    est(caso_est(DIAG_DETH="C53"))
+    est(caso_est(IDADE="030"))
+    df = est.df(2024)
+    assert len(df) == 3
+    assert int(df[df["sitio"] == "C50"]["casos"].max()) == 2
+
+
+def test_sitio_vem_do_cid_truncado_em_tres():
+    est = Estadiamento()
+    est(caso_est(DIAG_DETH="C50.9"))
+    assert est.df(2024)["sitio"].tolist() == ["C50"]
+
+
+def test_registro_sem_sitio_e_descartado_e_contado():
+    """Descarte que ninguém conta é o modo silencioso de encolher um mart."""
+    est = Estadiamento()
+    est(caso_est())
+    est(caso_est(DIAG_DETH=""))
+    df = est.df(2024)
+    assert int(df["casos"].sum()) == 1
+    assert est.descartados == 1
+    assert est.lidos == 2
+
+
+def test_guarda_pega_registro_que_sumiu_sem_ser_descartado():
+    est = Estadiamento()
+    est(caso_est())
+    est.lidos += 3          # simula três registros perdidos por um `continue`
+    with pytest.raises(SystemExit, match="mas leu"):
+        est.df(2024)
+
+
+def test_ano_divergente_aborta_tambem_no_estadiamento():
+    est = Estadiamento()
+    est(caso_est(ANO_DIAGN="2023"))
+    with pytest.raises(SystemExit, match="ANO_DIAGN diferente"):
+        est.df(2024)
+
+
+def test_agregar_entrega_ao_coletor_ate_o_que_ele_proprio_descarta():
+    """O gancho existe para ler o arquivo UMA vez; ele não pode filtrar antes.
+
+    `agregar` descarta município inválido. Se o descarte acontecesse antes do
+    gancho, o mart de estadiamento herdaria silenciosamente o critério do outro
+    — e os dois deixariam de ser auditáveis separadamente.
+    """
+    vistos = []
+    agregar([caso_est(), caso_est(MUN_RESID="XXX")], 2024, tambem=vistos.append)
+    assert len(vistos) == 2
+
+
+def test_guarda_reprova_estadiamento_com_mais_casos_que_o_prazo():
+    prazo = agregar([caso_est()], 2024)
+    est = Estadiamento()
+    est(caso_est())
+    est(caso_est())
+    with pytest.raises(SystemExit, match="não pode ter mais"):
+        guardas_estadiamento(est.df(2024), prazo)
+
+
+def test_guarda_reprova_faixa_etaria_desconhecida():
+    prazo = agregar([caso_est()], 2024)
+    est = Estadiamento()
+    est(caso_est())
+    ruim = est.df(2024)
+    ruim.loc[0, "faixa_etaria"] = "18-65"
+    with pytest.raises(SystemExit, match="faixas etárias desconhecidas"):
+        guardas_estadiamento(ruim, prazo)
+
+
+def test_guarda_reprova_estadiamento_vazio():
+    with pytest.raises(SystemExit, match="estadiamento vazia"):
+        guardas_estadiamento(pd.DataFrame(), pd.DataFrame({"casos": [1]}))
+
+
+# ── a gravação é sobrescrita, e sobrescrita encolhe ─────────────────────────
+
+def test_guarda_recusa_encolher_o_mart(tmp_path):
+    """`--anos 2023` reduzia um mart de 14 anos a um, com exit 0."""
+    destino = tmp_path / "m.parquet"
+    pd.DataFrame({"ano": [2022, 2023, 2024], "casos": [1, 1, 1]}).to_parquet(destino)
+    with pytest.raises(SystemExit, match=r"perderia \[2022, 2024\]"):
+        guarda_nao_encolher(pd.DataFrame({"ano": [2023], "casos": [1]}), destino, False)
+
+
+def test_guarda_deixa_passar_o_recorte_declarado(tmp_path):
+    destino = tmp_path / "m.parquet"
+    pd.DataFrame({"ano": [2022, 2023], "casos": [1, 1]}).to_parquet(destino)
+    guarda_nao_encolher(pd.DataFrame({"ano": [2023], "casos": [1]}), destino, True)
+
+
+def test_guarda_deixa_passar_quando_nao_perde_ano(tmp_path):
+    destino = tmp_path / "m.parquet"
+    pd.DataFrame({"ano": [2022], "casos": [1]}).to_parquet(destino)
+    guarda_nao_encolher(pd.DataFrame({"ano": [2022, 2023], "casos": [1, 1]}), destino, False)
+
+
+def test_guarda_nao_reprova_primeira_gravacao(tmp_path):
+    guarda_nao_encolher(pd.DataFrame({"ano": [2023], "casos": [1]}),
+                        tmp_path / "nao_existe.parquet", False)

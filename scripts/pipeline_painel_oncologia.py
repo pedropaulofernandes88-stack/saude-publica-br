@@ -5,9 +5,28 @@ pipeline_painel_oncologia.py — o prazo da Lei dos 60 dias, por município
     .venv311/Scripts/python scripts/pipeline_painel_oncologia.py --anos 2024
     .venv311/Scripts/python scripts/pipeline_painel_oncologia.py --todos-os-anos
 
-Produz `data/marts/mart_oncologia_municipio.parquet` no grão
-**município de residência × ano de diagnóstico**, a partir do Painel Oncologia
-do DataSUS (FTP, `painel_oncologia/Dados/POBR<ano>.dbc`).
+Produz dois marts a partir do Painel Oncologia do DataSUS (FTP,
+`painel_oncologia/Dados/POBR<ano>.dbc`), numa passada só sobre cada arquivo:
+
+* `mart_oncologia_municipio.parquet` — **município de residência × ano de
+  diagnóstico**, com o indicador da Lei dos 60 dias;
+* `mart_oncologia_estadiamento.parquet` — **município × ano × sítio (CID-10 de
+  3 caracteres) × faixa etária × estadiamento bruto**.
+
+PARA QUE SERVE O SEGUNDO MART
+------------------------------
+Ele é o denominador que o SIM não tem. Mortalidade sozinha não separa "menos
+câncer" de "menos diagnóstico", e a saída usual — comparar com a incidência
+estimada do INCA — é circular: a Estimativa do INCA **deriva** incidência da
+mortalidade, pela razão I/M dos Registros de Câncer de Base Populacional. O
+Painel é contagem administrativa de quem entrou na assistência oncológica do
+SUS; erra por outros motivos, e não pelo mesmo.
+
+A GRAVAÇÃO É SOBRESCRITA, NÃO UPSERT
+-------------------------------------
+`out` vira o arquivo inteiro. Foi assim que uma corrida de teste com
+`--anos 2023` reduziu, com exit 0, um mart de 2013–2026 a um único ano. Daí
+`guarda_nao_encolher`: perder ano exige `--permitir-encolher` escrito à mão.
 
 O INDICADOR, E DE ONDE VEM O LIMIAR
 ------------------------------------
@@ -65,7 +84,18 @@ Por isso o mart traz os NÚMEROS ABSOLUTOS ao lado dos percentuais: `casos`,
 O QUE ESTE MART NÃO É
 ---------------------
 * Não é incidência de câncer. O Painel cobre a assistência oncológica
-  registrada no SUS; quem não chegou ao SUS não está aqui.
+  registrada no SUS; quem não chegou ao SUS não está aqui. A omissão NÃO é
+  uniforme no território: onde há mais plano de saúde, mais diagnóstico
+  acontece fora do SUS. Quem usar o Painel como denominador precisa dizer para
+  que lado isso empurra o resultado.
+* O estadiamento é majoritariamente ausente — 51,0% `'9'` e 5,0% vazio em
+  POBR2023, com só 24,9% dos casos entre os estádios 0 e 4. Na escala de
+  completude usada pela literatura brasileira de registros de câncer, isso é
+  "muito ruim" (ausência ≥ 50%). Distribuição de estádio publicada sem a
+  completude ao lado mede preenchimento, não doença.
+* O Painel inclui `D00–D48` (`D48` é o segundo sítio mais frequente de 2023).
+  Cruzar com mortalidade por neoplasia MALIGNA exige filtrar `C00–C97` nos dois
+  lados; o mart não filtra sozinho.
 * `sem_tratamento` não é "não tratou": é "sem tratamento REGISTRADO no
   período do arquivo". Tratamento iniciado no ano seguinte cai no arquivo
   seguinte, e o Painel é reprocessado.
@@ -79,6 +109,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Callable
 from pathlib import Path
 
 import pandas as pd
@@ -106,6 +137,34 @@ COD_SEM_TRATAMENTO = "5"
 #: Sentinela de ausência no campo de duração. NUNCA entra num cálculo de tempo.
 SENTINELA_TEMPO = 99999
 
+#: Faixas etárias do projeto, iguais às da mortalidade. Repetidas aqui — e não
+#: importadas de `_sim_obitos` — porque aquele módulo devolve SQL para DuckDB e
+#: este agrega em Python, registro a registro. Se as duas listas divergirem, a
+#: razão óbito/caso passa a comparar faixas diferentes nas duas pontas, que é o
+#: erro que nenhuma soma acusa.
+FAIXAS = ((5, "0-4"), (15, "5-14"), (30, "15-29"), (45, "30-44"),
+          (60, "45-59"), (75, "60-74"), (999, "75+"))
+
+#: Idade acima da qual o valor deixa de ser idade. O Painel traz `IDADE` em anos
+#: com três dígitos, e um campo de três dígitos aceita 999 sem reclamar.
+IDADE_MAXIMA = 130
+
+#: Rótulo da faixa quando `IDADE` não é legível. Existe como categoria, e não
+#: como descarte, pela mesma razão de `sem_tratamento`: ausência que vira filtro
+#: silencioso muda o denominador de quem vier depois.
+FAIXA_IGNORADA = "ignorada"
+
+
+def _faixa(valor: object) -> str:
+    """Faixa etária do projeto a partir de `IDADE`, ou `FAIXA_IGNORADA`."""
+    t = str(valor or "").strip().lstrip("+")
+    if not t.isdigit():
+        return FAIXA_IGNORADA
+    idade = int(t)
+    if idade > IDADE_MAXIMA:
+        return FAIXA_IGNORADA
+    return next(rotulo for teto, rotulo in FAIXAS if idade < teto)
+
 
 def _tempo(valor: object) -> int | None:
     """Dias entre diagnóstico e tratamento, ou `None`.
@@ -126,15 +185,91 @@ def _tempo(valor: object) -> int | None:
     return None if v == SENTINELA_TEMPO else v
 
 
-def agregar(registros, ano_arquivo: int) -> pd.DataFrame:
+class Estadiamento:
+    """Casos por município × ano × sítio × faixa etária × estadiamento BRUTO.
+
+    Acumulador, e não função, porque roda na MESMA passada de `agregar`: o .dbc
+    de um ano leva minutos para descomprimir e percorrer, e ler o arquivo duas
+    vezes para produzir dois marts do mesmo dado dobraria o custo sem trocar
+    nada em retorno.
+
+    O estadiamento entra **como veio**, sem tradução. Medido em POBR2023, o campo
+    é 51,0% `'9'`, 19,0% `'5'` e 5,0% vazio — só 24,9% dos casos trazem um
+    estádio de 0 a 4. Um mart que já chegasse com `estadio_avancado` embutido
+    esconderia essa proporção dentro de um denominador, e quem consumisse leria
+    "8% em estádio IV" como fato sobre a doença quando é fato sobre o
+    preenchimento. A interpretação mora em quem analisa, e o mart carrega a
+    ausência em categoria própria — mesma decisão de `sem_tratamento`.
+
+    O sítio vem de `DIAG_DETH` (CID-10) truncado em três caracteres. Note que o
+    Painel inclui `D00–D48` — `D48` é o segundo sítio mais frequente de 2023,
+    com 68.440 casos. Quem cruzar este mart com mortalidade por neoplasia
+    MALIGNA precisa filtrar `C00–C97` dos dois lados; o mart não filtra por
+    conta própria, porque o recorte é decisão de quem pergunta.
+    """
+
+    def __init__(self) -> None:
+        self.acc: dict[tuple[str, int, str, str, str], int] = {}
+        self.lidos = 0
+        self.descartados = 0
+
+    def __call__(self, r: dict) -> None:
+        self.lidos += 1
+        cod = str(r.get("MUN_RESID") or "").strip()
+        sitio = str(r.get("DIAG_DETH") or "").strip().upper()[:3]
+        try:
+            ano = int(str(r.get("ANO_DIAGN") or "").strip())
+        except ValueError:
+            self.descartados += 1
+            return
+        if len(cod) != 6 or not cod.isdigit() or len(sitio) != 3:
+            self.descartados += 1
+            return
+        chave = (cod, ano, sitio, _faixa(r.get("IDADE")),
+                 str(r.get("ESTADIAM") or "").strip())
+        self.acc[chave] = self.acc.get(chave, 0) + 1
+
+    def df(self, ano_arquivo: int) -> pd.DataFrame:
+        linhas = [{"municipio_cod": c, "ano": a, "sitio": s, "faixa_etaria": f,
+                   "estadiam": e, "casos": n}
+                  for (c, a, s, f, e), n in self.acc.items()]
+        df = pd.DataFrame(linhas)
+        if df.empty:
+            return df
+        # Nenhum registro some sem ser contado: o que entrou é o que foi
+        # agregado mais o que foi explicitamente descartado. Sem esta conta, um
+        # `continue` a mais numa revisão futura encolheria o mart em silêncio.
+        if int(df["casos"].sum()) + self.descartados != self.lidos:
+            raise SystemExit(
+                f"[oncologia] POBR{ano_arquivo}: estadiamento agregou "
+                f"{int(df['casos'].sum()):,} + descartou {self.descartados:,}, "
+                f"mas leu {self.lidos:,} registros.")
+        fora = df[df["ano"] != ano_arquivo]
+        if len(fora):
+            raise SystemExit(
+                f"[oncologia] POBR{ano_arquivo}: {len(fora)} linhas de estadiamento "
+                f"com ANO_DIAGN diferente de {ano_arquivo}.")
+        return (df.sort_values(["municipio_cod", "ano", "sitio", "faixa_etaria", "estadiam"])
+                  .reset_index(drop=True))
+
+
+def agregar(registros, ano_arquivo: int,
+            tambem: Callable[[dict], None] | None = None) -> pd.DataFrame:
     """Município de residência × ano de diagnóstico.
 
     Residência, e não local de tratamento: o indicador é sobre o acesso da
     POPULAÇÃO daquele município. Quem mora em cidade pequena e é tratado na
     capital conta para a cidade pequena, que é onde a fila dele existe.
+
+    `tambem` recebe cada registro ANTES de qualquer descarte desta agregação, e
+    existe para que `Estadiamento` leia o mesmo arquivo na mesma passada. Os
+    critérios de descarte dos dois são independentes de propósito: este exige
+    município válido, aquele exige também um sítio de três caracteres.
     """
     acc: dict[tuple[str, int], dict] = {}
     for r in registros:
+        if tambem is not None:
+            tambem(r)
         cod = str(r.get("MUN_RESID") or "").strip()
         if len(cod) != 6 or not cod.isdigit():
             continue
@@ -229,6 +364,60 @@ def guardas(df: pd.DataFrame) -> None:
             raise SystemExit(f"[oncologia] {len(mau)} linhas com {col} fora de 0–100.")
 
 
+def guarda_nao_encolher(novo: pd.DataFrame, destino: Path, permitido: bool) -> None:
+    """Recusa gravar por cima de um mart que cobre anos que esta corrida não cobre.
+
+    A gravação aqui é SOBRESCRITA, não upsert: `out` vira o arquivo inteiro. Com
+    isso `--anos 2023` reduzia silenciosamente um mart de 2013–2026 a um ano só,
+    com exit 0 e a mesma aparência de sucesso. Aconteceu de verdade em
+    2026-09-07, numa corrida de teste, e só não virou dado publicado porque
+    havia cópia.
+
+    O mart não tem chave primária em `schema.sql` (não é servido), então
+    `acumular_parquet` não se aplica; a proteção possível é esta — reprovar o
+    encolhimento em vez de confiar em quem digita o comando. Rebuild parcial
+    legítimo existe, e por isso a saída é uma flag explícita, não um bloqueio.
+    """
+    if permitido or not destino.exists() or novo.empty:
+        return
+    try:
+        anos_antes = set(pd.read_parquet(destino, columns=["ano"])["ano"].unique())
+    except (OSError, ValueError, KeyError):
+        return
+    perdidos = sorted(int(a) for a in anos_antes - set(novo["ano"].unique()))
+    if perdidos:
+        raise SystemExit(
+            f"[oncologia] {destino.name} cobre {len(anos_antes)} anos e esta corrida "
+            f"cobre {novo['ano'].nunique()}; gravar perderia {perdidos}. Rode com "
+            "--todos-os-anos, ou repita com --permitir-encolher se o recorte é intencional.")
+
+
+def guardas_estadiamento(est: pd.DataFrame, prazo: pd.DataFrame) -> None:
+    """Aborta antes de gravar o mart de estadiamento."""
+    if est.empty:
+        raise SystemExit("[oncologia] agregação de estadiamento vazia — não grava.")
+
+    if (est["casos"] <= 0).any():
+        raise SystemExit("[oncologia] estadiamento com contagem de casos não positiva.")
+
+    if est["sitio"].str.len().ne(3).any():
+        raise SystemExit("[oncologia] estadiamento com sítio fora do formato de 3 caracteres.")
+
+    validas = {r for _, r in FAIXAS} | {FAIXA_IGNORADA}
+    fora = sorted(set(est["faixa_etaria"]) - validas)
+    if fora:
+        raise SystemExit(f"[oncologia] faixas etárias desconhecidas no estadiamento: {fora}.")
+
+    # Os dois marts saem da mesma passada e descartam por critérios diferentes:
+    # o de prazo exige município válido, o de estadiamento exige também sítio.
+    # O de estadiamento só pode ter MENOS casos, nunca mais. Se tiver mais,
+    # alguém contou o mesmo registro duas vezes.
+    if int(est["casos"].sum()) > int(prazo["casos"].sum()):
+        raise SystemExit(
+            f"[oncologia] estadiamento tem {int(est['casos'].sum()):,} casos contra "
+            f"{int(prazo['casos'].sum()):,} do mart de prazo — não pode ter mais.")
+
+
 def main() -> None:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -236,6 +425,8 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Mart do Painel Oncologia (Lei dos 60 dias).")
     ap.add_argument("--anos", nargs="+", type=int)
     ap.add_argument("--todos-os-anos", action="store_true")
+    ap.add_argument("--permitir-encolher", action="store_true",
+                    help="grava mesmo que o mart resultante perca anos já existentes")
     args = ap.parse_args()
 
     anos = ANOS if args.todos_os_anos else (args.anos or [])
@@ -243,6 +434,7 @@ def main() -> None:
         ap.error("informe --anos ou --todos-os-anos")
 
     partes: list[pd.DataFrame] = []
+    partes_est: list[pd.DataFrame] = []
     ausentes: list[int] = []
     for ano in sorted(anos):
         nome = f"POBR{ano}.dbc"
@@ -258,11 +450,16 @@ def main() -> None:
             # falta um ano inteiro, com aparência de completo.
             raise SystemExit(f"[oncologia] {nome} existe e a coleta falhou: {e}") from e
 
-        df = agregar(registros_dbc(dados, f"POBR{ano}"), ano)
+        est = Estadiamento()
+        df = agregar(registros_dbc(dados, f"POBR{ano}"), ano, tambem=est)
+        df_est = est.df(ano)
         partes.append(df)
+        partes_est.append(df_est)
+        com_estadio = df_est[df_est["estadiam"].isin(list("01234"))]["casos"].sum()
         print(f"   {nome}: {df['casos'].sum():,} casos · "
               f"{df['municipio_cod'].nunique():,} municípios · "
-              f"{df['sem_tratamento'].sum() / df['casos'].sum() * 100:.1f}% sem tratamento",
+              f"{df['sem_tratamento'].sum() / df['casos'].sum() * 100:.1f}% sem tratamento · "
+              f"{com_estadio / df_est['casos'].sum() * 100:.1f}% com estádio 0–4",
               flush=True)
 
     if not partes:
@@ -284,10 +481,26 @@ def main() -> None:
           "censurado (tratamento ainda não ocorreu) e há descontinuidade de escopo "
           "do Painel em 2018. Use os absolutos ao lado.")
 
+    out_est = pd.concat(partes_est, ignore_index=True)
+    guardas_estadiamento(out_est, out)
+    com_estadio = out_est[out_est["estadiam"].isin(list("01234"))]["casos"].sum()
+    print(f"\n[estadiamento] {len(out_est):,} linhas município×ano×sítio×faixa×estádio")
+    print(f"[estadiamento] com estádio 0–4: {com_estadio:,} de "
+          f"{out_est['casos'].sum():,} casos ({com_estadio / out_est['casos'].sum() * 100:.1f}%)")
+    print("[nota] o estádio NÃO informado é maioria. Qualquer distribuição de "
+          "estádio precisa publicar a completude ao lado, ou estará medindo "
+          "preenchimento e chamando de doença.")
+
     MARTS.mkdir(parents=True, exist_ok=True)
+    guarda_nao_encolher(out, MARTS / "mart_oncologia_municipio.parquet", args.permitir_encolher)
+    guarda_nao_encolher(out_est, MARTS / "mart_oncologia_estadiamento.parquet",
+                        args.permitir_encolher)
     escrever_parquet(out, MARTS / "mart_oncologia_municipio.parquet",
                      origem="pipeline", produtor="scripts/pipeline_painel_oncologia.py")
     print(f"[ok] mart_oncologia_municipio.parquet em {MARTS}")
+    escrever_parquet(out_est, MARTS / "mart_oncologia_estadiamento.parquet",
+                     origem="pipeline", produtor="scripts/pipeline_painel_oncologia.py")
+    print(f"[ok] mart_oncologia_estadiamento.parquet em {MARTS}")
 
 
 if __name__ == "__main__":
