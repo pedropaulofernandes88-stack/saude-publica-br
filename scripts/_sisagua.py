@@ -85,14 +85,20 @@ class FalhaDeColeta(RuntimeError):
 
 @dataclass
 class Fatia:
-    """O resultado de uma fatia UF × ano, com a distinção que importa preservada."""
+    """O resultado de uma fatia, com a distinção que importa preservada.
+
+    `municipio` preenchido = fatia por código IBGE, que é a estratégia que
+    FUNCIONA. Ver `coletar_por_municipio`.
+    """
     uf: str
     ano: int
     registros: list[dict]
     paginas: int
     #: `True` quando a fonte respondeu 200 e devolveu zero linhas. É um FATO
-    #: sobre o recorte — aquela UF não reportou naquele ano —, não um erro.
+    #: sobre o recorte — aquele município não reportou —, não um erro.
     vazia_de_fato: bool
+    #: Código IBGE, quando a fatia é por município (a estratégia que funciona).
+    municipio: str | None = None
 
 
 @dataclass
@@ -106,7 +112,7 @@ class Relatorio:
 
     @property
     def vazias(self) -> list[tuple[str, int]]:
-        return [(f.uf, f.ano) for f in self.fatias if f.vazia_de_fato]
+        return [(f.municipio or f.uf, f.ano) for f in self.fatias if f.vazia_de_fato]
 
 
 def _get(endpoint: str, params: dict[str, object]) -> list[dict]:
@@ -213,6 +219,91 @@ def coletar_fatia(endpoint: str, uf: str, ano: int, campo_ano: str = "ano_de_ref
     if usar_cache:
         gravar_cache(endpoint, f)
     return f
+
+
+def coletar_fatia_municipio(endpoint: str, codigo: str, uf: str,
+                            quieto: bool = False, usar_cache: bool = True) -> Fatia:
+    """Todas as páginas de UM município, por `codigo_ibge`.
+
+    POR QUE POR MUNICÍPIO, E NÃO POR UF × ANO
+    ------------------------------------------
+    Porque `uf` NÃO TEM ÍNDICE nesta API, e `codigo_ibge` tem. O docstring do
+    `preflight` já registrava a medição desde 2026-09-06, e ninguém a aplicou
+    ao coletor: ele continuou fatiando por `uf`, a forma medida como quebrada.
+    Remedido em 2026-09-08, mesmo endpoint, `limit=1000`:
+
+        sem filtro,            offset 0 ...... 200,  4,6 s
+        uf=AC,                 offset 0 ...... 502, 60,2 s
+        uf=AC + ano=2020,      offset 0 ...... 502, 60,2 s
+        codigo_ibge=355030,    offset 0 ...... 200,  5,6 s
+        codigo_ibge=355030,    offset 1000 ... 200, 15,7 s
+        codigo_ibge=120040,    offset 0 ...... 200,  1,5 s
+
+    Não foi instabilidade passageira do proxy: as duas coletas que abortaram
+    (2026-09-08, madrugada) morreram na PRIMEIRA fatia, e o preflight passava
+    logo antes — porque o preflight testa `codigo_ibge` e a coleta usava `uf`.
+    Portão e coleta exercitavam caminhos diferentes, e o portão dizia "OK" sobre
+    algo que a coleta não fazia.
+
+    Fatiar por município ainda mantém o `offset` raso, que é a outra razão de o
+    502 aparecer: o custo do offset cresce com a profundidade.
+    """
+    if usar_cache:
+        em_disco = ler_cache(endpoint, codigo, 0)
+        if em_disco is not None:
+            return em_disco
+
+    registros: list[dict] = []
+    offset = 0
+    paginas = 0
+    while True:
+        lote = _get(endpoint, {"codigo_ibge": codigo, "limit": PAGINA, "offset": offset})
+        registros.extend(lote)
+        paginas += 1
+        if len(lote) < PAGINA:
+            break
+        offset += PAGINA
+    f = Fatia(uf=uf, ano=0, registros=registros, paginas=paginas,
+              vazia_de_fato=not registros, municipio=codigo)
+    if usar_cache:
+        gravar_cache(endpoint, f)
+    return f
+
+
+def coletar_por_municipio(endpoint: str, municipios: list[tuple[str, str]],
+                          quieto: bool = False, acumular: bool = True) -> Relatorio:
+    """Percorre municípios (código, UF). Qualquer fatia que falhe interrompe TUDO.
+
+    Mesma regra de sempre — fatia que falha não pode virar mart incompleto —,
+    mas agora com cache por fatia: retomar não recomeça do zero.
+
+    `acumular=False` mantém os CONTADORES de cada fatia e descarta os registros
+    da memória depois de gravá-los em disco. É o modo de aquecer o cache: a
+    coleta nacional passa de 18 milhões de linhas, e segurar tudo em dicionário
+    Python custaria alguns GB de RAM sem necessidade — a agregação lê de volta,
+    fatia a fatia, quando for a hora.
+    """
+    rel = Relatorio()
+    total = len(municipios)
+    for i, (codigo, uf) in enumerate(municipios, 1):
+        f = coletar_fatia_municipio(endpoint, codigo, uf, quieto=quieto)
+        lidos = len(f.registros)
+        if not acumular:
+            f = Fatia(uf=f.uf, ano=f.ano, registros=[], paginas=f.paginas,
+                      vazia_de_fato=f.vazia_de_fato, municipio=f.municipio)
+        rel.fatias.append(f)
+        if not quieto and (i % 50 == 0 or i == total):
+            marca = f"{rel.registros:,} linhas" if acumular else f"último: {lidos:,} linhas"
+            print(f"   {i}/{total} municípios · {marca}", flush=True)
+    return rel
+
+
+def municipios_em_cache(endpoint: str) -> set[str]:
+    """Códigos já coletados por inteiro, lidos do disco."""
+    dir_ = CACHE / endpoint.replace("/", "_")
+    if not dir_.exists():
+        return set()
+    return {p.name.split("_")[0] for p in dir_.glob("*_0.json.gz")}
 
 
 def coletar(endpoint: str, ufs: list[str], anos: list[int],
