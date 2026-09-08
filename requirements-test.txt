@@ -85,3 +85,18 @@ pydantic-settings>=2.14.2  # GHSA-4xgf-cpjx-pc3j (symlink em secrets_dir)
 # quebra o CI no dia em que um teste toca o modulo que a importa.
 scipy>=1.11.0
 scikit-learn>=1.4.0
+
+# --- duckdb (scripts/_sim_obitos.py) ---
+# Estava faltando, e o CI ficou VERMELHO 40 execucoes seguidas por causa disso:
+# `_sim_obitos.py` importa duckdb no nivel do modulo, e tres arquivos de teste o
+# importam -- entao a COLETA do pytest falhava antes de rodar qualquer teste
+# (`3 errors during collection`), e a suite inteira nunca era executada.
+#
+# E exatamente o defeito que o cabecalho deste arquivo antecipa: "dependencia
+# usada e nao declarada quebra o CI no dia em que um teste toca o modulo que a
+# importa". A varredura por AST que gerou esta lista rodou antes de o import
+# existir, e nada reconferiu depois.
+#
+# Piso igual ao de requirements.txt, pelo mesmo motivo das demais: a suite tem
+# de rodar a mesma versao que a producao.
+duckdb>=0.9.0
