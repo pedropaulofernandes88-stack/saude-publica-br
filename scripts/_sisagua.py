@@ -169,7 +169,12 @@ def ler_cache(endpoint: str, uf: str, ano: int) -> Fatia | None:
 
 
 def gravar_cache(endpoint: str, f: Fatia) -> None:
-    alvo = _caminho_cache(endpoint, f.uf, f.ano)
+    # `municipio` ANTES de `uf`: gravar por UF fazia os 22 municípios do Acre
+    # sobrescreverem o mesmo AC_0.json.gz. Cinquenta municípios coletados viraram
+    # três arquivos, e a próxima execução leria o último como se fosse a fatia
+    # de todos eles. Cache com chave errada é pior que cache nenhum: ele mente
+    # com aparência de acerto.
+    alvo = _caminho_cache(endpoint, f.municipio or f.uf, f.ano)
     alvo.parent.mkdir(parents=True, exist_ok=True)
     # Grava em temporário e renomeia: interrupção no meio deixaria um .json.gz
     # pela metade que a próxima execução leria como fatia completa.

@@ -263,3 +263,23 @@ def test_usar_cache_falso_ignora_o_disco(tmp_path, monkeypatch):
     monkeypatch.setattr(sis, "_get", lambda e, p: [{"i": 1}])
     f = sis.coletar_fatia("endp", "AC", 2020, quieto=True, usar_cache=False)
     assert len(f.registros) == 1
+
+
+def test_cache_de_municipio_nao_sobrescreve_o_vizinho(tmp_path, monkeypatch):
+    """Dois municípios da MESMA UF não podem cair no mesmo arquivo.
+
+    Foi o que aconteceu em 2026-09-08: `gravar_cache` usava `f.uf`, então os 22
+    municípios do Acre gravavam todos em AC_0.json.gz. Cinquenta coletados
+    viraram três arquivos — e a execução seguinte leria o último como se fosse a
+    fatia de cada um deles.
+    """
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    a = sis.Fatia(uf="AC", ano=0, registros=[{"x": 1}], paginas=1,
+                  vazia_de_fato=False, municipio="120001")
+    b = sis.Fatia(uf="AC", ano=0, registros=[{"x": 2}, {"x": 3}], paginas=1,
+                  vazia_de_fato=False, municipio="120005")
+    sis.gravar_cache("endp", a)
+    sis.gravar_cache("endp", b)
+    assert len(sis.ler_cache("endp", "120001", 0).registros) == 1
+    assert len(sis.ler_cache("endp", "120005", 0).registros) == 2
+    assert sis.municipios_em_cache("endp") == {"120001", "120005"}
