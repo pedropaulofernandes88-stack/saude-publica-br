@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-06 10:53 UTC
--- Objetos: 237
+-- Extraído em: 2026-09-08 02:42 UTC
+-- Objetos: 238
 -- =============================================================================
 
 
@@ -260,14 +260,10 @@ create table if not exists public.mart_dengue_municipio_ano (
     populacao integer,
     incidencia_100k numeric(10,1),
     letalidade_pct numeric(6,2),
-    -- 52/53 = ano fechado; menos = ano em andamento, total nao comparavel. V043.
     semanas_cobertas smallint,
     constraint mart_dengue_municipio_ano_pkey PRIMARY KEY (municipio_cod, ano_epi)
 );
 
--- O grao MUNICIPAL semanal saiu do Postgres na V044: 95 MB para servir
--- consultas que pediam UF em 3 dos 4 consumidores. Continua publicado como
--- Parquet (mart_dengue_semana, 847.927 linhas, servida=false no manifesto).
 create table if not exists public.mart_dengue_uf_semana (
     uf_sigla text not null,
     ano_epi smallint not null,
@@ -700,7 +696,6 @@ CREATE INDEX idx_cluster_uf ON public.dim_cluster_municipio USING btree (uf_sigl
 CREATE INDEX idx_anomalia_causa_ano ON public.mart_anomalia_causa_municipio USING btree (causabas_3, ano);
 
 CREATE INDEX idx_dengueano_uf ON public.mart_dengue_municipio_ano USING btree (uf_sigla, ano_epi);
-
 
 CREATE INDEX idx_fluxo_mov ON public.mart_fluxo_intermunicipal USING btree (municipio_mov, ano);
 
@@ -1392,7 +1387,11 @@ comment on table public.mart_demanda_mensal_hospital is 'Série mensal de intern
 
 comment on table public.mart_dengue_municipio_ano is 'Dengue (SINAN) anual por município: casos, incidência por 100 mil hab. e letalidade. Fonte: SINAN/DataSUS + IBGE.';
 
-comment on table public.mart_dengue_uf_semana is 'Dengue (SINAN) por UF de residência × ano × semana epidemiológica (data dos primeiros sintomas). Casos prováveis = notificações exceto descartadas. O grão municipal semanal é publicado como Parquet, fora do Postgres — ver V044.';
+comment on column public.mart_dengue_municipio_ano.semanas_cobertas is 'Semanas epidemiológicas com notificação no arquivo daquele ano, nacional. 52 ou 53 = ano fechado; menos que isso = ano em andamento, cujo TOTAL não é comparável com o de um ano fechado (compare semana a semana).';
+
+comment on table public.mart_dengue_uf_semana is 'Dengue (SINAN) agregada por UF de residência × ano × semana epidemiológica (data dos primeiros sintomas). Casos prováveis = notificações exceto descartadas. Substitui o uso de mart_dengue_semana pela API: o grão municipal semanal continua publicado como Parquet, fora do Postgres.';
+
+comment on column public.mart_dengue_uf_semana.municipios_com_casos is 'Municípios da UF com ao menos um caso provável naquela semana.';
 
 comment on table public.mart_equidade_aps_municipio is 'Teste de robustez do Caso 3 (indicadores nao comparam): compara cada municipio apenas aos pares do MESMO quartil de porte populacional, usando densidade de ESF por 10k hab. (nao a cobertura % que satura) e %ICSAP (nao ICSAP/100k, que embute o confundimento de acesso hospitalar geral). RESULTADO: nulo. A correlacao esf_por_10k x %ICSAP dentro do porte e proxima de zero (rho entre -0.02 e +0.18 conforme o quartil); a co-ocorrencia observada de baixa densidade de equipe + alto %ICSAP (campo atencao) e 0,94x o que a independencia estatistica preveria — ou seja, nao ha sinergia real, e a leve associacao com vulnerabilidade (IVS) e explicada pela alocacao de equipes (que ja responde a vulnerabilidade), nao por uma relacao causal ICSAP-vulnerabilidade. NAO usar o campo atencao como ranking ou flag de prioridade municipal — a razao observado/esperado de 0,94 mostra que a co-ocorrencia e estatisticamente indistinguivel do acaso.';
 
