@@ -283,3 +283,101 @@ def test_cache_de_municipio_nao_sobrescreve_o_vizinho(tmp_path, monkeypatch):
     assert len(sis.ler_cache("endp", "120001", 0).registros) == 1
     assert len(sis.ler_cache("endp", "120005", 0).registros) == 2
     assert sis.municipios_em_cache("endp") == {"120001", "120005"}
+
+
+# ── gravação página a página ────────────────────────────────────────────────
+#
+# O coletor montava a fatia inteira em memória antes de gravar. Um município da
+# Bahia trouxe 577.191 linhas em 578 páginas, outro de SP trouxe 744.848 — e o
+# processo chegou a 574 MB montando UM município, com São Paulo capital ainda
+# na fila. O `acumular=False` protegia entre municípios e não dentro de um: a
+# memória estava resolvida no nível errado.
+#
+# Agora cada página vai direto para o disco em JSONL gzipado, e o pico fica no
+# tamanho de uma página. Medido no município 350430: 15.892 linhas, pico de
+# 6,2 MB.
+
+def _paginador(paginas):
+    """Devolve um `_get` falso que serve as páginas dadas, em ordem."""
+    it = iter(paginas)
+
+    def _get(endpoint, params):
+        try:
+            return next(it)
+        except StopIteration:
+            return []
+    return _get
+
+
+def test_grava_jsonl_com_marca_de_fim(tmp_path, monkeypatch):
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    monkeypatch.setattr(sis, "PAGINA", 2)
+    monkeypatch.setattr(sis, "_get", _paginador([[{"i": 1}, {"i": 2}], [{"i": 3}]]))
+    f = sis.coletar_fatia_municipio("endp", "350430", "SP", quieto=True)
+    assert len(f) == 3 and f.paginas == 2
+    assert f.registros == [], "a fatia não pode carregar os registros que gravou"
+    assert sis._caminho_jsonl("endp", "350430", 0).exists()
+    assert sis._fim_valido(sis._caminho_jsonl("endp", "350430", 0))["n_registros"] == 3
+
+
+def test_streaming_le_de_volta_o_que_gravou(tmp_path, monkeypatch):
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    monkeypatch.setattr(sis, "PAGINA", 2)
+    monkeypatch.setattr(sis, "_get", _paginador([[{"i": 1}, {"i": 2}], [{"i": 3}]]))
+    sis.coletar_fatia_municipio("endp", "350430", "SP", quieto=True)
+    assert [r["i"] for r in sis.registros_do_cache("endp", "350430")] == [1, 2, 3]
+
+
+def test_falha_no_meio_nao_deixa_fatia_final(tmp_path, monkeypatch):
+    """A invariante: só vira nome final depois da última página."""
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    monkeypatch.setattr(sis, "PAGINA", 2)
+    chamadas = {"n": 0}
+
+    def cai_na_segunda(endpoint, params):
+        chamadas["n"] += 1
+        if chamadas["n"] == 1:
+            return [{"i": 1}, {"i": 2}]
+        raise sis.FalhaDeColeta("502 no meio")
+
+    monkeypatch.setattr(sis, "_get", cai_na_segunda)
+    with pytest.raises(sis.FalhaDeColeta):
+        sis.coletar_fatia_municipio("endp", "350430", "SP", quieto=True)
+    assert not sis._caminho_jsonl("endp", "350430", 0).exists()
+    assert not list(tmp_path.rglob("*.parcial")), "o temporário ficou para trás"
+    assert sis.municipios_em_cache("endp") == set()
+
+
+def test_fatia_sem_marca_de_fim_e_recusada(tmp_path, monkeypatch):
+    """Gzip que abre não prova arquivo inteiro — a marca é que prova."""
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    alvo = sis._caminho_jsonl("endp", "350430", 0)
+    alvo.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(alvo, "wt", encoding="utf-8", newline="") as fh:
+        fh.write('{"i": 1}\n{"i": 2}\n')          # sem a última linha
+    assert sis.ler_cache("endp", "350430", 0) is None
+    with pytest.raises(sis.FalhaDeColeta):
+        list(sis.registros_do_cache("endp", "350430"))
+
+
+def test_le_o_formato_antigo_sem_reescreve_lo(tmp_path, monkeypatch):
+    """As 3.316 fatias coletadas antes de 2026-09-08 continuam valendo."""
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    sis.gravar_cache("endp", sis.Fatia(uf="AC", ano=0, registros=[{"i": 7}],
+                                       paginas=1, vazia_de_fato=False,
+                                       municipio="120001"))
+    f = sis.ler_cache("endp", "120001", 0)
+    assert f is not None and len(f) == 1
+    assert [r["i"] for r in sis.registros_do_cache("endp", "120001")] == [7]
+    assert "120001" in sis.municipios_em_cache("endp")
+
+
+def test_cache_enxerga_os_dois_formatos(tmp_path, monkeypatch):
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    monkeypatch.setattr(sis, "PAGINA", 2)
+    sis.gravar_cache("endp", sis.Fatia(uf="AC", ano=0, registros=[{"i": 7}],
+                                       paginas=1, vazia_de_fato=False,
+                                       municipio="120001"))
+    monkeypatch.setattr(sis, "_get", _paginador([[{"i": 1}]]))
+    sis.coletar_fatia_municipio("endp", "350430", "SP", quieto=True)
+    assert sis.municipios_em_cache("endp") == {"120001", "350430"}

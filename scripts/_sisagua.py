@@ -99,6 +99,14 @@ class Fatia:
     vazia_de_fato: bool
     #: Código IBGE, quando a fatia é por município (a estratégia que funciona).
     municipio: str | None = None
+    #: Quantos registros a fatia tem, quando `registros` não os carrega.
+    #: A coleta por município grava página a página em disco e devolve só a
+    #: contagem — segurar 577 mil dicionários para contá-los seria o defeito
+    #: que essa gravação existe para remover.
+    n_registros: int | None = None
+
+    def __len__(self) -> int:
+        return self.n_registros if self.n_registros is not None else len(self.registros)
 
 
 @dataclass
@@ -108,7 +116,7 @@ class Relatorio:
 
     @property
     def registros(self) -> int:
-        return sum(len(f.registros) for f in self.fatias)
+        return sum(len(f) for f in self.fatias)
 
     @property
     def vazias(self) -> list[tuple[str, int]]:
@@ -149,23 +157,102 @@ def _get(endpoint: str, params: dict[str, object]) -> list[dict]:
     raise FalhaDeColeta(f"{TENTATIVAS} tentativas falharam em {url}: {ultimo}")
 
 
+#: Marca da última linha de uma fatia em JSONL. Sua ausência denuncia arquivo
+#: truncado mesmo que o gzip abra — é a checagem que o rename sozinho não faz.
+MARCA_FIM = "__fatia_completa__"
+
+#: Terminador de linha do JSONL. Constante porque o arquivo é aberto em modo
+#: texto: escrever "\n" aqui viraria CRLF no Windows e o mesmo cache teria bytes
+#: diferentes conforme o sistema que o gravou.
+LINHA = "\n"
+
+
 def _caminho_cache(endpoint: str, uf: str, ano: int) -> Path:
+    """Formato ANTIGO: um JSON com a lista inteira. Ainda lido, não mais escrito."""
     return CACHE / endpoint.replace("/", "_") / f"{uf}_{ano}.json.gz"
 
 
+def _caminho_jsonl(endpoint: str, chave: str, ano: int) -> Path:
+    """Formato ATUAL: JSON Lines gzipado, uma linha por registro.
+
+    A coleta por município grava PÁGINA A PÁGINA. O formato antigo obrigava a
+    segurar a fatia inteira em memória para serializá-la de uma vez: um
+    município da Bahia trouxe 577.191 linhas em 578 páginas, e o processo
+    chegou a 574 MB montando um só município. São Paulo ainda viria.
+    """
+    return CACHE / endpoint.replace("/", "_") / f"{chave}_{ano}.jsonl.gz"
+
+
+def _fim_valido(alvo: Path) -> dict | None:
+    """Metadados da última linha, ou None se a fatia não terminou de gravar."""
+    try:
+        with gzip.open(alvo, "rt", encoding="utf-8", newline="") as fh:
+            ultima = None
+            for linha in fh:
+                ultima = linha
+    except (OSError, ValueError, EOFError):
+        return None
+    if not ultima:
+        return None
+    try:
+        d = json.loads(ultima)
+    except ValueError:
+        return None
+    return d.get(MARCA_FIM)
+
+
+def registros_do_cache(endpoint: str, chave: str, ano: int = 0):
+    """Itera os registros da fatia SEM carregar tudo na memória.
+
+    É o que torna a agregação viável: o cache nacional passa de 40 milhões de
+    linhas, e ler fatia a fatia, linha a linha, mantém o pico no tamanho de uma
+    página. Levanta se a fatia não estiver completa — ler pela metade seria
+    exatamente o recorte parcial com cara de inteiro.
+    """
+    alvo = _caminho_jsonl(endpoint, chave, ano)
+    if alvo.exists():
+        if _fim_valido(alvo) is None:
+            raise FalhaDeColeta(f"fatia {chave} sem marca de fim — não terminou de gravar")
+        with gzip.open(alvo, "rt", encoding="utf-8", newline="") as fh:
+            for linha in fh:
+                d = json.loads(linha)
+                if MARCA_FIM in d:
+                    return
+                yield d
+        return
+    antigo = _caminho_cache(endpoint, chave, ano)
+    if not antigo.exists():
+        raise FalhaDeColeta(f"fatia {chave} não está em cache")
+    with gzip.open(antigo, "rt", encoding="utf-8", newline="") as fh:
+        yield from json.load(fh)["registros"]
+
+
 def ler_cache(endpoint: str, uf: str, ano: int) -> Fatia | None:
-    """A fatia já coletada, ou None. Cache ilegível é tratado como ausente."""
+    """A fatia já coletada, ou None. Cache ilegível é tratado como ausente.
+
+    Lê os DOIS formatos: as 3.316 fatias gravadas antes de 2026-09-08 estão no
+    JSON de lista, e reescrevê-las custaria uma recoleta inteira sem ganho.
+    """
+    novo = _caminho_jsonl(endpoint, uf, ano)
+    if novo.exists():
+        meta = _fim_valido(novo)
+        if meta is None:
+            return None
+        return Fatia(uf=meta.get("uf", uf), ano=ano, registros=[],
+                     paginas=meta["paginas"], vazia_de_fato=meta["vazia_de_fato"],
+                     municipio=meta.get("municipio"), n_registros=meta["n_registros"])
+
     alvo = _caminho_cache(endpoint, uf, ano)
     if not alvo.exists():
         return None
     try:
-        with gzip.open(alvo, "rt", encoding="utf-8") as fh:
+        with gzip.open(alvo, "rt", encoding="utf-8", newline="") as fh:
             d = json.load(fh)
     except (OSError, ValueError, EOFError):
         # Arquivo truncado por interrupção: refazer é barato e correto.
         return None
     return Fatia(uf=uf, ano=ano, registros=d["registros"], paginas=d["paginas"],
-                 vazia_de_fato=d["vazia_de_fato"])
+                 vazia_de_fato=d["vazia_de_fato"], n_registros=len(d["registros"]))
 
 
 def gravar_cache(endpoint: str, f: Fatia) -> None:
@@ -179,7 +266,7 @@ def gravar_cache(endpoint: str, f: Fatia) -> None:
     # Grava em temporário e renomeia: interrupção no meio deixaria um .json.gz
     # pela metade que a próxima execução leria como fatia completa.
     tmp = alvo.with_suffix(".parcial")
-    with gzip.open(tmp, "wt", encoding="utf-8") as fh:
+    with gzip.open(tmp, "wt", encoding="utf-8", newline="") as fh:
         json.dump({"uf": f.uf, "ano": f.ano, "paginas": f.paginas,
                    "vazia_de_fato": f.vazia_de_fato, "registros": f.registros},
                   fh, ensure_ascii=False)
@@ -258,21 +345,39 @@ def coletar_fatia_municipio(endpoint: str, codigo: str, uf: str,
         if em_disco is not None:
             return em_disco
 
-    registros: list[dict] = []
-    offset = 0
-    paginas = 0
-    while True:
-        lote = _get(endpoint, {"codigo_ibge": codigo, "limit": PAGINA, "offset": offset})
-        registros.extend(lote)
-        paginas += 1
-        if len(lote) < PAGINA:
-            break
-        offset += PAGINA
-    f = Fatia(uf=uf, ano=0, registros=registros, paginas=paginas,
-              vazia_de_fato=not registros, municipio=codigo)
-    if usar_cache:
-        gravar_cache(endpoint, f)
-    return f
+    # PÁGINA A PÁGINA, direto para o disco. Nenhum ponto do laço segura mais que
+    # uma página: a fatia maior já vista tem 577.191 linhas em 578 páginas, e
+    # montá-la em memória levou o processo a 574 MB por UM município — com São
+    # Paulo ainda por vir. O `acumular=False` protegia ENTRE municípios e não
+    # dentro de um; a memória estava resolvida no nível errado.
+    alvo = _caminho_jsonl(endpoint, codigo, 0)
+    alvo.parent.mkdir(parents=True, exist_ok=True)
+    # `.parcial` + rename: fatia interrompida no meio nunca ganha o nome final,
+    # então a próxima execução a vê como ausente e a refaz — que é o correto.
+    tmp = alvo.with_suffix(".parcial")
+    offset = paginas = total = 0
+    try:
+        with gzip.open(tmp, "wt", encoding="utf-8", newline="") as fh:
+            while True:
+                lote = _get(endpoint, {"codigo_ibge": codigo,
+                                       "limit": PAGINA, "offset": offset})
+                for r in lote:
+                    fh.write(json.dumps(r, ensure_ascii=False) + LINHA)
+                paginas += 1
+                total += len(lote)
+                if len(lote) < PAGINA:
+                    break
+                offset += PAGINA
+            fh.write(json.dumps({MARCA_FIM: {
+                "uf": uf, "municipio": codigo, "paginas": paginas,
+                "n_registros": total, "vazia_de_fato": not total,
+            }}, ensure_ascii=False) + LINHA)
+    except BaseException:
+        tmp.unlink(missing_ok=True)
+        raise
+    tmp.replace(alvo)
+    return Fatia(uf=uf, ano=0, registros=[], paginas=paginas,
+                 vazia_de_fato=not total, municipio=codigo, n_registros=total)
 
 
 def coletar_por_municipio(endpoint: str, municipios: list[tuple[str, str]],
@@ -292,10 +397,7 @@ def coletar_por_municipio(endpoint: str, municipios: list[tuple[str, str]],
     total = len(municipios)
     for i, (codigo, uf) in enumerate(municipios, 1):
         f = coletar_fatia_municipio(endpoint, codigo, uf, quieto=quieto)
-        lidos = len(f.registros)
-        if not acumular:
-            f = Fatia(uf=f.uf, ano=f.ano, registros=[], paginas=f.paginas,
-                      vazia_de_fato=f.vazia_de_fato, municipio=f.municipio)
+        lidos = len(f)
         rel.fatias.append(f)
         if not quieto and (i % 50 == 0 or i == total):
             marca = f"{rel.registros:,} linhas" if acumular else f"último: {lidos:,} linhas"
@@ -304,11 +406,19 @@ def coletar_por_municipio(endpoint: str, municipios: list[tuple[str, str]],
 
 
 def municipios_em_cache(endpoint: str) -> set[str]:
-    """Códigos já coletados por inteiro, lidos do disco."""
+    """Códigos já coletados por inteiro, nos DOIS formatos.
+
+    Enxergar só o formato antigo faria a retomada recoletar tudo que já viera
+    no novo — e como o nome final só existe depois do rename, "está no disco"
+    e "está completo" continuam sendo a mesma coisa. O `.parcial` não casa com
+    nenhum dos dois padrões, então fatia interrompida segue contando como
+    ausente, que é o correto.
+    """
     dir_ = CACHE / endpoint.replace("/", "_")
     if not dir_.exists():
         return set()
-    return {p.name.split("_")[0] for p in dir_.glob("*_0.json.gz")}
+    return ({p.name.split("_")[0] for p in dir_.glob("*_0.json.gz")}
+            | {p.name.split("_")[0] for p in dir_.glob("*_0.jsonl.gz")})
 
 
 def coletar(endpoint: str, ufs: list[str], anos: list[int],
