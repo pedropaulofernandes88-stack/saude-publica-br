@@ -100,3 +100,13 @@ scikit-learn>=1.4.0
 # Piso igual ao de requirements.txt, pelo mesmo motivo das demais: a suite tem
 # de rodar a mesma versao que a producao.
 duckdb>=0.9.0
+
+# --- dbfread (scripts/_datasus_ftp.py) ---
+# Import LAZY, dentro de `_parser_de_data_tolerante`. O cabecalho deste arquivo
+# deixou dbfread de fora com a justificativa CERTA na epoca: "so acontece dentro
+# de funcoes que a suite nao chama". Em 2026-09-06 os testes do parser tolerante
+# de data passaram a CHAMAR essa funcao, e a premissa deixou de valer sem que
+# nada a reconferisse.
+#
+# Lazy nao quer dizer dispensavel: quer dizer que so quebra quando alguem chama.
+dbfread>=2.0.7

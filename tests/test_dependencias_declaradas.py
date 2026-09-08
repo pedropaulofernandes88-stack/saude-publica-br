@@ -46,13 +46,48 @@ def _modulos_locais() -> set[str]:
     return {p.stem for p in RAIZ.glob("scripts/*.py")} | LOCAIS
 
 
-def _imports_de_modulo(caminho: Path) -> set[str]:
-    """Só imports no NÍVEL DO MÓDULO.
+def _funcoes_citadas_pelos_testes() -> set[str]:
+    """Nomes que aparecem em tests/ — a aproximação de "a suíte chama isto"."""
+    nomes: set[str] = set()
+    for p in RAIZ.glob("tests/**/*.py"):
+        try:
+            nomes |= set(re.findall(r"[A-Za-z_][A-Za-z0-9_]*", p.read_text(encoding="utf-8")))
+        except OSError:
+            continue
+    return nomes
 
-    Import dentro de função é lazy: ele não derruba a coleta do pytest, e o
-    `requirements-test.txt` deixa vários de fora de propósito (psycopg2,
-    datasus_dbc, dbfread). Incluí-los aqui reprovaria decisões corretas.
+
+def _imports_lazy_alcancados(caminho: Path, citados: set[str]) -> set[str]:
+    """Imports DENTRO de funções cujo nome a suíte menciona.
+
+    Import lazy não derruba a coleta, e o `requirements-test.txt` deixa vários
+    de fora acertadamente — a justificativa dele é precisa: "só acontece dentro
+    de funções que a suíte NÃO chama". A condição é essa, e ela pode deixar de
+    valer sem aviso: em 2026-09-06 um teste novo passou a chamar
+    `_parser_de_data_tolerante`, que importa dbfread por dentro, e o CI quebrou
+    com a lista intacta. Reprovar todo import lazy seria exagero; ignorá-los
+    todos foi o que custou. O meio-termo é olhar só as funções mencionadas.
     """
+    try:
+        arvore = ast.parse(caminho.read_text(encoding="utf-8"))
+    except (OSError, SyntaxError):
+        return set()
+    achados: set[str] = set()
+    for no in ast.walk(arvore):
+        if not isinstance(no, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        if no.name not in citados:
+            continue
+        for interno in ast.walk(no):
+            if isinstance(interno, ast.Import):
+                achados |= {a.name.split(".")[0] for a in interno.names}
+            elif isinstance(interno, ast.ImportFrom) and interno.level == 0 and interno.module:
+                achados.add(interno.module.split(".")[0])
+    return achados
+
+
+def _imports_de_modulo(caminho: Path) -> set[str]:
+    """Só imports no NÍVEL DO MÓDULO — os que derrubam a COLETA do pytest."""
     try:
         arvore = ast.parse(caminho.read_text(encoding="utf-8"))
     except (OSError, SyntaxError):
@@ -87,10 +122,12 @@ def _externos_alcancados() -> set[str]:
     alvos = list(RAIZ.glob("tests/**/*.py"))
     alvos += [RAIZ / "scripts" / f"{m}.py" for m in alcancados]
 
+    citados = _funcoes_citadas_pelos_testes()
     externos: set[str] = set()
     for p in alvos:
         if p.exists():
             externos |= _imports_de_modulo(p)
+            externos |= _imports_lazy_alcancados(p, citados)
     return externos - set(sys.stdlib_module_names) - locais - {"__future__"}
 
 
@@ -142,7 +179,7 @@ def test_a_guarda_reprova_uma_dependencia_ausente():
     assert faltando == ["duckdb"]
 
 
-@pytest.mark.parametrize("modulo", ["duckdb"])
+@pytest.mark.parametrize("modulo", ["duckdb", "dbfread"])
 def test_dependencia_que_quebrou_o_ci_esta_declarada(modulo: str):
     """Regressão nomeada: foi este import que custou 40 execuções."""
     assert modulo in _declarados()
