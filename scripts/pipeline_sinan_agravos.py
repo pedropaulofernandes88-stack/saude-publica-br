@@ -227,6 +227,7 @@ def main() -> None:
         lidos = sem_resid = arquivos = 0
         ausentes: list[int] = []
         referencias: set[str] = set()
+        datas_ruins = 0
         for ano in anos:
             nome = f"{agravo}BR{ano % 100:02d}.dbc"
             try:
@@ -238,8 +239,27 @@ def main() -> None:
                 raise SystemExit(f"[sinan] {nome} existe e a coleta falhou: {e}") from e
             contador: Counter = Counter()
             df, rel = agregar(registros_dbc(dados, nome, contador), agravo, ano)
-            if contador["impossivel"]:
-                raise SystemExit(f"[sinan] {nome}: {contador['impossivel']} datas impossíveis.")
+            # Data impossível SÓ importa nos campos que este mart LÊ.
+            #
+            # BOTUBR10 tem 26 delas, e a primeira versão desta checagem abortou
+            # os 40 agravos por causa disso. Medidas uma a uma, são datas
+            # digitadas em formato brasileiro num campo DBF de 8 bytes que
+            # espera AAAAMMDD — e várias truncadas pelo tamanho: b"8/3/2010",
+            # b"27/2/201", b"21/10/20". Todas em campos CLÍNICOS: DTALTA,
+            # DTSORO, DTFEZESCOL, DTELETRO, DT_COLOUT.
+            #
+            # Nenhuma em DT_NOTIFIC nem em DT_DIAG, que são as duas datas que o
+            # mart usa para saber a que o ano do arquivo se refere. Derrubar a
+            # coleta inteira por defeito em campo que não se lê é guarda que
+            # ensina a ser desligada; ignorá-lo por completo seria apagar um
+            # fato sobre a qualidade da fonte. Então: aborta se sujar o que
+            # importa, e conta o resto.
+            usados = contador["impossivel:DT_NOTIFIC"] + contador["impossivel:DT_DIAG"]
+            if usados:
+                raise SystemExit(
+                    f"[sinan] {nome}: {usados} datas impossíveis em DT_NOTIFIC/DT_DIAG — "
+                    "são as duas que definem a referência do ano deste arquivo.")
+            datas_ruins += contador["impossivel"]
             if not df.empty:
                 partes.append(df)
             lidos += rel["lidos"]
@@ -250,7 +270,8 @@ def main() -> None:
         cobertura.append({"agravo": agravo, "anos_pedidos": len(anos),
                           "arquivos_lidos": arquivos, "anos_ausentes": len(ausentes),
                           "registros_lidos": lidos, "sem_residencia": sem_resid,
-                          "referencia_do_ano": "/".join(sorted(referencias)) or "sem dado"})
+                          "referencia_do_ano": "/".join(sorted(referencias)) or "sem dado",
+                          "datas_impossiveis_fora_do_uso": datas_ruins})
         print(f"[{i:2d}/{len(alvos)}] {agravo}: {arquivos} arquivos · {lidos:,} registros · "
               f"{sem_resid:,} sem residência", flush=True)
 
