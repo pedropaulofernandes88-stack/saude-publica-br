@@ -53,6 +53,7 @@ import json
 import time
 import urllib.error
 import urllib.request
+from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
@@ -77,6 +78,12 @@ ESPERA_MAXIMA = 60
 #: gravado se faltar uma. Ele só impede que um 502 na fatia 1 de 162 jogue fora
 #: as outras 161 que já tinham vindo.
 CACHE = Path(__file__).resolve().parents[1] / "data" / "raw" / "SISAGUA" / "fatias"
+
+
+#: Quantas repeticoes cada endpoint custou nesta execucao. Contador de processo,
+#: nao metrica persistida: serve para o relatorio final dizer se a lentidao veio
+#: da fonte ou de outro lugar.
+REPETICOES: Counter = Counter()
 
 
 class FalhaDeColeta(RuntimeError):
@@ -153,7 +160,19 @@ def _get(endpoint: str, params: dict[str, object]) -> list[dict]:
         except Exception as e:  # noqa: BLE001 — a causa vai na exceção final
             ultimo = e
         if i < TENTATIVAS - 1:
-            time.sleep(min(2 ** i, ESPERA_MAXIMA))
+            espera = min(2 ** i, ESPERA_MAXIMA)
+            # Repetição SILENCIOSA torna "está lento" indistinguível de "está
+            # travado". Em 2026-09-08 um município pareceu levar três horas para
+            # coletar 202 mil linhas, e passei uma investigação inteira medindo
+            # a API, o tamanho do município e o crescimento do arquivo para
+            # descobrir onde estava o custo. A causa era prosaica — a máquina
+            # ficou desligada nesse intervalo —, mas o ponto se sustenta: eu não
+            # tinha como distinguir isso de doze tentativas por página, porque o
+            # log não registrava nenhuma. Uma linha aqui elimina a dúvida.
+            REPETICOES[endpoint] += 1
+            print(f"      [retry {i + 1}/{TENTATIVAS}] {type(ultimo).__name__} em "
+                  f"offset={params.get('offset')}; esperando {espera}s", flush=True)
+            time.sleep(espera)
     raise FalhaDeColeta(f"{TENTATIVAS} tentativas falharam em {url}: {ultimo}")
 
 
