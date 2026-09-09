@@ -2,8 +2,8 @@
 pipeline_sisagua.py — vigilância da água: volume e regularidade das análises
 =============================================================================
 
-    .venv311/Scripts/python scripts/pipeline_sisagua.py --ufs SP --anos 2024
-    .venv311/Scripts/python scripts/pipeline_sisagua.py --todas-as-ufs --anos 2023 2024
+    .venv311/Scripts/python scripts/pipeline_sisagua.py
+    .venv311/Scripts/python scripts/pipeline_sisagua.py --ufs SP --parcial
 
 Produz `data/marts/mart_sisagua_municipio.parquet` no grão
 **município × ano × parâmetro**, a partir do controle mensal do SISAGUA
@@ -24,9 +24,17 @@ Daí duas decisões:
 
 * município-ano sem linha na fonte **não vira linha zerada**. Ele fica de fora
   do mart, e a cobertura (abaixo) registra que ele ficou;
-* o mart carrega, ao lado, `data/marts/mart_sisagua_cobertura.parquet`, que diz
-  quais UF-ano foram coletados e quais vieram vazios. Sem esse arquivo, quem
+* o mart carrega, ao lado, `data/marts/mart_sisagua_cobertura.parquet`, com uma
+  linha para **cada município do país**, coletado ou não. Sem esse arquivo, quem
   usa o mart não tem como distinguir "não analisou" de "não coletei".
+
+ELE AGREGA O CACHE; NÃO COLETA
+-------------------------------
+A coleta mora em `_sisagua.coletar_por_municipio` e é longa — dezenas de horas
+para os 5.571 municípios. Separá-la da agregação é o que permite agregar em
+minutos sobre o que já está em disco, quantas vezes for preciso, sem tocar na
+fonte. Município que não está em cache faz o pipeline **recusar-se a gravar**,
+a menos que `--parcial` diga explicitamente que é para gravar assim.
 
 LIMIARES SAEM DA FONTE, NÃO DA MINHA CABEÇA
 --------------------------------------------
@@ -51,8 +59,10 @@ Ver `_sisagua.py` para o detalhe. O resumo operacional:
   1000 respondeu em 4 de 4. A página maior passa onde a menor estoura — é
   contraintuitivo e é o que a fonte faz;
 * HTTP 502 é frequente e intermitente. Repetir, nunca interpretar como fim;
+* `uf` NÃO tem índice e estoura em 502 sempre; `codigo_ibge` tem. A coleta é
+  por município, e a varredura por UF foi removida de `_sisagua.py`;
 * fatia que falha aborta a coleta inteira, em vez de produzir um mart a que
-  falta uma UF sem que nada acuse.
+  falta um município sem que nada acuse.
 
 Depende de: `scripts/_sisagua.py`, `scripts/_publicacao.py`.
 """
@@ -60,6 +70,7 @@ from __future__ import annotations
 
 import argparse
 import sys
+from collections.abc import Iterable
 from pathlib import Path
 
 import pandas as pd
@@ -67,7 +78,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _publicacao import escrever_parquet  # noqa: E402
-from _sisagua import FalhaDeColeta, Relatorio, _get, coletar  # noqa: E402
+from _sisagua import FalhaDeColeta, municipios_em_cache, registros_do_cache  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
@@ -104,17 +115,19 @@ def _num(v: object) -> float | None:
     return None if f != f else f  # NaN fora
 
 
-def agregar(registros: list[dict]) -> pd.DataFrame:
-    """Município × ano × parâmetro: volume, regularidade e presença.
+def _acumular(registros: Iterable[dict], acc: dict[tuple, dict]) -> int:
+    """Soma os registros dentro de `acc`. Devolve quantos leu.
 
-    `meses_com_analise` é o coração do indicador. O SISAGUA prevê controle
-    MENSAL: um município que analisou em 2 dos 12 meses não tem "pouco dado",
-    tem uma lacuna de vigilância — e isso não aparece no total de amostras,
-    porque uma campanha única de 300 amostras num mês soma mais que 12 meses
-    de 10. Volume e regularidade medem coisas diferentes e vão os dois.
+    Recebe um ITERÁVEL, não uma lista, e escreve num acumulador de fora: as
+    duas coisas existem para que a agregação nacional nunca precise dos
+    registros todos ao mesmo tempo. Medido em 2026-09-09, sobre 3.795 dos 5.571
+    municípios: **62.197.586 registros brutos**, lidos em 31 minutos. Nenhuma
+    lista Python cabe nisso — era o mesmo defeito que a coleta página a página
+    resolveu do outro lado do processo.
     """
-    acc: dict[tuple, dict] = {}
+    lidos = 0
     for r in registros:
+        lidos += 1
         cod = str(r.get("codigo_ibge") or "").strip()
         param = r.get("parametro")
         ano = r.get("ano_de_referencia")
@@ -148,7 +161,11 @@ def agregar(registros: list[dict]) -> pd.DataFrame:
 
         if r.get("tipo_da_forma_de_abastecimento"):
             d["_formas"].add(str(r["tipo_da_forma_de_abastecimento"]))
+    return lidos
 
+
+def _fechar(acc: dict[tuple, dict]) -> list[dict]:
+    """Converte o acumulador em linhas prontas, resolvendo os campos derivados."""
     linhas = []
     for d in acc.values():
         meses = d.pop("_meses")
@@ -156,27 +173,82 @@ def agregar(registros: list[dict]) -> pd.DataFrame:
         d["meses_com_analise"] = len(meses)
         d["formas_de_abastecimento"] = ",".join(sorted(formas)) or None
         linhas.append(d)
+    return linhas
 
+
+def _montar(linhas: list[dict]) -> pd.DataFrame:
     df = pd.DataFrame(linhas)
     if df.empty:
         return df
     return df.sort_values(["uf_sigla", "municipio_cod", "ano", "parametro"]).reset_index(drop=True)
 
 
-def cobertura(rel: Relatorio) -> pd.DataFrame:
-    """O que foi coletado, e o que veio vazio — para o mart poder ser lido.
+def agregar(registros: Iterable[dict]) -> pd.DataFrame:
+    """Município × ano × parâmetro: volume, regularidade e presença.
 
-    Sem isto, quem consome o Parquet não tem como saber se a ausência de um
-    município significa "não analisou" ou "não coletamos aquela UF". As duas
-    coisas produzem exatamente a mesma ausência de linha.
+    `meses_com_analise` é o coração do indicador. O SISAGUA prevê controle
+    MENSAL: um município que analisou em 2 dos 12 meses não tem "pouco dado",
+    tem uma lacuna de vigilância — e isso não aparece no total de amostras,
+    porque uma campanha única de 300 amostras num mês soma mais que 12 meses
+    de 10. Volume e regularidade medem coisas diferentes e vão os dois.
     """
-    return pd.DataFrame([
-        {"uf_sigla": f.uf, "ano": f.ano,
-         "registros_brutos": len(f.registros),
-         "paginas": f.paginas,
-         "vazia_de_fato": f.vazia_de_fato}
-        for f in rel.fatias
-    ]).sort_values(["uf_sigla", "ano"]).reset_index(drop=True)
+    acc: dict[tuple, dict] = {}
+    _acumular(registros, acc)
+    return _montar(_fechar(acc))
+
+
+def agregar_do_cache(municipios: list[tuple[str, str]],
+                     quieto: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Agrega o cache município a município, sem nunca carregar o país inteiro.
+
+    Cada município é lido, somado e DESCARTADO antes do próximo. Isso é possível
+    porque a chave de agregação — código IBGE, ano, parâmetro — é interna ao
+    município: quando a fatia acaba, aquelas linhas estão fechadas e não vão
+    mais receber soma de ninguém.
+
+    O que isso limita é a LEITURA, não o total: as linhas já fechadas continuam
+    acumulando até o fim, porque são o produto. Em 2026-09-09 o processo foi
+    observado em 536 MB no meio da rodada — 62 milhões de registros passaram
+    por ele, e o mart resultante ocupa 31 MB em pandas. Dizer que "o pico vira
+    o de um município" seria bonito e falso.
+
+    Devolve também a cobertura, com uma linha para CADA município do país,
+    coletado ou não. É o que impede o mart parcial de parecer completo: sem
+    esse arquivo, "município sem linha" e "município não coletado" produzem a
+    mesma ausência, e a segunda leitura é catastroficamente otimista.
+    """
+    # A lista de quem ESTÁ em cache é consultada antes, e não deduzida de uma
+    # exceção. `registros_do_cache` levanta o mesmo `FalhaDeColeta` para dois
+    # fatos opostos: "esta fatia não existe" e "esta fatia existe e está pela
+    # metade". Capturar os dois no mesmo `except` rebaixaria a corrupção — que
+    # tem de abortar — a uma linha de cobertura dizendo "não coletado", e o mart
+    # sairia com aparência de completo em cima de um cache quebrado.
+    em_cache = municipios_em_cache(ENDPOINT)
+
+    linhas: list[dict] = []
+    cob: list[dict] = []
+    for i, (cod, uf) in enumerate(municipios, 1):
+        if cod not in em_cache:
+            cob.append({"municipio_cod": cod, "uf_sigla": uf, "coletado": False,
+                        "registros_brutos": None, "linhas_no_mart": 0})
+            continue
+        acc: dict[tuple, dict] = {}
+        brutos = _acumular(registros_do_cache(ENDPOINT, cod), acc)
+        novas = _fechar(acc)
+        linhas.extend(novas)
+        cob.append({"municipio_cod": cod, "uf_sigla": uf, "coletado": True,
+                    "registros_brutos": brutos, "linhas_no_mart": len(novas)})
+        if not quieto and i % 500 == 0:
+            print(f"   {i:,}/{len(municipios):,} municípios · {len(linhas):,} linhas",
+                  flush=True)
+
+    cobdf = pd.DataFrame(cob).sort_values(["uf_sigla", "municipio_cod"]).reset_index(drop=True)
+    # Inteiro NULÁVEL, não float: sem isso o `None` do município não coletado
+    # vira NaN e a coluna inteira vira float, deixando "0 registros" e "não sei"
+    # a um passo de se confundirem na leitura.
+    for col in ("registros_brutos", "linhas_no_mart"):
+        cobdf[col] = cobdf[col].astype("Int64")
+    return _montar(linhas), cobdf
 
 
 def guardas(df: pd.DataFrame, cob: pd.DataFrame) -> None:
@@ -211,60 +283,20 @@ def guardas(df: pd.DataFrame, cob: pd.DataFrame) -> None:
     if not len(cob):
         raise SystemExit("[sisagua] cobertura vazia — o mart não poderia ser lido sem ela.")
 
+    # A cobertura só cumpre o papel dela se falar de TODO município do recorte,
+    # inclusive os que ficaram de fora. Se ela listasse apenas os coletados,
+    # seria uma lista de presença — e a ausência voltaria a ser invisível.
+    if cob["municipio_cod"].duplicated().any():
+        raise SystemExit("[sisagua] cobertura com município repetido — a chave está errada.")
 
-def preflight() -> None:
-    """Recusa iniciar se a fonte não conseguir entregar a SEGUNDA página.
-
-    POR QUE ISTO É A GUARDA MAIS IMPORTANTE DESTE ARQUIVO
-    -----------------------------------------------------
-    Uma primeira página cheia — 1000 linhas — é indistinguível de uma coleta
-    completa. Se a página 2 falhar, um coletor sem esta checagem entrega um
-    mart que parece íntegro e no qual faltam justamente os MAIORES municípios,
-    porque são exatamente eles que passam de 1000 linhas. O erro seria
-    silencioso, sistemático e enviesado para as capitais.
-
-    Medido em 2026-09-06 (todos com `limit=1000`):
-
-        sem filtro,        offset 0 ......... 200 em  3,2 s
-        sem filtro,        offset 800.000 ... 200 em 26,6 s
-        sem filtro,        offset 2.000.000 . 502 aos 60 s
-        uf=AC,             offset 0 ......... 200 em 41,6 s
-        uf=AC + ano,       offset 0 ......... 502 aos 60 s
-        codigo_ibge=SP,    offset 0 ......... 200 em 14,5 s
-        codigo_ibge=SP,    offset 1000 ...... 502 aos 60 s   <- o muro
-
-    A API pagina só por `offset`, sem cursor, e o custo do offset cresce com a
-    profundidade até estourar o timeout de 60 s do proxy. Filtrar não ajuda:
-    não há índice em `uf` nem em `ano_de_referencia`, então o filtro força
-    varredura e fica MAIS lento que a consulta sem filtro.
-    """
-    print("[sisagua] preflight: a fonte entrega a segunda página?", flush=True)
-    # São Paulo capital tem mais de 1000 linhas — é o caso em que a segunda
-    # página é obrigatória, e por isso o teste certo.
-    alvo = {"codigo_ibge": "355030", "limit": 1000}
-    try:
-        p1 = _get(ENDPOINT, {**alvo, "offset": 0})
-    except FalhaDeColeta as e:
-        raise SystemExit(f"[sisagua] preflight: nem a PRIMEIRA página respondeu — {e}") from e
-
-    if len(p1) < 1000:
-        print(f"[sisagua] preflight: município de teste cabe numa página ({len(p1)} linhas); "
-              "não dá para testar a segunda por aqui — seguindo.", flush=True)
-        return
-
-    try:
-        _get(ENDPOINT, {**alvo, "offset": 1000})
-    except FalhaDeColeta as e:
+    # Município no mart e ausente da cobertura significa que as duas metades
+    # foram construídas sobre recortes diferentes, e aí nenhuma das duas
+    # descreve a outra.
+    orfaos = set(df["municipio_cod"]) - set(cob.loc[cob["coletado"], "municipio_cod"])
+    if orfaos:
         raise SystemExit(
-            "[sisagua] preflight REPROVOU: a primeira página veio cheia (1000 linhas) e a "
-            f"SEGUNDA não respondeu.\n          {e}\n"
-            "          Coletar assim truncaria em silêncio exatamente os maiores municípios,\n"
-            "          que são os que passam de 1000 linhas — e um mart truncado desse jeito\n"
-            "          é indistinguível de um completo. Nada foi coletado.\n"
-            "          Quando o portal do OpenDataSUS voltar, prefira o arquivo em massa:\n"
-            "          um download contra milhares de requisições paginadas."
-        ) from e
-    print("[sisagua] preflight: OK, a segunda página respondeu.", flush=True)
+            f"[sisagua] {len(orfaos)} municípios têm linha no mart e não constam como "
+            f"coletados na cobertura (ex.: {sorted(orfaos)[:5]}).")
 
 
 def main() -> None:
@@ -272,38 +304,37 @@ def main() -> None:
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
     ap = argparse.ArgumentParser(description="Mart de vigilância da água (SISAGUA).")
-    ap.add_argument("--ufs", nargs="+", help="siglas de UF a coletar")
-    ap.add_argument("--todas-as-ufs", action="store_true")
-    ap.add_argument("--anos", nargs="+", type=int, required=True)
+    ap.add_argument("--ufs", nargs="+", help="restringe a agregação a estas UFs")
+    ap.add_argument("--parcial", action="store_true",
+                    help="grava mesmo com municípios faltando no cache")
     ap.add_argument("--quieto", action="store_true")
     args = ap.parse_args()
 
-    ufs = UFS if args.todas_as_ufs else (args.ufs or [])
-    if not ufs:
-        ap.error("informe --ufs ou --todas-as-ufs")
+    ufs = args.ufs or UFS
     desconhecidas = [u for u in ufs if u not in UFS]
     if desconhecidas:
         ap.error(f"UF desconhecida: {desconhecidas}")
 
-    preflight()
+    dim = pd.read_parquet(MARTS / "dim_municipio.parquet")
+    alvo = [(str(r.municipio_cod), str(r.uf_sigla)) for r in dim.itertuples()
+            if str(r.uf_sigla) in ufs]
+    if not alvo:
+        raise SystemExit(f"[sisagua] nenhum município para {ufs} em dim_municipio.parquet")
 
-    print(f"[sisagua] coletando {len(ufs)} UF(s) x {len(args.anos)} ano(s) "
-          f"= {len(ufs) * len(args.anos)} fatias", flush=True)
-    try:
-        rel = coletar(ENDPOINT, ufs, sorted(args.anos), quieto=args.quieto)
-    except FalhaDeColeta as e:
+    em_cache = municipios_em_cache(ENDPOINT)
+    faltando = [c for c, _ in alvo if c not in em_cache]
+    print(f"[sisagua] {len(alvo):,} municípios no recorte · "
+          f"{len(alvo) - len(faltando):,} em cache · {len(faltando):,} faltando", flush=True)
+
+    if faltando and not args.parcial:
         raise SystemExit(
-            f"[sisagua] coleta ABORTADA: {e}\n"
-            "          Nada foi gravado. Fatia que falha não pode virar mart "
-            "incompleto: refaça o recorte que falhou.") from e
+            f"[sisagua] {len(faltando):,} municípios do recorte NÃO estão em cache — não grava.\n"
+            "          Um mart a que faltam municípios é indistinguível de um em que\n"
+            "          esses municípios não analisaram a água, e a segunda leitura é a\n"
+            "          otimista. Complete o cache, ou passe --parcial para gravar\n"
+            "          assumindo isso (a cobertura registra quais ficaram de fora).")
 
-    print(f"\n[sisagua] {rel.registros:,} registros brutos em {len(rel.fatias)} fatias")
-    if rel.vazias:
-        print(f"[sisagua] {len(rel.vazias)} fatias VAZIAS DE FATO (a fonte respondeu, "
-              f"sem linhas): {rel.vazias[:8]}{'…' if len(rel.vazias) > 8 else ''}")
-
-    df = agregar([r for f in rel.fatias for r in f.registros])
-    cob = cobertura(rel)
+    df, cob = agregar_do_cache(alvo, quieto=args.quieto)
     guardas(df, cob)
 
     print(f"[sisagua] {len(df):,} linhas município×ano×parâmetro | "
@@ -319,8 +350,13 @@ def main() -> None:
     escrever_parquet(cob, MARTS / "mart_sisagua_cobertura.parquet",
                      origem="pipeline", produtor="scripts/pipeline_sisagua.py")
     print(f"[ok] mart_sisagua_municipio.parquet e mart_sisagua_cobertura.parquet em {MARTS}")
+    nao_coletados = int((~cob["coletado"]).sum())
+    if nao_coletados:
+        print(f"[PARCIAL] {nao_coletados:,} dos {len(cob):,} municípios do recorte NÃO foram "
+              f"coletados. Eles estão na cobertura com coletado=False; sem consultá-la, a "
+              f"ausência deles no mart se lê como 'não analisou'.")
     print("[nota] ausência de município NÃO significa água conforme: significa que ele "
-          "não analisou, ou que a UF-ano não foi coletada. A cobertura diz qual dos dois.")
+          "não analisou, ou que não foi coletado. A cobertura diz qual dos dois.")
 
 
 if __name__ == "__main__":

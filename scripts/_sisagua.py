@@ -399,6 +399,51 @@ def coletar_fatia_municipio(endpoint: str, codigo: str, uf: str,
                  vazia_de_fato=not total, municipio=codigo, n_registros=total)
 
 
+def preflight(endpoint: str) -> None:
+    """Recusa iniciar se a fonte não conseguir entregar a SEGUNDA página.
+
+    POR QUE ISTO É A GUARDA MAIS IMPORTANTE DO MÓDULO
+    --------------------------------------------------
+    Uma primeira página cheia — 1000 linhas — é indistinguível de uma coleta
+    completa. Se a página 2 falhar, um coletor sem esta checagem entrega um
+    mart que parece íntegro e no qual faltam justamente os MAIORES municípios,
+    porque são exatamente eles que passam de 1000 linhas. O erro seria
+    silencioso, sistemático e enviesado para as capitais.
+
+    MORA AQUI, E NÃO NO PIPELINE, POR UM DEFEITO CONCRETO
+    ------------------------------------------------------
+    Enquanto vivia em `pipeline_sisagua.py`, este portão testava `codigo_ibge`
+    e a coleta logo abaixo fatiava por `uf` — duas consultas diferentes. Ele
+    aprovava, e a coleta morria na primeira fatia (2026-09-08, duas vezes). Um
+    portão só vale sobre o caminho que ele de fato exercita, então ele passou a
+    ser chamado de dentro de `coletar_por_municipio`, que hoje usa exatamente
+    a consulta por `codigo_ibge` que o portão mede.
+    """
+    print("[sisagua] preflight: a fonte entrega a segunda página?", flush=True)
+    # São Paulo capital tem mais de 1000 linhas — é o caso em que a segunda
+    # página é obrigatória, e por isso o teste certo.
+    alvo = {"codigo_ibge": "355030", "limit": PAGINA}
+    try:
+        p1 = _get(endpoint, {**alvo, "offset": 0})
+    except FalhaDeColeta as e:
+        raise FalhaDeColeta(f"preflight: nem a PRIMEIRA página respondeu — {e}") from e
+
+    if len(p1) < PAGINA:
+        print(f"[sisagua] preflight: município de teste cabe numa página ({len(p1)} linhas); "
+              "não dá para testar a segunda por aqui — seguindo.", flush=True)
+        return
+
+    try:
+        _get(endpoint, {**alvo, "offset": PAGINA})
+    except FalhaDeColeta as e:
+        raise FalhaDeColeta(
+            "preflight REPROVOU: a primeira página veio cheia e a SEGUNDA não "
+            f"respondeu — {e}. Coletar assim truncaria em silêncio exatamente os "
+            "maiores municípios, e um mart truncado desse jeito é indistinguível "
+            "de um completo.") from e
+    print("[sisagua] preflight: OK, a segunda página respondeu.", flush=True)
+
+
 def coletar_por_municipio(endpoint: str, municipios: list[tuple[str, str]],
                           quieto: bool = False, acumular: bool = True) -> Relatorio:
     """Percorre municípios (código, UF). Qualquer fatia que falhe interrompe TUDO.
@@ -412,6 +457,7 @@ def coletar_por_municipio(endpoint: str, municipios: list[tuple[str, str]],
     Python custaria alguns GB de RAM sem necessidade — a agregação lê de volta,
     fatia a fatia, quando for a hora.
     """
+    preflight(endpoint)
     rel = Relatorio()
     total = len(municipios)
     for i, (codigo, uf) in enumerate(municipios, 1):
@@ -440,21 +486,7 @@ def municipios_em_cache(endpoint: str) -> set[str]:
             | {p.name.split("_")[0] for p in dir_.glob("*_0.jsonl.gz")})
 
 
-def coletar(endpoint: str, ufs: list[str], anos: list[int],
-            campo_ano: str = "ano_de_referencia", quieto: bool = False) -> Relatorio:
-    """Percorre UF × ano. Qualquer fatia que falhe interrompe TUDO.
-
-    Deliberadamente sem `try/except` em volta da fatia: capturar aqui e seguir
-    produziria um mart a que falta uma UF inteira, com aparência de completo.
-    Quem quiser retomar refaz o recorte — as fatias são independentes.
-    """
-    rel = Relatorio()
-    for ano in anos:
-        for uf in ufs:
-            antes = _caminho_cache(endpoint, uf, ano).exists()
-            f = coletar_fatia(endpoint, uf, ano, campo_ano=campo_ano, quieto=quieto)
-            rel.fatias.append(f)
-            if not quieto and not antes:
-                marca = "vazia" if f.vazia_de_fato else f"{len(f.registros):,} linhas"
-                print(f"   {uf} {ano}: {marca}", flush=True)
-    return rel
+#: A varredura por UF x ano foi REMOVIDA, não esquecida. A API não indexa `uf`,
+#: e as medições em `coletar_fatia_municipio` mostram 502 em toda tentativa com
+#: esse filtro. Manter a função convidaria a chamá-la; a coleta que funciona é
+#: `coletar_por_municipio`.

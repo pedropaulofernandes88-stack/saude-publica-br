@@ -10,11 +10,13 @@ Executar: .venv311/Scripts/python -m pytest tests/test_sisagua.py
 """
 from __future__ import annotations
 
+import sys
+
 import pytest
 
 from scripts import _sisagua as sis
 from scripts._sisagua import Fatia, Relatorio
-from scripts.pipeline_sisagua import agregar, cobertura, guardas
+from scripts.pipeline_sisagua import agregar, agregar_do_cache, guardas
 
 
 def reg(**kw):
@@ -109,8 +111,12 @@ def test_registro_sem_chave_e_descartado_sem_derrubar():
 
 # ── guardas ────────────────────────────────────────────────────────────────
 
-def cob_ok():
-    return cobertura(Relatorio(fatias=[Fatia("RS", 2024, [reg()], 1, False)]))
+def cob_ok(coletado=True):
+    """A cobertura no formato que `agregar_do_cache` produz: um município por linha."""
+    import pandas as pd
+    return pd.DataFrame([{"municipio_cod": "430730", "uf_sigla": "RS",
+                          "coletado": coletado, "registros_brutos": 1,
+                          "linhas_no_mart": 1}])
 
 
 def test_guardas_passam_num_recorte_sao():
@@ -150,18 +156,122 @@ def test_guarda_reprova_agregacao_vazia():
 
 # ── cobertura ──────────────────────────────────────────────────────────────
 
-def test_cobertura_separa_vazio_de_fato_de_coletado():
-    """É este arquivo que permite ler a ausência do mart sem adivinhar."""
-    rel = Relatorio(fatias=[
-        Fatia("RS", 2024, [reg()], 1, False),
-        Fatia("AC", 2024, [], 1, True),
-    ])
-    c = cobertura(rel)
-    assert len(c) == 2
-    ac = c[c["uf_sigla"] == "AC"].iloc[0]
-    assert ac["vazia_de_fato"] and ac["registros_brutos"] == 0
-    rs = c[c["uf_sigla"] == "RS"].iloc[0]
-    assert not rs["vazia_de_fato"]
+def _cache_em(tmp_path, monkeypatch):
+    """Aponta o cache para `tmp_path` em TODAS as cópias do módulo de coleta.
+
+    `scripts/_sisagua.py` é importado duas vezes com nomes diferentes: os testes
+    fazem `from scripts import _sisagua`, e os pipelines fazem `import _sisagua`
+    depois de mexer no `sys.path`. São dois objetos de módulo com globais
+    SEPARADOS. Um `monkeypatch` em só um deles faz o teste semear numa pasta
+    temporária e o pipeline ler o cache DE VERDADE — o teste passaria ou
+    falharia por causa do disco da máquina, e não do código.
+    """
+    import scripts.pipeline_sisagua as ps
+    monkeypatch.setattr(sis, "CACHE", tmp_path)
+    monkeypatch.setattr(sys.modules[ps.registros_do_cache.__module__], "CACHE", tmp_path)
+
+
+def _semear(tmp_path, monkeypatch, codigo, registros):
+    """Põe uma fatia de município no cache, como a coleta a deixaria."""
+    _cache_em(tmp_path, monkeypatch)
+    sis.gravar_cache("endp", sis.Fatia(uf="RS", ano=0, registros=registros,
+                                       paginas=1, vazia_de_fato=not registros,
+                                       municipio=codigo))
+
+
+def test_cobertura_tem_linha_para_municipio_nao_coletado(tmp_path, monkeypatch):
+    """O município que faltou tem de APARECER, senão a ausência dele é invisível.
+
+    Uma cobertura que listasse só os coletados seria lista de presença: quem
+    lesse o mart veria a mesma ausência para "não analisou a água" e para "não
+    consegui coletar", e leria a primeira — a otimista.
+    """
+    monkeypatch.setattr("scripts.pipeline_sisagua.ENDPOINT", "endp")
+    _semear(tmp_path, monkeypatch, "430730", [reg()])
+    df, cob = agregar_do_cache([("430730", "RS"), ("120040", "AC")], quieto=True)
+
+    assert len(cob) == 2, "a cobertura fala do recorte, não do que deu certo"
+    import pandas as pd
+    ac = cob[cob["municipio_cod"] == "120040"].iloc[0]
+    assert not ac["coletado"] and pd.isna(ac["registros_brutos"])
+    assert "120040" not in set(df["municipio_cod"]), "não coletado não vira linha"
+
+    rs = cob[cob["municipio_cod"] == "430730"].iloc[0]
+    assert rs["coletado"] and rs["registros_brutos"] == 1 and rs["linhas_no_mart"] == 1
+
+
+def test_cobertura_registra_municipio_coletado_e_vazio(tmp_path, monkeypatch):
+    """Coletado com zero linhas é FATO sobre o município, não falha de coleta."""
+    monkeypatch.setattr("scripts.pipeline_sisagua.ENDPOINT", "endp")
+    _semear(tmp_path, monkeypatch, "430730", [])
+    df, cob = agregar_do_cache([("430730", "RS")], quieto=True)
+    linha = cob.iloc[0]
+    assert linha["coletado"] and linha["registros_brutos"] == 0
+    assert df.empty
+
+
+def test_agregacao_do_cache_nao_carrega_tudo_de_uma_vez(tmp_path, monkeypatch):
+    """Cada município é lido por um gerador próprio, e fechado antes do próximo.
+
+    Se a agregação voltasse a materializar o país numa lista, este contador
+    veria todas as fatias abertas ao mesmo tempo. O cache nacional passa de
+    dezenas de milhões de linhas: o pico tem de ser o de um município.
+    """
+    monkeypatch.setattr("scripts.pipeline_sisagua.ENDPOINT", "endp")
+    for cod in ("430730", "430740", "430750"):
+        _semear(tmp_path, monkeypatch, cod, [reg(codigo_ibge=cod)])
+
+    abertos, maximo = 0, 0
+    original = sis.registros_do_cache
+
+    def espiao(endpoint, chave, ano=0):
+        nonlocal abertos, maximo
+        abertos += 1
+        maximo = max(maximo, abertos)
+        try:
+            yield from original(endpoint, chave, ano)
+        finally:
+            abertos -= 1
+
+    monkeypatch.setattr("scripts.pipeline_sisagua.registros_do_cache", espiao)
+    df, cob = agregar_do_cache([(c, "RS") for c in ("430730", "430740", "430750")],
+                               quieto=True)
+    assert len(df) == 3 and len(cob) == 3
+    assert maximo == 1, f"{maximo} fatias abertas ao mesmo tempo — voltou a acumular"
+
+
+def test_fatia_corrompida_aborta_em_vez_de_virar_lacuna_de_cobertura(tmp_path, monkeypatch):
+    """Fatia pela metade tem de ESTOURAR, não virar "não coletado".
+
+    As duas coisas chegam como o mesmo `FalhaDeColeta`, e são opostas: ausência
+    é fato sobre o recorte, corrupção é defeito do cache. Se a agregação tratar
+    a segunda como a primeira, um cache quebrado sai como mart bem-formado com
+    uma linha a menos na cobertura — e ninguém procura o defeito.
+    """
+    monkeypatch.setattr("scripts.pipeline_sisagua.ENDPOINT", "endp")
+    _cache_em(tmp_path, monkeypatch)
+    # Um JSONL SEM a marca de fim: exatamente o que uma interrupção deixaria se
+    # o rename atômico não existisse.
+    import gzip
+    import json
+    alvo = tmp_path / "endp" / "430730_0.jsonl.gz"
+    alvo.parent.mkdir(parents=True, exist_ok=True)
+    with gzip.open(alvo, "wt", encoding="utf-8", newline="") as fh:
+        fh.write(json.dumps(reg()) + sis.LINHA)
+
+    # A exceção esperada é a do módulo que o PIPELINE importa, não a do que o
+    # teste importa: são dois objetos de classe distintos, pela mesma dupla
+    # importação de `_sisagua` descrita em `_cache_em`. Usar a classe errada
+    # aqui faria o teste falhar mesmo com o código certo.
+    import scripts.pipeline_sisagua as ps
+    with pytest.raises(ps.FalhaDeColeta, match="marca de fim"):
+        agregar_do_cache([("430730", "RS")], quieto=True)
+
+
+def test_guarda_reprova_municipio_no_mart_e_fora_da_cobertura():
+    """As duas metades têm de descrever o mesmo recorte, ou nenhuma descreve a outra."""
+    with pytest.raises(SystemExit, match="cobertura"):
+        guardas(agregar([reg(valor=10.0)]), cob_ok(coletado=False))
 
 
 def test_relatorio_lista_as_fatias_vazias():
