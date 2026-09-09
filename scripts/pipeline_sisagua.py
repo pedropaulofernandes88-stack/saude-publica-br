@@ -78,7 +78,14 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _publicacao import escrever_parquet  # noqa: E402
-from _sisagua import FalhaDeColeta, municipios_em_cache, registros_do_cache  # noqa: E402
+# `FalhaDeColeta` é reexportada de propósito: `agregar_do_cache` a PROPAGA
+# quando o cache está corrompido, então ela faz parte do contrato deste módulo.
+# Quem chama tem de poder capturá-la sem importar `_sisagua` — e importar o
+# outro nome do mesmo arquivo daria uma classe DIFERENTE, que o `except` não
+# pegaria (`scripts/` é importado duas vezes, sob dois nomes).
+from _sisagua import (  # noqa: E402,F401
+    FalhaDeColeta, municipios_em_cache, registros_do_cache,
+)
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"

@@ -78,7 +78,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, listar, registros_dbc  # noqa: E402
+from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, registros_dbc  # noqa: E402
 from _publicacao import escrever_parquet  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
