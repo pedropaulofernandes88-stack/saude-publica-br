@@ -266,11 +266,90 @@ def test_guarda_aceita_parquet_integro() -> None:
     _publicacao.conferir_chave_unica("mart_x", df, ["municipio_cod", "ano"])
 
 
-def test_pk_ausente_no_dataframe_nao_quebra() -> None:
-    """View publicada pode não trazer todas as colunas da PK da tabela base."""
+def test_chave_que_cita_coluna_inexistente_reprova() -> None:
+    """Antes isto era um ESCAPE; virou defeito, e de propósito.
+
+    O teste que vivia aqui afirmava que "view publicada pode não trazer todas as
+    colunas da PK da tabela base" e exigia que a checagem voltasse calada. Essa
+    tolerância era metade do buraco: com a chave vindo só do `schema.sql`, toda
+    tabela publicada apenas como Parquet caía nela e passava sem verificação
+    nenhuma — dez das 52, em 2026-09-11.
+
+    Hoje a chave é DECLARADA por artefato publicado, em `CHAVES_SEM_ESQUEMA`, e
+    não herdada de uma tabela base. Uma coluna declarada que não existe no
+    arquivo não é um descompasso esperado: ou a declaração envelheceu, ou o
+    arquivo é de outra tabela. As duas coisas têm de parar a publicação.
+    """
     import _publicacao
 
-    _publicacao.conferir_chave_unica("v", pd.DataFrame({"a": [1, 1]}), ["b", "c"])
+    with pytest.raises(RuntimeError, match="não tem"):
+        _publicacao.conferir_chave_unica("v", pd.DataFrame({"a": [1, 1]}), ["b", "c"])
+
+
+def test_toda_tabela_publicada_tem_chave_declarada() -> None:
+    """Tabela nova sem chave não pode entrar na publicação em silêncio.
+
+    É esta guarda que impede o buraco de voltar: acrescentar um mart a `TABELAS`
+    sem declarar a chave dele passa a quebrar o teste, em vez de render um
+    arquivo publicado com checksum certo e duplicata dentro.
+    """
+    import _publicacao
+    import publicar
+
+    sem = []
+    for tabela in publicar.TABELAS:
+        try:
+            _publicacao.chave_declarada(tabela)
+        except RuntimeError:
+            sem.append(tabela)
+    assert not sem, (
+        f"{len(sem)} tabelas publicadas sem chave conhecida: {sem}. "
+        "Declare a chave natural em CHAVES_SEM_ESQUEMA (e confira que ela é "
+        "mesmo única no arquivo, não única por acaso)."
+    )
+
+
+def test_chave_declarada_levanta_para_tabela_desconhecida() -> None:
+    """A metade reprovando: sem declaração, levanta — não devolve vazio."""
+    import _publicacao
+
+    with pytest.raises(RuntimeError, match="sem chave conhecida"):
+        _publicacao.chave_declarada("mart_que_nao_existe")
+
+
+def test_chave_declarada_encontra_a_do_esquema_e_a_da_declaracao() -> None:
+    """A metade aprovando, nos dois caminhos que ela sabe consultar."""
+    import _publicacao
+
+    assert _publicacao.chave_declarada("mart_sisagua_municipio") == [
+        "municipio_cod", "ano", "parametro"]
+    doSchema = _publicacao.chaves_primarias()
+    if doSchema:
+        nome = sorted(doSchema)[0]
+        assert _publicacao.chave_declarada(nome) == doSchema[nome]
+
+
+def test_chave_declarada_bate_com_o_parquet_de_verdade() -> None:
+    """A declaração é conferida contra o arquivo, não tomada como verdade.
+
+    Sem este teste, uma chave plausível e errada fica de pé até alguém reparar.
+    Foi assim que a busca automática elegeu `["p"]` para
+    `mart_correlacao_causas`: um p-valor `float64` com 124.848 valores distintos
+    em 124.848 linhas — único por acaso aritmético, não por ser identidade.
+    """
+    import _publicacao
+
+    marts = _publicacao.MARTS
+    conferidas = 0
+    for tabela, pk in _publicacao.CHAVES_SEM_ESQUEMA.items():
+        caminho = marts / f"{tabela}.parquet"
+        if not caminho.exists():
+            continue  # o arquivo é gerado por pipeline; nem toda máquina o tem
+        df = pd.read_parquet(caminho, columns=pk)
+        _publicacao.conferir_chave_unica(tabela, df, pk)
+        conferidas += 1
+    if conferidas == 0:
+        pytest.skip("nenhum Parquet local para conferir")
 
 
 def test_chaves_primarias_saem_do_schema_versionado() -> None:

@@ -52,7 +52,7 @@ from _publicacao import (  # noqa: E402
     baixar_do_storage,
     carregar_env,
     carregar_manifesto,
-    chaves_primarias,
+    chave_declarada,
     commit_atual,
     conferir_chave_unica,
     conferir_nao_nulos,
@@ -96,6 +96,11 @@ TABELAS = [
     # SINAN multi-agravo: notificações de 40 agravos por município e ano.
     "mart_sinan_agravo_municipio",
     "mart_sinan_agravo_cobertura",
+    # SISAGUA: volume e regularidade da análise da água, por município e ano.
+    # A cobertura anda junto e não é acessório — ela tem uma linha para CADA
+    # município do país, e é o que separa "não analisou" de "não coletei".
+    "mart_sisagua_municipio",
+    "mart_sisagua_cobertura",
     "mart_perfil_mortalidade_municipio",
     "mart_anomalia_causa_municipio",
     "mart_contexto_social_municipio",
@@ -309,9 +314,12 @@ def main() -> None:
         # certo.
         import pandas as pd
         df_conf = pd.read_parquet(caminho)
-        pk = chaves_primarias().get(tabela)
-        if pk:
-            conferir_chave_unica(tabela, df_conf, pk)
+        # `chave_declarada` LEVANTA quando não conhece a chave. O `if pk:` que
+        # estava aqui pulava a checagem em silêncio para toda tabela fora do
+        # `schema.sql` — dez das 52, as só-Parquet, entre elas as duas maiores
+        # do projeto. Guarda que não roda é pior que guarda ausente: o comentário
+        # logo acima já prometia que ela valia para qualquer origem.
+        conferir_chave_unica(tabela, df_conf, chave_declarada(tabela))
         conferir_nao_nulos(tabela, df_conf)
         del df_conf
 

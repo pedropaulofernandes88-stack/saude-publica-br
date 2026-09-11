@@ -432,6 +432,12 @@ def _competencias(df: pd.DataFrame) -> tuple[str | None, str | None]:
 # lidas em memória; nenhuma tela do site consulta linha a linha. A dimensão
 # `dim_cid10_informativo`, que é o vocabulário e cabe em 1.571 linhas, essa sim
 # é servida. Ver V036.
+# O SISAGUA ENTROU e depois SAIU desta lista, no mesmo dia (2026-09-11). Entrou
+# pela regra da oncologia e da sífilis — servir antes de existir consumidor
+# gasta o teto por antecipação. Saiu porque a decisão de servir foi tomada
+# explicitamente, com o custo medido antes: 397.380 linhas por ~115 B de heap
+# mais ~15 MB de índice, num banco com 100 MB de folga. Ver V045, que também
+# explica por que a recarga usa `--truncar` e não upsert.
 NAO_SERVIDAS = frozenset({
     "mart_vacinacao_municipio",
     "mart_mortalidade_causa_municipio",
@@ -503,11 +509,64 @@ def descrever(nome: str, caminho: Path, origem: str, id_pub: str) -> Tabela:
 # de linhas, e a contagem não mudou (22.280 antes e depois).
 #
 # A chave natural é declarada aqui porque não há de onde derivá-la. Não é
-# tomada como verdade: `conferir_chave_unica` roda sobre o que voltou do banco
-# e aborta se a chave repetir. Declaração + verificação, não declaração só.
-CHAVES_DE_VIEW: dict[str, list[str]] = {
+# tomada como verdade: `conferir_chave_unica` roda sobre o arquivo e aborta se a
+# chave repetir. Declaração + verificação, não declaração só.
+#
+# POR QUE ISTO DEIXOU DE SER SÓ "DE VIEW"
+# ----------------------------------------
+# `chaves_primarias()` lê o `schema.sql`, que só descreve tabelas que existem no
+# Postgres. Tabela publicada apenas como Parquet não está lá — e o `publicar.py`
+# fazia `if pk:`, então para ela a checagem de duplicata simplesmente NÃO RODAVA,
+# enquanto o comentário ao lado afirmava que a guarda "vale para QUALQUER
+# origem". Medido em 2026-09-11: **10 das 52 tabelas publicadas** passavam sem
+# nenhuma verificação de unicidade, incluindo as duas maiores do projeto
+# (8,6 e 7,2 milhões de linhas).
+#
+# Cada chave abaixo foi DESCOBERTA sobre o arquivo, não escrita de cabeça — e a
+# descoberta por busca exaustiva precisou ser conferida, porque ela devolve a
+# primeira combinação única e essa nem sempre é a chave: em
+# `mart_correlacao_causas` a busca elegeu `["p"]`, que é um p-valor float com
+# 124.848 valores distintos em 124.848 linhas. Único por acaso aritmético, não
+# por ser identidade. A chave é o par de CID mais o grupo.
+CHAVES_SEM_ESQUEMA: dict[str, list[str]] = {
+    # View servida pela API (V016/V025).
     "mart_icsap_pares": ["municipio_cod", "ano"],
+    # Mortalidade por causa — fora do Postgres por desenho (V036).
+    "mart_mortalidade_causa_municipio": ["municipio_cod", "ano", "causabas_3"],
+    "mart_mortalidade_causa_municipio_mes": ["municipio_cod", "mes_competencia", "causabas_3"],
+    "mart_mortalidade_causa_municipio_faixa": [
+        "municipio_cod", "ano", "causabas_3", "faixa_etaria", "sexo"],
+    # 41.616 pares de CID x 3 grupos (-1, 0, 1).
+    "mart_correlacao_causas": ["cid_a", "cid_b", "grupo"],
+    "mart_oncologia_municipio": ["municipio_cod", "ano"],
+    # Os três agravos da sífilis são COLUNAS, não linhas: o grão é município-ano.
+    "mart_sifilis_municipio": ["municipio_cod", "ano"],
+    "mart_sinan_agravo_municipio": ["agravo", "municipio_cod", "ano"],
+    "mart_sinan_agravo_cobertura": ["agravo"],
+    "mart_dengue_semana": ["municipio_cod", "ano_epi", "semana_epi"],
+    "mart_vacinacao_municipio": ["municipio_cod", "ano", "imunobiologico"],
+    "mart_sisagua_municipio": ["municipio_cod", "ano", "parametro"],
+    "mart_sisagua_cobertura": ["municipio_cod"],
 }
+
+#: Compatibilidade com o nome antigo, que descrevia só metade dos casos.
+CHAVES_DE_VIEW = CHAVES_SEM_ESQUEMA
+
+
+def chave_declarada(tabela: str) -> list[str]:
+    """A chave da tabela, do esquema ou da declaração. Levanta se não houver.
+
+    Levanta em vez de devolver vazio de propósito: era o `if pk:` silencioso que
+    deixava dez tabelas publicarem sem checagem nenhuma. Tabela nova sem chave
+    declarada tem de parar a publicação, e não passar por ela.
+    """
+    pk = chaves_primarias().get(tabela) or CHAVES_SEM_ESQUEMA.get(tabela)
+    if not pk:
+        raise RuntimeError(
+            f"{tabela}: sem chave conhecida. Ela não está no `schema.sql` (é "
+            "publicada só como Parquet?) nem em `CHAVES_SEM_ESQUEMA`. Publicar "
+            "assim pularia a checagem de duplicata — declare a chave natural.")
+    return pk
 
 
 def chaves_primarias() -> dict[str, list[str]]:
@@ -638,14 +697,21 @@ def conferir_chave_unica(tabela: str, df: pd.DataFrame, pk: list[str]) -> None:
     arquivo já estava corrompido. Duplicata na PK é impossível na tabela de
     origem — se aparece no arquivo, o arquivo está errado, ponto.
     """
-    presentes = [c for c in pk if c in df.columns]
-    if not presentes:
-        return
-    n, distintas = len(df), len(df[presentes].drop_duplicates())
+    # Coluna da chave que não existe no arquivo é DEFEITO, não motivo para
+    # pular. Antes isto voltava calado quando nenhuma estava presente, e
+    # conferia uma chave PARCIAL quando só algumas estavam — o que reprova
+    # arquivo bom, porque um pedaço da chave repete por definição.
+    faltando = [c for c in pk if c not in df.columns]
+    if faltando:
+        raise RuntimeError(
+            f"{tabela}: a chave declarada {pk} cita coluna(s) que o arquivo não "
+            f"tem: {faltando}. Colunas presentes: {sorted(map(str, df.columns))}. "
+            "Ou a declaração envelheceu, ou o arquivo é de outra tabela.")
+    n, distintas = len(df), len(df[pk].drop_duplicates())
     if n != distintas:
         raise RuntimeError(
             f"{tabela}: {n:,} linhas para apenas {distintas:,} chaves distintas "
-            f"({n - distintas:,} duplicadas em {'+'.join(presentes)}). "
+            f"({n - distintas:,} duplicadas em {'+'.join(pk)}). "
             "O arquivo está corrompido e NÃO será publicado.")
 
 
