@@ -57,7 +57,9 @@ from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
 
-BASE = "https://apidadosabertos.saude.gov.br/sisagua"
+from _fontes import fonte
+
+BASE = fonte("sisagua").local("api").caminho
 
 #: Teto real, medido. A documentação diz 100 e a API trava em 1000 sem avisar —
 #: pedir mais devolveria 1000 e um coletor ingênuo acharia que a página acabou.

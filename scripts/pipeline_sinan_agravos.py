@@ -78,13 +78,14 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _fontes import fonte  # noqa: E402
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, registros_dbc  # noqa: E402
 from _saida import Resultado  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
 SONDAGEM = ROOT / "data" / "refs" / "sondagem_sinan.json"
-DIR_FTP = "/dissemin/publicos/SINAN/DADOS/FINAIS"
+DIR_FTP = fonte("sinan").local("finais").caminho
 
 #: Já têm pipeline próprio, com dicionário conferido.
 COM_PIPELINE_PROPRIO = {"DENG"}

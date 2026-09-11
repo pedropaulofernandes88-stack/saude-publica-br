@@ -48,6 +48,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _fontes import HOST_FTP, fonte  # noqa: E402
 from _datasus_ftp import (
     ArquivoAusente,
     baixar,
@@ -67,9 +68,9 @@ RAW = ROOT / "data" / "raw" / "SINAN"
 REFS = ROOT / "data" / "refs"
 MARTS_DIR = ROOT / "data" / "marts"
 
-FTP_HOST = "ftp.datasus.gov.br"
-FTP_FINAIS = "/dissemin/publicos/SINAN/DADOS/FINAIS"
-FTP_PRELIM = "/dissemin/publicos/SINAN/DADOS/PRELIM"
+FTP_HOST = HOST_FTP
+FTP_FINAIS = fonte("sinan").local("finais").caminho
+FTP_PRELIM = fonte("sinan").local("preliminar").caminho
 
 GRAVE = {"11", "12", "3", "4"}
 DESCARTADO = "5"

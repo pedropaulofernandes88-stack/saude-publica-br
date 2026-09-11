@@ -105,12 +105,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _fontes import fonte  # noqa: E402
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, registros_dbc  # noqa: E402
 from _saida import Resultado  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
-DIR_FTP = "/dissemin/publicos/SINAN/DADOS/PRELIM"
+DIR_FTP = fonte("sifilis").local("preliminar").caminho
 
 # Prefixo do arquivo e primeiro ano publicado, por agravo. O SIFA começa três
 # anos depois dos outros dois: a notificação de sífilis adquirida só se tornou

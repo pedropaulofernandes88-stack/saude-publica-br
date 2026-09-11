@@ -7,7 +7,9 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
-## [Não lançado] — Código de saída: "rodou" e "trouxe dado novo" deixam de ser a mesma resposta
+## [Não lançado]
+
+### Código de saída: "rodou" e "trouxe dado novo" deixam de ser a mesma resposta
 
 > Todo pipeline do projeto terminava em 0 ou estourava. Isso responde "deu
 > erro?" e deixa a segunda pergunta sem resposta. Em 2026-08-11 os pipelines do
@@ -15,7 +17,7 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 > código 0. Aquela correção separou as **exceções**; esta separa o **desfecho**,
 > que é o que chega a quem chamou.
 
-### Adicionado
+#### Adicionado
 
 - **`scripts/_saida.py`** — três códigos de saída, e o acumulador que os decide:
 
@@ -45,7 +47,7 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
   string dentro de uma docstring. Testada por mutação: os três mutantes
   (`main()` solto, `return` nu, assinatura sem `-> int`) reprovam.
 
-### Alterado
+#### Alterado
 
 - **Os 24 pipelines** passam a `main() -> int` e `sys.exit(main())`. Os `return`
   nus dos atalhos `--medir` e `--no-upload` viram `return res.relatar()`: eles
@@ -55,12 +57,56 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
   `reaproveitado: True`. Um ano inteiro já processado saía como sucesso e
   anunciava dose que ninguém coletou.
 
-### Atenção a quem chama
+#### Atenção a quem chama
 
 `2` é diferente de zero: `set -e`, `&&` e o `run:` do GitHub Actions leem
 qualquer código `!= 0` como falha. Nenhum workflow do projeto executa
 `pipeline_*.py` hoje — quem encadear precisa tratar o 2 explicitamente. Ver
 README, seção Reprodutibilidade.
+
+### O caminho de uma fonte estava digitado em oito arquivos, e um deles discordava
+
+> `/dissemin/publicos/SIHSUS/200801_/Dados` aparecia em 8 arquivos; o do
+> SINAN/FINAIS em 6. Cópia não é só feiúra: ela diverge. O `observar_fontes.py`
+> vigiava o SIM em `CID10/DORES` e mais nada, enquanto o `pipeline_v2.py` lê
+> também de `SIM/PRELIM/DORES` — o diretório mais volátil do projeto, onde
+> moram os anos que ainda mudam, e o único do SIM que ninguém observava.
+
+**Adicionado** — `scripts/_fontes.py`: uma `Fonte` por sistema, com os `Local`
+onde ela mora (tipo, caminho, padrão do nome do arquivo, host) e o motivo
+escrito quando não há o que observar. O `id` é o mesmo de `site/lib/fontes.ts`.
+
+O registro carrega o que é **operacional e duplicado**. Não carrega o que é
+**editorial**: nome de exibição, o que a fonte traz e a ressalva do leitor
+continuam no site, que é onde são renderizados. E não carrega tabela → fonte,
+que já vive em `FONTE_DA_TABELA` e já é guardado — trazer para cá criaria a
+segunda definição em vez de eliminar a primeira.
+
+**Alterado** — 16 arquivos passam a ler do registro: os 15 pipelines com
+caminho de fonte, mais `_datasus_ftp.py` e `_sisagua.py`. As **22 constantes
+foram conferidas uma a uma**: todas resolvem para o mesmo valor de antes. O
+`observar_fontes.py` deriva `DIRETORIOS_FTP`, `OBSERVADAS` e `NAO_OBSERVADAS`
+do registro em vez de repeti-los.
+
+**Corrigido** — `SIM/PRELIM/DORES` entra na observação. Medido na primeira
+execução real depois da mudança: **58 arquivos novos** — `DO{UF}2025.dbc` e
+`DO{UF}2026.dbc` para as 27 UFs mais o consolidado nacional, modificados em
+28/08 e 28/07 de 2026. Eram invisíveis para o observador e são exatamente os
+que o pipeline lê. O FTP da ANS (`pipeline_ans_beneficiarios.py`) e a tabela
+de categorias da CID-10 também estavam fora de qualquer declaração.
+
+**Guarda** — `tests/test_registro_de_fontes.py` (47 testes) exige que os ids do
+registro e do site sejam o mesmo conjunto, que toda fonte seja observável ou
+traga o motivo, e varre os coletores por AST atrás de caminho `/dissemin/`
+digitado no código. A varredura **ignora docstring de propósito**: o cabeçalho
+de um pipeline deve dizer de onde o dado vem, em prosa; o que não pode é o
+código ler de uma segunda cópia. Testada por mutação — redigitar o caminho do
+SIH e tirar o preliminar do SIM da observação reprovam as duas.
+
+Scripts de exploração (`probe_sources.py`, `mapear_ftp_datasus.py` e outros
+quatro) ficam declaradamente fora: eles existem para varrer o FTP à procura do
+que o projeto ainda não conhece, e prendê-los ao registro seria impedi-los de
+olhar onde o registro não chega.
 
 ---
 

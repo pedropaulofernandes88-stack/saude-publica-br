@@ -66,6 +66,7 @@ from ftplib import FTP
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _fontes import fonte  # noqa: E402
 from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -75,8 +76,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
 MARTS = ROOT / "data" / "marts"
 CKPT = ROOT / "data" / "raw" / "ANS" / "beneficiarios_ckpt"
-FTP_HOST = "ftp.dadosabertos.ans.gov.br"
-FTP_DIR = "FTP/PDA/informacoes_consolidadas_de_beneficiarios-024"
+FTP_HOST = fonte("ans").local("beneficiarios").host
+FTP_DIR = fonte("ans").local("beneficiarios").caminho
 UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT",
        "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO", "XX"]
 

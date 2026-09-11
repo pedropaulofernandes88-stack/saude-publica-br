@@ -61,6 +61,7 @@ import pandas as pd
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _fontes import fonte  # noqa: E402
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta  # noqa: E402
 from _saida import Resultado  # noqa: E402
 
@@ -70,7 +71,7 @@ if hasattr(sys.stdout, "reconfigure"):
 ROOT = Path(__file__).resolve().parents[1]
 SAIDA = ROOT / "data" / "raw" / "PNI" / "agregados"
 
-S3 = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv"
+S3 = fonte("pni").local("zip_mensal").caminho
 MESES = [("jan", "01"), ("fev", "02"), ("mar", "03"), ("abr", "04"),
          ("mai", "05"), ("jun", "06"), ("jul", "07"), ("ago", "08"),
          ("set", "09"), ("out", "10"), ("nov", "11"), ("dez", "12")]

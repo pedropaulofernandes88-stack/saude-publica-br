@@ -163,6 +163,16 @@ class Tabela:
     # no checksum sem ocupar o cache. `servida=False` diz isso explicitamente,
     # em vez de deixar a ausência parecer defeito para quem confere as camadas.
     servida: bool = True
+    #: Para VIEW: em que publicação estava cada base quando este arquivo foi
+    #: derivado. As três guardas de integridade comparam o arquivo com a FONTE,
+    #: e a fonte de uma view muda sem se mexer — republicar uma base altera
+    #: todos os VALORES sem alterar a CONTAGEM. `mart_icsap_pares` ficou seis
+    #: dias no ar assim: 22.280 linhas antes e depois, 42% delas diferentes.
+    #:
+    #: Com este campo a conferência é offline e cabe no git: se toda base é
+    #: anterior à publicação da view, o arquivo ainda corresponde. Vazio para
+    #: tabela, que não tem base.
+    bases_em: dict[str, str] = field(default_factory=dict)
 
     def caminho_historico(self) -> str:
         return f"hist/{self.publicada_em}/{self.nome}.parquet"
@@ -295,6 +305,39 @@ def views_do_esquema() -> set[str]:
     # o schema.sql gerado emite "create or replace view public.x with (...)"
     return set(re.findall(r"create (?:or replace )?view public\.(\w+)",
                           arquivo.read_text(encoding="utf-8"), re.I))
+
+
+def bases_de_view(nome: str) -> list[str]:
+    """As tabelas de que uma VIEW deriva, lidas do `schema.sql` versionado.
+
+    Existe porque as três guardas de integridade não alcançam view: elas
+    comparam o arquivo com a FONTE, e a fonte de uma view muda sem se mexer —
+    basta uma base ser republicada para todos os VALORES mudarem sem que a
+    CONTAGEM mude. `mart_icsap_pares` já ficou seis dias no ar assim, com
+    22.280 linhas antes e depois e 42% delas diferentes.
+
+    Saber de QUE bases a view depende é o que torna a conferência possível sem
+    reexportar: se toda base é anterior à publicação da view, o arquivo
+    publicado ainda corresponde ao que a view devolve hoje.
+
+    As bases saem do esquema versionado, nunca de lista escrita à mão. Os CTEs
+    (`parametros`, `base`, `medianas`, `calc`) caem sozinhos na interseção com
+    as tabelas que o `schema.sql` declara — o mesmo motivo de
+    `chaves_primarias()` ler de lá.
+    """
+    arquivo = ROOT / "migrations" / "schema" / "schema.sql"
+    if not arquivo.exists():
+        return []
+    texto = arquivo.read_text(encoding="utf-8")
+    abre = re.compile(r"create (?:or replace )?view public\." + re.escape(nome)
+                      + r"\b", re.I).search(texto)
+    if not abre:
+        return []
+    fim = texto.find("\n;", abre.end())
+    corpo = texto[abre.end():fim if fim != -1 else None]
+    citadas = {m.lower() for m in
+               re.findall(r"\b(?:from|join)\s+(?:public\.)?(\w+)", corpo, re.I)}
+    return sorted(citadas & set(chaves_primarias()))
 
 
 def escrever_parquet(df: pd.DataFrame, destino: Path, origem: str,
@@ -478,9 +521,63 @@ NAO_SERVIDAS = frozenset({
 })
 
 
+def conferir_view_atual(t: Tabela, manifesto_tabelas: dict,
+                        bases: list[str]) -> list[str]:
+    """Diz quais bases da view foram republicadas DEPOIS dela.
+
+    É a quarta guarda, e a única que alcança view. As três anteriores comparam
+    o arquivo com a fonte que o produziu; esta pergunta se a fonte andou desde
+    então. A diferença importa porque view não tem produtor: ela é recalculada
+    a cada consulta, e republicar uma base muda todos os VALORES sem mudar a
+    CONTAGEM nem o número de colunas — foi assim que `mart_icsap_pares` passou
+    seis dias publicado com 42% das linhas divergindo do que o banco devolvia.
+
+    A referência é `publicada_em` DA PRÓPRIA VIEW, não o carimbo `bases_em`.
+    Isso importa e não é detalhe: `publicada_em` aponta para a publicação em que
+    os BYTES deste arquivo entraram, e é herdada enquanto o conteúdo não muda.
+    Então "base à frente do arquivo" é exatamente a condição de defasagem, e a
+    guarda vale desde já — inclusive para as views publicadas antes de este
+    campo existir.
+
+    Ter feito depender de `bases_em` teria criado uma guarda DORMENTE: a única
+    view do projeto é sempre herdada, nunca receberia carimbo, e a conferência
+    passaria para sempre sem nada a comparar. É o defeito que este repositório
+    já catalogou três vezes.
+
+    `bases_em` continua no manifesto pelo que ele acrescenta: deixa a
+    conferência auditável offline, por quem lê o JSON no git sem ter o banco
+    nem a definição da view à mão.
+
+    `bases` vem de fora (de `bases_de_view`) em vez de ser lido aqui: assim esta
+    é uma função pura sobre o manifesto, testável sem tocar em arquivo, e a
+    origem da lista fica visível em quem chama.
+
+    Devolve a lista de bases defasadas, vazia quando está tudo em ordem. Não
+    levanta: quem chama decide se aborta ou se reexporta a view.
+    """
+    atrasadas = []
+    for base in bases:
+        agora = manifesto_tabelas.get(base)
+        if agora is None:
+            continue  # base fora do manifesto não é evidência de defasagem
+        # ids de publicação são ordenáveis como texto ("2026-09-06" <
+        # "2026-09-06.2"), que é como o resto do módulo já os compara.
+        if str(agora.publicada_em) > str(t.publicada_em):
+            visto = (t.bases_em or {}).get(base)
+            onde = f"a view viu {visto}, e a base" if visto else "a base"
+            atrasadas.append(
+                f"{base}: {onde} está em {agora.publicada_em}, "
+                f"depois do arquivo da view ({t.publicada_em})")
+    return atrasadas
+
+
 def descrever(nome: str, caminho: Path, origem: str, id_pub: str) -> Tabela:
     df = pd.read_parquet(caminho)
     cmin, cmax = _competencias(df)
+    # `bases_em` NÃO sai daqui. Quando esta função roda, o manifesto ainda está
+    # sendo montado e uma base pode ser descrita DEPOIS da view — ler agora
+    # congelaria um valor que ainda ia mudar. Quem carimba é `publicar.py`, no
+    # fim, e só nas views cujo arquivo foi de fato regerado.
     return Tabela(
         servida=nome not in NAO_SERVIDAS,
         nome=nome,

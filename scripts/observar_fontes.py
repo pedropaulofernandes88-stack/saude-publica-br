@@ -53,79 +53,45 @@ from pathlib import Path
 
 import requests
 
+from _fontes import HOST_FTP, S3_CKAN, diretorios_ftp
+from _fontes import nao_observadas as _nao_observadas
+from _fontes import observadas as _observadas
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 ROOT = Path(__file__).resolve().parents[1]
 DESTINO = ROOT / "data" / "observacoes"
 
-S3_SIM = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SIM"
-FTP_HOST = "ftp.datasus.gov.br"
+#: Os caminhos NÃO são digitados aqui. Eles vêm de `_fontes.py`, que é a mesma
+#: declaração que os pipelines leem — foi a divergência entre as duas cópias que
+#: deixou `SIM/PRELIM/DORES` fora da vigilância enquanto o `pipeline_v2.py` lia
+#: dele. Para incluir ou recortar um diretório, edite o registro.
+FTP_HOST = HOST_FTP
+S3_SIM = f"{S3_CKAN}/SIM"
+S3_PNI = f"{S3_CKAN}/PNI/csv"
 
-# Diretórios do FTP e o recorte de cada um. O SIH tem ~5.400 arquivos (27 UF ×
-# ~200 competências desde 2008): o filtro mantém a observação no periodo que o
-# projeto publica, senão o arquivo diario vira ruido.
-DIRETORIOS_FTP = [
-    ("SINAN", "/dissemin/publicos/SINAN/DADOS/FINAIS", r"^DENGBR\d{2}\.dbc$"),
-    ("SINAN", "/dissemin/publicos/SINAN/DADOS/PRELIM", r"^DENGBR\d{2}\.dbc$"),
-    # Sífilis: SÓ existe em PRELIM (não há SIF* em FINAIS, nem para 2007), e é
-    # a fonte mais defasada que o projeto publica — os arquivos de 2025 foram
-    # reescritos em 30/06/2026 e ainda param em junho de 2025. Justamente por
-    # isso precisa ser observada: o dia em que sair um SIFxBR26 é o dia de
-    # reingerir, e ninguém teria como saber sem isto.
-    ("SINAN", "/dissemin/publicos/SINAN/DADOS/PRELIM", r"^SIF[ACG]BR\d{2}\.dbc$"),
-    # SIM pelo FTP, que é de onde o projeto REALMENTE lê — e que virou a única
-    # rota em 2026-09-06.
-    #
-    # A observação por S3 (abaixo) funcionou até 31/08/2026: DO22, DO23 e DO24
-    # respondiam 200 com 528, 506 e 494 MB. Entre 31/08 e 06/09 os três caíram
-    # para 403, enquanto o PNI, no MESMO bucket, seguiu em 200 — não é rede nem
-    # bucket, é o prefixo do SIM. (DO25 e DO26 sempre foram 403: esses anos não
-    # existem no CSV aberto.)
-    #
-    # As duas rotas ficam. O S3 porque o 403 é informação e o dia em que voltar
-    # a 200 é mudança que se quer ver; o FTP porque, com o S3 fora, é o único
-    # lugar que responde "o SIM mexeu?".
-    ("SIM", "/dissemin/publicos/SIM/CID10/DORES", r"^DO[A-Z]{2}20(1[89]|2\d)\.dbc$"),
-    ("SIH", "/dissemin/publicos/SIHSUS/200801_/Dados", r"^RD[A-Z]{2}(2[2-9])\d{2}\.dbc$"),
-    ("SINASC", "/dissemin/publicos/SINASC/NOV/DNRES", r"^DN[A-Z]{2}20(1[89]|2\d)\.dbc$"),
-    ("ONCOLOGIA", "/dissemin/publicos/painel_oncologia/Dados", r"^POBR\d{4}\.dbc$"),
-    # CNES grupo LT: o pipeline ingere só a competência de DEZEMBRO de cada ano
-    # (LT{UF}{AA}12). Observar as outras onze competências seria vigiar arquivo
-    # que o projeto não usa — ruído que treina a gente a ignorar a issue.
-    ("CNES", "/dissemin/publicos/CNES/200508_/Dados/LT", r"^LT[A-Z]{2}(1[5-9]|2\d)12\.dbc$"),
-]
+#: (base, diretório, padrão do nome do arquivo) — uma tripla por LOCAL.
+DIRETORIOS_FTP = diretorios_ftp()
 
 ANOS_SIM = range(2022, date.today().year + 1)
 
-# PNI/RNDS não vive no FTP: são zips mensais no mesmo bucket do SIM.
-S3_PNI = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/PNI/csv"
 MESES_PNI = ["jan", "fev", "mar", "abr", "mai", "jun",
              "jul", "ago", "set", "out", "nov", "dez"]
 ANOS_PNI = range(2023, date.today().year + 1)
 
 #: Fonte publicada (id em `site/lib/fontes.ts`) → rótulo `base` da observação.
 #:
-#: Esta tabela existe porque a cobertura envelheceu em silêncio duas vezes: o
-#: Painel Oncologia e a sífilis entraram no site sem entrar aqui, e o SIM era
-#: "observado" por uma URL que devolve 403 desde sempre. Uma fonte não observada
-#: não dá erro — ela só deixa de avisar, que é o mesmo que não existir.
-OBSERVADAS: dict[str, str] = {
-    "sim": "SIM", "sih": "SIH", "sinan": "SINAN", "sifilis": "SINAN",
-    "sinasc": "SINASC", "pni": "PNI", "oncologia": "ONCOLOGIA", "cnes": "CNES",
-}
+#: Derivado: uma fonte é observada quando declara ao menos um local observável.
+#: Antes eram dois dicionários escritos à mão, e a cobertura envelheceu em
+#: silêncio duas vezes — o Painel Oncologia e a sífilis entraram no site sem
+#: entrar aqui, e o SIM era "observado" por uma URL que devolve 403 desde
+#: sempre. Uma fonte não observada não dá erro: ela só deixa de avisar.
+OBSERVADAS: dict[str, str] = _observadas()
 
 #: Fonte publicada que NÃO é observada, com o motivo. Estar aqui é uma decisão;
 #: não estar em lugar nenhum é esquecimento — e é isso que o teste separa.
-NAO_OBSERVADAS: dict[str, str] = {
-    "aps": "e-Gestor/SISAB serve painel, não arquivo com tamanho e data estáveis",
-    "siops": "SIOPS publica por consulta interativa, sem diretório versionado",
-    "sisagua": "API de dados abertos responde por consulta (codigo_ibge), não por "
-               "arquivo com tamanho e data — não há o que comparar entre rodadas",
-    "ans": "ANS tem calendário próprio de divulgação, fora do DataSUS",
-    "ibge": "população censitária/projeções não são revisadas de surpresa",
-    "derivado": "não é coleta: sai dos marts acima e muda quando eles mudam",
-}
+NAO_OBSERVADAS: dict[str, str] = _nao_observadas()
 
 
 def _data_ftp(pedaco: str) -> str | None:

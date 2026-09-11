@@ -45,26 +45,28 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _publicacao import (  # noqa: E402
     MARTS,
+    NAO_SERVIDAS,
     ORIGEM_DESCONHECIDA,
     ORIGEM_VIEW,
-    NAO_SERVIDAS,
     Manifesto,
     baixar_do_storage,
+    bases_de_view,
     carregar_env,
     carregar_manifesto,
     chave_declarada,
     commit_atual,
     conferir_chave_unica,
     conferir_nao_nulos,
+    conferir_view_atual,
     contar_no_postgres,
     descrever,
     enviar_ao_storage,
     exportar_do_postgres,
     novo_id_publicacao,
     origem_do_parquet,
-    views_do_esquema,
     origem_registrada,
     registrar_origem,
+    views_do_esquema,
 )
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -340,6 +342,11 @@ def main() -> None:
             # foi baixado do Postgres e continuava marcado `pipeline` a cada
             # publicação, porque o conteúdo não mudava.
             t.publicada_em = anterior.tabelas[tabela].publicada_em
+            # `bases_em` acompanha o CONTEÚDO, como `publicada_em`. Recalculá-lo
+            # aqui apagaria exatamente a defasagem que ele existe para denunciar:
+            # a view passaria a alegar que viu a base de hoje sem ter sido
+            # reexportada, e o arquivo velho ficaria com um carimbo novo.
+            t.bases_em = dict(anterior.tabelas[tabela].bases_em)
             manifesto.tabelas[tabela] = t
             herdadas.append(tabela)
             if not args.quieto:
@@ -374,6 +381,35 @@ def main() -> None:
     if ausentes:
         print(f"[publicar] sem Parquet disponível: {', '.join(ausentes)}", flush=True)
         print("           rode com --bootstrap para reexportá-las do Postgres", flush=True)
+
+    # ---- a quarta guarda: a única que alcança VIEW -------------------------
+    #
+    # As três anteriores comparam o arquivo com a fonte que o produziu. View não
+    # tem produtor: é recalculada a cada consulta, e republicar uma base muda
+    # todos os VALORES sem mudar a CONTAGEM nem as COLUNAS. `mart_icsap_pares`
+    # já passou seis dias publicado assim — 22.280 linhas antes e depois, 42%
+    # delas diferentes do que o banco devolvia.
+    #
+    # Carimba só as views REGERADAS nesta publicação. As herdadas mantêm o
+    # carimbo antigo, e é essa combinação — arquivo parado, base andando — que
+    # a conferência logo abaixo enxerga.
+    for nome, t in manifesto.tabelas.items():
+        if t.origem == ORIGEM_VIEW and nome in mudaram:
+            t.bases_em = {b: manifesto.tabelas[b].publicada_em
+                          for b in bases_de_view(nome) if b in manifesto.tabelas}
+
+    defasadas = {n: conferir_view_atual(t, manifesto.tabelas, bases_de_view(n))
+                 for n, t in manifesto.tabelas.items() if t.origem == ORIGEM_VIEW}
+    defasadas = {n: v for n, v in defasadas.items() if v}
+    if defasadas:
+        print("\n[publicar] VIEW DEFASADA — a base andou desde a derivação:", flush=True)
+        for nome, motivos in defasadas.items():
+            for m in motivos:
+                print(f"   ! {nome} — {m}", flush=True)
+        raise SystemExit(
+            "view derivada de base que já mudou. Contagem e colunas não detectam "
+            "isso. Reexporte a view antes de publicar:\n"
+            f"  python scripts/publicar.py --bootstrap --tabelas {' '.join(defasadas)}")
 
     resumo = manifesto.resumo()
     print(f"[publicar] manifesto: {resumo['n_tabelas']} tabelas · "

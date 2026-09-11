@@ -40,6 +40,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _fontes import HOST_FTP, fonte  # noqa: E402
 from _datasus_ftp import (  # noqa: E402
     ArquivoAusente,
     FalhaDeColeta,
@@ -61,8 +62,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
 MARTS = ROOT / "data" / "marts"
 CKPT = ROOT / "data" / "raw" / "SIH" / "fluxo_ckpt"
-FTP_HOST = "ftp.datasus.gov.br"
-FTP_DIR = "/dissemin/publicos/SIHSUS/200801_/Dados"
+FTP_HOST = HOST_FTP
+FTP_DIR = fonte("sih").local("dados").caminho
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]
 

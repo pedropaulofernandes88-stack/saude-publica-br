@@ -51,6 +51,7 @@ import pandas as pd
 import requests
 
 from _citacao import linhas_meta
+from _fontes import HOST_FTP, fonte  # noqa: E402
 from _datasus_ftp import CHAVE_FONTE, baixar, fonte_do_checkpoint, tamanho
 from _saida import Resultado  # noqa: E402
 from _sim_obitos import (  # noqa: E402
@@ -91,9 +92,9 @@ def versao_dataset() -> str:
     return "0.0.0"  # sem CHANGELOG legível: melhor um valor obviamente inválido
 
 
-S3_SIM = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SIM"
-FTP_HOST = "ftp.datasus.gov.br"
-FTP_DIR = "/dissemin/publicos/SIM/CID10/DORES"
+S3_SIM = fonte("sim").local("csv_aberto").caminho
+FTP_HOST = HOST_FTP
+FTP_DIR = fonte("sim").local("consolidado").caminho
 
 #: Diretório do dado PRELIMINAR. Ano ainda em consolidação mora aqui e migra
 #: para `CID10/DORES` quando fecha — 2024 fez essa passagem em 2025-12-23.
@@ -102,7 +103,7 @@ FTP_DIR = "/dissemin/publicos/SIM/CID10/DORES"
 #: incompleta que fabrica correlação, e foi exatamente esse defeito que o CSV de
 #: 2024 introduziu na análise. Por isso o ano preliminar entra MARCADO, e a
 #: marca viaja no dado — ver `ANOS_PRELIMINARES` em `_sim_obitos.py`.
-FTP_DIR_PRELIM = "/dissemin/publicos/SIM/PRELIM/DORES"
+FTP_DIR_PRELIM = fonte("sim").local("preliminar").caminho
 
 
 def diretorio_do_ano(ano: int) -> str:
@@ -433,7 +434,8 @@ def fetch_cid10_categorias() -> pd.DataFrame | None:
         ftp = FTP(FTP_HOST, timeout=120)
         ftp.login()
         buf = io.BytesIO()
-        ftp.retrbinary("RETR /dissemin/publicos/SIM/CID10/TABELAS/CID10.DBF", buf.write)
+        dir_cid10 = fonte("sim").local("tabela_cid10").caminho
+        ftp.retrbinary(f"RETR {dir_cid10}/CID10.DBF", buf.write)
         ftp.quit()
         tmp = Path(tempfile.gettempdir()) / "CID10.DBF"
         tmp.write_bytes(buf.getvalue())

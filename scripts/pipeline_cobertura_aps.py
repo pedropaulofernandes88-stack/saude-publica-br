@@ -45,6 +45,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _fontes import fonte  # noqa: E402
 from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -54,7 +55,7 @@ ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
 MARTS = ROOT / "data" / "marts"
 CKPT = ROOT / "data" / "raw" / "cobertura_aps" / "ckpt"
-API = "https://relatorioaps-prd.saude.gov.br/cobertura/aps"
+API = fonte("aps").local("cobertura").caminho
 
 COLMAP = {
     "coMunicipioIbge": "municipio_cod",

@@ -62,6 +62,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _fontes import HOST_FTP, fonte  # noqa: E402
 from _datasus_ftp import (
     ArquivoAusente,
     FalhaDeColeta,
@@ -94,8 +95,8 @@ ROOT = Path(__file__).resolve().parents[1]
 REFS = ROOT / "data" / "refs"
 MARTS_DIR = ROOT / "data" / "marts"
 
-FTP_HOST = "ftp.datasus.gov.br"
-FTP_DIR = "/dissemin/publicos/SIHSUS/200801_/Dados"
+FTP_HOST = HOST_FTP
+FTP_DIR = fonte("sih").local("dados").caminho
 
 UFS = ["AC","AL","AM","AP","BA","CE","DF","ES","GO","MA","MG","MS","MT",
        "PA","PB","PE","PI","PR","RJ","RN","RO","RR","RS","SC","SE","SP","TO"]

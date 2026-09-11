@@ -49,6 +49,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _fontes import HOST_FTP, fonte  # noqa: E402
 from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -60,8 +61,8 @@ MARTS = ROOT / "data" / "marts"
 CKPT = ROOT / "data" / "raw" / "CNES" / "leitos_ckpt"
 TMP = ROOT / "data" / "raw" / "CNES" / "_tmp"
 
-FTP_HOST = "ftp.datasus.gov.br"
-FTP_DIR = "/dissemin/publicos/CNES/200508_/Dados/LT"
+FTP_HOST = HOST_FTP
+FTP_DIR = fonte("cnes").local("leitos").caminho
 UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS", "MT",
        "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC", "SE", "SP", "TO"]
 

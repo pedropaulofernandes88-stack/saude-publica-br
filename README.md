@@ -95,6 +95,12 @@ Documentação completa, fórmulas e **limitações declaradas**: **[saudeemdado
    Automação (GitHub Actions): deploy · keep-alive (≤6 dias) · validação de dados
 ```
 
+**Onde cada fonte mora** é declarado uma vez, em [`scripts/_fontes.py`](scripts/_fontes.py):
+diretório FTP, prefixo S3 ou endpoint, com o padrão do nome do arquivo e o motivo escrito quando
+não há o que observar. Pipelines e o observador semanal leem a **mesma** declaração — antes eram
+cópias, e elas divergiram: o `/dissemin/publicos/SIHSUS/200801_/Dados` estava digitado em 8
+arquivos, e o preliminar do SIM era lido pelo pipeline sem ser vigiado por ninguém.
+
 **Princípios:** (1) agregar localmente, publicar só o essencial; (2) nenhum servidor de aplicação para
 manter; (3) reprodutibilidade radical — todo número regenerável das fontes oficiais por um script aberto.
 

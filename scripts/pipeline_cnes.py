@@ -68,6 +68,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _fontes import fonte  # noqa: E402
 from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -78,7 +79,7 @@ REFS = ROOT / "data" / "refs"
 MARTS = ROOT / "data" / "marts"
 CKPT = ROOT / "data" / "raw" / "CNES" / "estabelecimentos_ckpt"
 
-BASE_URL = "https://apidadosabertos.saude.gov.br/cnes/estabelecimentos"
+BASE_URL = fonte("cnes").local("estabelecimentos").caminho
 LIMITE_MAX = 20  # teto real do servidor, medido: limit=1000 devolve 20
 UA = {"User-Agent": "saudeemdado-pipeline/1.0 (+https://saudeemdado.com)"}
 

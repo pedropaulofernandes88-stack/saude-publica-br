@@ -48,8 +48,12 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 
+from _fontes import fonte
+
 HOST_PADRAO = "ftp.datasus.gov.br"
-FTP_DIR_SIH = "/dissemin/publicos/SIHSUS/200801_/Dados"
+#: Reexportado do registro por conveniencia de quem ja importava daqui
+#: (`conferir_coleta.py`). O valor e um so: `_fontes.fonte("sih")`.
+FTP_DIR_SIH = fonte("sih").local("dados").caminho
 CHAVE_MESES = "saude_em_dado.meses"
 CHAVE_FONTE = "saude_em_dado.fonte"
 

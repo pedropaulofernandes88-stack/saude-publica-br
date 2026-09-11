@@ -37,6 +37,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _fontes import HOST_FTP, fonte  # noqa: E402
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, gravar_checkpoint, listar
 from _saida import Resultado
 from _supabase_key import chave_escrita
@@ -49,15 +50,15 @@ REFS = ROOT / "data" / "refs"
 MARTS_DIR = ROOT / "data" / "marts"
 CKPT = ROOT / "data" / "raw" / "SINASC" / "ckpt"
 
-FTP_HOST = "ftp.datasus.gov.br"
-FTP_DIR = "/dissemin/publicos/SINASC/NOV/DNRES"
+FTP_HOST = HOST_FTP
+FTP_DIR = fonte("sinasc").local("dnres").caminho
 
 # Os DEFINITIVOS por UF param em 2022 no FTP; o PRELIM só tem 2025 e 2026.
 # 2023 e 2024 existem, mas apenas como CSV nacional no portal de dados abertos
 # — mesmo desenho que o SIM já usa (ver pipeline_v2.py). Adivinhar o nome do
 # arquivo deu 403 em quatro tentativas; o caminho certo é ler o recurso na
 # página do conjunto, e não presumir o padrão.
-S3_SINASC = "https://s3.sa-east-1.amazonaws.com/ckan.saude.gov.br/SINASC/csv"
+S3_SINASC = fonte("sinasc").local("csv_aberto").caminho
 
 # UF pelo prefixo do código IBGE. Não depende do arquivo de referência: um
 # município ausente de refs ainda cai na UF certa, em vez de sumir do ano.

@@ -116,12 +116,13 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _fontes import fonte  # noqa: E402
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, registros_dbc  # noqa: E402
 from _saida import Resultado  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
-DIR_FTP = "/dissemin/publicos/painel_oncologia/Dados"
+DIR_FTP = fonte("oncologia").local("dados").caminho
 
 #: Anos com arquivo no FTP, medidos em 2026-09-06 (POBR2013..POBR2026).
 ANOS = list(range(2013, 2027))
