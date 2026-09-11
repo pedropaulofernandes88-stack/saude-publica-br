@@ -163,6 +163,26 @@ export const FONTES: Fonte[] = [
       + "escopo em 2018, quando os casos saltaram de 196 mil para 352 mil.",
   },
   {
+    id: "sisagua",
+    nome: "Qualidade da água",
+    sistema: "SISAGUA",
+    orgao: "API de Dados Abertos/MS",
+    traz:
+      "volume e regularidade das análises de água por município, ano e parâmetro "
+      + "(turbidez, coliformes, cor, cloro, E. coli, pH, fluoreto e mais três)",
+    observacao:
+      "NÃO é potabilidade: é quanto se analisou, e conformidade só onde a própria fonte "
+      + "declara o limiar. Município que não analisa aparece na fonte como AUSÊNCIA, e "
+      + "ausência de análise é o oposto de água comprovada — é a falta da prova. Por isso "
+      + "município-ano sem dado não vira linha zerada, e existe a tabela de cobertura ao "
+      + "lado, com uma linha para cada um dos 5.571 municípios: sem ela não há como "
+      + "distinguir “não analisou” de “não foi coletado”. São 336 municípios (6,0%) que "
+      + "responderam à API sem nenhum registro entre 2014 e 2026 — PI 92, MA 58, PA 52. "
+      + "Cuidado ao agrupar cloro por faixa: o rótulo “>= 2,0 mg/L e <= 5,0mg/L” só "
+      + "aparece a partir de 2023 ao lado do “> 2,0 mg/L” que cobre a série inteira, e "
+      + "somar os dois como rótulos distintos inventa uma quebra de série em 2023.",
+  },
+  {
     id: "derivado",
     nome: "Análises derivadas",
     sistema: "—",
@@ -231,6 +251,9 @@ export const FONTE_DA_TABELA: Record<string, string> = {
   // ANS
   mart_saude_suplementar_municipio: "ans",
   mart_saude_suplementar_icsap_municipio: "ans",
+  // SISAGUA
+  mart_sisagua_municipio: "sisagua",
+  mart_sisagua_cobertura: "sisagua",
   // IBGE
   dim_populacao: "ibge",
   dim_pop_faixa: "ibge",

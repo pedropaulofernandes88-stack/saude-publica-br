@@ -120,6 +120,8 @@ OBSERVADAS: dict[str, str] = {
 NAO_OBSERVADAS: dict[str, str] = {
     "aps": "e-Gestor/SISAB serve painel, não arquivo com tamanho e data estáveis",
     "siops": "SIOPS publica por consulta interativa, sem diretório versionado",
+    "sisagua": "API de dados abertos responde por consulta (codigo_ibge), não por "
+               "arquivo com tamanho e data — não há o que comparar entre rodadas",
     "ans": "ANS tem calendário próprio de divulgação, fora do DataSUS",
     "ibge": "população censitária/projeções não são revisadas de surpresa",
     "derivado": "não é coleta: sai dos marts acima e muda quando eles mudam",
