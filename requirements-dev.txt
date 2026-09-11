@@ -13,7 +13,7 @@ pytest-asyncio==0.24.0
 pytest-cov==6.0.0
 
 # Lint
-ruff==0.8.4
+ruff==0.16.5
 
 # Dependencia do servidor MCP. Nao entra no requirements.txt porque nenhum
 # pipeline precisa dela — mas sem ela o passo do CI que confere se
