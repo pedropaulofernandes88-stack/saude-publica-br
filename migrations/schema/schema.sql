@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-08 02:42 UTC
--- Objetos: 238
+-- Extraído em: 2026-09-11 18:45 UTC
+-- Objetos: 249
 -- =============================================================================
 
 
@@ -641,6 +641,30 @@ create table if not exists public.mart_siops_municipio (
     constraint mart_siops_municipio_pkey PRIMARY KEY (municipio_cod, ano)
 );
 
+create table if not exists public.mart_sisagua_cobertura (
+    municipio_cod text not null,
+    uf_sigla text,
+    coletado boolean not null,
+    registros_brutos bigint,
+    linhas_no_mart integer,
+    constraint mart_sisagua_cobertura_pkey PRIMARY KEY (municipio_cod)
+);
+
+create table if not exists public.mart_sisagua_municipio (
+    municipio_cod text not null,
+    municipio_nome text,
+    uf_sigla text,
+    regiao text,
+    ano smallint not null,
+    parametro text not null,
+    amostras_analisadas double precision,
+    escherichia_coli double precision,
+    coliformes_totais double precision,
+    meses_com_analise smallint not null,
+    formas_de_abastecimento text,
+    constraint mart_sisagua_municipio_pkey PRIMARY KEY (municipio_cod, ano, parametro)
+);
+
 create table if not exists public.mart_vacinacao_uf_mes (
     competencia text not null,
     uf_sigla text not null,
@@ -724,6 +748,8 @@ CREATE INDEX idx_perfil_mort_grupo ON public.mart_perfil_mortalidade_municipio U
 CREATE INDEX idx_siops_ano_gasto ON public.mart_siops_municipio USING btree (ano, gasto_proprio_saude_hab);
 
 CREATE INDEX idx_siops_uf_ano ON public.mart_siops_municipio USING btree (uf_sigla, ano);
+
+CREATE INDEX idx_sisagua_uf_ano ON public.mart_sisagua_municipio USING btree (uf_sigla, ano);
 
 CREATE INDEX idx_vac_ufmes_comp ON public.mart_vacinacao_uf_mes USING btree (competencia);
 
@@ -1149,6 +1175,10 @@ alter table public.mart_saude_suplementar_municipio enable row level security;
 
 alter table public.mart_siops_municipio enable row level security;
 
+alter table public.mart_sisagua_cobertura enable row level security;
+
+alter table public.mart_sisagua_municipio enable row level security;
+
 alter table public.mart_vacinacao_uf_mes enable row level security;
 
 alter table public.mart_vazio_assistencial_municipio enable row level security;
@@ -1235,6 +1265,10 @@ create policy leitura_publica on public.mart_qualidade_registro_municipio for se
 create policy leitura_publica on public.mart_saude_suplementar_municipio for select to public using (true);
 
 create policy siops_leitura_publica on public.mart_siops_municipio for select to public using (true);
+
+create policy leitura_publica on public.mart_sisagua_cobertura for select to anon, authenticated using (true);
+
+create policy leitura_publica on public.mart_sisagua_municipio for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_vacinacao_uf_mes for select to anon, authenticated using (true);
 
@@ -1486,6 +1520,14 @@ comment on column public.mart_siops_municipio.abaixo_do_minimo_ec29 is 'TRUE se 
 comment on column public.mart_siops_municipio.gasto_proprio_saude_hab is 'Despesa com recursos proprios em saude por habitante (R$). Oscila muito em municipio pequeno.';
 
 comment on column public.mart_siops_municipio.pct_receita_propria_saude is 'Percentual da receita propria aplicado em ASPS. Piso constitucional de 15% (EC 29 / LC 141).';
+
+comment on table public.mart_sisagua_cobertura is 'Cobertura da coleta do SISAGUA: uma linha por municipio do pais. coletado=false significa que nao conseguimos coletar; coletado=true com linhas_no_mart=0 significa que o municipio nao reportou analise alguma. As duas produzem a mesma ausencia em mart_sisagua_municipio.';
+
+comment on table public.mart_sisagua_municipio is 'SISAGUA (controle mensal de parametros basicos) por municipio de referencia x ano x parametro. VOLUME E REGULARIDADE DE ANALISE, nao potabilidade: ausencia de municipio significa que ele nao analisou ou nao foi coletado - ver mart_sisagua_cobertura. 2014-2026, 10 parametros.';
+
+comment on column public.mart_sisagua_municipio.amostras_analisadas is 'double precision porque a fonte emite fracao em 0,09% das linhas. O valor e preservado como publicado no Parquet, sem arredondar.';
+
+comment on column public.mart_sisagua_municipio.meses_com_analise is 'Meses do ano com ao menos uma amostra analisada (0 a 12). O SISAGUA preve controle MENSAL: valor baixo e lacuna de vigilancia, nao pouco dado.';
 
 comment on table public.mart_vacinacao_uf_mes is 'Doses aplicadas do PNI por competencia mensal, UF e imunobiologico. Fonte mais atual do projeto, com cerca de um mes de defasagem.';
 
