@@ -129,7 +129,7 @@ export default function Home() {
             {[
               ["54 tabelas · 12 fontes",
                "publicadas em Parquet com SHA-256 por arquivo e DOI citável"],
-              ["1004 testes",
+              ["1013 testes",
                "automatizados a cada alteração, com o banco reconstruído do zero no CI"],
               ["351 anos-UF refeitos",
                "reprocessados da fonte para conferência: 459 de 459 checkpoints idênticos"],
