@@ -165,6 +165,27 @@ Os pipelines fazem download, agregam em streaming com **checkpoint resumível** 
 A rotina de validação ([`.github/workflows/validate-data.yml`](.github/workflows/validate-data.yml))
 confere mensalmente totais oficiais e conciliação entre marts.
 
+**Código de saída — três valores, não dois.** "Rodou sem erro" e "veio dado novo" são perguntas
+diferentes, e todo pipeline responde as duas ([`scripts/_saida.py`](scripts/_saida.py)):
+
+| Código | Significado |
+|---|---|
+| `0` | rodou certo **e** o mart mudou |
+| `1` | falhou |
+| `2` | rodou certo, e **nada mudou** desde a última vez |
+
+A novidade é medida pelo **sha256 do mart**, antes e depois da gravação — não por tamanho de
+arquivo nem por contagem de linhas, que não distinguem duplicata de ausência. Reprocessar um ano
+já processado sai com `2`.
+
+Atenção ao encadear: `2` é diferente de zero, e `set -e`, `&&` e o `run:` do GitHub Actions leem
+qualquer código `!= 0` como falha. Só o `1` é falha:
+
+```bash
+python scripts/pipeline_sinan.py; c=$?
+[ $c -eq 1 ] && exit 1
+```
+
 ---
 
 ## 📁 Estrutura

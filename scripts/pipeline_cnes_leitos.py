@@ -49,7 +49,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -164,12 +164,13 @@ def _baixar_uf_ano(uf: str, ano: int) -> pd.DataFrame | None:
     return df
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--anos", type=int, nargs="+", default=None)
     ap.add_argument("--todos-os-anos", action="store_true")
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_cnes_leitos.py")
 
     anos = args.anos or (list(range(2015, 2025)) if args.todos_os_anos else [2024])
 
@@ -216,12 +217,10 @@ def main() -> None:
     print(f"  mediana leitos_sus_por_mil: {ultimo.leitos_sus_por_mil.median():.2f}")
 
     MARTS.mkdir(exist_ok=True)
-    escrever_parquet(
-        out, MARTS / "mart_leitos_municipio.parquet",
-        origem="pipeline", produtor="scripts/pipeline_cnes_leitos.py")
+    res.gravar(out, MARTS / "mart_leitos_municipio.parquet")
 
     if args.no_upload:
-        return
+        return res.relatar()
     env = load_env()
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
@@ -245,7 +244,8 @@ def main() -> None:
                       "no meio da faixa de UTI, e acolhimento noturno e fica de fora)."}]
     requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
     print("[done] leitos concluido.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -48,7 +48,7 @@ import pandas as pd
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado  # noqa: E402
 from _supabase_key import chave_escrita  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -180,23 +180,23 @@ def conferir_contra_publicado(novo: pd.DataFrame, motivo: str | None = None) -> 
               flush=True)
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--aceitar-mudanca", metavar="MOTIVO", default=None,
                     help="prossegue mesmo divergindo do publicado, registrando o motivo")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_qualidade_registro.py")
 
     df = construir()
     conferir_contra_publicado(df, args.aceitar_mudanca)
     print("[qualidade] classificação: "
           + ", ".join(f"{k}={v}" for k, v in df.classificacao.value_counts().items()), flush=True)
 
-    escrever_parquet(df, MARTS / "mart_qualidade_registro_municipio.parquet",
-                     origem="pipeline", produtor=PRODUTOR)
+    res.gravar(df, MARTS / "mart_qualidade_registro_municipio.parquet")
     print(f"[qualidade] {len(df):,} linhas gravadas", flush=True)
     if args.no_upload:
-        return
+        return res.relatar()
 
     env = load_env()
     url, key = env["SUPABASE_URL"].rstrip("/"), chave_escrita(env)
@@ -218,7 +218,8 @@ def main() -> None:
             {"chave": "gerado_em", "valor": datetime.now().isoformat(timespec="seconds")}]
     requests.post(f"{url}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
     print("[done] qualidade do registro concluído.", flush=True)
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

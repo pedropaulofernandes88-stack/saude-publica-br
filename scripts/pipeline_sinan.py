@@ -56,7 +56,7 @@ from _datasus_ftp import (
     listar,
     tamanho,
 )
-from _publicacao import escrever_parquet
+from _saida import Resultado
 from _supabase_key import chave_escrita
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -311,11 +311,12 @@ def _jd(o):
     raise TypeError(str(type(o)))
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--anos", nargs="+", type=int, default=list(range(2015, 2025)))
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sinan.py")
     anos = sorted(args.anos)
     env = load_env()
 
@@ -325,11 +326,10 @@ def main() -> None:
     for df, nome_mart in ((semana, "mart_dengue_semana"),
                           (uf_semana, "mart_dengue_uf_semana"),
                           (anual, "mart_dengue_municipio_ano")):
-        escrever_parquet(df, MARTS_DIR / f"{nome_mart}.parquet", origem="pipeline",
-                         produtor="scripts/pipeline_sinan.py")
+        res.gravar(df, MARTS_DIR / f"{nome_mart}.parquet")
 
     if args.no_upload:
-        return
+        return res.relatar()
 
     url, key = env.get("SUPABASE_URL"), chave_escrita(env)
     if not url or not key:
@@ -349,7 +349,8 @@ def main() -> None:
     ], columns=["chave", "valor"])
     loader.load_df("meta_dataset", meta)
     print("[done] pipeline SINAN-dengue concluído.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

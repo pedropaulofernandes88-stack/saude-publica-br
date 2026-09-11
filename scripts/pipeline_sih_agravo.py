@@ -57,7 +57,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import acumular_parquet  # noqa: E402
+from _saida import Resultado
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
 # unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
@@ -250,12 +250,13 @@ def _process_uf(uf: str, ano: int, workers: int):
     return adf, hdf
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ano", type=int, default=2024)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sih_agravo.py")
     ano = args.ano
     env = load_env()
 
@@ -316,18 +317,16 @@ def main() -> None:
                  "valor_normal", "permanencia_media", "mortalidade_pct", "custo_medio"]]
 
     MARTS.mkdir(exist_ok=True)
-    _, _antes, _depois = acumular_parquet(
-        agravo, MARTS / "mart_internacoes_agravo.parquet", "mart_internacoes_agravo",
-        origem="pipeline", produtor="scripts/pipeline_sih_agravo.py")
+    _, _antes, _depois = res.acumular(
+        agravo, MARTS / "mart_internacoes_agravo.parquet", "mart_internacoes_agravo")
     print(f"[acumulado] mart_internacoes_agravo: {_antes:,} -> {_depois:,} linhas", flush=True)
-    _, _antes, _depois = acumular_parquet(
-        hosp, MARTS / "mart_internacoes_hospital.parquet", "mart_internacoes_hospital",
-        origem="pipeline", produtor="scripts/pipeline_sih_agravo.py")
+    _, _antes, _depois = res.acumular(
+        hosp, MARTS / "mart_internacoes_hospital.parquet", "mart_internacoes_hospital")
     print(f"[acumulado] mart_internacoes_hospital: {_antes:,} -> {_depois:,} linhas", flush=True)
     print(f"[agravo] mart_agravo: {len(agravo):,} | mart_hospital: {len(hosp):,} hospitais", flush=True)
 
     if args.no_upload:
-        return
+        return res.relatar()
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
@@ -353,7 +352,8 @@ def main() -> None:
     varrer_orfaos(url, key, "mart_internacoes_hospital", hosp,
                   chaves=["cnes", "ano"], escopo={"ano": f"eq.{ano}"})
     print("[done] agravo + hospital concluído.", flush=True)
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

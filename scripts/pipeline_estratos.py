@@ -55,7 +55,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -145,7 +145,8 @@ def conferir_deriva(df: pd.DataFrame) -> None:
             "commit que explica por que.")
 
 
-def main() -> None:
+def main() -> int:
+    res = Resultado("scripts/pipeline_estratos.py")
     env = load_env()
 
     mort = pd.read_parquet(MARTS / "mart_mortalidade_municipio.parquet")
@@ -196,9 +197,7 @@ def main() -> None:
         raise SystemExit("[estrato] ABORTA: rótulo e estrato deixaram de ser 1-para-1")
 
     MARTS.mkdir(exist_ok=True)
-    escrever_parquet(
-        out, MARTS / "dim_cluster_municipio.parquet",
-        origem="pipeline", produtor="scripts/pipeline_estratos.py")
+    res.gravar(out, MARTS / "dim_cluster_municipio.parquet")
 
     tam = out.cluster.value_counts()
     print(f"[estrato] {len(tam)} estratos ocupados de 27; menor={tam.min()}, "
@@ -209,7 +208,7 @@ def main() -> None:
 
     if "--offline" in sys.argv:
         print("[estrato] --offline: parquet gravado, upload pulado.")
-        return
+        return res.relatar()
 
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
@@ -238,7 +237,8 @@ def main() -> None:
     requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h,
                   data=json.dumps(meta), timeout=60)
     print("[done] estratos concluído.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

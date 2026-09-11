@@ -106,7 +106,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, registros_dbc  # noqa: E402
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
@@ -423,7 +423,7 @@ def _natalidade() -> pd.DataFrame | None:
     return pd.read_parquet(alvo)
 
 
-def main() -> None:
+def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -431,6 +431,7 @@ def main() -> None:
     ap.add_argument("--anos", nargs="+", type=int)
     ap.add_argument("--todos-os-anos", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sinan_sifilis.py")
 
     if args.todos_os_anos:
         anos = list(range(ANO_INICIAL, ANO_FINAL + 1))
@@ -511,10 +512,10 @@ def main() -> None:
           "2021–2024, onde há denominador de nascidos vivos.")
 
     MARTS.mkdir(parents=True, exist_ok=True)
-    escrever_parquet(out, MARTS / "mart_sifilis_municipio.parquet",
-                     origem="pipeline", produtor="scripts/pipeline_sinan_sifilis.py")
+    res.gravar(out, MARTS / "mart_sifilis_municipio.parquet")
     print(f"[ok] mart_sifilis_municipio.parquet em {MARTS}")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

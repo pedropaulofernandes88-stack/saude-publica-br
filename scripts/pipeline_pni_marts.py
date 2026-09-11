@@ -35,7 +35,7 @@ import pandas as pd
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado  # noqa: E402
 from _supabase_key import chave_escrita  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -130,10 +130,11 @@ class Loader:
         print("[supabase]   %s: %d OK" % (tabela, len(recs)), flush=True)
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_pni_marts.py")
 
     bruto = carregar_agregados()
     total_bruto = int(bruto.doses.sum())
@@ -202,13 +203,12 @@ def main() -> None:
     saidas = [("mart_vacinacao_municipio", mun), ("mart_vacinacao_uf_mes", ufmes),
               ("mart_cobertura_vacinal_uf", cob)]
     for nome, df in saidas:
-        escrever_parquet(df, MARTS / (f"{nome}.parquet"), origem="pipeline",
-                         produtor=PRODUTOR)
+        res.gravar(df, MARTS / (f"{nome}.parquet"))
         print("[pni] %-28s %8d linhas" % (nome, len(df)))
     print(f"[pni] última competência: {ufmes.competencia.max()}")
 
     if args.no_upload:
-        return
+        return res.relatar()
 
     env = load_env()
     ld = Loader(env["SUPABASE_URL"], chave_escrita(env))
@@ -227,7 +227,8 @@ def main() -> None:
     ], columns=["chave", "valor"])
     ld.load("meta_dataset", meta)
     print("[done] marts do PNI concluídos.", flush=True)
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

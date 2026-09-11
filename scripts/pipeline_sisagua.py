@@ -77,7 +77,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado
 # `FalhaDeColeta` é reexportada de propósito: `agregar_do_cache` a PROPAGA
 # quando o cache está corrompido, então ela faz parte do contrato deste módulo.
 # Quem chama tem de poder capturá-la sem importar `_sisagua` — e importar o
@@ -306,7 +306,7 @@ def guardas(df: pd.DataFrame, cob: pd.DataFrame) -> None:
             f"coletados na cobertura (ex.: {sorted(orfaos)[:5]}).")
 
 
-def main() -> None:
+def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -316,6 +316,7 @@ def main() -> None:
                     help="grava mesmo com municípios faltando no cache")
     ap.add_argument("--quieto", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sisagua.py")
 
     ufs = args.ufs or UFS
     desconhecidas = [u for u in ufs if u not in UFS]
@@ -352,10 +353,8 @@ def main() -> None:
           f"{(df['meses_com_analise'] <= 2).mean() * 100:.1f}% das linhas com 2 ou menos")
 
     MARTS.mkdir(parents=True, exist_ok=True)
-    escrever_parquet(df, MARTS / "mart_sisagua_municipio.parquet",
-                     origem="pipeline", produtor="scripts/pipeline_sisagua.py")
-    escrever_parquet(cob, MARTS / "mart_sisagua_cobertura.parquet",
-                     origem="pipeline", produtor="scripts/pipeline_sisagua.py")
+    res.gravar(df, MARTS / "mart_sisagua_municipio.parquet")
+    res.gravar(cob, MARTS / "mart_sisagua_cobertura.parquet")
     print(f"[ok] mart_sisagua_municipio.parquet e mart_sisagua_cobertura.parquet em {MARTS}")
     nao_coletados = int((~cob["coletado"]).sum())
     if nao_coletados:
@@ -364,7 +363,8 @@ def main() -> None:
               f"ausência deles no mart se lê como 'não analisou'.")
     print("[nota] ausência de município NÃO significa água conforme: significa que ele "
           "não analisou, ou que não foi coletado. A cobertura diz qual dos dois.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -48,6 +48,8 @@ import duckdb
 import pandas as pd
 import requests
 
+from _publicacao import sha256_de
+from _saida import Resultado
 from _supabase_key import chave_escrita
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -417,13 +419,14 @@ def _json_default(o):
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
-def main() -> None:
+def main() -> int:
     p = argparse.ArgumentParser(description="Pipeline custo zero — SIM/DataSUS → Supabase")
     p.add_argument("--anos", nargs="+", type=int, default=[2022, 2023, 2024])
     p.add_argument("--medir", action="store_true", help="só mede cardinalidades, sem upload")
     p.add_argument("--no-upload", action="store_true", help="gera marts locais sem subir")
     args = p.parse_args()
 
+    res = Resultado("scripts/pipeline_custo_zero.py")
     env = load_env()
     anos = sorted(args.anos)
 
@@ -443,7 +446,7 @@ def main() -> None:
     build_marts(con, anos)
 
     if args.medir:
-        return
+        return res.relatar()
 
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
     exports = {
@@ -455,11 +458,14 @@ def main() -> None:
     }
     for name, sql in exports.items():
         out = MARTS_DIR / f"{name}.parquet"
+        # COPY do DuckDB: o sha256 é tirado à mão, antes e depois.
+        antes = sha256_de(out) if out.exists() else None
         con.execute(f"COPY ({sql}) TO '{out}' (FORMAT PARQUET, COMPRESSION ZSTD)")
+        res.registrar(name, sha256_de(out) != antes)
         print(f"[export] {out.name}: {out.stat().st_size/1e6:.1f} MB")
 
     if args.no_upload:
-        return
+        return res.relatar()
 
     url = env.get("SUPABASE_URL")
     key = chave_escrita(env)
@@ -495,7 +501,8 @@ def main() -> None:
     )
     loader.load_df("meta_dataset", meta)
     print("[done] pipeline concluído.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

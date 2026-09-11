@@ -66,7 +66,7 @@ from ftplib import FTP
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -174,11 +174,12 @@ def processar_ano(ano: int) -> pd.DataFrame:
     return df
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--anos", type=int, nargs="+", default=[2021, 2022, 2023, 2024])
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_ans_beneficiarios.py")
 
     partes = [processar_ano(ano) for ano in args.anos]
     out = pd.concat(partes, ignore_index=True)
@@ -187,9 +188,7 @@ def main() -> None:
                "razao_implausivel"]]
 
     MARTS.mkdir(exist_ok=True)
-    escrever_parquet(
-        out, MARTS / "mart_saude_suplementar_municipio.parquet",
-        origem="pipeline", produtor="scripts/pipeline_ans_beneficiarios.py")
+    res.gravar(out, MARTS / "mart_saude_suplementar_municipio.parquet")
     print(f"\n[mart] mart_saude_suplementar_municipio: {len(out):,} linhas "
           f"({out.municipio_cod.nunique():,} municipios x {out.ano.nunique()} anos)")
     print(f"  vinculos_plano_por_100_hab mediano: {out.vinculos_plano_por_100_hab.median():.1f}")
@@ -201,7 +200,7 @@ def main() -> None:
                   f"{r.vinculos_medico_hospitalar:,} vinculos = {r.vinculos_plano_por_100_hab}")
 
     if args.no_upload:
-        return
+        return res.relatar()
     env = load_env()
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
@@ -229,7 +228,8 @@ def main() -> None:
                       f"de 100 (flag razao_implausivel)."}]
     requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
     print("[done] saude suplementar concluido.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

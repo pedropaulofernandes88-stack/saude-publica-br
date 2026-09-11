@@ -45,7 +45,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -120,12 +120,13 @@ def _fetch_ano_ckpt(ano: int) -> pd.DataFrame | None:
     return df
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ano-inicio", type=int, default=2021)
     ap.add_argument("--ano-fim", type=int, default=date.today().year)
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_cobertura_aps.py")
     env = load_env()
 
     municipios = pd.read_parquet(REFS / "municipios.parquet")
@@ -163,15 +164,13 @@ def main() -> None:
                            "qt_eapp20", "qt_eapp30", "capacidade_equipe", "cobertura_pct"]]
 
     MARTS.mkdir(exist_ok=True)
-    escrever_parquet(
-        cobertura, MARTS / "mart_cobertura_aps_municipio.parquet",
-        origem="pipeline", produtor="scripts/pipeline_cobertura_aps.py")
+    res.gravar(cobertura, MARTS / "mart_cobertura_aps_municipio.parquet")
     print(f"[cobertura_aps] mart final: {len(cobertura):,} linhas | "
           f"{cobertura.municipio_cod.nunique():,} municipios | "
           f"{cobertura.mes_competencia.nunique():,} competencias", flush=True)
 
     if args.no_upload:
-        return
+        return res.relatar()
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
@@ -191,7 +190,8 @@ def main() -> None:
 
     up("mart_cobertura_aps_municipio", cobertura)
     print("[done] cobertura APS concluido.", flush=True)
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

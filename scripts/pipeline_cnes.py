@@ -68,7 +68,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -188,13 +188,14 @@ def load_env() -> dict[str, str]:
     return env
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--estados", nargs="+", default=None,
                     help="Siglas de UF (ex: SP RJ). Default: todas.")
     ap.add_argument("--all", action="store_true")
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_cnes.py")
 
     if args.estados:
         alvo = {cod: sig for cod, sig in UFS.items() if sig in {e.upper() for e in args.estados}}
@@ -244,13 +245,11 @@ def main() -> None:
     print(f"  mediana estab_hosp_por_10k: {out.estab_hosp_por_10k.median():.2f}")
 
     MARTS.mkdir(exist_ok=True)
-    escrever_parquet(
-        out, MARTS / "mart_cnes_municipio.parquet",
-        origem="pipeline", produtor="scripts/pipeline_cnes.py")
+    res.gravar(out, MARTS / "mart_cnes_municipio.parquet")
     print(f"[mart] mart_cnes_municipio.parquet salvo ({len(out):,} municipios)")
 
     if args.no_upload:
-        return
+        return res.relatar()
     env = load_env()
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
@@ -277,7 +276,8 @@ def main() -> None:
                       "descricao_esfera_administrativa (esfera de gestao, nao propriedade)."}]
     requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
     print("[done] CNES concluido.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

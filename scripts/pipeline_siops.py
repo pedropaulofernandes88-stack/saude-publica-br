@@ -74,7 +74,7 @@ import requests
 
 from _supabase_key import chave_escrita
 from _varredura import varrer_orfaos
-from _publicacao import escrever_parquet
+from _saida import Resultado
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -261,16 +261,16 @@ def publicar(df: pd.DataFrame, env: dict[str, str], anos: list[int]) -> None:
     requests.post(f"{url}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--anos", type=int, nargs="+", default=[2021, 2022, 2023, 2024])
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_siops.py")
 
     df = build(args.anos)
     MARTS.mkdir(exist_ok=True)
-    escrever_parquet(df, MARTS / "mart_siops_municipio.parquet", origem="pipeline",
-                     produtor="scripts/pipeline_siops.py")
+    res.gravar(df, MARTS / "mart_siops_municipio.parquet")
 
     print(f"\n[siops] mart_siops_municipio: {len(df):,} linhas "
           f"({df.municipio_cod.nunique():,} municípios × {df.ano.nunique()} anos)")
@@ -283,10 +283,11 @@ def main() -> None:
               f"{decl:,} declararam | {abaixo:,} abaixo dos 15% da EC 29")
 
     if args.no_upload:
-        return
+        return res.relatar()
     publicar(df, load_env(), args.anos)
     print("[done] SIOPS concluído.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

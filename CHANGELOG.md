@@ -7,6 +7,63 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ---
 
+## [Não lançado] — Código de saída: "rodou" e "trouxe dado novo" deixam de ser a mesma resposta
+
+> Todo pipeline do projeto terminava em 0 ou estourava. Isso responde "deu
+> erro?" e deixa a segunda pergunta sem resposta. Em 2026-08-11 os pipelines do
+> SIH gravaram checkpoints incompletos e MA 2023 perdeu 5 dos 12 meses — com
+> código 0. Aquela correção separou as **exceções**; esta separa o **desfecho**,
+> que é o que chega a quem chamou.
+
+### Adicionado
+
+- **`scripts/_saida.py`** — três códigos de saída, e o acumulador que os decide:
+
+  | Código | Significado |
+  |---|---|
+  | `SUCESSO` (0) | rodou certo **e** o que foi gravado mudou |
+  | `ERRO` (1) | falhou de verdade |
+  | `SEM_NOVIDADE` (2) | rodou certo, e nada mudou desde a última vez |
+
+  `ERRO` não é produzido à mão: exceção não capturada e `SystemExit("msg")` já
+  saem com 1. O que faltava era o 2.
+
+- **`Resultado.gravar()` / `Resultado.acumular()`** medem a novidade pelo
+  **sha256 do arquivo**, antes e depois da gravação. É deliberadamente mais
+  forte do que a checagem por tamanho que essa ideia costuma receber: tamanho
+  igual não implica conteúdo igual, e contagem de linhas não detecta corrupção
+  — duplicata e ausência se cancelam na contagem e não se cancelam no hash.
+  Verificado que Parquet escrito por `escrever_parquet` e por `COPY` do DuckDB é
+  byte-estável para o mesmo quadro; sem isso, `SEM_NOVIDADE` nunca aconteceria e
+  o módulo seria decoração.
+
+- **`tests/test_codigo_de_saida_dos_pipelines.py`** — varredura por AST sobre os
+  24 `scripts/pipeline_*.py`, mais o dicionário `SEM_CONVENCAO` (vazio hoje):
+  ficar de fora da convenção passa a exigir declaração com motivo, como já
+  acontece com `OBSERVADAS`/`NAO_OBSERVADAS` no observador de fontes. A
+  varredura é por AST e não por texto porque `grep "sys.exit(main())"` acharia a
+  string dentro de uma docstring. Testada por mutação: os três mutantes
+  (`main()` solto, `return` nu, assinatura sem `-> int`) reprovam.
+
+### Alterado
+
+- **Os 24 pipelines** passam a `main() -> int` e `sys.exit(main())`. Os `return`
+  nus dos atalhos `--medir` e `--no-upload` viram `return res.relatar()`: eles
+  param antes de publicar, e sair com 0 ali afirmava dado novo que ninguém
+  recebeu.
+- **`pipeline_pni.py`**: o caminho de checkpoint válido passa a devolver
+  `reaproveitado: True`. Um ano inteiro já processado saía como sucesso e
+  anunciava dose que ninguém coletou.
+
+### Atenção a quem chama
+
+`2` é diferente de zero: `set -e`, `&&` e o `run:` do GitHub Actions leem
+qualquer código `!= 0` como falha. Nenhum workflow do projeto executa
+`pipeline_*.py` hoje — quem encadear precisa tratar o 2 explicitamente. Ver
+README, seção Reprodutibilidade.
+
+---
+
 ## [3.6.0] — 2026-09-06 — A mediana dos pares era de quatro anos somados
 
 > O cartão dizia "comparado com 272 municípios do mesmo grupo". São 68,

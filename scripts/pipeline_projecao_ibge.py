@@ -60,6 +60,9 @@ from pathlib import Path
 
 import duckdb
 
+from _publicacao import sha256_de
+from _saida import Resultado
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -169,14 +172,19 @@ def conferir(con: duckdb.DuckDBPyConnection) -> None:
     print(f"[confere] homens + mulheres = ambos os sexos ({soma_sexo[0]:,} pessoas-ano)")
 
 
-def main() -> None:
+def main() -> int:
+    res = Resultado("scripts/pipeline_projecao_ibge.py")
     con = duckdb.connect()
     extrair(con, baixar())
     conferir(con)
 
     REFS.mkdir(parents=True, exist_ok=True)
+    # A escrita é um COPY do DuckDB, não passa pelo `escrever_parquet` — então o
+    # sha256 é tirado à mão, antes e depois, para responder a mesma pergunta.
+    antes = sha256_de(DESTINO) if DESTINO.exists() else None
     con.execute(f"""copy (select * from proj order by uf_sigla, ano, sexo, idade)
                     to '{DESTINO.as_posix()}' (format parquet, compression zstd)""")
+    res.registrar(DESTINO.stem, sha256_de(DESTINO) != antes)
     linhas = con.execute("select count(*) from proj").fetchone()[0]
     print(f"[parquet] {DESTINO.name}: {linhas:,} linhas, "
           f"{DESTINO.stat().st_size / 1e6:.2f} MB")
@@ -187,7 +195,8 @@ def main() -> None:
         print(f"    {ano}: {pop:>15,}")
     print("\n  para comparação — Censo 2022 enumerou 203.080.756; a diferença é a "
           "\n  subcontagem medida pela Pesquisa de Pós-Enumeração, não erro de extração.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

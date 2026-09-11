@@ -62,6 +62,7 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta  # noqa: E402
+from _saida import Resultado  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -157,7 +158,11 @@ def processar_mes(ano: int, sigla: str, mm: str) -> dict | None:
         antigo = json.loads(destino_meta.read_text(encoding="utf-8"))
         if antigo.get("bytes_origem") == esperado:
             log("%s: checkpoint válido (%d linhas), pulando" % (ref, antigo["linhas"]))
-            return antigo
+            # Marca o desfecho para quem chamou: mês reaproveitado do checkpoint
+            # não é competência nova. Sem esta linha, um ano inteiro já
+            # processado sairia como SUCESSO e anunciaria dose que ninguém
+            # coletou.
+            return {**antigo, "reaproveitado": True}
         anterior = antigo.get("bytes_origem")
         log(f"{ref}: origem mudou de {anterior} para {esperado} bytes, reprocessando")
 
@@ -269,10 +274,11 @@ def conferir_ano(ano: int, metas: list[dict]) -> None:
         % (ano, len(metas), sum(m["linhas"] for m in metas)))
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--anos", type=int, nargs="+", required=True)
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_pni.py")
 
     falhou = []
     for ano in args.anos:
@@ -287,6 +293,7 @@ def main() -> None:
                     continue        # mês não publicado; o ano segue
                 if m:
                     metas.append(m)
+                    res.registrar("%d-%s" % (ano, mm), not m.get("reaproveitado", False))
             if metas:
                 conferir_ano(ano, metas)
         except Exception:
@@ -299,7 +306,8 @@ def main() -> None:
     if falhou:
         raise SystemExit(f"anos com falha: {falhou}")
     log("concluído")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

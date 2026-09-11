@@ -82,7 +82,7 @@ from _supabase_key import chave_escrita
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _publicacao import acumular_parquet  # noqa: E402
+from _saida import Resultado
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
 # unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
@@ -287,25 +287,25 @@ def _jd(o):
     raise TypeError(str(type(o)))
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--anos", nargs="+", type=int, default=[2022, 2023, 2024])
     ap.add_argument("--workers", type=int, default=8)
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sih.py")
     anos = sorted(args.anos)
     env = load_env()
 
     mart, _ = build(anos, args.workers)
 
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
-    _, _antes, _depois = acumular_parquet(
-        mart, MARTS_DIR / "mart_internacoes_municipio.parquet", "mart_internacoes_municipio",
-        origem="pipeline", produtor="scripts/pipeline_sih.py")
+    _, _antes, _depois = res.acumular(
+        mart, MARTS_DIR / "mart_internacoes_municipio.parquet", "mart_internacoes_municipio")
     print(f"[acumulado] mart_internacoes_municipio: {_antes:,} -> {_depois:,} linhas", flush=True)
 
     if args.no_upload:
-        return
+        return res.relatar()
 
     url, key = env.get("SUPABASE_URL"), chave_escrita(env)
     if not url or not key:
@@ -325,7 +325,8 @@ def main() -> None:
     ], columns=["chave", "valor"])
     loader.load_df("meta_dataset", meta)
     print("[done] pipeline SIH concluído.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

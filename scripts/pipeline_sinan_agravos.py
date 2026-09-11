@@ -79,7 +79,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, registros_dbc  # noqa: E402
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
@@ -262,7 +262,7 @@ def guardas(df: pd.DataFrame, cobertura: pd.DataFrame) -> None:
                 "ID_MN_RESI mudou.")
 
 
-def main() -> None:
+def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -272,6 +272,7 @@ def main() -> None:
     ap.add_argument("--desde", type=int, default=2010,
                     help="primeiro ano a coletar (padrão: 2010)")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sinan_agravos.py")
 
     catalogo = json.loads(SONDAGEM.read_text(encoding="utf-8"))["catalogo"]
     alvos = args.agravos or (agravos_elegiveis() if args.todos else [])
@@ -366,12 +367,11 @@ def main() -> None:
           "referencia_do_ano em mart_sinan_agravo_cobertura antes de somar agravos.")
 
     MARTS.mkdir(parents=True, exist_ok=True)
-    escrever_parquet(out, MARTS / "mart_sinan_agravo_municipio.parquet",
-                     origem="pipeline", produtor="scripts/pipeline_sinan_agravos.py")
-    escrever_parquet(cob, MARTS / "mart_sinan_agravo_cobertura.parquet",
-                     origem="pipeline", produtor="scripts/pipeline_sinan_agravos.py")
+    res.gravar(out, MARTS / "mart_sinan_agravo_municipio.parquet")
+    res.gravar(cob, MARTS / "mart_sinan_agravo_cobertura.parquet")
     print(f"[ok] mart_sinan_agravo_municipio.parquet em {MARTS}")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

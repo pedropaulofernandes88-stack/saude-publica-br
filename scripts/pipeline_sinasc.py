@@ -38,7 +38,7 @@ import pandas as pd
 import requests
 
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, gravar_checkpoint, listar
-from _publicacao import escrever_parquet
+from _saida import Resultado
 from _supabase_key import chave_escrita
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -380,22 +380,22 @@ def _jd(o):
     raise TypeError(str(type(o)))
 
 
-def main():
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--anos", nargs="+", type=int, default=[2021, 2022, 2023])
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sinasc.py")
     anos = sorted(args.anos)
     env = load_env()
 
     nat, tmi = build(anos, args.workers)
     MARTS_DIR.mkdir(parents=True, exist_ok=True)
     for df_, nome_ in ((nat, "mart_natalidade_municipio"), (tmi, "mart_mortalidade_infantil_uf")):
-        escrever_parquet(df_, MARTS_DIR / f"{nome_}.parquet", origem="pipeline",
-                         produtor="scripts/pipeline_sinasc.py")
+        res.gravar(df_, MARTS_DIR / f"{nome_}.parquet")
     if args.no_upload:
-        return
+        return res.relatar()
 
     ld = Loader(env["SUPABASE_URL"], chave_escrita(env))
     ld.load("mart_natalidade_municipio", nat)
@@ -408,7 +408,8 @@ def main():
     ], columns=["chave", "valor"])
     ld.load("meta_dataset", meta)
     print("[done] pipeline SINASC concluído.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

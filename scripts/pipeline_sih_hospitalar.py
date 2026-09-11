@@ -76,7 +76,7 @@ from _datasus_ftp import (
     meses_publicados,
     registros_dbc,
 )
-from _publicacao import acumular_parquet
+from _saida import Resultado
 from _metricas_aih import capitulo as _capitulo
 
 from _varredura import varrer_orfaos
@@ -299,7 +299,7 @@ def _mediana_aprox(bins: list[int]) -> float | None:
     return LOS_MID[-1]
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ano", type=int, default=2024)
     ap.add_argument("--workers", type=int, default=6)
@@ -309,6 +309,7 @@ def main() -> None:
     ap.add_argument("--min-internacoes-los", type=int, default=30,
                      help="internações mínimas do hospital p/ diagnóstico entrar no LOS")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sih_hospitalar.py")
     ano = args.ano
     env = load_env()
 
@@ -391,15 +392,13 @@ def main() -> None:
     for df, nome in ((hsmr, "mart_hsmr_hospital"),
                      (los, "mart_los_hospital"),
                      (demanda, "mart_demanda_mensal_hospital")):
-        _, antes, depois = acumular_parquet(
-            df, MARTS / f"{nome}.parquet", nome,
-            origem="pipeline", produtor="scripts/pipeline_sih_hospitalar.py")
+        _, antes, depois = res.acumular(df, MARTS / f"{nome}.parquet", nome)
         print(f"[acumulado] {nome}: {antes:,} -> {depois:,} linhas", flush=True)
     print(f"[hospitalar] mart_hsmr: {len(hsmr):,} | mart_los: {len(los):,} | "
           f"mart_demanda: {len(demanda):,}", flush=True)
 
     if args.no_upload:
-        return
+        return res.relatar()
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
@@ -428,7 +427,8 @@ def main() -> None:
     varrer_orfaos(url, key, "mart_los_hospital", los,
                   chaves=["cnes", "cid3", "ano"], escopo={"ano": f"eq.{ano}"})
     print("[done] HSMR + LOS + demanda mensal concluído.", flush=True)
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

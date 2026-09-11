@@ -97,7 +97,8 @@ import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _achados import registrar  # noqa: E402
-from _publicacao import carregar_env, conferir_chave_unica, escrever_parquet  # noqa: E402
+from _publicacao import carregar_env, conferir_chave_unica  # noqa: E402
+from _saida import Resultado  # noqa: E402
 from _sim_obitos import (  # noqa: E402
     ANOS_COBERTOS,
     ANOS_CONSOLIDADOS,
@@ -441,11 +442,12 @@ def subir(nome: str, df: pd.DataFrame, env: dict[str, str]) -> None:
     print(f"[supabase]   {nome}: {len(recs):,} OK", flush=True)
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--anos", nargs="+", type=int, default=ANOS)
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_mortalidade_causa_municipio.py")
     anos = sorted(args.anos)
 
     anual, mensal, etario, dimcid = construir(anos)
@@ -470,7 +472,7 @@ def main() -> None:
                      ("mart_mortalidade_causa_municipio_mes", mensal),
                      ("mart_mortalidade_causa_municipio_faixa", etario),
                      ("dim_cid10_informativo", dimcid)):
-        escrever_parquet(df, MARTS / f"{nome}.parquet", origem="pipeline", produtor=PRODUTOR)
+        res.gravar(df, MARTS / f"{nome}.parquet")
         mb = (MARTS / f"{nome}.parquet").stat().st_size / 1e6
         print(f"[parquet] {nome}: {len(df):,} linhas, {mb:.1f} MB", flush=True)
 
@@ -481,7 +483,7 @@ def main() -> None:
                          f"municípios com >={NULO_CORTE_OBITOS} óbitos, CIDs informativos)"))
 
     if args.no_upload:
-        return
+        return res.relatar()
 
     # As duas tabelas de fato NÃO sobem ao Postgres: 3,6 e 7,7 milhões de linhas
     # estourariam o orçamento do cache (ver LIMITE_PADRAO_MB em diagnostico_banco.py). Ficam publicadas em Parquet
@@ -495,6 +497,7 @@ def main() -> None:
                            "Prefer": "return=minimal,resolution=merge-duplicates"},
                   data=json.dumps(construir_meta(anos)), timeout=60)
     print("[done] mortalidade por causa e município concluída.", flush=True)
+    return res.relatar()
 
 
 def construir_meta(anos) -> list[dict]:
@@ -525,4 +528,4 @@ def construir_meta(anos) -> list[dict]:
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

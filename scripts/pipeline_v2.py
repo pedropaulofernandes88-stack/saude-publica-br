@@ -52,7 +52,7 @@ import requests
 
 from _citacao import linhas_meta
 from _datasus_ftp import CHAVE_FONTE, baixar, fonte_do_checkpoint, tamanho
-from _publicacao import escrever_parquet
+from _saida import Resultado  # noqa: E402
 from _sim_obitos import (  # noqa: E402
     ANOS_COBERTOS,
     ANOS_CSV,
@@ -721,7 +721,7 @@ def _jd(o):
 
 
 # ───────────────────────────── Main ─────────────────────────────────────────
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     # ANOS_COBERTOS inclui o preliminar. A base cobre; a ANÁLISE recorta —
     # ver `so_consolidado` em analise_perfil_mortalidade.py.
@@ -730,6 +730,7 @@ def main() -> None:
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--workers", type=int, default=4)
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_v2.py")
     anos = sorted(args.anos)
     env = load_env()
 
@@ -760,7 +761,7 @@ def main() -> None:
     mart_exc = con.execute("SELECT * FROM mart_excesso").df()
 
     if args.medir:
-        return
+        return res.relatar()
 
     # Vinha sendo apenas ENVIADA ao banco, nunca exportada: por isso o Parquet
     # dela so podia vir de reexportacao do Postgres. E derivada da constante
@@ -779,12 +780,11 @@ def main() -> None:
     if cid_cat is not None:
         exports["dim_cid10_categoria"] = cid_cat
     for name, df in exports.items():
-        out = escrever_parquet(df, MARTS_DIR / f"{name}.parquet", origem="pipeline",
-                               produtor="scripts/pipeline_v2.py")
+        out = res.gravar(df, MARTS_DIR / f"{name}.parquet")
         print(f"[export] {out.name}: {out.stat().st_size/1e6:.1f} MB")
 
     if args.no_upload:
-        return
+        return res.relatar()
 
     url, key = env.get("SUPABASE_URL"), chave_escrita(env)
     if not url or not key:
@@ -805,6 +805,7 @@ def main() -> None:
 
     loader.load_df("meta_dataset", construir_meta(anos))
     print("[done] pipeline v2 concluído.")
+    return res.relatar()
 
 
 def construir_meta(anos) -> pd.DataFrame:
@@ -844,4 +845,4 @@ def construir_meta(anos) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

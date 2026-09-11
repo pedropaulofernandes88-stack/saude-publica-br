@@ -117,7 +117,7 @@ import pandas as pd
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, registros_dbc  # noqa: E402
-from _publicacao import escrever_parquet  # noqa: E402
+from _saida import Resultado  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
@@ -418,7 +418,7 @@ def guardas_estadiamento(est: pd.DataFrame, prazo: pd.DataFrame) -> None:
             f"{int(prazo['casos'].sum()):,} do mart de prazo — não pode ter mais.")
 
 
-def main() -> None:
+def main() -> int:
     if hasattr(sys.stdout, "reconfigure"):
         sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -428,6 +428,7 @@ def main() -> None:
     ap.add_argument("--permitir-encolher", action="store_true",
                     help="grava mesmo que o mart resultante perca anos já existentes")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_painel_oncologia.py")
 
     anos = ANOS if args.todos_os_anos else (args.anos or [])
     if not anos:
@@ -495,13 +496,12 @@ def main() -> None:
     guarda_nao_encolher(out, MARTS / "mart_oncologia_municipio.parquet", args.permitir_encolher)
     guarda_nao_encolher(out_est, MARTS / "mart_oncologia_estadiamento.parquet",
                         args.permitir_encolher)
-    escrever_parquet(out, MARTS / "mart_oncologia_municipio.parquet",
-                     origem="pipeline", produtor="scripts/pipeline_painel_oncologia.py")
+    res.gravar(out, MARTS / "mart_oncologia_municipio.parquet")
     print(f"[ok] mart_oncologia_municipio.parquet em {MARTS}")
-    escrever_parquet(out_est, MARTS / "mart_oncologia_estadiamento.parquet",
-                     origem="pipeline", produtor="scripts/pipeline_painel_oncologia.py")
+    res.gravar(out_est, MARTS / "mart_oncologia_estadiamento.parquet")
     print(f"[ok] mart_oncologia_estadiamento.parquet em {MARTS}")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

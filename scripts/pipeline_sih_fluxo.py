@@ -49,7 +49,7 @@ from _datasus_ftp import (  # noqa: E402
     meses_publicados,
     registros_dbc,
 )
-from _publicacao import acumular_parquet  # noqa: E402
+from _saida import Resultado
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
 # unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro
@@ -255,12 +255,13 @@ def _process_uf(uf: str, ano: int, workers: int):
     return fdf, idf
 
 
-def main() -> None:
+def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ano", type=int, default=2024)
     ap.add_argument("--workers", type=int, default=6)
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
+    res = Resultado("scripts/pipeline_sih_fluxo.py")
     ano = args.ano
     env = load_env()
 
@@ -304,19 +305,17 @@ def main() -> None:
                    "icsap_100k", "g1_100k"]]
 
     MARTS.mkdir(exist_ok=True)
-    _, _antes, _depois = acumular_parquet(
-        fluxo, MARTS / "mart_fluxo_intermunicipal.parquet", "mart_fluxo_intermunicipal",
-        origem="pipeline", produtor="scripts/pipeline_sih_fluxo.py")
+    _, _antes, _depois = res.acumular(
+        fluxo, MARTS / "mart_fluxo_intermunicipal.parquet", "mart_fluxo_intermunicipal")
     print(f"[acumulado] mart_fluxo_intermunicipal: {_antes:,} -> {_depois:,} linhas", flush=True)
-    _, _antes, _depois = acumular_parquet(
-        icsap, MARTS / "mart_icsap_municipio.parquet", "mart_icsap_municipio",
-        origem="pipeline", produtor="scripts/pipeline_sih_fluxo.py")
+    _, _antes, _depois = res.acumular(
+        icsap, MARTS / "mart_icsap_municipio.parquet", "mart_icsap_municipio")
     print(f"[acumulado] mart_icsap_municipio: {_antes:,} -> {_depois:,} linhas", flush=True)
     print(f"[fluxo] mart_fluxo: {len(fluxo):,} | mart_icsap: {len(icsap):,} | "
           f"ICSAP médio {icsap.pct_icsap.mean():.1f}%")
 
     if args.no_upload:
-        return
+        return res.relatar()
     url, key = env["SUPABASE_URL"], chave_escrita(env)
     h = {"apikey": key, "Authorization": f"Bearer {key}", "Content-Type": "application/json",
          "Prefer": "return=minimal,resolution=merge-duplicates"}
@@ -345,7 +344,8 @@ def main() -> None:
             {"chave": "gerado_em", "valor": datetime.now().isoformat(timespec="seconds")}]
     requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
     print("[done] fluxo + ICSAP concluído.")
+    return res.relatar()
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())
