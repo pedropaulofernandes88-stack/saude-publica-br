@@ -477,10 +477,28 @@ FIGURAS_DO_ARTIGO = (
 )
 
 
+def _empacotar() -> None:
+    """Zip das figuras, montado no MESMO passo que as desenha.
+
+    Mesma razão do `tabelas-do-artigo.zip`: pacote feito à mão envelhece
+    sozinho, e quem recebe o anexo fica com figura diferente da do manuscrito
+    da mesma mensagem, sem nada indicando isso.
+    """
+    import zipfile
+    pngs = sorted(FIGURAS.glob("figura_*.png"))
+    alvo = FIGURAS.parent / "figuras-do-artigo.zip"
+    with zipfile.ZipFile(alvo, "w", zipfile.ZIP_DEFLATED) as z:
+        for p in pngs:
+            z.write(p, p.name)
+    print(f"[pacote] {alvo.name}: {len(pngs)} PNGs, {alvo.stat().st_size:,} bytes",
+          flush=True)
+
+
 def main() -> None:
     _estilo()
     for f in FIGURAS_DO_ARTIGO:
         f()
+    _empacotar()
     print(f"\n[done] {len(FIGURAS_DO_ARTIGO)} figuras em "
           f"{FIGURAS.relative_to(RAIZ.parent).as_posix()}")
 
