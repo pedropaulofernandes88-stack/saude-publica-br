@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-11 18:45 UTC
--- Objetos: 249
+-- Extraído em: 2026-09-11 19:09 UTC
+-- Objetos: 254
 -- =============================================================================
 
 
@@ -315,6 +315,7 @@ create table if not exists public.mart_fluxo_intermunicipal (
     municipio_mov_nome text,
     uf_mov text,
     internacoes integer not null,
+    meses_cobertos smallint,
     constraint mart_fluxo_intermunicipal_pkey PRIMARY KEY (ano, municipio_res, municipio_mov)
 );
 
@@ -384,6 +385,7 @@ create table if not exists public.mart_icsap_municipio (
     aih_continuacao_icsap integer,
     internacoes_g1 integer,
     g1_100k numeric(10,1),
+    meses_cobertos smallint,
     constraint mart_icsap_municipio_pkey PRIMARY KEY (municipio_cod, ano)
 );
 
@@ -409,6 +411,7 @@ create table if not exists public.mart_internacoes_agravo (
     aih_normal integer,
     dias_permanencia_normal bigint,
     valor_normal numeric,
+    meses_cobertos smallint,
     constraint mart_internacoes_agravo_pkey PRIMARY KEY (municipio_cod, ano, agravo)
 );
 
@@ -431,6 +434,7 @@ create table if not exists public.mart_internacoes_hospital (
     aih_normal integer,
     dias_permanencia_normal bigint,
     valor_normal numeric,
+    meses_cobertos smallint,
     constraint mart_internacoes_hospital_pkey PRIMARY KEY (cnes, ano)
 );
 
@@ -454,6 +458,7 @@ create table if not exists public.mart_internacoes_municipio (
     aih_normal integer,
     dias_permanencia_normal bigint,
     valor_normal numeric,
+    meses_cobertos smallint,
     constraint mart_internacoes_municipio_pkey PRIMARY KEY (municipio_cod, ano, capitulo_cid)
 );
 
@@ -1433,6 +1438,8 @@ comment on table public.mart_excesso_uf_mes is 'Excesso de mortalidade (todas as
 
 comment on table public.mart_fluxo_intermunicipal is 'Fluxo de pacientes do SUS: internações por município de residência → município de atendimento (SIH, 2024). Apenas fluxos intermunicipais com 5+ internações. Inspirado no LabSUS (UFT).';
 
+comment on column public.mart_fluxo_intermunicipal.meses_cobertos is 'MÍNIMO entre a cobertura da UF de residência e a da UF de movimento: o par de municípios só é tão completo quanto o lado menos completo. 12 = ano fechado. NULO = linha anterior ao carimbo.';
+
 comment on table public.mart_forecast_demanda_hospital is 'Projeção de internações mensais por hospital (tendência linear sobre mart_demanda_mensal_hospital), com faixa de incerteza indicativa. confianca=baixa quando o hospital tem menos de 24 meses de histórico. Fonte: SIH/DataSUS (derivado).';
 
 comment on column public.mart_forecast_demanda_hospital.confianca is 'OBSOLETA - substituida por status_validacao. Refletia apenas o comprimento da serie (>=24 meses = adequada), nunca o acerto do modelo. Mantida por um ciclo para nao quebrar consumidores da API publica. Sera removida.';
@@ -1467,7 +1474,13 @@ comment on column public.mart_icsap_municipio.g1_100k is 'Internacoes do grupo 1
 
 comment on column public.mart_icsap_municipio.internacoes_g1 is 'Internacoes do grupo 1 da Lista Brasileira de ICSAP: doencas preveniveis por imunizacao e condicoes sensiveis (tuberculoses, tetano, difteria, coqueluche, sifilis, febre amarela, sarampo, rubeola, hepatite B, parotidite, malaria, ascaridiase, meningite, febre reumatica). Subconjunto de internacoes_icsap.';
 
+comment on column public.mart_icsap_municipio.meses_cobertos is 'Meses do ano coletados para a UF deste município. 12 = ano fechado; menos = ano em andamento — e a taxa de ICSAP do ano parcial não é comparável com a de um ano fechado. NULO = linha anterior ao carimbo.';
+
 comment on view public.mart_icsap_pares is 'Distância de cada município até a mediana dos seus pares em internações sensíveis à atenção primária (ICSAP), traduzida em internações, custo, leitos-dia e leitos equivalentes/ano. Pares = estrato de saúde (tercis fixos de mortalidade × vulnerabilidade × internação) NO MESMO ANO; sem estrato, faixa populacional × região. n_pares conta municípios do grupo naquele ano (V042; antes contava município-ano). security_invoker=true: lê com a permissão de quem consulta (ver V025). NÃO é economia garantida: alcançar a mediana exige investimento em atenção primária, nem toda ICSAP é evitável, e a associação é ecológica (municipal), não individual.';
+
+comment on column public.mart_internacoes_agravo.meses_cobertos is 'Meses do ano coletados para a UF deste município. 12 = ano fechado; menos = ano em andamento. NULO = linha anterior ao carimbo.';
+
+comment on column public.mart_internacoes_hospital.meses_cobertos is 'Meses do ano coletados para a UF deste hospital. 12 = ano fechado; menos = ano em andamento. NULO = linha anterior ao carimbo.';
 
 comment on table public.mart_internacoes_municipio is 'Internações SUS (SIH/AIH) por município, ano e capítulo CID-10: volume, permanência média, mortalidade intra-hospitalar e custo médio. Fonte: SIH/DataSUS + IBGE.';
 
@@ -1476,6 +1489,8 @@ comment on column public.mart_internacoes_municipio.aih_continuacao is 'AIHs de 
 comment on column public.mart_internacoes_municipio.aih_normal is 'internacoes - aih_continuacao. Denominador de permanencia_media e custo_medio.';
 
 comment on column public.mart_internacoes_municipio.dias_permanencia_normal is 'Soma de DIAS_PERM restrita a AIH normal (IDENT<>5).';
+
+comment on column public.mart_internacoes_municipio.meses_cobertos is 'Meses do ano presentes no FTP e coletados para a UF deste município. 12 = ano fechado; menos que isso = ano em andamento, cujo TOTAL não é comparável com o de um ano fechado. NULO = linha anterior ao carimbo.';
 
 comment on column public.mart_internacoes_municipio.valor_normal is 'Soma de VAL_TOT restrita a AIH normal (IDENT<>5).';
 

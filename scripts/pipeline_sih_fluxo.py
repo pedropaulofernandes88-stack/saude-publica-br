@@ -31,25 +31,27 @@ from pathlib import Path
 
 import pandas as pd
 import requests
-
-from _varredura import varrer_orfaos
 from _supabase_key import chave_escrita
+from _varredura import varrer_orfaos
 
 # A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
 # Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
 # que veio do pipeline sao indistinguiveis, e o manifesto afirma o que
 # ninguem verificou.
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from _fontes import HOST_FTP, fonte  # noqa: E402
-from _datasus_ftp import (  # noqa: E402
+from _datasus_ftp import (
+    COLUNA_COBERTURA,
     ArquivoAusente,
     FalhaDeColeta,
     baixar,
     checkpoint_utilizavel,
+    conferir_cobertura_anual,  # noqa: E402
     gravar_checkpoint,
+    ler_checkpoint_carimbado,
     meses_publicados,
     registros_dbc,
 )
+from _fontes import HOST_FTP, fonte  # noqa: E402
 from _saida import Resultado
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
@@ -203,7 +205,7 @@ def _process_uf(uf: str, ano: int, workers: int):
     if not esperados:
         raise FalhaDeColeta(f"o FTP não publica nenhum mês de RD{uf} em {ano}")
     if checkpoint_utilizavel(fck, esperados) and checkpoint_utilizavel(ick, esperados):
-        return pd.read_parquet(fck), pd.read_parquet(ick)
+        return ler_checkpoint_carimbado(fck), ler_checkpoint_carimbado(ick)
 
     fluxo: dict = defaultdict(int)
     icsap: dict = defaultdict(lambda: [0, 0, 0, 0, 0])
@@ -253,7 +255,7 @@ def _process_uf(uf: str, ano: int, workers: int):
     print(f"[fluxo] {uf} {ano}: {len(fdf):,} pares de fluxo, "
           f"{int(idf['internacoes_total'].sum()):,} internações "
           f"({len(coletados)} de 12 meses)", flush=True)
-    return fdf, idf
+    return ler_checkpoint_carimbado(fck), ler_checkpoint_carimbado(ick)
 
 
 def main() -> int:
@@ -276,8 +278,14 @@ def main() -> int:
     pop = pop[pop.ano == ano][["municipio_cod", "populacao"]]
     mref = municipios[["municipio_cod", "municipio_nome", "uf_sigla", "regiao"]]
 
+    # O carimbo nao sobrevive ao `groupby(...).sum()`, e e para nao morrer na
+    # agregacao que ele existe. Guardado antes, reposto depois.
+    fbruto = pd.concat(fparts, ignore_index=True)
+    ibruto = pd.concat(iparts, ignore_index=True)
+    cob_mun = ibruto.groupby("municipio_cod", as_index=False)[COLUNA_COBERTURA].min()
+
     # --- fluxo ---
-    fluxo = pd.concat(fparts, ignore_index=True).groupby(
+    fluxo = fbruto.groupby(
         ["ano", "municipio_res", "municipio_mov"], as_index=False)["internacoes"].sum()
     fluxo = fluxo[fluxo.internacoes >= 5].copy()
     fluxo = fluxo.merge(mref.rename(columns={"municipio_cod": "municipio_res",
@@ -286,11 +294,21 @@ def main() -> int:
     fluxo = fluxo.merge(mref.rename(columns={"municipio_cod": "municipio_mov",
             "municipio_nome": "municipio_mov_nome", "uf_sigla": "uf_mov"})[
             ["municipio_mov", "municipio_mov_nome", "uf_mov"]], on="municipio_mov", how="left")
+    # O par so e tao completo quanto o lado MENOS completo: uma internacao cruza
+    # residencia e movimento, e se a UF de um dos dois veio curta, o par veio
+    # curto. Por isso o minimo dos dois, e nao o da residencia.
+    fluxo = fluxo.merge(cob_mun.rename(columns={"municipio_cod": "municipio_res",
+                        COLUNA_COBERTURA: "_cob_res"}), on="municipio_res", how="left")
+    fluxo = fluxo.merge(cob_mun.rename(columns={"municipio_cod": "municipio_mov",
+                        COLUNA_COBERTURA: "_cob_mov"}), on="municipio_mov", how="left")
+    fluxo[COLUNA_COBERTURA] = fluxo[["_cob_res", "_cob_mov"]].min(axis=1).astype("Int64")
+    conferir_cobertura_anual(fluxo, "mart_fluxo_intermunicipal")
     fluxo = fluxo[["ano", "municipio_res", "municipio_res_nome", "uf_res",
-                   "municipio_mov", "municipio_mov_nome", "uf_mov", "internacoes"]]
+                   "municipio_mov", "municipio_mov_nome", "uf_mov", "internacoes",
+                   COLUNA_COBERTURA]]
 
     # --- ICSAP ---
-    icsap = pd.concat(iparts, ignore_index=True).groupby(
+    icsap = ibruto.groupby(
         ["municipio_cod", "ano"], as_index=False)[
         ["internacoes_total", "internacoes_icsap", "aih_continuacao",
          "aih_continuacao_icsap", "internacoes_g1"]].sum()
@@ -300,7 +318,9 @@ def main() -> int:
     icsap["icsap_100k"] = (icsap.internacoes_icsap / icsap.populacao * 100000).round(1)
     icsap["g1_100k"] = (icsap.internacoes_g1 / icsap.populacao * 100000).round(1)
     icsap["populacao"] = icsap["populacao"].astype("Int64")
-    icsap = icsap[["municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
+    icsap = icsap.merge(cob_mun, on="municipio_cod", how="left")
+    conferir_cobertura_anual(icsap, "mart_icsap_municipio")
+    icsap = icsap[[COLUNA_COBERTURA, "municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
                    "internacoes_total", "internacoes_icsap", "aih_continuacao",
                    "aih_continuacao_icsap", "internacoes_g1", "pct_icsap", "populacao",
                    "icsap_100k", "g1_100k"]]

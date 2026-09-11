@@ -66,8 +66,6 @@ from pathlib import Path
 
 import pandas as pd
 import requests
-
-from _fontes import HOST_FTP, fonte  # noqa: E402
 from _datasus_ftp import (
     ArquivoAusente,
     FalhaDeColeta,
@@ -77,11 +75,11 @@ from _datasus_ftp import (
     meses_publicados,
     registros_dbc,
 )
-from _saida import Resultado
+from _fontes import HOST_FTP, fonte  # noqa: E402
 from _metricas_aih import capitulo as _capitulo
-
-from _varredura import varrer_orfaos
+from _saida import Resultado
 from _supabase_key import chave_escrita
+from _varredura import varrer_orfaos
 
 # Windows: quando a saida e redirecionada para arquivo, o Python usa cp1252 e um
 # unico caractere fora da tabela (ex.: a seta dos logs) derruba o pipeline inteiro

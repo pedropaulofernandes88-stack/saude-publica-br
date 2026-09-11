@@ -36,22 +36,23 @@ from pathlib import Path
 
 import pandas as pd
 import requests
-
-from _fontes import HOST_FTP, fonte  # noqa: E402
 from _datasus_ftp import (
+    COLUNA_COBERTURA,
     ArquivoAusente,
     FalhaDeColeta,
     baixar,
     checkpoint_utilizavel,
+    conferir_cobertura_anual,
     gravar_checkpoint,
+    ler_checkpoint_carimbado,
     meses_publicados,
     registros_dbc,
 )
-from _metricas_aih import (aplica_metricas_por_episodio,
-                           capitulo as _capitulo)
-
-from _varredura import varrer_orfaos
+from _fontes import HOST_FTP, fonte  # noqa: E402
+from _metricas_aih import aplica_metricas_por_episodio
+from _metricas_aih import capitulo as _capitulo
 from _supabase_key import chave_escrita
+from _varredura import varrer_orfaos
 
 # A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
 # Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
@@ -198,7 +199,7 @@ def _process_uf(uf: str, ano: int, workers: int):
     if not esperados:
         raise FalhaDeColeta(f"o FTP não publica nenhum mês de RD{uf} em {ano}")
     if checkpoint_utilizavel(ack, esperados) and checkpoint_utilizavel(hck, esperados):
-        return pd.read_parquet(ack), pd.read_parquet(hck)
+        return ler_checkpoint_carimbado(ack), ler_checkpoint_carimbado(hck)
     agravo: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
     hosp: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])
     coletados: list[int] = []
@@ -248,7 +249,7 @@ def _process_uf(uf: str, ano: int, workers: int):
     gravar_checkpoint(hdf, hck, coletados)
     print(f"[agravo] {uf} {ano}: {int(adf['internacoes'].sum()):,} intern. em agravos | "
           f"{hdf['cnes'].nunique():,} hospitais ({len(coletados)} de 12 meses)", flush=True)
-    return adf, hdf
+    return ler_checkpoint_carimbado(ack), ler_checkpoint_carimbado(hck)
 
 
 def main() -> int:
@@ -271,8 +272,15 @@ def main() -> int:
     pop = pop[pop.ano == ano][["municipio_cod", "populacao"]]
     mref = municipios[["municipio_cod", "municipio_nome", "uf_sigla", "regiao"]]
 
+    # O carimbo de cobertura nao sobrevive a `groupby(...)[MEDIDAS].sum()` — e
+    # ele existe justamente para nao morrer na agregacao. Guardado por municipio
+    # antes de agregar, reposto depois. Ver COLUNA_COBERTURA em _datasus_ftp.py.
+    abruto = pd.concat(aparts, ignore_index=True)
+    hbruto = pd.concat(hparts, ignore_index=True)
+    cob_mun = abruto.groupby("municipio_cod", as_index=False)[COLUNA_COBERTURA].min()
+
     # --- agravo (por município de residência) ---
-    agravo = pd.concat(aparts, ignore_index=True).groupby(
+    agravo = abruto.groupby(
         ["municipio_cod", "agravo"], as_index=False)[
         ["internacoes", "obitos", "dias_permanencia", "valor_total",
          "aih_continuacao", "dias_permanencia_normal", "valor_normal"]].sum()
@@ -287,14 +295,16 @@ def main() -> int:
     aplica_metricas_por_episodio(agravo, casas_permanencia=1)
     agravo["internacoes_100k"] = (agravo.internacoes / agravo.populacao * 100000).round(1)
     agravo["populacao"] = agravo["populacao"].astype("Int64")
-    agravo = agravo[["municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
+    agravo = agravo.merge(cob_mun, on="municipio_cod", how="left")
+    conferir_cobertura_anual(agravo, "mart_internacoes_agravo")
+    agravo = agravo[[COLUNA_COBERTURA, "municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
                      "agravo", "agravo_label", "grupo", "internacoes", "obitos",
                      "dias_permanencia", "valor_total", "aih_continuacao", "aih_normal",
                      "dias_permanencia_normal", "valor_normal", "permanencia_media",
                      "mortalidade_pct", "custo_medio", "populacao", "internacoes_100k"]]
 
     # --- hospital (por CNES) ---
-    hraw = pd.concat(hparts, ignore_index=True).groupby(
+    hraw = hbruto.groupby(
         ["cnes", "municipio_cod", "capitulo_cid"], as_index=False)[
         ["internacoes", "obitos", "dias_permanencia", "valor_total",
          "aih_continuacao", "dias_permanencia_normal", "valor_normal"]].sum()
@@ -312,7 +322,9 @@ def main() -> int:
     hosp = hosp.merge(mref, on="municipio_cod", how="left")
     hosp["uf_sigla"] = hosp["uf_sigla"].fillna("ND")
     aplica_metricas_por_episodio(hosp, casas_permanencia=1)
-    hosp = hosp[["cnes", "municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
+    hosp = hosp.merge(cob_mun, on="municipio_cod", how="left")
+    conferir_cobertura_anual(hosp, "mart_internacoes_hospital")
+    hosp = hosp[[COLUNA_COBERTURA, "cnes", "municipio_cod", "municipio_nome", "uf_sigla", "regiao", "ano",
                  "capitulo_principal", "internacoes", "obitos", "dias_permanencia",
                  "valor_total", "aih_continuacao", "aih_normal", "dias_permanencia_normal",
                  "valor_normal", "permanencia_media", "mortalidade_pct", "custo_medio"]]

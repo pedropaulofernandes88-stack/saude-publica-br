@@ -64,6 +64,52 @@ qualquer código `!= 0` como falha. Nenhum workflow do projeto executa
 `pipeline_*.py` hoje — quem encadear precisa tratar o 2 explicitamente. Ver
 README, seção Reprodutibilidade.
 
+### A linha do SIH passa a dizer de quantos meses ela veio
+
+> O checkpoint sempre soube — `saude_em_dado.meses`, gravado desde a correção de
+> 2026-08-11 — e a informação **morria na agregação**: `groupby(...)[MEDIDAS]
+> .sum()` descarta qualquer coluna fora de MEDIDAS, e o mart saía com o total do
+> ano sem dizer de quantos meses ele veio.
+
+A coleta já aborta quando um mês publicado no FTP não é coletado; esse caso está
+fechado. Resta o que nenhuma guarda alcança porque **não é defeito**: quando o
+próprio FTP só publicou 7 meses, a coleta está certa, o checkpoint está certo, e
+o total do ano continua não sendo comparável com o de um ano fechado. Sem
+carimbo, a leitura fácil é a errada — foi assim que a dengue de 2026 "despencou
+73%" (V043).
+
+**Adicionado** — `meses_cobertos` em cinco marts: `mart_internacoes_municipio`,
+`mart_internacoes_agravo`, `mart_internacoes_hospital`, `mart_icsap_municipio` e
+`mart_fluxo_intermunicipal` (V046). Grão por **UF × ano**, mais fino que o
+nacional da dengue: o incidente do MA foi de uma UF só, e um carimbo nacional o
+teria diluído em 26 UFs completas. No fluxo é o **mínimo** entre residência e
+movimento — o par só é tão completo quanto o lado menos completo.
+
+`_datasus_ftp.ler_checkpoint_carimbado()` tira o valor do **metadado do arquivo
+lido**, não de uma variável do processo: o caminho do cache e o do
+reprocessamento passam pela mesma leitura, então não existe o estado em que um
+carimba e o outro não. E `conferir_cobertura_anual()` aborta quando um ano que
+não é o último vem com menos de 12 meses — mesma guarda de
+`_cobertura_de_meses` na sífilis.
+
+**Fora de propósito**, declarado em `SEM_CARIMBO`: `mart_demanda_mensal_hospital`
+(grão mensal — ano parcial já aparece como competência faltando, a chave já diz)
+e os quatro derivados (`hsmr`, `los`, `forecast`, `icsap_pares`), que recebem o
+carimbo pela origem quando recalculados.
+
+**Escrevendo isto eu reproduzi o próprio defeito.** A primeira versão carimbava
+a linha do checkpoint e perdia o carimbo no `groupby` do `build()` — e passou no
+teste que só olhava a leitura. Por isso
+`tests/test_carimbo_de_cobertura.py` (15 testes) olha o MART, não o checkpoint,
+e um dos testes reproduz o `groupby` que descarta a coluna.
+
+**Medido**: os cinco marts reprocessados offline a partir dos checkpoints em
+disco, sem tocar a rede. 334.769 + 158.042 + 14.197 + 22.280 + 156.663 linhas,
+contagens idênticas às de antes, **zero nulos** no carimbo, e os totais do SIH
+inalterados (40.048.092 internações, R$ 63,4 bi). Hoje todo ano coletado é
+12/12 — o carimbo é posicionamento para quando 2025 entrar parcial, não correção
+de número errado no ar.
+
 ### O caminho de uma fonte estava digitado em oito arquivos, e um deles discordava
 
 > `/dissemin/publicos/SIHSUS/200801_/Dados` aparecia em 8 arquivos; o do

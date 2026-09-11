@@ -61,22 +61,23 @@ from pathlib import Path
 
 import pandas as pd
 import requests
-
-from _fontes import HOST_FTP, fonte  # noqa: E402
 from _datasus_ftp import (
+    COLUNA_COBERTURA,
     ArquivoAusente,
     FalhaDeColeta,
     baixar,
     checkpoint_utilizavel,
+    conferir_cobertura_anual,
     gravar_checkpoint,
+    ler_checkpoint_carimbado,
     meses_publicados,
     registros_dbc,
 )
-from _metricas_aih import (MEDIDAS, aplica_metricas_por_episodio,
-                           capitulo as _capitulo)
-
-from _varredura import varrer_orfaos
+from _fontes import HOST_FTP, fonte  # noqa: E402
+from _metricas_aih import MEDIDAS, aplica_metricas_por_episodio
+from _metricas_aih import capitulo as _capitulo
 from _supabase_key import chave_escrita
+from _varredura import varrer_orfaos
 
 # A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio
 # Parquet quem o produziu. Sem isso, um arquivo que veio do Postgres e um
@@ -164,7 +165,7 @@ def _process_uf_ano(uf: str, ano: int, workers: int) -> pd.DataFrame:
     if not esperados:
         raise FalhaDeColeta(f"o FTP não publica nenhum mês de RD{uf} em {ano}")
     if checkpoint_utilizavel(ckpt, esperados):
-        return pd.read_parquet(ckpt)
+        return ler_checkpoint_carimbado(ckpt)
 
     agg: dict = defaultdict(lambda: [0, 0, 0, 0.0, 0, 0, 0.0])  # (mun, cap) -> [...]
     coletados: list[int] = []
@@ -206,7 +207,9 @@ def _process_uf_ano(uf: str, ano: int, workers: int) -> pd.DataFrame:
     print(f"[sih] {uf} {ano}: {int(df['internacoes'].sum()):,} internações "
           f"({int(df['aih_continuacao'].sum()):,} de continuação, "
           f"{len(coletados)} de 12 meses) → checkpoint", flush=True)
-    return df
+    # Relido do arquivo de proposito: o carimbo sai do METADADO gravado,
+    # entao o caminho do cache e o do reprocessamento devolvem a mesma forma.
+    return ler_checkpoint_carimbado(ckpt)
 
 
 def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
@@ -214,14 +217,25 @@ def build(anos: list[int], workers: int) -> tuple[pd.DataFrame, pd.DataFrame]:
     for a in anos:
         for uf in UFS:
             partes.append(_process_uf_ano(uf, a, workers))
-    det = pd.concat(partes, ignore_index=True)
-    det = (det.groupby(["municipio_cod", "ano", "capitulo_cid"], as_index=False)
+    bruto = pd.concat(partes, ignore_index=True)
+
+    # O carimbo tem de SOBREVIVER a agregacao, senao ele nao serve para nada:
+    # `groupby(...)[MEDIDAS].sum()` descartaria a coluna, que e exatamente como
+    # a informacao de cobertura morria antes. Guardada aqui e reposta depois.
+    # `min` porque um municipio pertence a uma UF — o valor e um so; se um dia
+    # aparecer sob duas, fica a pior cobertura, que e a leitura conservadora.
+    cobertura = (bruto.groupby(["municipio_cod", "ano"], as_index=False)
+                 [COLUNA_COBERTURA].min())
+
+    det = (bruto.groupby(["municipio_cod", "ano", "capitulo_cid"], as_index=False)
            [MEDIDAS].sum())
 
     # linha TOTAL (todos os capítulos) por município/ano
     tot = (det.groupby(["municipio_cod", "ano"], as_index=False)[MEDIDAS].sum())
     tot["capitulo_cid"] = "TOTAL"
     mart = pd.concat([det, tot], ignore_index=True)
+    mart = mart.merge(cobertura, on=["municipio_cod", "ano"], how="left")
+    conferir_cobertura_anual(mart, "mart_internacoes_municipio")
 
     # enriquecimento
     municipios = pd.read_parquet(REFS / "municipios.parquet")

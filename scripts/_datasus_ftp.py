@@ -277,6 +277,64 @@ def fonte_do_checkpoint(caminho: Path) -> str | None:
     return bruto.decode() if bruto else None
 
 
+#: O carimbo de cobertura que viaja NA LINHA do mart publicado.
+#:
+#: O checkpoint sempre soube quais meses o produziram (`saude_em_dado.meses`),
+#: e essa informacao MORRIA na agregacao: o mart saía com o total do ano e nada
+#: dizia de quantos meses ele veio. Foi assim que MA 2023 publicou 7 de 12 meses
+#: sem que nada acusasse — a coleta hoje aborta nesse caso, mas resta o outro:
+#: quando o proprio FTP so publicou 7 meses, a coleta esta certa e o total do
+#: ano continua nao sendo comparavel com o de um ano fechado.
+#:
+#: Mesmo desenho de `meses_cobertos` em mart_sifilis_municipio (2026-09-06) e
+#: de `semanas_cobertas` em mart_dengue_municipio_ano (V043): redundante de
+#: proposito, para que quem le UMA linha — pelo Parquet, pela API ou pelo CSV —
+#: veja a ressalva junto do numero que ela qualifica.
+COLUNA_COBERTURA = "meses_cobertos"
+
+
+def ler_checkpoint_carimbado(caminho: Path) -> pd.DataFrame:
+    """Le o checkpoint e carimba `meses_cobertos` em cada linha.
+
+    O valor vem do METADADO do arquivo que acabou de ser lido, nao de uma
+    variavel do processo: o caminho do cache e o do reprocessamento passam pela
+    mesma leitura, entao nao existe o estado em que um carimba e o outro nao.
+
+    Checkpoint anterior ao carimbo devolve <NA>, nao zero. Zero afirmaria que
+    nenhum mes contribuiu, que e falso e pior do que nao saber.
+    """
+    df = pd.read_parquet(caminho)
+    meses = meses_do_checkpoint(caminho)
+    df[COLUNA_COBERTURA] = pd.Series(
+        [len(meses) if meses else pd.NA] * len(df), index=df.index, dtype="Int64")
+    return df
+
+
+def conferir_cobertura_anual(df: pd.DataFrame, rotulo: str) -> None:
+    """Ano fechado com menos de 12 meses e coleta incompleta se passando por ano.
+
+    Deixa o ULTIMO ano ser parcial — isso e a fronteira do dado, e e justamente
+    o que o carimbo existe para declarar. Aborta nos anteriores, onde ano curto
+    nao tem explicacao legitima.
+
+    Mesma guarda de `_cobertura_de_meses` em pipeline_sinan_sifilis.py.
+    """
+    if COLUNA_COBERTURA not in df.columns or "ano" not in df.columns:
+        return
+    cobertura = df.groupby("ano")[COLUNA_COBERTURA].min()
+    conhecidos = cobertura.dropna()
+    if conhecidos.empty:
+        return
+    ultimo = int(conhecidos.index.max())
+    curtos = {int(a): int(n) for a, n in conhecidos.items()
+              if int(a) != ultimo and int(n) < 12}
+    if curtos:
+        raise FalhaDeColeta(
+            f"{rotulo}: ano fechado com menos de 12 meses {curtos} — "
+            f"coleta incompleta se passando por ano fechado. O ultimo ano "
+            f"({ultimo}) pode ser parcial; os anteriores, nao.")
+
+
 def checkpoint_utilizavel(caminho: Path, esperados: list[int]) -> bool:
     """Só reaproveita checkpoint que cobre todos os meses hoje publicados.
 
