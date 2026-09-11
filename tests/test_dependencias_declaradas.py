@@ -43,7 +43,16 @@ LOCAIS = {"scripts", "tests", "validation", "ingestion", "ml", "clients",
 
 
 def _modulos_locais() -> set[str]:
-    return {p.stem for p in RAIZ.glob("scripts/*.py")} | LOCAIS
+    """Módulos do próprio repositório, que nunca vão a `requirements-test.txt`.
+
+    As pastas de manuscrito entram porque seus scripts são importáveis pelos
+    testes por `sys.path`, e não como pacote — o nome tem hífen. Sem esta linha,
+    `gerar_docx` era lido como dependência de terceiro que ninguém declarou.
+    """
+    modulos = {p.stem for p in RAIZ.glob("scripts/*.py")}
+    for pasta in RAIZ.glob("artigo*/"):
+        modulos |= {p.stem for p in pasta.glob("*.py")}
+    return modulos | LOCAIS
 
 
 def _funcoes_citadas_pelos_testes() -> set[str]:

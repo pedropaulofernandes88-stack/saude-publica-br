@@ -732,8 +732,9 @@ Todas as fontes são de domínio público. Os microdados do Sistema de Informaç
 Os cálculos deste artigo são reproduzidos por dois scripts abertos:
 
 - `scripts/pipeline_projecao_ibge.py` — coleta e valida a Projeção da População do IBGE, revisão 2024, por idade simples, e grava `data/refs/pop_proj2024_uf_ano_idade.parquet`;
-- `scripts/analise_neoplasias.py` — produz as dezessete tabelas de análise em `data/analises/neoplasias/`, a partir do SIM cru com idade exata, do denominador oficial e do SIDRA;
-- `artigo-neoplasias/gerar_tabelas.py` — executa o anterior e formata as dezessete tabelas deste manuscrito em `artigo-neoplasias/tabelas/`.
+- `scripts/analise_neoplasias.py` — produz as vinte e duas tabelas de análise em `data/analises/neoplasias/`, a partir do SIM cru com idade exata, do denominador oficial e do SIDRA;
+- `artigo-neoplasias/gerar_tabelas.py` — executa o anterior e formata as vinte e duas tabelas deste manuscrito em `artigo-neoplasias/tabelas/`;
+- `artigo-neoplasias/gerar_figuras.py` — desenha as oito figuras a partir desses mesmos CSVs, de modo que figura e tabela não possam divergir.
 
 Nenhum número deste texto é digitado: cada valor citado existe em um dos CSVs de `artigo-neoplasias/tabelas/`, e as tabelas do manuscrito são regeradas a partir deles por `artigo/sincronizar_tabelas.py --dir artigo-neoplasias`, com regressão em `tests/test_manuscrito.py`. Um número no texto que não esteja em nenhum CSV é um número sem procedência.
 

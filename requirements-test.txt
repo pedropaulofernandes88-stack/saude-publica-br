@@ -33,6 +33,10 @@ requests>=2.28
 tenacity>=8.2.0
 click>=8.1.0
 httpx>=0.26.0
+# tests/test_artigo_figuras.py importa artigo-neoplasias/gerar_docx.py, que
+# so le o manuscrito -- mas o modulo importa docx no topo. Declarado para o
+# teste RODAR no CI em vez de ser pulado por importorskip e nao vigiar nada.
+python-docx>=1.1.0
 
 # Ferramentas
 #
