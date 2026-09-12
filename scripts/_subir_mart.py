@@ -86,6 +86,32 @@ def subir(table: str, df: pd.DataFrame, truncar: bool = False,
             raise RuntimeError(f"{table}: DELETE HTTP {r.status_code} {r.text[:200]}")
         print(f"[subir] {table}: tabela esvaziada antes da carga", flush=True)
 
+    # Float cujos valores são TODOS inteiros vai como inteiro.
+    #
+    # O pandas promove coluna inteira a float assim que ela passa por uma
+    # operação que pode gerar NaN, e o valor volta como `3.0`. O PostgREST
+    # entrega isso literalmente ao Postgres, que recusa `3.0` numa coluna
+    # `integer` com `invalid input syntax for type integer`. Foi o que derrubou
+    # a carga de `mart_icsap_municipio` em 2026-09-12, na coluna
+    # `internacoes_g1` — e derrubou DEPOIS do TRUNCATE, deixando uma tabela
+    # servida vazia até a correção.
+    #
+    # A conversão é segura nos dois sentidos: se a coluna do banco for de fato
+    # `integer`, é o único formato aceito; se for `double precision`, receber um
+    # inteiro não muda o valor. O que NÃO se converte é float com parte
+    # fracionária — esse continua float, como tem de ser.
+    df = df.copy()
+    for col in df.columns:
+        # `lower()` NÃO é detalhe: o pandas tem `float64` (numpy) e `Float64`
+        # (anulável), e comparar sem normalizar deixa o segundo passar direto.
+        # Foi o que derrubou a carga de `mart_internacoes_municipio` depois de
+        # eu já ter corrigido o caso do `float64` minúsculo — mesma falha, outro
+        # nome de tipo, e outra tabela servida vazia enquanto isso.
+        if str(df[col].dtype).lower().startswith("float"):
+            s_ = df[col].dropna()
+            if len(s_) and (s_ % 1 == 0).all():
+                df[col] = df[col].astype("Int64")
+
     recs = df.astype(object).where(pd.notna(df), None).to_dict("records")
     lotes = math.ceil(len(recs) / lote)
     for i in range(lotes):

@@ -562,12 +562,34 @@ def conferir_view_atual(t: Tabela, manifesto_tabelas: dict,
             continue  # base fora do manifesto não é evidência de defasagem
         # ids de publicação são ordenáveis como texto ("2026-09-06" <
         # "2026-09-06.2"), que é como o resto do módulo já os compara.
-        if str(agora.publicada_em) > str(t.publicada_em):
+        # A referência é o que a view VIU da base quando foi derivada pela
+        # última vez (`bases_em`), e só na ausência dele o `publicada_em` da
+        # própria view.
+        #
+        # POR QUE NÃO SÓ `publicada_em` — a armadilha oposta à dormência
+        # ---------------------------------------------------------------
+        # `publicada_em` avança apenas quando os BYTES da view mudam. Uma view
+        # cujo resultado não depende da coluna que mudou na base é rederivada,
+        # sai idêntica, herda o carimbo antigo — e a conferência volta a
+        # reprovar, para sempre. Não há reexportação que a satisfaça.
+        #
+        # Aconteceu em 2026-09-12: a família SIH ganhou `meses_cobertos`,
+        # `mart_icsap_pares` não usa essa coluna, e a reexportação do banco vivo
+        # devolveu byte por byte o mesmo arquivo de 2026-09-06. A publicação
+        # ficou travada sem nada de errado com o dado.
+        #
+        # `bases_em` resolve porque registra a DERIVAÇÃO, não a mudança: ele é
+        # carimbado toda vez que a view é regerada do banco, tenha o conteúdo
+        # mudado ou não. E o `or t.publicada_em` abaixo é o que impede a
+        # dormência que o desenho original temia — view que nunca foi verificada
+        # não tem carimbo, cai no `publicada_em` e a guarda segue valendo.
+        referencia = (t.bases_em or {}).get(base) or t.publicada_em
+        if str(agora.publicada_em) > str(referencia):
             visto = (t.bases_em or {}).get(base)
             onde = f"a view viu {visto}, e a base" if visto else "a base"
             atrasadas.append(
                 f"{base}: {onde} está em {agora.publicada_em}, "
-                f"depois do arquivo da view ({t.publicada_em})")
+                f"depois da última derivação da view ({referencia})")
     return atrasadas
 
 

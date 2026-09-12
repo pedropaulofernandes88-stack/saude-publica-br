@@ -138,3 +138,53 @@ def test_a_view_publicada_hoje_nao_esta_defasada():
         # justamente o caso real sem conferência.
         motivos = conferir_view_atual(tabelas[nome], tabelas, bases_de_view(nome))
         assert motivos == [], f"{nome}: " + "; ".join(motivos)
+
+
+# --------------------------------------------------------------------------
+# 4. a armadilha OPOSTA à dormência: a guarda insatisfazível
+#
+# O desenho original comparava a base contra `publicada_em` da própria view,
+# justamente para não depender de um carimbo que nunca chegaria. O problema é
+# que `publicada_em` avança apenas quando os BYTES da view mudam — e existe um
+# caso legítimo em que eles não mudam: quando a view não usa a coluna que mudou
+# na base.
+#
+# Aconteceu em 2026-09-12. A família SIH ganhou `meses_cobertos`;
+# `mart_icsap_pares` não lê essa coluna; a reexportação do banco vivo devolveu
+# byte por byte o arquivo de 2026-09-06. A view estava PROVADAMENTE derivada do
+# banco atual e a conferência reprovava — sem reexportação capaz de satisfazê-la.
+# --------------------------------------------------------------------------
+def test_view_regerada_que_sai_identica_deixa_de_travar_a_publicacao():
+    """Derivar é o que conta, não mudar. Este é o caso que travava."""
+    tabelas = {
+        "mart_icsap_municipio": _t("mart_icsap_municipio", "2026-09-12.6"),
+        # bytes idênticos aos de 2026-09-06, mas derivada AGORA, das bases atuais
+        "v": _t("v", "2026-09-06", {"mart_icsap_municipio": "2026-09-12.6"}),
+    }
+    assert conferir_view_atual(tabelas["v"], tabelas, ["mart_icsap_municipio"]) == []
+
+
+def test_a_guarda_nao_ficou_dormente_sem_carimbo():
+    """A metade que o desenho original protegia, e que tem de continuar valendo.
+
+    View sem `bases_em` — nunca derivada desde que o campo existe — cai no
+    `publicada_em` e continua sendo conferida. Sem este teste, a correção acima
+    poderia ter trocado uma guarda insatisfazível por uma que nunca reprova.
+    """
+    tabelas = {
+        "mart_icsap_municipio": _t("mart_icsap_municipio", "2026-09-12"),
+        "v": Tabela(nome="v", linhas=1, bytes=1, sha256="x", colunas=["a"],
+                    origem=ORIGEM_VIEW, publicada_em="2026-09-06"),
+    }
+    motivos = conferir_view_atual(tabelas["v"], tabelas, ["mart_icsap_municipio"])
+    assert len(motivos) == 1
+    assert "2026-09-06" in motivos[0]
+
+
+def test_carimbo_anterior_a_base_continua_reprovando():
+    """Carimbo velho não absolve: derivação ANTES da base ainda é defasagem."""
+    tabelas = {
+        "mart_icsap_municipio": _t("mart_icsap_municipio", "2026-09-12"),
+        "v": _t("v", "2026-09-11", {"mart_icsap_municipio": "2026-09-01"}),
+    }
+    assert conferir_view_atual(tabelas["v"], tabelas, ["mart_icsap_municipio"])

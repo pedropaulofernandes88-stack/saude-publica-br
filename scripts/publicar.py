@@ -190,7 +190,7 @@ def semear_do_storage(alvos: list[str], env: dict, quieto: bool) -> int:
 
 
 def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
-                   quieto: bool) -> tuple[Path, str] | None:
+                   quieto: bool) -> tuple[Path, str, bool] | None:
     """Devolve (caminho, origem) do Parquet a publicar, ou None se indisponível.
 
     A preferência pelo arquivo local é o que faz o eixo migrar: quanto mais
@@ -207,7 +207,7 @@ def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
         if not local.exists():
             return None
         return local, (origem_do_parquet(local) or origem_registrada(tabela)
-                       or ORIGEM_DESCONHECIDA)
+                       or ORIGEM_DESCONHECIDA), False
 
     n_banco = contar_no_postgres(tabela, env)
 
@@ -232,7 +232,7 @@ def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
             return local, (origem_do_parquet(local)
                            or (ORIGEM_VIEW if tabela in views_do_esquema() else None)
                            or origem_registrada(tabela)
-                           or ORIGEM_DESCONHECIDA)
+                           or ORIGEM_DESCONHECIDA), False
         if not quieto:
             print(f"   ! {tabela}: parquet local tem {n_local:,} linhas e o banco "
                   f"{n_banco:,} — desatualizado", flush=True)
@@ -252,7 +252,7 @@ def _obter_parquet(tabela: str, env: dict, bootstrap: bool,
     # `postgres-bootstrap` conforme o arquivo local estivesse ou não em dia.
     origem = ORIGEM_VIEW if tabela in views_do_esquema() else "postgres-bootstrap"
     registrar_origem(tabela, origem)
-    return local, origem
+    return local, origem, True
 
 
 def main() -> None:
@@ -295,6 +295,10 @@ def main() -> None:
     mudaram: list[str] = []
     herdadas: list[str] = []
     ausentes: list[str] = []
+    #: Tabelas REEXPORTADAS do banco nesta execução. Para uma view, é a prova de
+    #: que ela foi derivada das bases como estão agora — e é isso, não a
+    #: mudança de bytes, que a guarda da quarta seção precisa saber.
+    regeradas: set[str] = set()
 
     for tabela in alvos:
         obtido = _obter_parquet(tabela, env, args.bootstrap, args.quieto)
@@ -308,7 +312,9 @@ def main() -> None:
                 herdadas.append(tabela)
             continue
 
-        caminho, origem = obtido
+        caminho, origem, reexportada = obtido
+        if reexportada:
+            regeradas.add(tabela)
 
         # A guarda vale para QUALQUER origem, não só para a reexportação: um
         # Parquet do pipeline ou herdado do Storage também pode estar corrompido,
@@ -393,8 +399,12 @@ def main() -> None:
     # Carimba só as views REGERADAS nesta publicação. As herdadas mantêm o
     # carimbo antigo, e é essa combinação — arquivo parado, base andando — que
     # a conferência logo abaixo enxerga.
+    # Carimba as views DERIVADAS nesta publicação — regeradas do banco ou com
+    # bytes novos. Regerar e sair idêntico continua sendo derivação: é o caso de
+    # view que não depende da coluna que mudou na base, e era o que deixava a
+    # conferência insatisfazível (ver `conferir_view_atual`).
     for nome, t in manifesto.tabelas.items():
-        if t.origem == ORIGEM_VIEW and nome in mudaram:
+        if t.origem == ORIGEM_VIEW and (nome in mudaram or nome in regeradas):
             t.bases_em = {b: manifesto.tabelas[b].publicada_em
                           for b in bases_de_view(nome) if b in manifesto.tabelas}
 
