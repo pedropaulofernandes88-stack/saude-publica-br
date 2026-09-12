@@ -4,8 +4,9 @@ empacotar.py — o pacote que acompanha o manuscrito da água
 
     .venv311/Scripts/python artigo-agua/empacotar.py
 
-Produz `artigo-agua/dados-do-artigo.zip`: as onze tabelas, as cinco figuras, o
-manuscrito e o código que produz as três coisas.
+Produz `artigo-agua/dados-do-artigo.zip`: as dezesseis tabelas, as nove figuras,
+o manuscrito e o código que produz as três coisas — o do desenho transversal e o
+da reanálise em painel, que é a análise primária da versão atual.
 
 POR QUE UM SCRIPT, E NÃO UM ZIP FEITO À MÃO
 --------------------------------------------
@@ -42,6 +43,34 @@ DESTINO = AQUI / "dados-do-artigo.zip"
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+#: As tabelas e as figuras, por NOME e não por contagem.
+#:
+#: A versão anterior conferia `len(...) == 11` e `len(...) == 5`. Contagem não
+#: distingue os casos que importam: renomear uma tabela mantém a contagem, e um
+#: PNG de uma versão anterior que ninguém apagou entra no pacote com a mesma
+#: aparência de arquivo atual — e a contagem passa a reprovar o conjunto certo.
+#: Declarar os nomes faz a guarda dizer QUAL arquivo falta, e acusar sobra.
+TABELAS_ESPERADAS = {
+    # o desenho transversal, agora reportado como descrição
+    "tabela_1_base.csv", "tabela_2_serie_anual.csv",
+    "tabela_3_alta_por_faixa.csv", "tabela_4_alta_por_codigo.csv",
+    "tabela_5_teste_codificacao.csv", "tabela_6_exposicao.csv",
+    "tabela_7_gradiente.csv", "tabela_8_criterios.csv",
+    "tabela_9_rrr_por_idade.csv", "tabela_10_sem_vigilancia_por_uf.csv",
+    "tabela_11_por_quartil_de_acesso.csv",
+    # a reanálise em painel, que é a análise primária
+    "tabela_p1_painel.csv", "tabela_p2_especificidade.csv",
+    "tabela_p3_efeito_fixo.csv", "tabela_p4_tendencia.csv",
+    "tabela_p5_robustez.csv",
+}
+FIGURAS_ESPERADAS = {
+    "figura_01_serie_nacional.png", "figura_02_alta_por_faixa.png",
+    "figura_03_gradiente.png", "figura_04_criterios.png",
+    "figura_05_rrr_por_idade.png",
+    "figura_p1_especificidade.png", "figura_p2_com_e_sem_efeito_fixo.png",
+    "figura_p3_tendencia.png", "figura_p4_robustez.png",
+}
+
 #: O que entra além das tabelas e figuras, e como se chama no pacote.
 CONTEUDO = [
     (AQUI / "manuscrito.md", "manuscrito.md", "O manuscrito, em Markdown"),
@@ -53,7 +82,16 @@ CONTEUDO = [
     (AQUI / "gerar_tabelas.py", "codigo/gerar_tabelas.py",
      "Reexecuta a análise e formata as tabelas do artigo"),
     (AQUI / "gerar_figuras.py", "codigo/gerar_figuras.py",
-     "Desenha as cinco figuras a partir das tabelas"),
+     "Desenha as cinco figuras do desenho transversal"),
+    (ROOT / "scripts" / "analise_agua_painel.py",
+     "codigo/analise_agua_painel.py",
+     "A ANÁLISE PRIMÁRIA: painel de efeitos fixos de município, exposição defasada, quatro critérios declarados no cabeçalho"),
+    (ROOT / "scripts" / "_poisson_fe.py", "codigo/_poisson_fe.py",
+     "O estimador de Poisson condicional de efeitos fixos, com o autoteste de recuperação"),
+    (AQUI / "gerar_tabelas_painel.py", "codigo/gerar_tabelas_painel.py",
+     "Transporta as cinco tabelas do painel, conferindo as colunas que o texto cita"),
+    (AQUI / "gerar_figuras_painel.py", "codigo/gerar_figuras_painel.py",
+     "Desenha as quatro figuras do painel"),
     (ROOT / "data" / "refs" / "Obitos_Evitaveis_5_a_74_anos.pdf",
      "referencia/Obitos_Evitaveis_5_a_74_anos.pdf",
      "Nota técnica do TabNet/DataSUS com a Lista Brasileira (5 a 74 anos)"),
@@ -66,28 +104,37 @@ Pacote de dados, figuras e código do manuscrito.
 ## O que tem aqui
 
     manuscrito.md            o texto
-    tabelas/                 as onze tabelas, em CSV
-    figuras/                 as cinco figuras, em PNG a 300 dpi
-    codigo/                  a análise e os dois geradores
+    tabelas/                 as dezesseis tabelas, em CSV: onze do desenho
+                             transversal (tabela_N) e cinco do painel (tabela_pN)
+    figuras/                 as nove figuras, em PNG a 300 dpi
+    codigo/                  as duas análises, o estimador e os quatro geradores
     referencia/              a nota técnica oficial da Lista Brasileira
     MANIFESTO.csv            inventário com SHA-256 de cada arquivo
 
 ## Como reproduzir
 
-    python codigo/analise_agua_mortalidade.py     # reescreve as tabelas
+    python codigo/analise_agua_painel.py          # a análise PRIMÁRIA (~30 min)
+    python codigo/gerar_tabelas_painel.py         # transporta as tabelas do painel
+    python codigo/gerar_figuras_painel.py         # desenha as figuras do painel
+    python codigo/analise_agua_mortalidade.py     # o desenho transversal
     python codigo/gerar_tabelas.py                # formata para o artigo
     python codigo/gerar_figuras.py                # redesenha as figuras
 
-A análise reexecuta a partir dos marts publicados do projeto. Os critérios de
-refutação estão escritos no cabeçalho de `analise_agua_mortalidade.py`, antes de
-qualquer resultado — inclusive o quarto, que está rotulado como **post-hoc**
-porque foi concebido depois de observar os dados.
+As análises reexecutam a partir dos marts publicados do projeto. Os critérios de
+refutação estão escritos no cabeçalho de cada script, antes de qualquer
+resultado. No transversal, o quarto está rotulado como **post-hoc** porque foi
+concebido depois de observar os dados.
 
 ## O que este desenho NÃO autoriza
 
 É ecológico. A unidade é o município, e nada aqui autoriza afirmar que a pessoa
 que morreu consumiu água não vigiada. E ausência de registro de vigilância não é
 água contaminada: é ausência da prova.
+
+Além disso, a leitura causal está **refutada pelos próprios dados**: o painel de
+efeitos fixos não reproduz a associação que o desenho transversal mede. As onze
+tabelas do transversal ficam no pacote como descrição, e não como evidência de
+efeito. O que elas documentam está na §4 do manuscrito.
 """
 
 
@@ -110,23 +157,27 @@ def main() -> None:
                 "pacote nenhum, porque parece completo.")
         itens.append((destino, origem.read_bytes(), descricao))
 
-    tabelas = sorted((AQUI / "tabelas").glob("*.csv"))
-    if len(tabelas) != 11:
-        raise SystemExit(
-            f"esperava 11 tabelas em tabelas/, achei {len(tabelas)}. "
-            "Rode `gerar_tabelas.py` antes.")
-    for t in tabelas:
-        itens.append((f"tabelas/{t.name}", t.read_bytes(),
-                      "Tabela do manuscrito"))
-
-    figuras = sorted((AQUI / "figuras").glob("*.png"))
-    if len(figuras) != 5:
-        raise SystemExit(
-            f"esperava 5 figuras em figuras/, achei {len(figuras)}. "
-            "Rode `gerar_figuras.py` antes.")
-    for f in figuras:
-        itens.append((f"figuras/{f.name}", f.read_bytes(),
-                      "Figura do manuscrito (PNG, 300 dpi)"))
+    for pasta, esperado, gerador, descricao in (
+            ("tabelas", TABELAS_ESPERADAS,
+             "gerar_tabelas.py e gerar_tabelas_painel.py",
+             "Tabela do manuscrito"),
+            ("figuras", FIGURAS_ESPERADAS,
+             "gerar_figuras.py e gerar_figuras_painel.py",
+             "Figura do manuscrito (PNG, 300 dpi)")):
+        achados = {p.name for p in (AQUI / pasta).glob("*")}
+        faltam = sorted(esperado - achados)
+        sobram = sorted(achados - esperado)
+        if faltam or sobram:
+            raise SystemExit(
+                f"o conteúdo de {pasta}/ não é o que o manuscrito cita.\n"
+                + (f"  faltam: {faltam}\n" if faltam else "")
+                + (f"  sobram: {sobram}\n" if sobram else "")
+                + f"Rode `{gerador}`. Sobra importa tanto quanto falta: "
+                "arquivo de uma versão anterior entra no pacote com a mesma "
+                "aparência de arquivo atual.")
+        for nome in sorted(esperado):
+            itens.append((f"{pasta}/{nome}",
+                          (AQUI / pasta / nome).read_bytes(), descricao))
 
     manifesto = io.StringIO()
     w = csv.writer(manifesto, lineterminator="\n")

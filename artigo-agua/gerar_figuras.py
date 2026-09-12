@@ -265,23 +265,51 @@ LEGENDAS: tuple[tuple[str, str, str], ...] = (
      "Variação dos óbitos por A00–A09 entre 2019 e 2024, por faixa etária. A "
      "alta aparece em todas as faixas, o que afasta envelhecimento populacional "
      "como explicação. Fonte: Tabela S3."),
-    ("3.4", "figura_03_gradiente",
+    ("3.7", "figura_03_gradiente",
      "Razão de mortalidade contra a classe de vigilância regular, para as duas "
      "entradas do subgrupo 1.2 da Lista Brasileira: doenças infecciosas "
      "intestinais (via hídrica) e infecções respiratórias (controle negativo). "
      "As duas causas são declaradas evitáveis pelo mesmo tipo de ação no "
-     "instrumento oficial. Fonte: Tabela S7."),
-    ("3.5", "figura_04_criterios",
+     "instrumento oficial. A coluna do controle é monotônica entre as "
+     "quatro classes e a do desfecho não é — ver §3.7 e §4.2. "
+     "Fonte: Tabela S7."),
+    ("3.7", "figura_04_criterios",
      "Razão de razões e intervalo de confiança de 95% por bootstrap de "
      "município. Marcador cheio indica critério declarado antes da análise; "
      "marcador vazado indica teste post-hoc. A linha tracejada em 1 é o valor "
-     "que refuta a interpretação hídrica. Fonte: Tabela S8."),
+     "que refutaria a interpretação hídrica neste desenho. Os quatro "
+     "passam, e o painel de efeitos fixos ainda assim não reproduz o "
+     "efeito; a §4.2 explica por quê. Fonte: Tabela S8."),
     ("3.7", "figura_05_rrr_por_idade",
      "Razão de razões dentro de cada faixa etária, o que neutraliza a "
      "composição etária sem exigir denominador populacional por idade. O valor "
      "é maior que 1 nas oito faixas, com o máximo em crianças de 1 a 4 anos. "
      "Fonte: Tabela S9."),
 )
+
+#: As quatro figuras do painel entram ANTES das cinco do transversal, porque a
+#: análise primária passou a ser o painel. Elas são importadas em vez de
+#: copiadas: `gerar_docx.py` lê `LEGENDAS` só deste arquivo, e manter duas
+#: listas em dois lugares é a forma conhecida de elas discordarem.
+#:
+#: A importação é por caminho, e não por `import`, porque este módulo é ele
+#: próprio carregado por caminho pelo gerador de Word — quando isso acontece o
+#: diretório não está em `sys.path`, e um `import` simples falharia lá e
+#: funcionaria aqui, que é o pior dos dois mundos.
+def _legendas_do_painel() -> tuple[tuple[str, str, str], ...]:
+    import importlib.util
+    caminho = Path(__file__).resolve().parent / "gerar_figuras_painel.py"
+    if not caminho.exists():
+        raise SystemExit(
+            f"{caminho} não existe. As figuras do painel são a análise "
+            "primária do artigo; sem elas o Word sairia sem os resultados.")
+    espec = importlib.util.spec_from_file_location("_figs_painel", caminho)
+    mod = importlib.util.module_from_spec(espec)
+    espec.loader.exec_module(mod)
+    return tuple(mod.LEGENDAS)
+
+
+LEGENDAS = _legendas_do_painel() + LEGENDAS
 
 FIGURAS_DO_ARTIGO = [
     ("figura_01_serie_nacional", figura_01_serie),

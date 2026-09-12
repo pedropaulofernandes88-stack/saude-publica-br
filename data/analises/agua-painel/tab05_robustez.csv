@@ -1,0 +1,10 @@
+Recorte,Municipios,IRR,IC95% inferior,IC95% superior
+Painel completo,5570,0.99,0.943,1.041
+Sem o Distrito Federal,5569,0.989,0.94,1.036
+Sem municipios com menos de 5.000 hab.,4319,0.994,0.947,1.038
+Sem o DF e sem municipios pequenos,4318,0.993,0.943,1.051
+Somente Centro-Oeste,467,0.925,0.681,1.232
+Somente Nordeste,1794,1.008,0.944,1.08
+Somente Norte,450,1.01,0.872,1.12
+Somente Sudeste,1668,0.979,0.851,1.098
+Somente Sul,1191,0.848,0.701,1.027

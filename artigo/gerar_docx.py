@@ -104,9 +104,35 @@ _ALERTA_CEGO = (
 
 @dataclass
 class Tabela:
-    numero: int
+    """Uma tabela do material suplementar.
+
+    `numero` é TEXTO, e não inteiro, porque um manuscrito pode ter mais de uma
+    SÉRIE de tabelas. O artigo da água tem duas: a série P (P1 a P5), que é a
+    reanálise em painel e é a análise primária, e a série numérica (1 a 11), que
+    é o desenho transversal mantido para comparação. Forçar as duas num inteiro
+    só exigiria renumerar onze legendas, e aí o número da legenda deixaria de
+    bater com o nome do CSV que a gera — que é a correspondência que este
+    gerador existe para preservar.
+    """
+
+    numero: str
     legenda: str
     csv: str
+
+    @property
+    def ordem(self) -> tuple[int, int]:
+        """Série P primeiro, e dentro de cada série, pela ordem numérica."""
+        serie = self.numero.startswith("P")
+        return (0 if serie else 1, int(self.numero.lstrip("P")))
+
+    @property
+    def rotulo(self) -> str:
+        """Como a tabela é chamada no documento.
+
+        A série numérica ganha o "S" de suplementar; a série P já se distingue
+        pela letra, e "Tabela SP1" não ajudaria ninguém.
+        """
+        return self.numero if self.numero.startswith("P") else f"S{self.numero}"
 
 
 def _paragrafo_com_marcacao(p, texto: str) -> None:
@@ -155,11 +181,11 @@ def carregar_markdown() -> tuple[str, list[str], list[Tabela]]:
     # Reescrever dezesseis legendas para caber no regex seria dobrar o texto à
     # ferramenta; o regex é que cede.
     anuncio = re.compile(
-        r"^\*\*Tabela (\d+)\s*[.—-]\s*(.+?)\s*\(`(tabela_[a-z0-9_]+\.csv)`\)\.?\*\*$")
+        r"^\*\*Tabela (P?\d+)\s*[.—-]\s*(.+?)\s*\(`(tabela_[a-z0-9_]+\.csv)`\)\.?\*\*$")
     while i < len(corpo):
         m = anuncio.match(corpo[i].strip())
         if m:
-            tabelas.append(Tabela(int(m.group(1)), m.group(2), m.group(3)))
+            tabelas.append(Tabela(m.group(1), m.group(2), m.group(3)))
             i += 1
             while i < len(corpo) and (not corpo[i].strip() or corpo[i].lstrip().startswith("|")):
                 i += 1
@@ -210,12 +236,12 @@ def _inserir_figura(doc, indice: int, arquivo: str, legenda: str) -> None:
     _legenda(doc, f"Figura {indice}. {legenda}")
 
 
-def _inserir_tabela(doc, t: Tabela, indice: int) -> None:
+def _inserir_tabela(doc, t: Tabela, rotulo: str) -> None:
     df = pd.read_csv(TABELAS / t.csv, encoding="utf-8-sig")
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(12)
     p.paragraph_format.space_after = Pt(4)
-    r = p.add_run(f"Tabela S{indice}. {_suplementar(t.legenda)}")
+    r = p.add_run(f"Tabela {rotulo}. {_suplementar(t.legenda)}")
     r.bold = True
     r.font.size = Pt(10)
 
@@ -301,8 +327,8 @@ def montar() -> None:
         "As tabelas a seguir são as citadas no corpo do artigo, na mesma ordem e "
         "com a mesma numeração. Cada uma é gerada por script a partir dos "
         "microdados; nenhum valor foi transcrito à mão."))
-    for t in sorted(tabelas, key=lambda x: x.numero):
-        _inserir_tabela(doc, t, t.numero)
+    for t in sorted(tabelas, key=lambda x: x.ordem):
+        _inserir_tabela(doc, t, t.rotulo)
 
     doc.save(DESTINO)
     print(f"[docx] {DESTINO.name}: {len(corpo)} linhas de corpo, "
@@ -329,7 +355,7 @@ def conferir() -> None:
 
     # Conteúdo, não só contagem: uma célula trocada passa por qualquer contagem.
     _, _, tabelas = carregar_markdown()
-    for tab_doc, t in zip(doc.tables, sorted(tabelas, key=lambda x: x.numero), strict=True):
+    for tab_doc, t in zip(doc.tables, sorted(tabelas, key=lambda x: x.ordem), strict=True):
         df = pd.read_csv(TABELAS / t.csv, encoding="utf-8-sig")
         if len(tab_doc.rows) != len(df) + 1 or len(tab_doc.columns) != len(df.columns):
             problemas.append(f"{t.csv}: {len(tab_doc.rows) - 1}x{len(tab_doc.columns)} "

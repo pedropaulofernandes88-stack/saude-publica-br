@@ -1,0 +1,15 @@
+Recorte,Valor
+Municipios no painel,5570
+Anos de desfecho,9
+Linhas municipio-ano,50130
+Pessoas-ano,1880954497
+Municipio-ano sem vigilancia no ano anterior,9492
+Obitos: A00-A09 intestinais (hipotese),45060
+Obitos: J00-J22 respiratorias (subgrupo 1.2),753518
+Obitos: outras infecciosas do subgrupo 1.2,223903
+Obitos: I20-I25 isquemicas do coracao,1046920
+Obitos: V01-Y98 causas externas,1357405
+Municipios com vigilancia em TODOS os anos,3332
+Municipios sem vigilancia em TODOS os anos,400
+Municipios que MUDARAM de estado no periodo,1838
+Municipio-ano sem vigilancia no ano anterior (%),18.9

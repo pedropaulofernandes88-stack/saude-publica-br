@@ -1,4 +1,4 @@
-# Mortes evitáveis por doença infecciosa intestinal no Brasil, 2015–2024: uma alta de 47%, e a vigilância da água que não a vê
+# Mortalidade por doenças infecciosas intestinais nos municípios brasileiros, 2015 a 2024: a alta, e o que a ausência de vigilância da qualidade da água não explica
 
 **Pedro Paulo Fernandes**¹
 
@@ -12,15 +12,15 @@
 
 **Contexto.** A Lista Brasileira de Causas de Mortes Evitáveis é o instrumento oficial do Ministério da Saúde para classificar óbitos evitáveis por intervenção do SUS. O seu subgrupo 1.2 reúne as causas "reduzíveis por ações adequadas de promoção à saúde, prevenção, controle e atenção às doenças de causas infecciosas", e nele convivem, lado a lado, as **doenças infecciosas intestinais** (A00–A09) e as **infecções respiratórias, inclusive pneumonia e influenza** (J00–J06, J10–J22). A lista não nomeia a água em nenhum subgrupo: não existe categoria de saneamento nela.
 
-**Objetivo.** Medir a evolução da mortalidade por doenças infecciosas intestinais no Brasil entre 2015 e 2024; testar se a alta observada é artefato de registro; e determinar se ela se associa à **vigilância da qualidade da água** — medida pelo Sistema de Informação de Vigilância da Qualidade da Água para Consumo Humano (SISAGUA) — de forma específica do caminho hídrico.
+**Objetivo.** Medir a evolução da mortalidade por doenças infecciosas intestinais no Brasil entre 2015 e 2024; testar se a alta observada é artefato de registro; e testar se ela se associa à **ausência de vigilância da qualidade da água** — medida pelo Sistema de Informação de Vigilância da Qualidade da Água para Consumo Humano (SISAGUA) — num desenho capaz de separar variação **dentro** do município de variação **entre** municípios.
 
-**Métodos.** Todos os 14.457.218 óbitos não fetais registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024, agregados por município de residência (Tabela 1). A exposição é a regularidade da vigilância: a mediana municipal de meses com análise reportada ao SISAGUA no período, em quatro classes ordenadas. O desfecho é a mortalidade por A00–A09; o **controle negativo** é a mortalidade pelas infecções respiratórias do mesmo subgrupo 1.2 — causas que partilham pobreza, desnutrição, acesso a serviço, qualidade de codificação e estrutura etária com o desfecho, e não partilham o caminho hídrico. A medida é a razão de razões (RRR) entre municípios sem vigilância e municípios com vigilância regular, com IC95% por bootstrap de município (2.000 reamostragens). Três critérios de refutação foram declarados antes de qualquer resultado: **IC95% do RRR incluindo 1 refuta a interpretação hídrica**; o RRR recalculado dentro de quartis de acesso à água pelo Censo, reunido por Mantel-Haenszel, incluindo 1 atribui o achado ao acesso e não à vigilância; e o gradiente entre as quatro classes é relatado como estiver. Um quarto teste, **não pré-declarado**, recalcula o RRR dentro de cada faixa etária.
+**Métodos.** Todos os 14.457.218 óbitos não fetais registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024 com município de residência utilizável (Tabela 1). A **análise primária é um painel**: 5.570 municípios por 9 anos de desfecho, 50.130 linhas município-ano e 1.880.954.497 pessoas-ano (Tabela P1). A exposição é binária e **defasada** — o município não reportou análise alguma ao SISAGUA no ano anterior —, e ocorre em 9.492 linhas município-ano. O estimador é o Poisson condicional de efeitos fixos de município com indicadoras de ano, que absorve todo confundidor constante no tempo, medido ou não; os IC95% vêm de bootstrap de município, com 400 reamostragens. A mesma medida é repetida para **quatro causas-controle**, e quatro critérios de refutação foram escritos no cabeçalho do script antes de qualquer resultado. O desenho transversal da versão anterior — razão de razões entre classes de vigilância, com controle negativo — é mantido e reportado para comparação.
 
-**Resultados.** Os óbitos por A00–A09 passaram de 4.875 em 2019 para 7.177 em 2024 — alta de **47,2%** —, enquanto os óbitos totais subiram 13,5% (Tabela 2). Relativos ao total de óbitos, foram de 36,12 para 46,85 por 10 mil. A alta não é de um código (A04 +72%, A08 +120%, A09 +40,9%; Tabela 4), não é de uma faixa etária (entre +38,2% e +56,5% em seis das oito faixas; Tabela 3) e não é redistribuição de causas mal definidas: nos 946 municípios em que a proporção de mal definidas **não caiu**, a alta foi de **+43,5%**, contra +49,4% onde caiu (Tabela 5). Entre os 5.570 municípios analisáveis, 384 não reportaram análise alguma ao SISAGUA. Neles a mortalidade por A00–A09 é 1,158 vez a dos municípios com vigilância regular, enquanto a mortalidade por infecção respiratória é **0,558** — RRR de **2,075 [1,776–2,518]** (Tabelas 7 e 8). O gradiente entre as quatro classes é monotônico: 2,075, 1,525, 1,182 e 1. Ajustado por quartil de acesso à água, o RRR é **1,926 [1,618–2,225]**, e permanece acima de 1 nos quatro quartis, **inclusive naquele em que a mediana de domicílios sem ligação à rede é de 4,99%** (Tabela 11). Substituir o controle pela definição estrita de pneumonia e influenza dá 2,087 [1,785–2,535]. A padronização por idade, post-hoc, reduz o RRR para **1,767 [1,518–2,021]**, que permanece acima de 1 nas oito faixas etárias, com o máximo em crianças de 1 a 4 anos (2,432; Tabela 9).
+**Resultados.** Os óbitos por A00–A09 passaram de 4.875 em 2019 para 7.177 em 2024 (Tabela P4). Contra uma tendência log-linear ajustada **somente em 2015–2019** — plana, com desvios entre −2,5% e +2,7% —, 2024 está **26,6% acima** quando medido por 10 mil óbitos do ano e **37,5% acima** quando medido por milhão de habitantes. A alta não é de um código, não é de uma faixa etária e não é redistribuição de causas mal definidas (Tabelas 3 a 5). **No painel, porém, a exposição não prediz nada:** o IRR da ausência de vigilância no ano anterior é **0,99 [0,943–1,041]** para A00–A09, e 0,984, 0,996, 1,006 e 1,002 para os quatro controles — nenhum exclui 1 (Tabela P2). Sem o efeito fixo, no mesmo painel e com o mesmo código, o IRR é 1,074 para A00–A09 e **0,773** para o controle respiratório, uma razão de razões de **1,39**; com o efeito fixo, ela cai para **1,006** (Tabela P3). As causas externas, que não partilham caminho hídrico algum, produzem razão de razões de **1,339** sem o efeito fixo. O nulo se mantém nos nove recortes de robustez, inclusive sem o Distrito Federal e sem municípios pequenos (Tabela P5). O desenho transversal, em contraste, produzia razão de razões de 2,075 [1,776–2,518], e a sua aparente dose-resposta é monotônica na coluna do **controle** (0,558; 0,886; 0,903; 1) e não na do desfecho (1,158; 1,351; 1,068; 1) (Tabela 7).
 
-**Conclusões.** A mortalidade por doenças infecciosas intestinais — causa que o instrumento oficial brasileiro classifica como evitável — subiu 47% em cinco anos, e a alta não é artefato de registro. A ausência de vigilância da qualidade da água distingue essa causa de outra que o mesmo instrumento trata como equivalente, com especificidade que sobrevive ao ajuste por acesso à água e à padronização por idade. O desenho é ecológico e não estabelece que o indivíduo que morreu consumiu água não vigiada; ausência de vigilância é ausência da prova, não prova de contaminação. O achado aponta uma lacuna no próprio instrumento: a Lista Brasileira declara a morte por diarreia evitável sem nomear o mecanismo pelo qual ela é evitada.
+**Conclusões.** A alta da mortalidade por doenças infecciosas intestinais é real, sobrevive a dois denominadores e não é artefato de registro. A hipótese de que a ausência de vigilância da qualidade da água a explique **não se sustenta**: dentro do município, ao longo do tempo, a exposição não antecede mortalidade maior por nenhuma causa, inclusive a da hipótese. A associação transversal é composição entre municípios, e o controle negativo não era neutro — ele carregava associação própria em sentido oposto, que a razão de razões converteu em especificidade aparente. A ausência de registro de vigilância continua útil como **marcador** que identifica municípios, e não como determinante.
 
-**Palavras-chave.** Mortalidade evitável; doenças infecciosas intestinais; vigilância da qualidade da água; SISAGUA; estudos ecológicos; Brasil.
+**Palavras-chave.** Mortalidade evitável; doenças infecciosas intestinais; vigilância da qualidade da água; SISAGUA; estudos de painel; controle negativo; Brasil.
 
 ---
 
@@ -28,7 +28,7 @@
 
 A morte por diarreia é o caso mais antigo da saúde pública. Foi ela que fundou a epidemiologia moderna quando John Snow removeu a bomba de Broad Street em 1854, e é ela que a engenharia sanitária do século XX tratou como problema resolvido nos países que construíram redes de água e esgoto. No Brasil, a mortalidade por doenças infecciosas intestinais caiu de forma sustentada ao longo de décadas, e a literatura nacional descreve essa queda como parte de uma transição epidemiológica em curso — com ressalva para o Norte e o Nordeste, onde ela seria mais lenta.
 
-Este artigo reporta que a queda parou e inverteu. Entre 2019 e 2024, os óbitos por A00–A09 subiram 47,2% no país.
+Este artigo reporta que a queda parou e inverteu, e reporta também que a explicação mais natural para a inversão não resiste ao teste.
 
 O achado tem duas propriedades que merecem enquadramento antes dos métodos. A primeira é que **A00–A09 é uma causa oficialmente evitável no Brasil**: ela está no subgrupo 1.2 da Lista Brasileira de Causas de Mortes Evitáveis, instrumento do Ministério da Saúde publicado em 2007 e revisto entre 2010 e 2011. Não se trata, portanto, de um agravo emergente ou de um desfecho sobre o qual o sistema de saúde não tenha responsabilidade declarada. Trata-se de uma categoria que o próprio Estado brasileiro se comprometeu a reduzir.
 
@@ -36,7 +36,9 @@ A segunda é que **a Lista não nomeia a água**. Percorrida inteira, ela não t
 
 Esse silêncio tem consequência operacional. O Brasil mantém, desde 2014, um sistema nacional de vigilância da qualidade da água para consumo humano, o SISAGUA, alimentado pelos municípios. A literatura que usa esse sistema é escassa e trata o não-reporte como limitação de dado: um levantamento de contaminação por agrotóxicos registra que 53% dos municípios não enviaram dados de monitoramento; outro, anterior, que apenas 9% a 17% registravam. Nenhum trabalho publicado usou a **ausência de vigilância como variável de exposição**, e nenhum ligou o SISAGUA à mortalidade por doença infecciosa intestinal em escala municipal nacional.
 
-É essa inversão que este artigo faz. A pergunta não é "a água está contaminada?" — o SISAGUA não responde isso onde ninguém mediu. A pergunta é se o município que **não vigia** morre diferente do que vigia, e se essa diferença é específica do caminho hídrico ou apenas mais um efeito da pobreza.
+É essa inversão que este artigo faz — e o resultado dela é negativo. A pergunta não é "a água está contaminada?", que o SISAGUA não responde onde ninguém mediu. A pergunta é se o município que **deixa de vigiar** passa a morrer diferente, e a resposta, num painel que acompanha cada município ao longo de nove anos, é que não passa.
+
+Reportar isso tem valor por duas razões. A primeira é que a alta existe e continua sem explicação: retirar do caminho uma hipótese plausível é trabalho de eliminação, não trabalho perdido. A segunda é metodológica, e é a contribuição que este artigo pretende oferecer com mais confiança que a primeira: um desenho transversal com controle negativo cuidadosamente extraído do instrumento oficial, aprovado em ajuste por acesso à água, em definição estrita do controle e em padronização por idade, produziu uma associação forte, específica e com dose-resposta — **e ela não existe**. A §4.2 mostra por quê, e o motivo é de interesse geral para quem usa controles negativos em epidemiologia ecológica.
 
 ---
 
@@ -46,218 +48,265 @@ Esse silêncio tem consequência operacional. O Brasil mantém, desde 2014, um s
 
 Todos os óbitos não fetais registrados no Sistema de Informações sobre Mortalidade (SIM) entre 2015 e 2024, agregados por município de residência, ano e categoria de três caracteres da CID-10. O ano de 2025 aparece nas figuras e na Tabela 2 identificado como preliminar, e **não entra em nenhuma estimativa**: ele é mostrado porque omitir o dado mais recente seria esconder informação, e é marcado porque colá-lo à série consolidada afirmaria uma completude que não existe.
 
-O denominador populacional é a Projeção da População do IBGE, revisão 2024, somada sobre os dez anos para produzir pessoas-ano.
+O denominador populacional é a Projeção da População do IBGE, revisão 2024, somada sobre os anos do recorte para produzir pessoas-ano.
 
 **Dois totais, e por que eles diferem.** O mart do SIM traz 14.484.496 óbitos no período. Deles, **27.278 estão em 25 códigos do tipo `110000` ou `120000`** — "município ignorado" dentro da unidade da federação. Esses códigos não são municípios: não têm classe de vigilância, não têm população e não podem entrar em nenhuma razão por habitante. Excluídos, restam **14.457.218**, e é sobre esse conjunto que toda estimativa deste artigo é calculada.
 
 A distinção precisa ser explícita porque as duas pontas do funil aparecem no material suplementar: a Tabela 1 traz o conjunto analisável, e a Tabela 2 traz a série anual sobre o mart inteiro. A Tabela 1 mostra o funil completo, com a perda nomeada, justamente para que a diferença não seja lida como inconsistência. A perda no desfecho é pequena — 21 óbitos por A00–A09 e 994 por infecção respiratória — e não se concentra em nenhum ano.
 
-O manuscrito irmão sobre imunoprevenção, que não depende de município, usa o total de **14.484.496**. Os dois números descrevem o mesmo SIM e a mesma versão dos microdados; o que difere é a exigência de município de residência utilizável, que só um dos dois desenhos faz. A Tabela 1 traz o recorte fechado: 14.457.218 óbitos, 49.429 deles por A00–A09, 831.816 pelo controle, sobre 2.085.404.546 pessoas-ano.
+O manuscrito irmão sobre imunoprevenção, que não depende de município, usa o total de **14.484.496**. Os dois números descrevem o mesmo SIM e a mesma versão dos microdados; o que difere é a exigência de município de residência utilizável, que só um dos dois desenhos faz.
 
-### 2.2 A exposição, e o que ela não é
+### 2.2 O painel, e a exposição defasada
 
-O SISAGUA registra, por município e mês, análises de parâmetros básicos da água distribuída — cloro residual, turbidez, cor, coliformes totais, *Escherichia coli*, pH, fluoreto e outros. A coleta nacional deste trabalho percorreu os 5.571 municípios brasileiros e recuperou 117.764.680 registros; um município não teve denominador populacional utilizável e ficou fora, restando 5.570.
+A unidade de análise é o **município-ano**. O painel cobre 9 anos de desfecho (2016 a 2024) para os 5.570 municípios com denominador populacional utilizável, o que dá 50.130 linhas, e é **balanceado**: todos os municípios têm todos os anos. O script aborta se não for, porque supor balanceamento onde ele não existe embaralharia município com ano sem que nada acuse.
 
-A exposição é a **mediana municipal de meses com análise reportada**, calculada sobre ano × parâmetro no período, em quatro classes:
+A exposição é **binária e defasada**: o município não reportou nenhum mês com análise ao SISAGUA no ano **anterior** ao do óbito. Duas escolhas estão embutidas nessa frase, e as duas são deliberadas.
 
-| classe | definição | municípios |
-|---|---|---|
-| sem vigilância | nenhuma análise reportada em 2015–2024 | 384 |
-| vigilância rara | mediana de até 6 meses | 511 |
-| vigilância parcial | mediana de 7 a 11 meses | 1.048 |
-| vigilância regular | mediana de 12 meses | 3.627 |
+**Por que defasada.** A vigilância do ano corrente é contemporânea ao desfecho, e a contaminação que mataria em janeiro não pode ser prevenida por uma análise de dezembro. A defasagem de um ano também protege contra causalidade reversa na direção óbvia: surto de diarreia num município pode **provocar** coleta de amostras, e uma exposição contemporânea leria isso como vigilância associada a mais morte.
 
-O SISAGUA prevê controle **mensal**, de modo que 12 é o previsto e não o excepcional.
+**Por que binária, e não as quatro classes.** O desenho transversal usava a mediana municipal de meses com análise em quatro classes. Essa medida é definida sobre o período inteiro e, por construção, quase não varia dentro do município — e exposição que não varia dentro do município é apagada inteira pelo efeito fixo. A forma binária por ano é a que tem variação interna: 9.492 das 50.130 linhas (18,9%) estão expostas.
 
-Três distinções são deliberadas e importam para a leitura. **Primeira:** ausência de vigilância não é ausência de água encanada. As duas coisas são medidas por fontes diferentes, e a Tabela 6 mostra que a mediana de domicílios sem ligação à rede é de 29,265% na classe sem vigilância e 15,67% na classe regular — diferentes, mas longe de coincidentes. **Segunda:** ausência de vigilância não é água contaminada. É ausência da prova, e o artigo não afirma nada além disso. **Terceira:** município que a coleta não alcançou ficou **fora** da análise, e não foi classificado como "sem vigilância" — chamar falha de coleta de exposição baixa inventaria dado.
+**Ausência de linha é zero, não é ausente.** Município-ano sem registro no mart do SISAGUA entra com zero mês, e não como dado faltante — é exatamente o que "não reportou" significa, e tratá-lo como faltante removeria da análise justamente a categoria de interesse.
 
-### 2.3 O controle negativo, e por que ele sai do instrumento
+### 2.3 O estimador, e por que efeito fixo de município
 
-Um cruzamento ecológico entre indicador de saneamento e mortalidade infecciosa nunca falha. Ele vai produzir associação, e a associação vai ser confundível com pobreza: município que não vigia a água é município pobre, e município pobre morre mais de tudo. Uma análise que reportasse apenas "encontramos associação" não teria como separar mecanismo de marcador socioeconômico.
+Municípios diferem em tudo: renda, urbanização, estrutura etária, acesso a serviço de saúde, qualidade de codificação de causa básica. Um efeito fixo de município absorve **todo** confundidor que não varia no tempo, medido ou não — é a única forma de controle que não depende de o autor ter pensado na variável certa, e é por isso que ela substitui aqui o ajuste por covariáveis da versão anterior.
 
-O discriminador adotado é um **controle negativo**, e ele não foi escolhido por conveniência. O subgrupo 1.2 da Lista Brasileira contém, como entradas vizinhas:
+O estimador é o Poisson condicional de Hausman, Hall e Griliches (1984). Condicionando na soma de óbitos do município, as contagens dos seus anos seguem uma multinomial cujas probabilidades não contêm o intercepto do município; a verossimilhança condicional não tem, portanto, um parâmetro por município, o que importa num painel de 5.570 unidades. Indicadoras de ano entram no desenho para absorver o que é comum ao país — inclusive a pandemia.
 
-```
-Doenças infecciosas intestinais ................ A00-A09
-Infecções respiratórias, inclusive pneumonia
-e influenza .......... J00-J01, J02.8-J02.9, J03.8-J03.9,
-                       J04-J05, J06, J10-J22
-```
+Implementar estimador à mão só se justifica se ele for demonstrado. `tests/test_poisson_fe.py` simula painéis com efeito **conhecido** e exige recuperação dentro de tolerância; um dos testes mostra que o mesmo código **sem** os efeitos fixos devolve viés grande quando a exposição é correlacionada com o nível do município, que é o caso real. Os intervalos de confiança não saem do estimador: vêm de **bootstrap de município**, com 400 reamostragens, porque a unidade de reamostragem tem de ser a unidade de análise.
 
-O Ministério da Saúde declara as duas evitáveis pelo mesmo tipo de ação. Elas partilham praticamente todo confundidor relevante — pobreza, desnutrição, acesso a serviço de saúde, qualidade de codificação, estrutura etária — e não partilham o caminho hídrico. Em três caracteres, a definição oficial corresponde a J00–J06 e J10–J22; a diferença são subcategorias de amigdalite e faringite estreptocócica, que praticamente não matam. Uma análise de sensibilidade repete a medida com a definição estrita de pneumonia e influenza (J10–J18).
+**O que o efeito fixo cobra.** Ele descarta os municípios cuja exposição nunca muda. Dos 5.570, **3.332 vigiaram em todos os anos** e **400 não vigiaram em nenhum**: esses municípios não contribuem para a estimativa. Ela vem inteira dos **1.838 que mudaram de estado** durante o período (Tabela P1). Esse número é o que permite julgar se um IRR próximo de 1 é nulo informativo ou apenas ausência de variação — e essa distinção não se lê no intervalo de confiança sozinho.
 
-O contraste, portanto, não é entre duas causas que os autores escolheram parecidas. É entre duas entradas que o instrumento oficial trata como equivalentes.
+### 2.4 Os quatro critérios, declarados antes
 
-### 2.4 A medida, e os critérios declarados antes
+Os critérios foram escritos no cabeçalho de `scripts/analise_agua_painel.py` antes de qualquer resultado ser observado, e o script imprime o veredito sozinho ao final:
 
-A medida é a razão de razões:
-
-$$\text{RRR} = \frac{\text{RR}(\text{A00–A09})}{\text{RR}(\text{infecção respiratória})}$$
-
-onde cada RR compara a classe sem vigilância à classe de vigilância regular. A RRR tem uma propriedade que o desenho explora: **tudo o que infla ou deprime as duas causas por igual cancela**. Sub-registro de óbito, erro no denominador populacional e variação geral de qualidade do registro afetam numerador e denominador na mesma proporção e desaparecem da razão. O que a RRR não cancela é o que afeta as duas causas de forma **diferente** — e é por isso que a idade precisa de tratamento próprio (§2.5).
-
-Sem modelo paramétrico. Os intervalos de confiança de 95% vêm de **bootstrap de município**, com 2.000 reamostragens com reposição. A unidade de reamostragem é a unidade de análise: óbitos dentro do mesmo município não são independentes, e reamostrá-los produziria intervalo estreito por construção.
-
-Os critérios foram escritos no cabeçalho do script de análise antes de qualquer resultado ser observado, e o script imprime aprovação ou reprovação de cada um:
-
-> **Critério 1 — especificidade.** Se o IC95% do RRR incluir 1, a interpretação hídrica está **refutada**. A associação existiria, mas seria indistinguível de um marcador geral de precariedade, e seria reportada assim.
+> **Critério 1 — especificidade.** A mesma medida é repetida em cinco grupos de causa: a hipótese (A00–A09), o controle respiratório do mesmo subgrupo 1.2, as demais infecciosas do subgrupo, as isquêmicas do coração e as causas externas. Se o IRR da hipótese não excluir 1, **ou** se não for maior que o de todos os controles, a leitura hídrica está refutada e o achado é sobre fragilidade geral de sistema.
 >
-> **Critério 2 — acesso não pode explicar.** O RRR é recalculado dentro de quartis de `pct_sem_agua` do Censo 2022 e reunido pelos pesos de Mantel-Haenszel. Se passar a incluir 1, o achado é sobre **acesso** e não sobre **vigilância**.
+> **Critério 2 — o que o efeito fixo remove.** O mesmo IRR é estimado com e sem o efeito fixo de município, sobre o mesmo painel. A diferença é a parte da associação atribuível a diferenças fixas entre municípios.
 >
-> **Critério 3 — gradiente.** As quatro classes são ordenadas. Não-monotonicidade não refuta sozinha; é reportada como estiver.
+> **Critério 3 — tendência.** A série nacional é projetada a partir de uma tendência log-linear ajustada **somente em 2015–2019**, em dois denominadores, e o excesso de cada ano posterior é reportado como estiver.
+>
+> **Critério 4 — robustez.** O IRR da hipótese é recalculado sem o Distrito Federal, sem municípios com menos de 5.000 habitantes, sem os dois, e dentro de cada região.
 
-### 2.5 O quarto teste, que não foi pré-declarado
+Os dois denominadores do critério 3 existem porque nenhum dos dois basta. A proporção dos óbitos do ano cancela sub-registro e é frágil à pandemia, que inflou o divisor com COVID-19; a taxa por habitante é o contrário. Se as duas apontarem na mesma direção, a conclusão não depende de qual o leitor prefere.
 
-Após observar que a mortalidade geral é 30% menor na classe sem vigilância (492 contra 709 por 100 mil; Tabela 6) — compatível com estrutura etária mais jovem, e não com sub-registro —, acrescentou-se um quarto teste: recalcular o RRR **dentro de cada faixa etária**, usando o total de óbitos da faixa como denominador. Isso neutraliza a composição etária sem exigir denominador populacional por idade.
+### 2.5 O desenho transversal, mantido para comparação
 
-Este teste **não estava entre os critérios declarados**. Ele nasceu de observar o resultado, e vale menos que os três acima; está rotulado como post-hoc na Tabela 8 e desenhado com marcador vazado na Figura 4. Ele reduziu o efeito e não o derrubou, o que é a direção que um teste post-hoc pode ter sem se tornar suspeito — mas a ordem em que ele foi concebido fica declarada, e não escondida.
+A versão anterior deste trabalho mediu a mesma pergunta com um desenho transversal, e ele é preservado no material suplementar (Tabelas 6 a 11) porque a comparação entre os dois **é** um dos resultados.
+
+Nele, a exposição é a mediana municipal de meses com análise em quatro classes, de "sem vigilância" (384 municípios) a "vigilância regular" (3.627).
+
+**Por que 384 aqui e 400 na §2.3.** Os dois números contam municípios que nunca reportaram, em janelas diferentes. O desenho transversal olha o período inteiro, 2015 a 2024; o painel olha a janela **defasada**, 2015 a 2023, porque a exposição de um ano é a vigilância do anterior e 2024 não é exposição de ano nenhum dentro do recorte. O conjunto menor está contido no maior, e a diferença são 16 municípios que reportaram pela primeira vez em 2024. Nenhum dos dois números está errado; o que seria errado é apresentá-los sem dizer que contam coisas diferentes. A medida é a **razão de razões** entre a mortalidade por A00–A09 e a mortalidade pelo controle negativo — as infecções respiratórias do mesmo subgrupo 1.2, que partilham pobreza, desnutrição, acesso a serviço, qualidade de codificação e estrutura etária com o desfecho, e não partilham o caminho hídrico. O contraste não é entre duas causas que os autores escolheram parecidas: é entre duas entradas que o instrumento oficial trata como equivalentes.
+
+Esse desenho foi submetido a três critérios pré-declarados e a um teste post-hoc — ajuste por quartil de acesso à água pelo Censo 2022, definição estrita do controle e padronização por idade —, **e passou em todos** (Tabela 8). A §3.7 e a §4.2 explicam por que isso não bastou.
 
 ---
 
 ## 3. Resultados
 
-### 3.1 A alta
+### 3.1 A alta, em dois denominadores
 
-Os óbitos por doenças infecciosas intestinais passaram de 4.875 em 2019 para 7.177 em 2024, alta de **47,2%** (Tabela 2, Figura 1). No mesmo período os óbitos totais do país subiram 13,5%. Relativos ao total, os óbitos por A00–A09 foram de 36,12 para 46,85 por 10 mil — alta de 29,7% na medida que já desconta o crescimento geral da mortalidade.
+Os óbitos por doenças infecciosas intestinais passaram de 4.875 em 2019 para 7.177 em 2024 (Tabela P4). Medidos por 10 mil óbitos do ano, foram de 36,12 para 46,85; por milhão de habitantes, de 23,2 para 33,76.
 
-A série de 2015 a 2019 é plana, entre 34,58 e 36,59 por 10 mil. Os anos de 2020 e 2021 caem para 26,5 e 21,85, compatível com o efeito conhecido da pandemia sobre a circulação de patógenos entéricos e com a inflação do denominador. A partir de 2022 a série sobe de forma contínua, e 2024 é o maior valor da década por margem larga. O ano preliminar de 2025 registra 6.885 óbitos.
+A tendência de 2015 a 2019 é plana. Ajustada log-linearmente apenas nesse intervalo, ela deixa resíduos entre −2,5% e +2,7% na medida por óbitos e entre −3,2% e +4% na medida por habitante — ou seja, o período pré-pandêmico não tem inclinação que projete a alta posterior.
 
-### 3.2 A alta não é artefato
+Contra essa projeção, 2020 e 2021 ficam abaixo, e o tamanho da queda depende do denominador: −27% e −40,1% por óbitos do ano, contra −16,8% e −20,8% por habitante. A diferença é o efeito esperado da COVID-19 sobre o divisor, e é a razão de reportar as duas séries. A partir de 2022 elas convergem em direção: **+26,6% em 2024 por óbitos do ano, +37,5% por habitante** (Figura P3). Por habitante, o excesso já é positivo em 2022 (+2,7%).
 
-Quatro explicações alternativas foram examinadas.
+### 3.2 A alta não é artefato de registro
 
-**Não é ano preliminar.** 2024 é ano consolidado no SIM; apenas 2025 é preliminar, e ele não entra em nenhuma estimativa.
+A alta não é de um código (A04 +72%, A08 +120%, A09 +40,9%; Tabela 4), não é de uma faixa etária (Tabela 3) e não é redistribuição de causas mal definidas: nos 946 municípios em que a proporção de mal definidas **não caiu** entre 2019 e 2024, a alta foi de **+43,5%**, contra +49,4% onde caiu (Tabela 5). Se a alta fosse reclassificação, ela deveria concentrar-se onde as mal definidas recuaram, e não é o que se observa.
 
-**Não é um código.** A alta aparece em toda a faixa (Tabela 4): A04 (outras infecções intestinais bacterianas) sobe 72%, A08 (infecções intestinais virais) sobe 120% e A09 (diarreia e gastroenterite de origem infecciosa presumível) sobe 40,9%. A09 é o código de maior volume e o mais dependente de prática de codificação; que a alta apareça também em A04 e A08, que exigem identificação de agente, argumenta contra artefato de rotulagem.
+### 3.3 No painel, a exposição não prediz nada (critério 1)
 
-**Não é envelhecimento.** A alta é distribuída entre faixas etárias (Tabela 3, Figura 2): +56,5% em 5–14 anos, +54,8% em 15–29, +52% em 75 ou mais, +51,7% em 60–74, +49,1% em 45–59, +38,2% em 30–44. Apenas os menores de 1 ano (+7,3%) e a faixa de 1–4 anos (+24%) sobem menos. Uma alta impulsionada por envelhecimento populacional se concentraria nas faixas idosas; esta não se concentra em lugar nenhum.
+O IRR da ausência de vigilância no ano anterior sobre a mortalidade por A00–A09 é **0,99, com IC95% de 0,943 a 1,041** (Tabela P2, Figura P1). O intervalo contém 1 e é estreito: com 45.060 óbitos pela causa da hipótese e 1.838 municípios que mudaram de estado, isto é um nulo por informação, e não por falta dela.
 
-**Não é redistribuição de causas mal definidas.** Esta é a explicação concorrente mais forte, porque a proporção de causas mal definidas caiu no período — de 5,55% em 2019 para 4,51% em 2024 (Tabela 2) —, e o ganho de A00–A09 caberia dentro dessa queda. O teste, com critério declarado antes, restringe a comparação aos 2.176 municípios com pelo menos 100 óbitos em ambos os anos e separa os que melhoraram a codificação dos que não melhoraram (Tabela 5):
+Os quatro controles dão 0,984 [0,955–1,013] para as respiratórias do subgrupo 1.2, 0,996 [0,973–1,02] para as demais infecciosas do subgrupo, 1,006 [0,982–1,034] para as isquêmicas do coração e 1,002 [0,977–1,023] para as causas externas. Nenhum exclui 1, e o maior de todos é o das isquêmicas — isto é, a causa da hipótese não só não se afasta de 1 como **não é a que mais se afasta**.
 
-| recorte | municípios | 2019 | 2024 | variação |
-|---|---|---|---|---|
-| todos com base suficiente | 2.176 | 4.275 | 6.304 | **+47,5%** |
-| onde as mal definidas **não** caíram | 946 | 1.378 | 1.977 | **+43,5%** |
-| onde as mal definidas caíram | 1.230 | 2.897 | 4.327 | **+49,4%** |
+O critério 1 exigia as duas coisas. Ele está reprovado, e o script imprime a reprovação.
 
-A alta onde a codificação não melhorou é 43,5%, contra 49,4% onde melhorou. A diferença entre as duas é pequena diante da magnitude da alta: a redistribuição explica uma fração, não o fenômeno.
+### 3.4 O que o efeito fixo remove (critério 2)
 
-### 3.3 A exposição
+Estimado sem o efeito fixo de município, sobre o mesmo painel, com o mesmo código e o mesmo dado, o IRR da exposição é **1,074** para A00–A09 e **0,773** para o controle respiratório. A razão de razões implícita é **1,39**. Com o efeito fixo, os dois vão para 0,99 e 0,984, e a razão cai para **1,006** (Tabela P3, Figura P2).
 
-Dos 5.570 municípios analisáveis, **384 não reportaram uma única análise de água ao SISAGUA entre 2015 e 2024**. Outros 511 reportaram em mediana de até seis meses por ano, 1.048 entre sete e onze, e 3.627 nos doze meses previstos (Tabela 6).
+A direção do movimento é o resultado. As quatro causas que não são a hipótese estavam **abaixo** de 1 sem o efeito fixo — 0,773, 0,847 e 0,858 —, e sobem para junto de 1 quando ele entra. Sem efeito fixo, o município que não vigia a água aparenta ter **menos** morte respiratória, menos outras infecciosas e menos isquêmica do coração. Isso não é proteção: é composição — municípios menores, mais jovens, com menos diagnóstico hospitalar e menos certificação de causa.
 
-As classes diferem socialmente, como esperado: a mediana de domicílios sem ligação à rede geral vai de 29,265% na classe sem vigilância a 15,67% na regular, e a taxa de analfabetismo, de 18,415% a 7,34%. Diferem também na mortalidade geral — 492 por 100 mil na classe sem vigilância contra 709 na regular —, diferença compatível com estrutura etária mais jovem nos municípios pequenos do Norte e Nordeste que compõem a classe.
+A razão de razões converteu esse déficit do denominador em excesso aparente do numerador. E a prova de que a conversão não tinha nada de específico está na última linha da tabela: as **causas externas** — acidentes de transporte, quedas, homicídios e suicídios, que não partilham caminho hídrico com nada — produzem razão de razões de **1,339** contra o mesmo controle respiratório, quase tanto quanto a hipótese.
 
-### 3.4 O gradiente, e o que ele separa
+### 3.5 A tendência (critério 3)
 
-A Tabela 7 e a Figura 3 trazem o resultado central. Comparados aos municípios de vigilância regular, os sem vigilância têm:
+Reportada na §3.1 e na Tabela P4. A alta é real e não depende do denominador; o critério não a refuta.
 
-- **mortalidade por A00–A09 1,158 vez maior**;
-- **mortalidade por infecção respiratória 0,558 vez**, isto é, 44% menor.
+### 3.6 Robustez (critério 4)
 
-As duas causas pertencem ao mesmo subgrupo do mesmo instrumento oficial, e se movem em direções opostas. A razão de razões é **2,075**.
+O nulo não se move. Sem o Distrito Federal, 0,989 [0,94–1,036]; sem os municípios com menos de 5.000 habitantes, 0,994 [0,947–1,038]; sem os dois, 0,993 [0,943–1,051]. Por região, os cinco intervalos contêm 1: Centro-Oeste 0,925, Nordeste 1,008, Norte 1,01, Sudeste 0,979 e Sul 0,848 (Tabela P5, Figura P4). Os dois extremos regionais são também os de intervalo mais largo, o que é o esperado com 467 e 1.191 municípios.
 
-O gradiente é monotônico ao longo das quatro classes: 2,075 na ausência de vigilância, 1,525 na vigilância rara, 1,182 na parcial, 1 na regular.
+A exclusão do Distrito Federal merece nota porque ela foi pedida na revisão do desenho anterior, onde o DF é uma unidade com quase três milhões de habitantes classificada como um único município. No painel, retirá-lo move o IRR de 0,99 para 0,989.
 
-### 3.5 Os critérios
+### 3.7 O que o desenho transversal media
 
-A Tabela 8 e a Figura 4 trazem os quatro testes com intervalo de confiança:
+O desenho transversal produzia razão de razões de **2,075 [1,776–2,518]**, ajustada por acesso à água 1,926 [1,618–2,225], com controle estrito 2,087 [1,785–2,535] e padronizada por idade 1,767 [1,518–2,021] — todas excluindo 1 (Tabela 8). Ele também produzia gradiente aparentemente monotônico entre as quatro classes de vigilância: 2,075, 1,525, 1,182 e 1.
 
-| critério | pré-declarado | RRR | IC95% | exclui 1 |
-|---|---|---|---|---|
-| 1. especificidade | sim | **2,075** | 1,776–2,518 | sim |
-| 2. ajustado por acesso à água | sim | **1,926** | 1,618–2,225 | sim |
-| sensibilidade (só pneumonia e influenza) | sim | 2,087 | 1,785–2,535 | sim |
-| 4. padronizado por idade | **não** | **1,767** | 1,518–2,021 | sim |
-
-Os três critérios declarados antes foram aprovados. O ajuste por acesso à água custou 7% do efeito; a padronização por idade, post-hoc, custou outros 15%. O que resta — 1,767 — permanece com intervalo que exclui 1 por margem confortável.
-
-A análise de sensibilidade merece nota. Trocar o controle oficial pela definição estrita de pneumonia e influenza produz 2,087 contra 2,075 — praticamente o mesmo valor. O achado não depende da escolha do comparador dentro do subgrupo.
-
-### 3.6 O ajuste por acesso, quartil a quartil
-
-O critério 2 é o que separa **vigilância** de **acesso**, e a Tabela 11 mostra por que ele sobrevive. Dentro de cada quartil de domicílios sem ligação à rede, o RRR é:
-
-| quartil | mediana sem água | óbitos A00–A09 | RRR |
-|---|---|---|---|
-| Q1 | 4,99% | 26.984 | **2,008** |
-| Q2 | 13,30% | 8.628 | 1,415 |
-| Q3 | 24,51% | 7.341 | 1,781 |
-| Q4 | 43,89% | 6.476 | 2,149 |
-
-O RRR é maior que 1 nos quatro quartis, e o valor no **Q1 é 2,008** — isto é, entre os municípios em que praticamente todos os domicílios têm ligação à rede, a ausência de vigilância ainda separa as duas causas por um fator de dois. Ter água encanada e não verificá-la não é equivalente a verificá-la.
-
-O padrão não é monotônico ao longo dos quartis, e isso vai relatado como está: a associação não cresce com a precariedade do acesso, o que é um argumento adicional contra a leitura de que ela seja apenas gradiente socioeconômico.
-
-### 3.7 O formato por idade
-
-A Tabela 9 e a Figura 5 trazem o RRR dentro de cada faixa etária. Ele é maior que 1 em **todas as oito**, e o máximo está em **crianças de 1 a 4 anos (2,432)**, seguido por 15–29 (2,151) e 45–59 (2,086). A razão para A00–A09 isoladamente também tem o seu máximo em 1–4 anos (2,518).
-
-Esse formato é, na avaliação dos autores, a evidência mais informativa do conjunto — mais do que o valor agregado ou o intervalo de confiança. A faixa de 1 a 4 anos é aquela em que a doença diarreica por água insegura mata com maior intensidade reconhecida na literatura internacional, e é a faixa em que a associação é mais forte. Nem artefato de codificação nem gradiente de pobreza têm razão para escolher precisamente essa faixa.
-
-A exceção é a faixa de menores de 1 ano (RRR 1,529), em que o controle respiratório se comporta de modo diferente (RR 1,43, o único acima de 1 entre as faixas). A mortalidade infantil precoce é dominada por causas perinatais e por um padrão de acesso a serviço distinto do restante da vida, e a leitura das duas causas ali não é comparável à das demais faixas.
+A Tabela 7 mostra de onde vinha esse gradiente. A coluna do **controle** é perfeitamente ordenada — 0,558, 0,886, 0,903 e 1 —, e a coluna do **desfecho** não é: 1,158, 1,351, 1,068 e 1. O maior risco relativo de mortalidade intestinal está na classe de vigilância *rara* (1,351), e não na de vigilância nenhuma (1,158). A dose-resposta que o desenho apresentava como apoio à hipótese hídrica era a dose-resposta do controle negativo.
 
 ---
 
 ## 4. Discussão
 
-### 4.1 O que foi medido
+### 4.1 O que foi medido, e o que foi refutado
 
-Entre 2019 e 2024, a mortalidade brasileira por doenças infecciosas intestinais subiu 47%. A alta sobrevive ao exame das quatro explicações alternativas conhecidas, e é acompanhada por uma associação específica com a ausência de vigilância da qualidade da água, medida contra um controle negativo extraído do próprio instrumento oficial de mortalidade evitável.
+Entre 2015 e 2019 a mortalidade brasileira por doenças infecciosas intestinais foi estável; em 2024 ela está entre 26,6% e 37,5% acima do que essa estabilidade projetava, conforme o denominador. A alta sobrevive ao exame das explicações alternativas de registro conhecidas e permanece **sem explicação identificada**.
 
-### 4.2 O que este desenho não autoriza
+A hipótese de que a ausência de vigilância da qualidade da água a explique está refutada pelos próprios dados deste trabalho. Ela foi testada no desenho com maior poder de controle de confundimento disponível para dado municipal brasileiro — efeito fixo de município, que absorve todo confundidor constante no tempo sem exigir que ele tenha sido medido ou sequer imaginado — e o resultado é um nulo estreito, replicado em nove recortes e indistinguível do obtido em quatro causas-controle.
 
-É um estudo **ecológico**. A unidade é o município, e nada aqui autoriza afirmar que a pessoa que morreu consumiu água não vigiada; a falácia ecológica é um risco real e declarado. A exposição é **ausência de registro de vigilância**, que não é ausência de vigilância — um município pode analisar e não reportar — e muito menos é água contaminada. É ausência da prova.
+### 4.2 A lição sobre controle negativo
 
-O desenho não estabelece mecanismo. Ele estabelece que duas causas que o instrumento oficial trata como equivalentes se comportam de modo diferente conforme a vigilância da água, e que essa diferença resiste ao ajuste por acesso e por idade.
+Esta é a parte do artigo cuja generalidade excede o seu objeto.
 
-Há ainda um confundidor que o desenho não elimina: municípios que não reportam ao SISAGUA podem ter sistemas de vigilância em saúde mais frágeis em geral, o que afetaria a detecção e a codificação de causas específicas. O controle negativo protege parcialmente contra isso — fragilidade geral de registro deprimiria as duas causas —, mas não protege contra fragilidade que atinja diferencialmente o diagnóstico de doença entérica.
+O controle negativo foi escolhido pelo melhor motivo disponível: o instrumento oficial brasileiro declara as duas causas evitáveis pelo mesmo tipo de ação, o que elimina a suspeita de que os autores tenham selecionado um comparador conveniente. Ele partilha com o desfecho pobreza, desnutrição, acesso a serviço e qualidade de codificação, e não partilha o caminho hídrico. É exatamente o que a literatura de controles negativos recomenda.
 
-### 4.3 A lacuna no instrumento
+Ele ainda assim falhou, e falhou de um modo que nenhum dos três critérios pré-declarados podia detectar: **o controle carregava associação própria, em sentido oposto ao do desfecho.** A razão de razões pressupõe que o controle seja neutro em relação à exposição — que o seu risco relativo seja 1 na ausência de efeito. Quando ele é 0,558, a razão de razões não mede a especificidade do desfecho: ela mede a soma de dois desvios, e atribui os dois ao numerador.
 
-O achado secundário é sobre a Lista Brasileira. Ela classifica as doenças infecciosas intestinais como evitáveis e as agrupa sob "promoção à saúde, prevenção, controle e atenção às doenças de causas infecciosas", ao lado de HIV, tuberculose e infecção urinária. O mecanismo pelo qual a morte por diarreia é evitada — água tratada e vigiada — **não aparece em nenhum subgrupo da lista**.
+Três consequências práticas decorrem disso, e nenhuma delas depende deste artigo ser sobre água.
 
-Isso importa além da nomenclatura. Um instrumento de mortalidade evitável é lido como agenda: ele diz ao gestor onde a morte pode ser impedida e por qual via. Ao não nomear o saneamento, a Lista deixa a resposta à morte por diarreia dentro do vocabulário da atenção à saúde — promoção, prevenção, controle — quando o determinante é de infraestrutura e de vigilância ambiental, exercido por outro setor e com outro orçamento.
+**Primeira: reportar sempre as duas razões separadamente, e não apenas a sua divisão.** Aqui, 1,158 e 0,558 estão na Tabela 7 desde a primeira versão, e a inspeção da coluna teria mostrado que o controle se afastava de 1 mais do que o desfecho. O número composto escondia o que as suas partes diziam.
 
-Esta observação é irmã de outra, já reportada em trabalho anterior dos mesmos autores sobre o subgrupo 1.1 da mesma Lista: o subgrupo de imunoprevenção descreve o calendário vacinal de 2010 e identifica 4,03 óbitos por 10 mil, número que não se move há uma década. Os dois achados apontam para o mesmo lugar por caminhos diferentes — um instrumento que envelheceu no conteúdo, e outro que é cego ao mecanismo.
+**Segunda: um controle adicional que não partilhe nada.** As causas externas entraram neste trabalho como quarta causa-controle e produziram razão de razões de 1,339 contra o mesmo comparador, sem efeito fixo. Um desenho que inclua uma causa reconhecidamente sem relação com a exposição converte a falha silenciosa em falha visível: se ela também "responde", o problema é do comparador.
 
-### 4.4 Relação com a literatura
+**Terceira: passar em testes de sensibilidade não é evidência de validade quando todos eles compartilham o mesmo desenho.** O ajuste por quartil de acesso, a definição estrita do controle e a padronização por idade foram concebidos honestamente e aprovados com folga. Os três são variações do mesmo contraste entre municípios, e nenhum deles podia detectar o que estava errado nesse contraste. A robustez que eles mediram era real e irrelevante.
+
+### 4.3 O que este desenho não autoriza
+
+O painel não autoriza afirmar que a vigilância da água **não tem efeito** sobre mortalidade por diarreia. Ele autoriza afirmar, com o poder que 1.838 municípios que mudaram de estado conferem, que **a ausência de registro anual no SISAGUA não antecede aumento detectável de mortalidade por A00–A09 dentro do município**. As duas frases diferem, e três limitações explicam por quê.
+
+A exposição é ausência de **registro**, não ausência de vigilância: um município pode analisar e não reportar. A medida capta o ato administrativo, e um efeito real da vigilância diluído por erro de classificação apareceria atenuado. A defasagem adotada é de um ano; se o mecanismo operar em prazo maior — deterioração de infraestrutura ao longo de anos —, um efeito fixo com indicadoras de ano não o vê. E o desenho continua **ecológico**: nada aqui autoriza afirmar coisa alguma sobre a pessoa que morreu.
+
+Por fim, um nulo num painel de efeitos fixos não exclui confundimento que **varie no tempo** dentro do município na direção oposta ao efeito. Essa é a limitação simétrica da força do método, e é honesto declará-la.
+
+### 4.4 A lacuna no instrumento
+
+O achado secundário sobre a Lista Brasileira sobrevive à refutação da hipótese hídrica, porque não dependia dela. A Lista classifica as doenças infecciosas intestinais como evitáveis e as agrupa sob "promoção à saúde, prevenção, controle e atenção às doenças de causas infecciosas", ao lado de HIV, tuberculose e infecção urinária. O mecanismo pelo qual a morte por diarreia é evitada — água tratada e saneamento — **não aparece em nenhum subgrupo da lista**.
+
+Isso importa além da nomenclatura. Um instrumento de mortalidade evitável é lido como agenda: ele diz ao gestor onde a morte pode ser impedida e por qual via. Ao não nomear o saneamento, a Lista deixa a resposta à morte por diarreia dentro do vocabulário da atenção à saúde, quando parte do determinante é de infraestrutura, exercida por outro setor e com outro orçamento.
+
+Esta observação é irmã de outra, já reportada em trabalho anterior dos mesmos autores sobre o subgrupo 1.1 da mesma Lista, cujo conteúdo descreve o calendário vacinal de 2010. Os dois achados apontam para o mesmo lugar por caminhos diferentes — um instrumento que envelheceu no conteúdo, e outro que é silencioso quanto ao mecanismo.
+
+### 4.5 Relação com a literatura
 
 A literatura brasileira que relaciona saneamento e mortalidade por diarreia usa, como exposição, o **acesso** à infraestrutura. O trabalho mais próximo em desenho — ecológico, com 3.467 municípios e binomial negativa — mede acesso à água, esgoto e coleta de resíduos combinados a transferência condicionada de renda, restringe o desfecho a menores de 5 anos e termina a série em 2016. Outro estudo relaciona investimento em saneamento a internações por doenças de veiculação hídrica em nível estadual. Uma avaliação da vigilância na região metropolitana do Rio de Janeiro correlacionou achados microbiológicos do SISAGUA com prevalência de protozoose intestinal, sem desfecho de mortalidade.
 
 O uso do SISAGUA é raro. Uma busca no PubMed recupera doze artigos que o mencionam; deles, dois ligam o sistema a um desfecho de saúde — cárie dentária por cobertura de fluoretação, e mortalidade por câncer em 203 municípios da bacia do Rio Doce após o rompimento da barragem de Fundão. Os demais descrevem o sistema, avaliam completude de dados ou reportam contaminação química.
 
-Vários desses trabalhos registram o não-reporte como **limitação**. Este artigo o trata como **exposição**. É a mesma observação lida ao contrário, e é a contribuição metodológica que ele pretende oferecer.
+Vários desses trabalhos registram o não-reporte como **limitação**. Este artigo o tratou como **exposição** e mediu o resultado: no contraste entre municípios ele produz associação forte, e dentro do município ele não produz nenhuma. Ambas as metades são contribuição, e a segunda é a que faltava.
 
-### 4.5 Implicações
+### 4.6 Implicações
 
-Se a associação medida refletir mecanismo, a implicação é direta: os 384 municípios sem qualquer registro de vigilância no período constituem um alvo identificável e nominal, e a Tabela 10 os distribui por unidade da federação. Se ela refletir apenas marcador, o valor do achado passa a ser diagnóstico: a ausência de reporte ao SISAGUA identifica municípios em que a mortalidade por causa evitável se comporta de modo anômalo, e isso é informação de vigilância mesmo sem relação causal.
+A implicação operacional muda de natureza com o resultado. Os municípios sem registro de vigilância continuam sendo um conjunto identificável e nominal, distribuído por unidade da federação na Tabela 10, e continuam morrendo mais de doença infecciosa intestinal do que os que vigiam — mas agora se sabe que essa diferença vinha com eles, e não da falta de vigilância. Isso preserva o valor **diagnóstico** da ausência de reporte, como sinalizador de municípios cuja mortalidade por causa evitável se comporta de modo anômalo, e retira o valor **causal** que uma leitura apressada do desenho anterior teria atribuído a ela.
 
-Nos dois casos, a recomendação operacional é a mesma e é modesta: **medir**. Um município que não reporta não é um município sobre o qual nada se sabe — é um município sobre o qual o sistema nacional escolheu não saber.
+E deixa em aberto a pergunta que o artigo abriu e não fechou: por que a mortalidade por uma causa oficialmente evitável, estável por cinco anos, está em 2024 mais de um quarto acima do que essa estabilidade projetava. Responder a isso exige exposição que varie dentro do município e seja medida com menos ruído administrativo do que o ato de reportar ao SISAGUA.
 
 ---
 
 ## 5. Material suplementar
 
-As onze tabelas que sustentam cada número deste manuscrito estão publicadas como material suplementar, em CSV, e são regeradas por `artigo-agua/gerar_tabelas.py`, que **reexecuta a análise** antes de formatar. As cinco figuras são geradas por `artigo-agua/gerar_figuras.py` a partir das mesmas tabelas, sem nenhum cálculo próprio.
+As dezesseis tabelas que sustentam cada número deste manuscrito estão publicadas como material suplementar, em CSV. As cinco do painel (`tabela_pN`) vêm de `scripts/analise_agua_painel.py` e são transportadas por `artigo-agua/gerar_tabelas_painel.py`, que confere as colunas que o texto cita; as onze do desenho transversal (`tabela_N`) são regeradas por `artigo-agua/gerar_tabelas.py`, que **reexecuta a análise** antes de formatar. As nove figuras saem dos dois geradores correspondentes, sem nenhum cálculo próprio.
 
 Os dados primários — o mart municipal do SISAGUA (397.380 linhas) e a sua tabela de cobertura (5.571 linhas, uma por município do país) — estão publicados com SHA-256 e são citáveis. A nota técnica da Lista Brasileira usada para transcrever o subgrupo 1.2 está arquivada em `data/refs/Obitos_Evitaveis_5_a_74_anos.pdf`.
 
+O estimador de painel está em `scripts/_poisson_fe.py` e os testes que o demonstram, em `tests/test_poisson_fe.py`.
+
 ### Figuras
+
+**Figura P1.** Razão de taxas (IRR) da ausência de registro de vigilância da água no ano anterior, por grupo de causa, em Poisson condicional de efeitos fixos de município com indicadoras de ano. IC95% por bootstrap de município (400 reamostragens). *Fonte: Tabela P2.*
+
+**Figura P2.** O mesmo IRR estimado sem e com efeito fixo de município. O marcador vazado é a estimativa que compara municípios entre si; o cheio, a que compara cada município consigo mesmo ao longo do tempo. O comprimento da seta é a parte da associação atribuível a diferenças fixas entre municípios. *Fonte: Tabela P3.*
+
+**Figura P3.** Óbitos por doenças infecciosas intestinais (A00–A09), observados e projetados a partir da tendência log-linear ajustada apenas em 2015 a 2019, em dois denominadores: por 10 mil óbitos do ano e por milhão de habitantes. *Fonte: Tabela P4.*
+
+**Figura P4.** IRR da ausência de vigilância sobre a mortalidade por A00–A09 em cada recorte de sensibilidade. *Fonte: Tabela P5.*
 
 **Figura 1.** Óbitos por doenças infecciosas intestinais, Brasil, 2015–2025, em contagem absoluta e por 10 mil óbitos do ano. O ano preliminar aparece com marcador vazado e linha pontilhada. *Fonte: Tabela 2.*
 
 **Figura 2.** Variação dos óbitos por A00–A09 entre 2019 e 2024, por faixa etária. *Fonte: Tabela 3.*
 
-**Figura 3.** Razão de mortalidade contra a classe de vigilância regular, para as duas entradas do subgrupo 1.2 da Lista Brasileira. *Fonte: Tabela 7.*
+**Figura 3.** Razão de mortalidade contra a classe de vigilância regular, para as duas entradas do subgrupo 1.2 da Lista Brasileira. A coluna do controle é monotônica e a do desfecho não é; ver §3.7. *Fonte: Tabela 7.*
 
-**Figura 4.** Razão de razões e IC95% para os quatro critérios. Marcador cheio indica critério declarado antes da análise; marcador vazado indica teste post-hoc. *Fonte: Tabela 8.*
+**Figura 4.** Razão de razões e IC95% para os quatro critérios do desenho transversal. Marcador cheio indica critério declarado antes da análise; marcador vazado indica teste post-hoc. Todos passam, e a §4.2 explica por que isso não bastou. *Fonte: Tabela 8.*
 
-**Figura 5.** Razão de razões dentro de cada faixa etária. *Fonte: Tabela 9.*
+**Figura 5.** Razão de razões do desenho transversal dentro de cada faixa etária. *Fonte: Tabela 9.*
 
 ### Tabelas
 
-**Tabela 1. O recorte: municípios, óbitos e pessoas-ano, 2015–2024 (`tabela_1_base.csv`).**
+**Tabela P1. O painel: municípios, anos, exposição e óbitos (`tabela_p1_painel.csv`).**
+
+| Recorte | Valor |
+|---|---|
+| Municipios no painel | 5.570 |
+| Anos de desfecho | 9 |
+| Linhas municipio-ano | 50.130 |
+| Pessoas-ano | 1.880.954.497 |
+| Municipio-ano sem vigilancia no ano anterior | 9.492 |
+| Obitos: A00-A09 intestinais (hipotese) | 45.060 |
+| Obitos: J00-J22 respiratorias (subgrupo 1.2) | 753.518 |
+| Obitos: outras infecciosas do subgrupo 1.2 | 223.903 |
+| Obitos: I20-I25 isquemicas do coracao | 1.046.920 |
+| Obitos: V01-Y98 causas externas | 1.357.405 |
+| Municipios com vigilancia em TODOS os anos | 3.332 |
+| Municipios sem vigilancia em TODOS os anos | 400 |
+| Municipios que MUDARAM de estado no periodo | 1.838 |
+| Municipio-ano sem vigilancia no ano anterior (%) | 18,9 |
+
+**Tabela P2. Critério 1 — IRR da ausência de vigilância no ano anterior, por grupo de causa, com efeito fixo de município (`tabela_p2_especificidade.csv`).**
+
+| Grupo de causa | IRR | IC95% inferior | IC95% superior | Exclui 1 |
+|---|---|---|---|---|
+| A00-A09 intestinais (hipotese) | 0,99 | 0,943 | 1,041 | nao |
+| J00-J22 respiratorias (subgrupo 1.2) | 0,984 | 0,955 | 1,013 | nao |
+| outras infecciosas do subgrupo 1.2 | 0,996 | 0,973 | 1,02 | nao |
+| I20-I25 isquemicas do coracao | 1,006 | 0,982 | 1,034 | nao |
+| V01-Y98 causas externas | 1,002 | 0,977 | 1,023 | nao |
+
+**Tabela P3. Critério 2 — o mesmo IRR com e sem efeito fixo, e a razão de razões implícita contra o controle respiratório (`tabela_p3_efeito_fixo.csv`).**
+
+| Grupo de causa | IRR sem efeito fixo | IRR com efeito fixo | Removido pelo efeito fixo | RRR contra o controle, sem efeito fixo | RRR contra o controle, com efeito fixo |
+|---|---|---|---|---|---|
+| A00-A09 intestinais (hipotese) | 1,074 | 0,99 | 0,085 | 1,39 | 1,006 |
+| J00-J22 respiratorias (subgrupo 1.2) | 0,773 | 0,984 | -0,211 | 1 | 1 |
+| outras infecciosas do subgrupo 1.2 | 0,847 | 0,996 | -0,149 | 1,096 | 1,012 |
+| I20-I25 isquemicas do coracao | 0,858 | 1,006 | -0,148 | 1,11 | 1,023 |
+| V01-Y98 causas externas | 1,035 | 1,002 | 0,033 | 1,339 | 1,019 |
+
+**Tabela P4. Critério 3 — observado contra a tendência de 2015–2019, em dois denominadores (`tabela_p4_tendencia.csv`).**
+
+| Ano | Obitos por A00-A09 | Observado por 10 mil obitos | Projetado por 10 mil obitos | Excesso relativo % (obitos) | Observado por milhao de habitantes | Projetado por milhao de habitantes | Excesso relativo % (habitantes) | Base do ajuste |
+|---|---|---|---|---|---|---|---|---|
+| 2015 | 4.372 | 34,58 | 35,45 | -2,5 | 21,38 | 22,09 | -3,2 | sim |
+| 2016 | 4.793 | 36,59 | 35,62 | 2,7 | 23,26 | 22,35 | 4 | sim |
+| 2017 | 4.795 | 36,53 | 35,79 | 2,1 | 23,09 | 22,62 | 2,1 | sim |
+| 2018 | 4.633 | 35,19 | 35,96 | -2,2 | 22,22 | 22,89 | -2,9 | sim |
+| 2019 | 4.875 | 36,12 | 36,13 | -0,1 | 23,2 | 23,16 | 0,2 | sim |
+| 2020 | 4.126 | 26,5 | 36,31 | -27 | 19,48 | 23,43 | -16,8 | nao |
+| 2021 | 4.005 | 21,85 | 36,48 | -40,1 | 18,77 | 23,7 | -20,8 | nao |
+| 2022 | 5.003 | 32,4 | 36,65 | -11,6 | 24,64 | 23,98 | 2,7 | nao |
+| 2023 | 5.671 | 38,69 | 36,83 | 5,1 | 27,29 | 24,27 | 12,4 | nao |
+| 2024 | 7.177 | 46,85 | 37 | 26,6 | 33,76 | 24,55 | 37,5 | nao |
+
+**Tabela P5. Critério 4 — robustez do IRR da hipótese por recorte (`tabela_p5_robustez.csv`).**
+
+| Recorte | Municipios | IRR | IC95% inferior | IC95% superior |
+|---|---|---|---|---|
+| Painel completo | 5.570 | 0,99 | 0,943 | 1,041 |
+| Sem o Distrito Federal | 5.569 | 0,989 | 0,94 | 1,036 |
+| Sem municipios com menos de 5.000 hab. | 4.319 | 0,994 | 0,947 | 1,038 |
+| Sem o DF e sem municipios pequenos | 4.318 | 0,993 | 0,943 | 1,051 |
+| Somente Centro-Oeste | 467 | 0,925 | 0,681 | 1,232 |
+| Somente Nordeste | 1.794 | 1,008 | 0,944 | 1,08 |
+| Somente Norte | 450 | 1,01 | 0,872 | 1,12 |
+| Somente Sudeste | 1.668 | 0,979 | 0,851 | 1,098 |
+| Somente Sul | 1.191 | 0,848 | 0,701 | 1,027 |
+
+**Tabela 1. O recorte do desenho transversal: municípios, óbitos e pessoas-ano, 2015–2024 (`tabela_1_base.csv`).**
 
 | Recorte | Valor |
 |---|---|
@@ -344,7 +393,7 @@ Os dados primários — o mart municipal do SISAGUA (397.380 linhas) e a sua tab
 | vigilância parcial (7 a 11 meses) | 1,068 | 0,903 | 1,182 |
 | vigilância regular (12 meses) | 1 | 1 | 1 |
 
-**Tabela 8. Os quatro critérios, com IC95% por bootstrap de município (`tabela_8_criterios.csv`).**
+**Tabela 8. Os quatro critérios do desenho transversal, com IC95% por bootstrap de município (`tabela_8_criterios.csv`).**
 
 | Critério | Pré-declarado | RRR | IC95% inferior | IC95% superior | Exclui 1 |
 |---|---|---|---|---|---|
@@ -353,7 +402,7 @@ Os dados primários — o mart municipal do SISAGUA (397.380 linhas) e a sua tab
 | Sensibilidade: controle só pneumonia/influenza | sim | 2,087 | 1,785 | 2,535 | sim |
 | 4. Padronizado por idade (POST-HOC) | nao | 1,767 | 1,518 | 2,021 | sim |
 
-**Tabela 9. Razão de razões dentro de cada faixa etária (`tabela_9_rrr_por_idade.csv`).**
+**Tabela 9. Razão de razões do desenho transversal dentro de cada faixa etária (`tabela_9_rrr_por_idade.csv`).**
 
 | Faixa etária | A00–A09 sem vigilância | A00–A09 vigilância regular | RR A00-A09 | RR respiratória | RRR |
 |---|---|---|---|---|---|
