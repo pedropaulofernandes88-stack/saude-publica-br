@@ -32,7 +32,8 @@ SINCRONIZADOR = RAIZ / "artigo" / "sincronizar_tabelas.py"
 #: Os manuscritos do repositório. O sincronizador é um só, com `--dir`; a lista
 #: existe para que um manuscrito novo entre na regressão ao ser criado, e não no
 #: dia em que alguém lembrar.
-MANUSCRITOS = ["artigo", "artigo-neoplasias", "artigo-imunopreveniveis"]
+MANUSCRITOS = ["artigo", "artigo-neoplasias", "artigo-imunopreveniveis",
+               "artigo-agua"]
 
 pytestmark = pytest.mark.unit
 
@@ -109,6 +110,25 @@ DECIMAIS_SEM_TABELA = {
         # declarado aqui para que a procedência seja a real.
         "6,9",
     },
+    "artigo-agua": {
+        # Registros brutos recuperados na coleta nacional do SISAGUA e linhas do
+        # mart publicado. São fatos sobre a COLETA, citados na §2.2 e na §5, não
+        # resultados da análise — não saem de nenhuma tabela deste artigo, e
+        # cravá-los numa fingiria que foram medidos aqui.
+        "117.764.680", "397.380",
+        # Reamostragens do bootstrap (§2.4). Parâmetro de método, não medida.
+        "2.000",
+        # Variações derivadas de duas células da Tabela 2, citadas na prosa
+        # porque a comparação é o ponto: a alta de A00–A09 (47,2%) contra a dos
+        # óbitos totais (13,5%), e a alta na medida relativa (29,7%). A tabela
+        # traz os valores absolutos; a razão entre eles é leitura, não dado
+        # novo, e reproduzi-la numa coluna seria guardar conta em vez de número.
+        "47,2", "13,5", "29,7",
+        # Da literatura citada na §4.4: municípios do estudo de Souza et al.
+        # (2021) e a taxa por 10 mil do subgrupo 1.1 reportada no trabalho
+        # irmão sobre imunopreveníveis. Procedência é externa, por construção.
+        "3.467", "4,03",
+    },
     "artigo-imunopreveniveis": {
         # Limiar de nulidade declarado ANTES de olhar o resultado (§2.6):
         # |rho| < 0,30. É parâmetro de decisão, não medida — não sai de tabela
@@ -127,7 +147,7 @@ DECIMAIS_SEM_TABELA = {
 #:
 #: Para quem for fazer esse trabalho: mover a pasta para cá é o último passo, não
 #: o primeiro, e o teste diz exatamente quais são os 64.
-COM_PROCEDENCIA = ["artigo-neoplasias", "artigo-imunopreveniveis"]
+COM_PROCEDENCIA = ["artigo-neoplasias", "artigo-imunopreveniveis", "artigo-agua"]
 
 
 @pytest.mark.parametrize("pasta", COM_PROCEDENCIA)

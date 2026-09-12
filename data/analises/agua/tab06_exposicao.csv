@@ -1,0 +1,5 @@
+Classe de vigilancia,Municipios,Pessoas-ano,Obitos A00-A09,Obitos respiratorios,Obitos totais,% sem agua (mediana),Analfabetismo % (mediana),Taxa A00-A09 por 100 mil,Taxa respiratoria por 100 mil,Mortalidade geral por 100 mil,A00-A09 por 10 mil obitos
+sem vigilancia,384,86450766.0,2285.0,19986.0,425694.0,29.265,18.415,2.64,23.1,492.0,53.7
+vigilancia rara (ate 6 meses),511,139489204.0,4303.0,51229.0,880758.0,22.5,17.38,3.08,36.7,631.0,48.9
+vigilancia parcial (7 a 11),1048,249935248.0,6095.0,93566.0,1746593.0,24.24,12.64,2.44,37.4,699.0,34.9
+vigilancia regular (12),3627,1609529328.0,36746.0,667035.0,11404173.0,15.67,7.34,2.28,41.4,709.0,32.2

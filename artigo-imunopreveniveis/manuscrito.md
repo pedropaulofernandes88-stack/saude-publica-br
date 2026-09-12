@@ -353,6 +353,64 @@ A literatura internacional atribui ao pneumococo uma fração substancial da pne
 
 ### 3.10 O cruzamento ecológico com o PNI dá nulo
 
+**Tabela 14 — Óbitos por influenza em 60 anos ou mais e doses aplicadas, por unidade da federação e ano (`tabela_14_influenza_doses_uf.csv`).**
+
+| UF | Ano | Óbitos por influenza em 60 anos ou mais | População de 60 anos ou mais | Doses de influenza (INF3) | Óbitos por 100 mil de 60 anos ou mais | Doses por habitante de 60 anos ou mais |
+|---|---|---|---|---|---|---|
+| AM | 2023 | 44 | 372.862 | 505.699 | 11,8 | 1,356 |
+| SE | 2023 | 27 | 294.498 | 264.895 | 9,17 | 0,899 |
+| AC | 2023 | 7 | 80.387 | 187.650 | 8,71 | 2,334 |
+| MS | 2023 | 24 | 417.899 | 317.944 | 5,74 | 0,761 |
+| RR | 2023 | 3 | 52.443 | 100.733 | 5,72 | 1,921 |
+| PA | 2023 | 42 | 888.869 | 895.263 | 4,73 | 1,007 |
+| MA | 2023 | 38 | 805.286 | 169.265 | 4,72 | 0,21 |
+| TO | 2023 | 9 | 191.769 | 78.683 | 4,69 | 0,41 |
+| CE | 2023 | 50 | 1.306.181 | 838.017 | 3,83 | 0,642 |
+| PI | 2023 | 17 | 457.473 | 119.491 | 3,72 | 0,261 |
+| RN | 2023 | 19 | 518.910 | 156.172 | 3,66 | 0,301 |
+| PB | 2023 | 19 | 611.543 | 92.845 | 3,11 | 0,152 |
+| PR | 2023 | 59 | 2.002.790 | 1.406.836 | 2,95 | 0,702 |
+| GO | 2023 | 29 | 990.111 | 263.126 | 2,93 | 0,266 |
+| RO | 2023 | 6 | 205.227 | 198.707 | 2,92 | 0,968 |
+| DF | 2023 | 11 | 405.058 | 123.202 | 2,72 | 0,304 |
+| RS | 2023 | 62 | 2.371.583 | 400.193 | 2,61 | 0,169 |
+| ES | 2023 | 17 | 672.790 | 194.042 | 2,53 | 0,288 |
+| SC | 2023 | 28 | 1.261.013 | 1.413.322 | 2,22 | 1,121 |
+| BA | 2023 | 44 | 2.179.226 | 586.821 | 2,02 | 0,269 |
+| AL | 2023 | 8 | 423.252 | 98.007 | 1,89 | 0,232 |
+| SP | 2023 | 143 | 8.129.891 | 4.983.472 | 1,76 | 0,613 |
+| RJ | 2023 | 52 | 3.296.229 | 926.390 | 1,58 | 0,281 |
+| PE | 2023 | 18 | 1.384.121 | 318.896 | 1,3 | 0,23 |
+| MG | 2023 | 45 | 3.835.764 | 1.455.311 | 1,17 | 0,379 |
+| MT | 2023 | 3 | 454.414 | 442.515 | 0,66 | 0,974 |
+| MS | 2024 | 55 | 435.081 | 859.593 | 12,64 | 1,976 |
+| SE | 2024 | 29 | 306.213 | 587.317 | 9,47 | 1,918 |
+| PR | 2024 | 176 | 2.079.282 | 3.315.223 | 8,46 | 1,594 |
+| SC | 2024 | 111 | 1.318.261 | 2.016.059 | 8,42 | 1,529 |
+| RS | 2024 | 187 | 2.445.607 | 2.930.841 | 7,65 | 1,198 |
+| AM | 2024 | 26 | 389.849 | 1.057.086 | 6,67 | 2,712 |
+| MA | 2024 | 53 | 828.156 | 1.594.161 | 6,4 | 1,925 |
+| TO | 2024 | 12 | 199.179 | 332.623 | 6,02 | 1,67 |
+| GO | 2024 | 62 | 1.031.555 | 1.651.311 | 6,01 | 1,601 |
+| AL | 2024 | 26 | 437.892 | 856.259 | 5,94 | 1,955 |
+| PA | 2024 | 50 | 923.024 | 2.146.129 | 5,42 | 2,325 |
+| PB | 2024 | 34 | 630.338 | 1.084.650 | 5,39 | 1,721 |
+| PI | 2024 | 24 | 470.052 | 878.901 | 5,11 | 1,87 |
+| SP | 2024 | 425 | 8.419.113 | 11.757.953 | 5,05 | 1,397 |
+| ES | 2024 | 35 | 699.859 | 1.279.837 | 5 | 1,829 |
+| AC | 2024 | 4 | 83.767 | 212.263 | 4,78 | 2,534 |
+| CE | 2024 | 64 | 1.351.285 | 2.552.384 | 4,74 | 1,889 |
+| RO | 2024 | 10 | 214.904 | 381.143 | 4,65 | 1,774 |
+| RN | 2024 | 20 | 539.796 | 961.265 | 3,71 | 1,781 |
+| DF | 2024 | 13 | 426.238 | 820.725 | 3,05 | 1,926 |
+| BA | 2024 | 67 | 2.248.921 | 3.258.528 | 2,98 | 1,449 |
+| MG | 2024 | 103 | 3.967.762 | 6.294.465 | 2,6 | 1,586 |
+| RJ | 2024 | 88 | 3.396.135 | 3.888.597 | 2,59 | 1,145 |
+| MT | 2024 | 12 | 475.784 | 920.727 | 2,52 | 1,935 |
+| PE | 2024 | 31 | 1.431.590 | 2.215.288 | 2,17 | 1,547 |
+| RR | 2024 | 1 | 55.343 | 157.012 | 1,81 | 2,837 |
+| AP | 2024 | 1 | 74.228 | 204.753 | 1,35 | 2,758 |
+
 **Tabela 15 — Correlação entre doses de influenza por habitante de 60 anos ou mais e óbitos por influenza nessa faixa, por unidade da federação (`tabela_15_correlacao_por_ano.csv`).**
 
 | Ano | Unidades da federação no cruzamento | Doses de influenza no país (INF3) | Óbitos por influenza em 60 anos ou mais | Correlação de Spearman | Valor de p |
@@ -429,7 +487,39 @@ Atualizar a Lista Brasileira é decisão de vigilância, não exercício estatí
 
 ---
 
-## 6. Disponibilidade de dados e código
+## 6. Figuras
+
+As seis figuras são geradas por `artigo-imunopreveniveis/gerar_figuras.py` a
+partir das mesmas tabelas deste manuscrito, sem nenhum cálculo próprio. Cada
+legenda aponta a tabela de origem, de modo que todo valor lido no gráfico pode
+ser conferido no número exato.
+
+**Figura 1.** Óbitos do subgrupo 1.1 por ano, em contagem absoluta e por 10 mil
+óbitos do ano, com a linha dos mesmos códigos em 75 anos ou mais — a faixa que o
+instrumento não alcança. *Fonte: Tabela 3.*
+
+**Figura 2.** O que o subgrupo 1.1 conta, comparado ao conjunto ampliado de
+doenças com vacina disponível e à COVID-19. Escala logarítmica, porque a
+COVID-19 está duas ordens de grandeza acima do resto e uma escala linear
+achataria a comparação que importa. *Fonte: Tabela 4.*
+
+**Figura 3.** Distribuição etária dos óbitos por causas com vacina disponível.
+A lista termina aos 74 anos, e 35,8% dos óbitos estão acima desse corte.
+*Fonte: Tabela 5.*
+
+**Figura 4.** Composição interna do subgrupo 1.1. Em vermelho, a tuberculose em
+idade sem proteção estabelecida pela BCG; em azul, o que resta. *Fonte: Tabela 6.*
+
+**Figura 5.** Febre amarela, sarampo e coqueluche ano a ano. A parte hachurada é
+a fração em menores de 1 ano. Nenhuma das três está no subgrupo 1.1 com a
+cobertura que a década exigiria. *Fonte: Tabela 8.*
+
+**Figura 6.** O teto de codificação: óbitos por código com agente etiológico
+nomeado (azul) e sem (cinza). Escala logarítmica. *Fonte: Tabela 12.*
+
+---
+
+## 7. Disponibilidade de dados e código
 
 Todas as fontes são de domínio público. Os microdados do Sistema de Informações sobre Mortalidade são distribuídos pelo DataSUS e pelo OpenDataSUS; as doses aplicadas, pelo PNI/RNDS via OpenDataSUS; os denominadores populacionais, pelo IBGE. As duas notas técnicas que definem a Lista Brasileira estão publicadas pelo TabNet/DataSUS [4, 5], e os artigos que a propõem e revisam, na revista *Epidemiologia e Serviços de Saúde* [1-3]. Nenhum dado individual é publicado — apenas agregados.
 
@@ -442,7 +532,7 @@ Nenhum número deste texto é digitado: cada valor citado existe em um dos CSVs 
 
 ---
 
-## 7. Notas sobre o que ainda não foi feito
+## 8. Notas sobre o que ainda não foi feito
 
 Itens conhecidos e não resolvidos, listados para que não sejam confundidos com decisões:
 
@@ -455,7 +545,7 @@ Itens conhecidos e não resolvidos, listados para que não sejam confundidos com
 
 ---
 
-## 8. Referências
+## 9. Referências
 
 - **[1]** Malta DC, Duarte EC, Almeida MF, Dias MAS. Lista de causas de mortes evitáveis por intervenções do Sistema Único de Saúde do Brasil. *Epidemiologia e Serviços de Saúde*. 2007;16(4):233-244.
 - **[2]** Malta DC, Sardinha LMV, Moura L, Lansky S, Leal MC, Szwarcwald CL, França E. Atualização da lista de causas de mortes evitáveis por intervenções do Sistema Único de Saúde do Brasil. *Epidemiologia e Serviços de Saúde*. 2010;19(2):173-176.

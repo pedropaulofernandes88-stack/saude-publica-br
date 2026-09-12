@@ -51,6 +51,8 @@ CONTEUDO: tuple[tuple[Path, str, str], ...] = (
     (AQUI / "manuscrito.md",   "manuscrito/manuscrito.md",   "O manuscrito, em Markdown — é a fonte"),
     (AQUI / "manuscrito.html", "manuscrito/manuscrito.html", "O manuscrito renderizado, autocontido"),
     (AQUI / "manuscrito.pdf",  "manuscrito/manuscrito.pdf",  "O manuscrito em PDF"),
+    (AQUI / "manuscrito.docx", "manuscrito/manuscrito.docx",
+     "O manuscrito em Word, SEM identificação de autoria: figuras no corpo, tabelas como material suplementar"),
     (ROOT / "scripts" / "analise_mortes_imunopreveniveis.py",
      "codigo/analise_mortes_imunopreveniveis.py",
      "As listas de CID-10, a derivação do óbito e as guardas"),
@@ -193,6 +195,20 @@ def main() -> None:
             raise SystemExit(f"faltam em {pasta}: {', '.join(faltando)}")
         for nome, descricao in mapa.items():
             itens.append((f"{prefixo}/{nome}", (pasta / nome).read_bytes(), descricao))
+
+    # As FIGURAS entram no pacote. Elas não estavam aqui porque não existiam
+    # quando este script foi escrito; agora existem, e um pacote que traz as
+    # tabelas e omite os gráficos obriga quem recebe a regerá-los para ver o
+    # que o manuscrito descreve.
+    figuras = sorted((AQUI / "figuras").glob("*.png"))
+    if not figuras:
+        raise SystemExit(
+            "nenhuma figura em figuras/. Rode `gerar_figuras.py` antes de "
+            "empacotar — o manuscrito cita seis figuras, e pacote que as "
+            "promete sem trazê-las parece completo e não é.")
+    for fig in figuras:
+        itens.append((f"figuras/{fig.name}",
+                      fig.read_bytes(), "Figura do manuscrito (PNG, 300 dpi)"))
 
     manifesto = io.StringIO()
     w = csv.writer(manifesto, lineterminator="\n")

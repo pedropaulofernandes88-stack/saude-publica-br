@@ -1,0 +1,5 @@
+Critério,Pré-declarado,RRR,IC95% inferior,IC95% superior,Exclui 1
+1. Especificidade (bruto),sim,2.075,1.776,2.518,sim
+2. Ajustado por acesso à água (MH),sim,1.926,1.618,2.225,sim
+Sensibilidade: controle só pneumonia/influenza,sim,2.087,1.785,2.535,sim
+4. Padronizado por idade (POST-HOC),nao,1.767,1.518,2.021,sim
