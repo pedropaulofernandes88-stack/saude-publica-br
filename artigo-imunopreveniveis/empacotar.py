@@ -101,7 +101,7 @@ ANALISE = {
 LEIA_ME = """# Material suplementar
 
 **Óbitos por doenças imunopreveníveis no Brasil, 2015–2024: um instrumento
-oficial que descreve o calendário vacinal de 2010**
+oficial que perdeu sensibilidade por três razões mensuráveis**
 
 Pedro Paulo Fernandes · Saúde em Dado — saudeemdado.com
 

@@ -1,4 +1,4 @@
-# Óbitos por doenças imunopreveníveis no Brasil, 2015–2024: um instrumento oficial que descreve o calendário vacinal de 2010
+# Óbitos por doenças imunopreveníveis no Brasil, 2015–2024: perda de sensibilidade de um instrumento oficial por delimitação etária, defasagem tecnológica e especificidade etiológica do registro
 
 **Pedro Paulo Fernandes**¹
 
@@ -16,7 +16,7 @@
 
 **Métodos.** Todos os óbitos não fetais registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024, com a causa básica preservada em quatro caracteres da CID-10 — grão exigido pela própria lista oficial, que nomeia G00.0, P35.0 e P35.3, e pelo código que o Brasil usa para COVID-19, B34.2. O subgrupo 1.1 foi transcrito literalmente das notas técnicas do TabNet/DataSUS, nas suas duas versões etárias, e aplicado com a idade que cada versão determina. Um conjunto ampliado reúne, além dele, as demais doenças com vacina disponível no país, cada uma anotada com o ano de entrada no PNI; um terceiro grupo, de latência longa, é reportado à parte e nunca somado. Um cruzamento ecológico entre óbitos por influenza em 60 anos ou mais e doses de influenza por habitante dessa faixa, por unidade da federação, teve o critério de nulidade declarado antes da análise.
 
-**Resultados.** Em 14.484.496 óbitos, o subgrupo 1.1 identifica 5.832 — 4,03 por 10 mil óbitos, sem tendência na década (Tabela 3). O conjunto ampliado sem COVID-19 soma 27.917 óbitos, razão de 4,79 sobre o instrumento oficial, e a COVID-19 sozinha soma 718.811 (Tabela 4). Três limitações estruturais explicam a diferença. A lista termina aos 74 anos, e 267.276 óbitos por causas com vacina — 35,8% do conjunto — ocorreram acima dessa idade, invisíveis por construção (Tabela 5). Ela antecede as vacinas incorporadas depois de 2010 e classifica influenza fora da imunoprevenção. E 3.189 dos 5.832 óbitos que ela conta são tuberculose miliar ou do sistema nervoso, dos quais 3.092 entre 5 e 74 anos, idade sem proteção estabelecida pela BCG; excluída a tuberculose, restam 2.643 óbitos em dez anos (Tabela 6). O teto de medição é de codificação, não de epidemiologia: há 631.108 óbitos por pneumonia sem agente identificado (J18) contra 809 atribuídos ao pneumococo (J13), razão de 780,1 (Tabelas 12 e 13). O cruzamento ecológico deu nulo pelo critério declarado — correlação de Spearman +0,389 em 2023 e −0,056 em 2024 —, e a própria fonte explica parte disso: o PNI/RNDS registra 16.621.107 doses de influenza em 2023 contra 54.215.093 em 2024 (Tabela 15).
+**Resultados.** Em 14.484.496 óbitos, o subgrupo 1.1 identifica 5.832 — 4,03 por 10 mil óbitos, sem tendência na década (Tabela 3). O conjunto ampliado sem COVID-19 — que é um **teto**, não uma estimativa de mortes evitáveis — soma 27.917 óbitos, razão de 4,79 sobre o instrumento oficial, e a COVID-19 sozinha soma 718.811 (Tabela 4). Três limitações estruturais explicam a diferença. A lista termina aos 74 anos, e 267.276 óbitos por causas com vacina — 35,8% do conjunto — ocorreram acima dessa idade, invisíveis por construção (Tabela 5). Ela antecede as vacinas incorporadas depois de 2010 e classifica influenza fora da imunoprevenção. E 3.189 dos 5.832 óbitos que ela conta são tuberculose miliar ou do sistema nervoso, dos quais 3.092 entre 5 e 74 anos — faixa em que a relação entre o óbito e a vacinação infantil é bem mais incerta do que a que a justificativa da lista invoca, ainda que a proteção conferida na infância possa persistir décadas [10]; excluída a tuberculose, restam 2.643 óbitos em dez anos (Tabela 6). O teto de medição é de codificação, não de epidemiologia: há 631.108 óbitos por pneumonia sem agente identificado (J18) contra 809 atribuídos ao pneumococo (J13), razão de 780,1 (Tabelas 12 e 13). O cruzamento ecológico deu nulo pelo critério declarado — correlação de Spearman +0,389 em 2023 e −0,056 em 2024 —, e a própria fonte explica parte disso: o PNI/RNDS registra 16.621.107 doses de influenza em 2023 contra 54.215.093 em 2024 (Tabela 15).
 
 **Conclusões.** O instrumento oficial brasileiro de evitabilidade por imunoprevenção não está errado: está defasado, e de três formas que se somam. Ele descreve um calendário vacinal que não é mais o do país, ignora a faixa etária onde a mortalidade por doença imunoprevenível se concentra, e é dominado internamente por uma causa cuja evitabilidade por vacina não se sustenta na idade em que ela ocorre. Atualizá-lo é decisão de vigilância, não exercício estatístico. Independentemente disso, a ausência de investigação etiológica na declaração de óbito impõe um teto ao que qualquer lista consegue medir.
 
@@ -29,6 +29,10 @@
 Perguntar quantas pessoas morrem no Brasil de doenças que uma vacina previne parece uma pergunta de epidemiologia, e é em boa parte uma pergunta de instrumento. Existe uma resposta oficial: a Lista Brasileira de Causas de Mortes Evitáveis, construída por grupo de trabalho coordenado pelo Ministério da Saúde, publicada em 2007 [1], revista em 2010 [2] e, para a faixa de cinco a setenta e quatro anos, em 2011 [3], e distribuída como nota técnica do TabNet/DataSUS em duas versões etárias [4, 5] — menores de cinco anos e de cinco a setenta e quatro anos. O primeiro subgrupo de ambas reúne as causas "reduzíveis pelas ações de imunoprevenção". Ele é o que o Brasil usa quando precisa dizer, com respaldo institucional, que uma morte poderia ter sido evitada por vacina.
 
 Entre a última revisão da lista e hoje, o Programa Nacional de Imunizações mudou. Entraram a vacina contra rotavírus, a meningocócica C e depois a ACWY, a pneumocócica 10-valente, a varicela, o HPV. E entrou, em janeiro de 2021, a vacinação contra a COVID-19, que é a maior campanha da história do programa e responde à doença que mais matou brasileiros no período coberto por este trabalho. Uma lista de evitabilidade cujo último ajuste é anterior a tudo isso não descreve o que o SUS oferece hoje.
+
+**Duas ausências são de naturezas diferentes, e só uma é esperada.** A ausência da COVID-19 não é crítica ao instrumento: a vacina não existia quando a lista foi revista, e nenhuma classificação poderia tê-la previsto. Já a **pneumocócica conjugada** entrou no PNI em 2010 e a **meningocócica C** em 2010, ambas no intervalo da própria revisão — que foi publicada entre 2010 e 2011. A ausência dessas duas do subgrupo de imunoprevenção não se explica por defasagem temporal, e merece exame à parte.
+
+A hipótese mais parcimoniosa, e a que os resultados deste trabalho sustentam, é que a ausência delas é consequência do problema de codificação e não de esquecimento: doença pneumocócica invasiva praticamente não aparece como causa básica no SIM — 809 óbitos em J13 contra 631.108 em J18 (§3.9) —, e uma causa que o registro não identifica não produz indicador utilizável, ainda que a vacina esteja no calendário. Se essa leitura estiver certa, ela reforça a conclusão central: o teto do instrumento é de investigação etiológica, não de escolha de códigos.
 
 A questão não é retórica. Listas de evitabilidade são usadas para monitorar desempenho de sistema de saúde, para priorizar território e para avaliar programa. Um instrumento que enxerga uma fração pequena e estável da carga de doença imunoprevenível produz, ano após ano, a mesma leitura tranquilizadora — e a produz não porque a carga seja pequena, mas porque a régua é curta.
 
@@ -72,9 +76,20 @@ O limite superior é explícito na própria revisão que o fixou: o título de 2
 
 ### 2.4 O conjunto ampliado e o critério de disponibilidade
 
-O conjunto ampliado reúne, além dos códigos do subgrupo 1.1, as demais doenças para as quais existe vacina, com os códigos de causa básica que as identificam sem ambiguidade. Cada causa carrega um campo de **disponibilidade**, que registra desde quando a vacina existe na rede pública brasileira, e esse campo faz trabalho analítico, não decorativo: ele separa "a doença tem vacina" de "o SUS oferecia a vacina". O herpes zoster é o caso que obriga a distinção — tem vacina licenciada no Brasil, ela **não** está no PNI, e contar os seus óbitos como evitáveis pelo SUS seria falso. Por isso a Tabela 7 traz dois subtotais, com e sem ele.
+O conjunto ampliado reúne, além dos códigos do subgrupo 1.1, as demais doenças para as quais existe vacina, com os códigos de causa básica que as identificam sem ambiguidade. **Ele é um teto, não uma estimativa de mortes evitáveis.** O que ele mede é a carga de óbitos por doenças para as quais existe vacina no país — grandeza que não desconta eficácia vacinal, não conhece a situação vacinal de quem morreu, e não verifica se a vacina era recomendada para aquela idade ou aquele território. Nenhum número do conjunto ampliado deve ser lido como o de mortes que teriam sido evitadas; todos devem ser lidos como o limite superior do que a vacinação poderia, no melhor caso, ter alcançado. Cada causa carrega um campo de **disponibilidade**, que registra desde quando a vacina existe na rede pública brasileira, e esse campo faz trabalho analítico, não decorativo: ele separa "a doença tem vacina" de "o SUS oferecia a vacina". O herpes zoster é o caso que obriga a distinção — tem vacina licenciada no Brasil, ela **não** está no PNI, e contar os seus óbitos como evitáveis pelo SUS seria falso. Por isso a Tabela 7 traz dois subtotais, com e sem ele.
 
 A COVID-19 recebe tratamento próprio pelo mesmo motivo: a vacina passou a existir em janeiro de 2021, e nenhum óbito de 2020 poderia ter sido evitado por ela. Os totais do conjunto ampliado são sempre apresentados com e sem COVID-19.
+
+**Quatro níveis de disponibilidade, e o que este trabalho consegue separar.** "Vacina disponível" não é um estado único. Ela se decompõe em pelo menos quatro condições, e elas não coincidem:
+
+1. **licenciada** no país pela Anvisa;
+2. **incorporada** ao SUS, isto é, ofertada pela rede pública;
+3. **recomendada para aquela idade**, porque o calendário é etário e a maioria das vacinas tem janela;
+4. **recomendada para aquele território**, porque parte das recomendações é geográfica.
+
+O campo de disponibilidade deste trabalho separa com segurança os níveis 1 e 2 — é o que exclui o herpes zoster do núcleo do conjunto ampliado. Os níveis 3 e 4 **não** são aplicados óbito a óbito, e isso é uma limitação declarada, não um detalhe: um óbito por COVID-19 em 2021 numa faixa que só entrou na campanha meses depois conta no conjunto ampliado do mesmo modo que um óbito de quem já tinha a vacina à disposição.
+
+A febre amarela é o caso que torna o nível 4 visível: a vacina existe desde 1937 e é de dose única, mas a recomendação era territorial, e os 452 óbitos de 2017–2018 ocorreram em municípios que só entraram na área com recomendação **depois** do surto (§3.6). Contá-los como "vacina disponível" é correto no nível 2 e falso no nível 4.
 
 Os anos de entrada foram compilados do Calendário Nacional de Vacinação do Ministério da Saúde e do seu histórico [6]. Eles são anotação de contexto, não variável de análise: nenhum resultado deste artigo depende do ano exato, e a §4.4 registra que não foram auditados ato normativo a ato normativo.
 
@@ -195,7 +210,7 @@ Dos 746.728 óbitos por causas com vacina disponível registrados na década, 26
 
 O corte etário tem origem conceitual conhecida — listas de evitabilidade nasceram para monitorar mortalidade prematura —, e a consequência é específica desta aplicação: influenza, doença pneumocócica e COVID-19 matam predominantemente idosos. Um instrumento que exclui a idade em que a doença mata não subestima a carga por descuido de medida; ele a define para fora.
 
-### 3.4 Metade do que o instrumento conta é tuberculose em idade sem proteção
+### 3.4 Metade do que o instrumento conta é tuberculose de adulto
 
 **Tabela 6 — Composição interna do subgrupo 1.1 (`tabela_6_composicao_subgrupo_1_1.csv`).**
 
@@ -203,13 +218,13 @@ O corte etário tem origem conceitual conhecida — listas de evitabilidade nasc
 |---|---|---|---|
 | Subgrupo 1.1, total | 5.832 | 100 | 583,2 |
 | Tuberculose miliar e do sistema nervoso, no subgrupo 1.1 | 3.189 | 54,7 | 318,9 |
-| … destes, em menores de 5 anos (idade em que a BCG protege) | 97 | 1,7 | 9,7 |
-| … destes, em 5 a 74 anos (sem proteção estabelecida pela BCG) | 3.092 | 53 | 309,2 |
+| … destes, em menores de 5 anos (idade da indicação da BCG) | 97 | 1,7 | 9,7 |
+| … destes, em 5 a 74 anos (relação com a BCG infantil incerta) | 3.092 | 53 | 309,2 |
 | Subgrupo 1.1 excluída a tuberculose | 2.643 | 45,3 | 264,3 |
 
 Dos 5.832 óbitos do subgrupo 1.1, 3.189 são tuberculose miliar ou do sistema nervoso — 54,7% do total do instrumento. Destes, apenas 97 ocorreram em menores de cinco anos; 3.092, ou 53% de todo o subgrupo, ocorreram entre 5 e 74 anos.
 
-A distinção importa porque a evitabilidade atribuída a essas duas causas vem da BCG — e isso não é interpretação deste trabalho. É o que a revisão de 2011 declara ao explicar por que manteve A17 e A19 no subgrupo 1.1 e mandou os demais códigos de tuberculose para outro: "por serem as causas evitáveis de morte pela vacina BCG" [3]. A eficácia estabelecida da BCG, porém, é contra as formas graves da tuberculose **na criança**. Não há proteção demonstrada em adulto, e a duração da proteção conferida na infância é objeto de controvérsia. O critério enunciado pelos autores não restringe a idade; a evidência que o fundamenta, sim. Manter A17 e A19 no subgrupo de imunoprevenção sem restrição etária faz com que mais da metade do que o instrumento oficial reporta como "morte evitável por vacina" seja tuberculose de adulto, para a qual a intervenção evitável é diagnóstico e tratamento — que a própria Lista Brasileira classifica em outro subgrupo, o 1.2, quando se trata das demais formas de tuberculose.
+A distinção importa porque a evitabilidade atribuída a essas duas causas vem da BCG — e isso não é interpretação deste trabalho. É o que a revisão de 2011 declara ao explicar por que manteve A17 e A19 no subgrupo 1.1 e mandou os demais códigos de tuberculose para outro: "por serem as causas evitáveis de morte pela vacina BCG" [3]. A indicação estabelecida da BCG, e a justificativa que a própria revisão invoca, é a proteção contra as **formas graves da tuberculose na criança**. Não se trata, porém, de afirmar que a BCG não proteja adultos: um seguimento de 60 anos de coorte vacinada na infância encontrou eficácia de 52% (IC95% 27%–69%) persistindo por 50 a 60 anos, sem redução estatisticamente significativa ao longo do tempo [10]. O problema é outro, e é de correspondência entre critério e indicador: o critério enunciado pelos autores não restringe idade, e o indicador que dele resulta é **dominado por morte adulta**, cuja relação com a vacinação infantil é muito mais incerta do que a de uma forma grave em criança não vacinada — e depende de cepa, de esquema, de idade à vacinação e do contexto epidemiológico, nenhum dos quais o SIM registra. Manter A17 e A19 no subgrupo de imunoprevenção sem restrição etária faz com que mais da metade do que o instrumento oficial reporta como "morte evitável por vacina" seja tuberculose de adulto, para a qual a intervenção evitável é diagnóstico e tratamento — que a própria Lista Brasileira classifica em outro subgrupo, o 1.2, quando se trata das demais formas de tuberculose.
 
 Excluída a tuberculose, o núcleo do instrumento oficial fica em 2.643 óbitos em dez anos, 264,3 por ano no país inteiro.
 
@@ -479,7 +494,7 @@ A limitação central não é de método: é de fonte, e vale para toda a litera
 
 ## 5. Conclusão
 
-O Brasil dispõe de um instrumento oficial para contar mortes evitáveis por vacina, e ele identifica quatro óbitos em cada dez mil registrados, número que não se move há uma década. A estabilidade não é epidemiológica. Ela decorre de o instrumento parar aos 74 anos, descrever um calendário vacinal anterior a 2011 e ser dominado internamente por uma causa cuja evitabilidade por vacina não se sustenta na idade em que ocorre.
+O Brasil dispõe de um instrumento oficial para contar mortes evitáveis por vacina, e ele identifica quatro óbitos em cada dez mil registrados, número que não se move há uma década. A estabilidade não é epidemiológica. Ela decorre de o instrumento parar aos 74 anos, classificar a evitabilidade com as evidências e as tecnologias disponíveis antes da expansão recente do PNI e ser dominado internamente por uma causa cuja evitabilidade por vacina não se sustenta na idade em que ocorre.
 
 No mesmo período, doenças com vacina disponível produziram um surto de febre amarela com 452 óbitos em áreas fora da recomendação vigente — essa, sim, ausente do subgrupo 1.1 —, a perda do certificado de eliminação do sarampo com 19 óbitos em lactentes, o retorno da coqueluche em menores de 1 ano e uma série de influenza cujo valor mais recente é o maior de onze anos. **Sarampo e coqueluche já constam da lista**, e ressurgiram assim mesmo: o problema do instrumento não se reduz a quais códigos ele inclui. Um indicador de evitabilidade que não registra nenhum desses eventos não está medindo mal: está medindo outra coisa.
 
@@ -508,7 +523,7 @@ A lista termina aos 74 anos, e 35,8% dos óbitos estão acima desse corte.
 *Fonte: Tabela 5.*
 
 **Figura 4.** Composição interna do subgrupo 1.1. Em vermelho, a tuberculose em
-idade sem proteção estabelecida pela BCG; em azul, o que resta. *Fonte: Tabela 6.*
+idade em que a relação entre o óbito e a vacinação infantil é incerta; em azul, o que resta. *Fonte: Tabela 6.*
 
 **Figura 5.** Febre amarela, sarampo e coqueluche ano a ano. A parte hachurada é
 a fração em menores de 1 ano. **Sarampo (B05) e coqueluche (A37) já constam do
@@ -558,3 +573,4 @@ Itens conhecidos e não resolvidos, listados para que não sejam confundidos com
 - **[7]** Brasil. Ministério da Saúde. *Sistema de Informações sobre Mortalidade (SIM): microdados*. DATASUS e OpenDataSUS. Arquivos por unidade da federação e nacionais, competências de 2015 a 2025.
 - **[8]** Brasil. Ministério da Saúde. *Programa Nacional de Imunizações: doses aplicadas*. OpenDataSUS, competências mensais de 2023 a 2026.
 - **[9]** Instituto Brasileiro de Geografia e Estatística. *Censo Demográfico 2022* e *Estimativas da população residente*. Rio de Janeiro: IBGE.
+- **[10]** Aronson NE, Santosham M, Comstock GW, Howard RS, Moulton LH, Rhoades ER, Harrison LH. Long-term efficacy of BCG vaccine in American Indians and Alaska Natives: a 60-year follow-up study. *JAMA*. 2004;291(17):2086–91. doi:10.1001/jama.291.17.2086

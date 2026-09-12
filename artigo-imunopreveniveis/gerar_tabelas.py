@@ -235,8 +235,15 @@ def tabela_6_composicao(con) -> pd.DataFrame:
     linhas = [
         ("Subgrupo 1.1, total", oficial),
         ("Tuberculose miliar e do sistema nervoso, no subgrupo 1.1", tb_0a4 + tb_5a74),
-        ("… destes, em menores de 5 anos (idade em que a BCG protege)", tb_0a4),
-        ("… destes, em 5 a 74 anos (sem proteção estabelecida pela BCG)", tb_5a74),
+        # Os rótulos NÃO afirmam ausência de proteção em adulto. Havia evidência
+        # contra essa afirmação — um seguimento de 60 anos com eficácia de 52%
+        # persistindo cinco décadas (referência [10] do manuscrito) — e o
+        # revisor a apontou. O que os dados sustentam é mais estreito e
+        # suficiente: a justificativa da lista é sobre forma grave na criança, e
+        # o indicador é dominado por morte adulta, cuja relação com a vacinação
+        # infantil é bem mais incerta.
+        ("… destes, em menores de 5 anos (idade da indicação da BCG)", tb_0a4),
+        ("… destes, em 5 a 74 anos (relação com a BCG infantil incerta)", tb_5a74),
         ("Subgrupo 1.1 excluída a tuberculose", oficial - tb_0a4 - tb_5a74),
     ]
     d = pd.DataFrame(linhas, columns=["Componente", "Óbitos 2015–2024"])
