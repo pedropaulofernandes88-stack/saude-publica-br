@@ -14,10 +14,10 @@ tuberculose em idade sem proteção estabelecida pela BCG.
 |---|---|
 | `manuscrito.md` | **a fonte.** É aqui que se edita |
 | `gerar_tabelas.py` | produz `tabelas/*.csv` reagregando o microdado do SIM |
-| `empacotar.py` | produz `dados-do-artigo.zip` — material suplementar |
+| `empacotar.py` | produz `dados-evitaveis.zip` — material suplementar |
 | `tabelas/` | as dezesseis tabelas do artigo, em CSV |
 | `manuscrito.html`, `manuscrito.pdf` | derivados — **não se editam à mão** |
-| `dados-do-artigo.zip` | derivado — manuscrito, tabelas, análises e código |
+| `dados-evitaveis.zip` | derivado — manuscrito, tabelas, análises e código |
 
 ```
 .venv311/Scripts/python artigo-imunopreveniveis/gerar_tabelas.py

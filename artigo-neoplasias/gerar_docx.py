@@ -4,7 +4,7 @@ gerar_docx.py — o manuscrito em Word, cego, com figuras no corpo
 
     .venv311/Scripts/python artigo-neoplasias/gerar_docx.py
 
-Produz `artigo-neoplasias/manuscrito.docx` a partir de `manuscrito.md`, das
+Produz `artigo-neoplasias/manuscrito-neoplasias.docx` a partir de `manuscrito.md`, das
 figuras de `figuras/` e das tabelas de `tabelas/`. É uma RENDERIZAÇÃO, como o
 HTML e o PDF: o markdown continua sendo a fonte, e nada aqui edita o manuscrito.
 
@@ -58,7 +58,10 @@ RAIZ = Path(__file__).resolve().parent
 MD = RAIZ / "manuscrito.md"
 FIGURAS = RAIZ / "figuras"
 TABELAS = RAIZ / "tabelas"
-DESTINO = RAIZ / "manuscrito.docx"
+#: O nome carrega o assunto: os manuscritos deste repositório são
+#: anexados juntos, e três "manuscrito.docx" chegam como um deles e
+#: duas cópias numeradas.
+DESTINO = RAIZ / "manuscrito-neoplasias.docx"
 
 _ALERTA_CEGO = (
     "[cego] o bloco de autoria foi removido. NÃO ficam anônimos: os caminhos de\n"

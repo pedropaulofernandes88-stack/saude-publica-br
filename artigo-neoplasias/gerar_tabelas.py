@@ -534,7 +534,7 @@ def _empacotar() -> None:
     """
     import zipfile
     csvs = sorted(SAIDA.glob("*.csv"))
-    alvo = SAIDA.parent / "tabelas-do-artigo.zip"
+    alvo = SAIDA.parent / "dados-neoplasias-tabelas.zip"
     with zipfile.ZipFile(alvo, "w", zipfile.ZIP_DEFLATED) as z:
         for c in csvs:
             z.write(c, c.name)

@@ -480,13 +480,13 @@ FIGURAS_DO_ARTIGO = (
 def _empacotar() -> None:
     """Zip das figuras, montado no MESMO passo que as desenha.
 
-    Mesma razão do `tabelas-do-artigo.zip`: pacote feito à mão envelhece
+    Mesma razão do `dados-neoplasias-tabelas.zip`: pacote feito à mão envelhece
     sozinho, e quem recebe o anexo fica com figura diferente da do manuscrito
     da mesma mensagem, sem nada indicando isso.
     """
     import zipfile
     pngs = sorted(FIGURAS.glob("figura_*.png"))
-    alvo = FIGURAS.parent / "figuras-do-artigo.zip"
+    alvo = FIGURAS.parent / "dados-neoplasias-figuras.zip"
     with zipfile.ZipFile(alvo, "w", zipfile.ZIP_DEFLATED) as z:
         for p in pngs:
             z.write(p, p.name)

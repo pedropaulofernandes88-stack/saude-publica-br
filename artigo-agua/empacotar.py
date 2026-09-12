@@ -4,7 +4,7 @@ empacotar.py — o pacote que acompanha o manuscrito da água
 
     .venv311/Scripts/python artigo-agua/empacotar.py
 
-Produz `artigo-agua/dados-do-artigo.zip`: as dezesseis tabelas, as nove figuras,
+Produz `artigo-agua/dados-hidricas.zip`: as dezesseis tabelas, as nove figuras,
 o manuscrito e o código que produz as três coisas — o do desenho transversal e o
 da reanálise em painel, que é a análise primária da versão atual.
 
@@ -38,7 +38,10 @@ from pathlib import Path
 
 AQUI = Path(__file__).resolve().parent
 ROOT = AQUI.parent
-DESTINO = AQUI / "dados-do-artigo.zip"
+#: O nome do zip carrega o assunto pela mesma razão do .docx: os dois
+#: artigos são anexados no mesmo e-mail, e dois "dados-do-artigo.zip"
+#: chegam como um deles e uma cópia numerada.
+DESTINO = AQUI / "dados-hidricas.zip"
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -74,7 +77,7 @@ FIGURAS_ESPERADAS = {
 #: O que entra além das tabelas e figuras, e como se chama no pacote.
 CONTEUDO = [
     (AQUI / "manuscrito.md", "manuscrito.md", "O manuscrito, em Markdown"),
-    (AQUI / "manuscrito.docx", "manuscrito.docx",
+    (AQUI / "manuscrito-hidricas.docx", "manuscrito-hidricas.docx",
      "O manuscrito em Word, SEM identificação de autoria, com as figuras no corpo e as tabelas como material suplementar"),
     (ROOT / "scripts" / "analise_agua_mortalidade.py",
      "codigo/analise_agua_mortalidade.py",

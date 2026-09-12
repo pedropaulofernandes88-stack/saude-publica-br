@@ -42,7 +42,10 @@ if hasattr(sys.stdout, "reconfigure"):
 
 AQUI = Path(__file__).resolve().parent
 ROOT = AQUI.parents[0]
-DESTINO = AQUI / "dados-do-artigo.zip"
+#: O nome do zip carrega o assunto pela mesma razão do .docx: os dois
+#: artigos são anexados no mesmo e-mail, e dois "dados-do-artigo.zip"
+#: chegam como um deles e uma cópia numerada.
+DESTINO = AQUI / "dados-evitaveis.zip"
 
 #: Entradas fixas do zip, na ordem em que aparecem: (caminho no disco, caminho
 #: dentro do zip, descrição para o manifesto). Ordem fixa também é o que torna
@@ -51,7 +54,7 @@ CONTEUDO: tuple[tuple[Path, str, str], ...] = (
     (AQUI / "manuscrito.md",   "manuscrito/manuscrito.md",   "O manuscrito, em Markdown — é a fonte"),
     (AQUI / "manuscrito.html", "manuscrito/manuscrito.html", "O manuscrito renderizado, autocontido"),
     (AQUI / "manuscrito.pdf",  "manuscrito/manuscrito.pdf",  "O manuscrito em PDF"),
-    (AQUI / "manuscrito.docx", "manuscrito/manuscrito.docx",
+    (AQUI / "manuscrito-evitaveis.docx", "manuscrito/manuscrito-evitaveis.docx",
      "O manuscrito em Word, SEM identificação de autoria: figuras no corpo, tabelas como material suplementar"),
     (ROOT / "scripts" / "analise_mortes_imunopreveniveis.py",
      "codigo/analise_mortes_imunopreveniveis.py",

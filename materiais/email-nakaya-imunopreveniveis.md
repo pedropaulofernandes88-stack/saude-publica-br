@@ -3,7 +3,7 @@
 **Rascunho, escrito em 2026-09-04. Ainda não enviado.**
 
 Acompanha o envio de `artigo-imunopreveniveis/manuscrito.pdf` e
-`artigo-imunopreveniveis/dados-do-artigo.zip`.
+`artigo-imunopreveniveis/dados-mortes-imunopreveniveis.zip`.
 
 Fica aqui, e não em `saida/`, pela mesma razão que `briefing-nakaya.html` fica:
 é material pontual de uma conversa específica, escrito à mão e não gerado por

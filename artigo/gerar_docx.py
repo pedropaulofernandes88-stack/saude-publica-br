@@ -5,7 +5,7 @@ gerar_docx.py — o manuscrito em Word, sem identificação de autoria
     .venv311/Scripts/python artigo/gerar_docx.py --dir artigo-agua
     .venv311/Scripts/python artigo/gerar_docx.py --dir artigo-imunopreveniveis
 
-Produz `<dir>/manuscrito.docx` a partir de `manuscrito.md`, das tabelas em
+Produz `<dir>/<nome do artigo>.docx` (ver `NOMES`) a partir de `manuscrito.md`, das tabelas em
 `tabelas/` e das figuras em `figuras/`. Não substitui o HTML nem o PDF: o
 markdown continua sendo a fonte, e nada aqui edita o manuscrito.
 
@@ -74,12 +74,33 @@ DESTINO: Path = Path()
 FIGURAS_DO_ARTIGO: tuple[tuple[str, str, str], ...] = ()
 
 
+#: Nome do arquivo .docx de cada artigo, sem extensão.
+#:
+#: Até aqui todos saíam como `manuscrito.docx`, um por pasta. Dentro do
+#: repositório isso funciona, porque a pasta desambigua. Anexados ao mesmo
+#: e-mail, não: dois arquivos com o mesmo nome chegam como "manuscrito.docx" e
+#: "manuscrito (1).docx", e quem recebe não sabe qual é qual — ou um sobrescreve
+#: o outro na pasta de downloads.
+#:
+#: O nome descreve o CONTEÚDO, e não a pasta, porque é o nome que o revisor vê.
+#: Pasta sem entrada aqui cai no nome da própria pasta, que ao menos é único.
+#: Os três manuscritos correntes são referidos, no trabalho do dia a dia, como
+#: "neoplasias", "evitáveis" e "hídricas". O arquivo usa esses mesmos termos:
+#: nome de arquivo que não bate com o nome que se usa ao falar é confusão
+#: garantida na hora de anexar.
+NOMES = {
+    "artigo-neoplasias": "manuscrito-neoplasias",
+    "artigo-imunopreveniveis": "manuscrito-evitaveis",
+    "artigo-agua": "manuscrito-hidricas",
+}
+
+
 def _configurar(pasta: Path) -> None:
     """Aponta os caminhos e importa a configuração de figuras do artigo."""
     global RAIZ, MD, FIGURAS, TABELAS, DESTINO, FIGURAS_DO_ARTIGO
     RAIZ, MD = pasta, pasta / "manuscrito.md"
     FIGURAS, TABELAS = pasta / "figuras", pasta / "tabelas"
-    DESTINO = pasta / "manuscrito.docx"
+    DESTINO = pasta / f"{NOMES.get(pasta.name, pasta.name)}.docx"
     if not MD.exists():
         raise SystemExit(f"{MD} não existe.")
 

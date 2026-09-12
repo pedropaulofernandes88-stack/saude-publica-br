@@ -5,9 +5,9 @@
 Acompanha o envio de quatro anexos:
 
     artigo-imunopreveniveis/manuscrito.pdf        (21 páginas, 16 tabelas, 6 figuras)
-    artigo-imunopreveniveis/dados-do-artigo.zip   (40 arquivos, 854 kB)
+    artigo-imunopreveniveis/dados-mortes-imunopreveniveis.zip   (40 arquivos, 854 kB)
     artigo-agua/manuscrito.md                     (11 tabelas, 5 figuras)
-    artigo-agua/dados-do-artigo.zip               (23 arquivos, 624 kB)
+    artigo-agua/dados-agua-e-mortalidade-intestinal.zip               (23 arquivos, 624 kB)
 
 Fica aqui, e não em `saida/`, pela mesma razão do e-mail anterior: é material
 pontual de uma conversa específica, escrito à mão e não gerado por script.
