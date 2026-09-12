@@ -423,6 +423,23 @@ export default function Metodologia() {
           por baixo.
         </li>
         <li>
+          <strong>Correção de 12 de setembro de 2026.</strong> O índice de vulnerabilidade
+          somava o nível errado da classificação do Censo. A tabela 6803 do SIDRA é
+          hierárquica — <code>72146</code> e <code>72147</code> são <em>filhos</em> de
+          <code>72145</code>, não irmãos —, e a conta os contava duas vezes, ignorando outros
+          cinco. Em Cruzaltense/RS dava 967 domicílios com água num total de 616, e a
+          proporção sem água saía <strong>−56,98%</strong>. O valor estava errado em{" "}
+          <strong>5.477 dos 5.570 municípios</strong>; os 418 negativos foram apenas a parte
+          que se denunciou sozinha. A conta certa não soma nada: <code>72153</code> já é
+          &ldquo;não possui ligação&rdquo;, e as três categorias de primeiro nível fecham com
+          o total em 100,00% dos municípios. Com o dado corrigido,{" "}
+          <strong>642 municípios (11,5%)</strong> mudaram de quartil, quase todos para o
+          vizinho. Os achados foram refeitos, não presumidos: cobertura da APS × ICSAP voltou
+          de +0,017 a <strong>+0,018</strong> no parcial, e o gradiente social da mortalidade
+          por câncer passou de 39% para <strong>40%</strong>. Nenhuma conclusão muda — e a
+          direção importa: o erro fazia município pobre parecer <em>menos</em> vulnerável.
+        </li>
+        <li>
           <strong>Grupo 1 — imunopreveníveis</strong> (<code>internacoes_g1</code>,
           <code>g1_100k</code>): internações por doenças preveníveis por imunização e condições
           sensíveis, publicadas em separado desde a mesma data. São <strong>1,3% a 1,5% do
@@ -675,7 +692,7 @@ export default function Metodologia() {
         <strong>Teste contra ICSAP.</strong> Testamos a hipótese de que maior cobertura implicaria
         menos internações evitáveis (§12). A correlação bruta com ICSAP por 100 mil habitantes é{" "}
         <strong>ρ = +0,002</strong> — nula, e no sinal contrário ao esperado. Controlando porte
-        populacional e vulnerabilidade social, ρ parcial = +0,017. Estratificando, os municípios de
+        populacional e vulnerabilidade social, ρ parcial = +0,018. Estratificando, os municípios de
         menor porte têm simultaneamente a <em>maior</em> cobertura mediana (167%) e o{" "}
         <em>maior</em> ICSAP. Conclusão: a cobertura potencial, como publicada, não sustenta
         comparação entre municípios nem inferência sobre qualidade da atenção básica. Publicamos o

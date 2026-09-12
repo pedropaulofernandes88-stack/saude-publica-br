@@ -16,7 +16,7 @@
 
 **Métodos.** Todos os óbitos por neoplasia maligna (CID-10 C00–C97, causa básica truncada em três caracteres) registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024, agregados por município de residência, ano, faixa etária e sexo (Tabela 1). Denominador pela Projeção da População do IBGE, revisão 2024, por idade simples. Taxas padronizadas pelo método direto com duas populações padrão — Brasil/Censo 2022 e padrão mundial da OMS —, esta última para permitir comparação externa. O aumento no número de óbitos foi decomposto em três termos — tamanho da população, estrutura etária e taxas específicas por idade — pela média das seis ordens de aplicação. O eixo social usa o microdado nacional de 2022–2023, único recorte em disco que traz cor/raça, escolaridade e local de ocorrência; o denominador por cor/raça vem da tabela 9606 do SIDRA (Censo 2022). O gradiente municipal usa quartis de um índice de vulnerabilidade social construído sobre analfabetismo e falta de água, com análise de sensibilidade por redistribuição pro-rata das causas mal definidas. A razão entre a mortalidade de 60 anos ou mais e a de 15 a 49, por capítulo e por sítio, é reportada em log2 com intervalo exato condicional. Como denominador independente do SIM, o Painel de Oncologia do DataSUS fornece os casos diagnosticados por município e ano de diagnóstico; a razão entre óbitos e casos é reportada bruta, padronizada por idade e sem os sítios C44 e C80, com um critério de refutação por sítio declarado antes da medida.
 
-**Resultados.** Os óbitos por neoplasia maligna passaram de 205.998 em 2015 para 259.084 em 2024, enquanto a taxa padronizada por idade caiu de 123,04 para 120,18 por 100 mil pelo padrão brasileiro e de 84,56 para 81,43 pelo padrão mundial da OMS (Tabela 2). A decomposição atribui +47.314 óbitos ao envelhecimento e +11.390 ao crescimento populacional, contra −5.619 devidos à queda das taxas específicas (Tabela 4): o aumento é integralmente demográfico. A probabilidade de uma pessoa de 30 anos morrer de câncer antes dos 70 caiu de 7,428% para 7,138% (Tabela 16). Mantido o risco de 2019, teriam sido registrados mais 48.543 óbitos entre 2020 e 2024 (Tabela 5), com o déficit encolhendo de 5,3% para 2,1% ao longo do período. O sítio predominante muda com a idade — leucemias e encéfalo na infância, mama e colo do útero entre 30 e 44 anos, brônquios/pulmões e próstata depois dos 60 (Tabela 6). A mortalidade padronizada é maior onde há menos vulnerabilidade: 127,3 por 100 mil no quartil menos vulnerável contra 91,5 no mais vulnerável, com causas mal definidas em 4,09% e 7,24% dos óbitos respectivamente; redistribuídas as mal definidas, o gradiente cai de 39% para 35% e **persiste** (Tabela 9). Entre 23 sítios, seis são mais letais no quartil vulnerável, encabeçados pelo colo do útero (razão 1,27), enquanto o cólon é 0,33 (Tabela 10). O colo do útero é também o segundo sítio mais precoce entre os 43 examinados: a razão em log2 entre a mortalidade dos idosos e a dos jovens é de 1,92, contra 9,11 na próstata (Tabela 19). O mesmo padrão reaparece no recorte individual: a taxa padronizada é 132,7 entre pessoas brancas e 98,3 entre pretas, mas o colo do útero mata 10,54 por 100 mil entre indígenas e 5,73 entre brancas, e a próstata 19,82 entre pretos e 16,54 entre brancos (Tabelas 11 e 12). Os óbitos por caso diagnosticado no Painel de Oncologia sobem monotonicamente com a vulnerabilidade, de 0,494 [0,492–0,495] no quartil menos vulnerável a 0,593 [0,587–0,599] no mais vulnerável, resistindo à padronização por idade (0,495 contra 0,589) e à exclusão de C44 e C80 (0,579 contra 0,686); o viés do diagnóstico privado, com 34,6 vínculos de plano por 100 habitantes no Q1 contra 2,5 no Q4, atua no sentido de subestimar o gradiente (Tabela 20). O teste declarado de antemão para atribuir esse gradiente à detecção **reprovou**: a razão mediana é 1,248 nos sítios de apresentação clínica e 0,963 nos dependentes de rastreamento (Tabela 22).
+**Resultados.** Os óbitos por neoplasia maligna passaram de 205.998 em 2015 para 259.084 em 2024, enquanto a taxa padronizada por idade caiu de 123,04 para 120,18 por 100 mil pelo padrão brasileiro e de 84,56 para 81,43 pelo padrão mundial da OMS (Tabela 2). A decomposição atribui +47.314 óbitos ao envelhecimento e +11.390 ao crescimento populacional, contra −5.619 devidos à queda das taxas específicas (Tabela 4): o aumento é integralmente demográfico. A probabilidade de uma pessoa de 30 anos morrer de câncer antes dos 70 caiu de 7,428% para 7,138% (Tabela 16). Mantido o risco de 2019, teriam sido registrados mais 48.543 óbitos entre 2020 e 2024 (Tabela 5), com o déficit encolhendo de 5,3% para 2,1% ao longo do período. O sítio predominante muda com a idade — leucemias e encéfalo na infância, mama e colo do útero entre 30 e 44 anos, brônquios/pulmões e próstata depois dos 60 (Tabela 6). A mortalidade padronizada é maior onde há menos vulnerabilidade: 127,7 por 100 mil no quartil menos vulnerável contra 91,3 no mais vulnerável, com causas mal definidas em 4,02% e 7,27% dos óbitos respectivamente; redistribuídas as mal definidas, o gradiente cai de 39% para 35% e **persiste** (Tabela 9). Entre 23 sítios, seis são mais letais no quartil vulnerável, encabeçados pelo colo do útero (razão 1,31), enquanto o cólon é 0,33 (Tabela 10). O colo do útero é também o segundo sítio mais precoce entre os 43 examinados: a razão em log2 entre a mortalidade dos idosos e a dos jovens é de 1,92, contra 9,11 na próstata (Tabela 19). O mesmo padrão reaparece no recorte individual: a taxa padronizada é 132,7 entre pessoas brancas e 98,3 entre pretas, mas o colo do útero mata 10,54 por 100 mil entre indígenas e 5,73 entre brancas, e a próstata 19,82 entre pretos e 16,54 entre brancos (Tabelas 11 e 12). Os óbitos por caso diagnosticado no Painel de Oncologia sobem monotonicamente com a vulnerabilidade, de 0,502 [0,500–0,503] no quartil menos vulnerável a 0,604 [0,598–0,610] no mais vulnerável, resistindo à padronização por idade (0,502 contra 0,601) e à exclusão de C44 e C80 (0,592 contra 0,696); o viés do diagnóstico privado, com 34,7 vínculos de plano por 100 habitantes no Q1 contra 2,5 no Q4, atua no sentido de subestimar o gradiente (Tabela 20). O teste declarado de antemão para atribuir esse gradiente à detecção **reprovou**: a razão mediana é 1,293 nos sítios de apresentação clínica e 0,98 nos dependentes de rastreamento (Tabela 22).
 
 **Conclusões.** O aumento das mortes por câncer no Brasil não é aumento de risco. O gradiente social da mortalidade registrada aparece invertido em relação à expectativa, e a razão entre óbitos e casos diagnosticados anda no sentido oposto ao dele — padrão compatível com diferença de captação, embora este desenho não estabeleça o mecanismo e o teste desenhado para isso tenha reprovado. Os sítios que dependem de rastreamento — colo do útero acima de todos — resistem a essa inversão e são os candidatos naturais a indicador de equidade oncológica no Brasil. O colo do útero acumula as quatro desigualdades medidas neste trabalho: território, vulnerabilidade municipal, cor/raça e idade ao morrer.
 
@@ -437,14 +437,14 @@ Ninguém sustentaria que se adoece 80% menos de câncer no Maranhão do que no R
 
 | Quartil | Óbitos por câncer | Taxa padronizada | Taxa corrigida | % causa mal definida | % dos óbitos por câncer |
 |---|---|---|---|---|---|
-| Q1 (menos vulnerável) | 511.966 | 127,3 | 132,8 | 4,09 | 17,8 |
-| Q2 | 106.157 | 114,8 | 121,7 | 5,58 | 15,2 |
-| Q3 | 71.390 | 102,1 | 109,2 | 6,39 | 13,9 |
-| Q4 (mais vulnerável) | 58.054 | 91,5 | 98,6 | 7,24 | 12,9 |
+| Q1 (menos vulnerável) | 502.028 | 127,7 | 133,1 | 4,02 | 17,9 |
+| Q2 | 114.054 | 114,6 | 121,6 | 5,62 | 15,2 |
+| Q3 | 71.666 | 102,7 | 110 | 6,51 | 14 |
+| Q4 (mais vulnerável) | 59.818 | 91,3 | 98,5 | 7,27 | 12,9 |
 
-A mortalidade padronizada por câncer é de 127,3 por 100 mil no quartil menos vulnerável e 91,5 no mais vulnerável — 39% mais alta onde há menos vulnerabilidade social. Na mesma tabela, e no sentido oposto, a fração de óbitos por causa mal definida vai de 4,09% a 7,24%, e a fração dos óbitos totais atribuída a câncer, de 17,8% a 12,9%.
+A mortalidade padronizada por câncer é de 127,7 por 100 mil no quartil menos vulnerável e 91,3 no mais vulnerável — 40% mais alta onde há menos vulnerabilidade social. Na mesma tabela, e no sentido oposto, a fração de óbitos por causa mal definida vai de 4,02% a 7,27%, e a fração dos óbitos totais atribuída a câncer, de 17,9% a 12,9%.
 
-A correção por redistribuição das causas mal definidas move os quatro valores para cima — 132,8 no primeiro quartil e 98,6 no quarto — e **preserva o gradiente**. Sob a suposição mais favorável possível à hipótese de subdiagnóstico, portanto, a diferença encolhe de 39% para 35% e não desaparece.
+A correção por redistribuição das causas mal definidas move os quatro valores para cima — 133,1 no primeiro quartil e 98,5 no quarto — e **preserva o gradiente**. Sob a suposição mais favorável possível à hipótese de subdiagnóstico, portanto, a diferença encolhe de 40% para 35% e não desaparece.
 
 Se a diferença remanescente fosse detecção, ela deveria ser aproximadamente uniforme entre os tipos de tumor. Não é.
 
@@ -452,31 +452,31 @@ Se a diferença remanescente fosse detecção, ela deveria ser aproximadamente u
 
 | CID | Sítio | Óbitos | Taxa Q1 | Taxa Q4 | Razão Q4/Q1 |
 |---|---|---|---|---|---|
-| C44 | Outras neoplasias malignas da pele | 10.692 | 1,54 | 2,18 | 1,42 |
-| C53 | Colo do útero | 21.682 | 3,2 | 4,07 | 1,27 |
-| C76 | Outras localizações e mal definidas | 16.159 | 2,35 | 2,88 | 1,22 |
-| C15 | Esôfago | 25.733 | 3,83 | 4,01 | 1,05 |
-| C61 | Próstata | 51.507 | 7,92 | 8,23 | 1,04 |
-| C16 | Estômago | 44.076 | 7 | 7,17 | 1,03 |
-| C32 | Laringe | 14.001 | 2,23 | 2,07 | 0,93 |
-| C22 | Fígado e vias biliares intra-hepáticas | 33.497 | 5,57 | 4,54 | 0,81 |
-| C71 | Encéfalo | 26.190 | 4,41 | 3,14 | 0,71 |
-| C26 | Outros órgãos digestivos e mal definidos | 13.130 | 2,14 | 1,48 | 0,69 |
-| C34 | Brônquios e pulmões | 93.089 | 16,09 | 10,54 | 0,65 |
-| C24 | Outras partes das vias biliares | 8.656 | 1,54 | 0,98 | 0,64 |
-| C56 | Ovário | 13.226 | 2,4 | 1,39 | 0,58 |
-| C92 | Leucemia mieloide | 11.495 | 2,07 | 1,2 | 0,58 |
-| C80 | Sem especificação de localização | 17.248 | 3,02 | 1,73 | 0,57 |
-| C50 | Mama | 60.886 | 11,07 | 5,85 | 0,53 |
-| C90 | Mieloma múltiplo | 11.845 | 2,18 | 1,08 | 0,5 |
-| C25 | Pâncreas | 40.531 | 7,51 | 3,69 | 0,49 |
-| C64 | Rim | 12.775 | 2,38 | 1,15 | 0,48 |
-| C67 | Bexiga | 15.854 | 2,91 | 1,35 | 0,46 |
-| C20 | Reto | 18.340 | 3,4 | 1,53 | 0,45 |
-| C85 | Linfoma não-Hodgkin | 9.172 | 1,71 | 0,76 | 0,45 |
-| C18 | Cólon | 46.490 | 9,09 | 2,97 | 0,33 |
+| C44 | Outras neoplasias malignas da pele | 10.692 | 1,54 | 2,14 | 1,39 |
+| C53 | Colo do útero | 21.682 | 3,14 | 4,1 | 1,31 |
+| C76 | Outras localizações e mal definidas | 16.159 | 2,37 | 2,87 | 1,21 |
+| C16 | Estômago | 44.076 | 6,97 | 7,17 | 1,03 |
+| C61 | Próstata | 51.507 | 7,96 | 8,19 | 1,03 |
+| C15 | Esôfago | 25.733 | 3,88 | 3,95 | 1,02 |
+| C32 | Laringe | 14.001 | 2,25 | 2,03 | 0,9 |
+| C22 | Fígado e vias biliares intra-hepáticas | 33.497 | 5,54 | 4,55 | 0,82 |
+| C71 | Encéfalo | 26.190 | 4,41 | 3,15 | 0,71 |
+| C26 | Outros órgãos digestivos e mal definidos | 13.130 | 2,17 | 1,5 | 0,69 |
+| C34 | Brônquios e pulmões | 93.089 | 16,2 | 10,65 | 0,66 |
+| C24 | Outras partes das vias biliares | 8.656 | 1,54 | 0,99 | 0,64 |
+| C92 | Leucemia mieloide | 11.495 | 2,08 | 1,2 | 0,58 |
+| C56 | Ovário | 13.226 | 2,38 | 1,36 | 0,57 |
+| C80 | Sem especificação de localização | 17.248 | 3,01 | 1,72 | 0,57 |
+| C50 | Mama | 60.886 | 11,04 | 5,87 | 0,53 |
+| C90 | Mieloma múltiplo | 11.845 | 2,19 | 1,08 | 0,5 |
+| C25 | Pâncreas | 40.531 | 7,55 | 3,66 | 0,49 |
+| C64 | Rim | 12.775 | 2,39 | 1,14 | 0,48 |
+| C20 | Reto | 18.340 | 3,42 | 1,57 | 0,46 |
+| C67 | Bexiga | 15.854 | 2,94 | 1,34 | 0,45 |
+| C85 | Linfoma não-Hodgkin | 9.172 | 1,71 | 0,75 | 0,44 |
+| C18 | Cólon | 46.490 | 9,15 | 3,02 | 0,33 |
 
-Dos 23 sítios com pelo menos 8 mil óbitos no período, **seis matam mais no quartil vulnerável** — e são os mesmos seis antes e depois da troca de denominador descrita na §2.3. O primeiro é uma categoria de pele (C44, razão 1,42); o segundo é o **colo do útero**, com razão 1,27. Esôfago, próstata e estômago aparecem próximos da unidade. No extremo oposto, o cólon tem razão 0,33, a mama 0,53 e o pâncreas 0,49 — os tumores cuja detecção depende mais diretamente de colonoscopia, mamografia e imagem de alta complexidade.
+Dos 23 sítios com pelo menos 8 mil óbitos no período, **seis matam mais no quartil vulnerável** — e são os mesmos seis antes e depois da troca de denominador descrita na §2.3. O primeiro é uma categoria de pele (C44, razão 1,39); o segundo é o **colo do útero**, com razão 1,31. Esôfago, próstata e estômago aparecem próximos da unidade. No extremo oposto, o cólon tem razão 0,33, a mama 0,53 e o pâncreas 0,49 — os tumores cuja detecção depende mais diretamente de colonoscopia, mamografia e imagem de alta complexidade.
 
 Duas linhas dessa tabela não são doença e sim codificação, e apontam em sentidos contrários: "outras localizações e mal definidas" (C76) tem razão 1,22, enquanto "sem especificação de localização" (C80) tem 0,57. Se o quartil vulnerável simplesmente codificasse pior, as duas subiriam juntas. Elas divergem, o que sugere práticas de codificação **distintas** — categorias residuais diferentes, escolhidas por serviços diferentes — e não apenas piores.
 
@@ -548,7 +548,7 @@ Mama e cólon seguem o gradiente do agregado; colo do útero e próstata o desob
 | Superior completo | 74.698 | 33,2 | 4,09 | 87,6 | 9,5 |
 | Ignorado | 173.590 | 18 | 6,9 | 82 | 11,7 |
 
-Entre os brasileiros de 30 a 69 anos que morreram no biênio, o câncer foi a causa básica de 15,6% das mortes de quem não tinha escolaridade e de 33,2% das de quem tinha superior completo. A leitura direta — mais câncer entre os instruídos — é inválida: mortalidade proporcional é uma divisão, e quem tem mais escolaridade morre menos de todas as outras causas, o que faz a fração do câncer subir sem que o risco de câncer suba. Na mesma tabela, a fração de causa mal definida vai de 6,54% a 4,09% no sentido inverso, de modo que parte da diferença é câncer que, na base da distribuição de escolaridade, não chega a ser nomeado.
+Entre os brasileiros de 30 a 69 anos que morreram no biênio, o câncer foi a causa básica de 15,6% das mortes de quem não tinha escolaridade e de 33,2% das de quem tinha superior completo. A leitura direta — mais câncer entre os instruídos — é inválida: mortalidade proporcional é uma divisão, e quem tem mais escolaridade morre menos de todas as outras causas, o que faz a fração do câncer subir sem que o risco de câncer suba. Na mesma tabela, a fração de causa mal definida vai de 6,54% a 4,02% no sentido inverso, de modo que parte da diferença é câncer que, na base da distribuição de escolaridade, não chega a ser nomeado.
 
 A última coluna, essa sim, não depende de denominador nenhum e não admite leitura ambígua: entre os que morreram de câncer, morreram **em casa** 22,4% dos sem escolaridade e 9,5% dos com superior completo. A fração que morreu em hospital vai de 71% a 87,6% no sentido oposto.
 
@@ -587,17 +587,17 @@ Todas as seções anteriores mediram mortalidade. Esta divide a mortalidade pelo
 
 | Quartil | Óbitos | Casos no Painel | Óbitos por caso | Padronizada por idade | Sem C44 e C80 | % com estádio informado | % em estádio III/IV | Planos por 100 hab. |
 |---|---|---|---|---|---|---|---|---|
-| Q1 (menos vulnerável) | 511.966 | 1.036.847 | 0,494 [0,492–0,495] | 0,495 | 0,579 | 32,9 | 62,1 | 34,6 |
-| Q2 | 106.157 | 211.826 | 0,501 [0,497–0,505] | 0,505 | 0,603 | 36,6 | 63,4 | 14,3 |
-| Q3 | 71.390 | 123.455 | 0,578 [0,573–0,584] | 0,576 | 0,66 | 39,5 | 64,3 | 5,8 |
-| Q4 (mais vulnerável) | 58.054 | 97.939 | 0,593 [0,587–0,599] | 0,589 | 0,686 | 38,7 | 65,9 | 2,5 |
-O gradiente é monotônico e vai de **0,494 [0,492–0,495]** no quartil menos vulnerável a **0,593 [0,587–0,599]** no mais vulnerável — cerca de 20% a mais. Os intervalos não se aproximam, o que era esperado com 511.966 e 58.054 óbitos nos extremos, e é por isso que a largura deles não é o que sustenta a leitura.
+| Q1 (menos vulnerável) | 502.029 | 1.000.935 | 0,502 [0,500–0,503] | 0,502 | 0,592 | 33,4 | 62,1 | 34,7 |
+| Q2 | 114.055 | 244.806 | 0,466 [0,463–0,469] | 0,471 | 0,544 | 34 | 63,2 | 15,6 |
+| Q3 | 71.666 | 125.280 | 0,572 [0,567–0,577] | 0,571 | 0,653 | 39,7 | 64,9 | 6,1 |
+| Q4 (mais vulnerável) | 59.818 | 99.046 | 0,604 [0,598–0,610] | 0,601 | 0,696 | 38,7 | 65,8 | 2,5 |
+O gradiente é monotônico e vai de **0,502 [0,500–0,503]** no quartil menos vulnerável a **0,604 [0,598–0,610]** no mais vulnerável — cerca de 20% a mais. Os intervalos não se aproximam, o que era esperado com 502.029 e 59.818 óbitos nos extremos, e é por isso que a largura deles não é o que sustenta a leitura.
 
 O que sustenta é o comportamento sob as três perturbações que poderiam desfazê-lo, todas declaradas antes da medida:
 
-- **Idade.** Os municípios menos vulneráveis são mais velhos, e idade eleva letalidade; a padronização deveria, portanto, encolher o gradiente. Ela o move de 0,494/0,593 para **0,495/0,589**, uma diferença de um ponto percentual.
-- **Sítios problemáticos.** Retirando `C44` e `C80`, os níveis sobem para **0,579** e **0,686**, e a distância entre os quartis se mantém.
-- **Diagnóstico privado.** É o viés mais forte, e ele age **contra** o achado. Quem é diagnosticado fora do SUS não entra no Painel, mas seu óbito entra no SIM — de modo que a razão do quartil menos vulnerável está inflada, não deprimida. A exposição a esse viés é de **34,6** vínculos de plano por 100 habitantes no Q1 contra **2,5** no Q4. No limite aritmético em que todo conveniado escapasse do denominador, a razão verdadeira do Q1 cairia para cerca de 0,32 e a distância entre os quartis mais que triplicaria. O número medido é piso.
+- **Idade.** Os municípios menos vulneráveis são mais velhos, e idade eleva letalidade; a padronização deveria, portanto, encolher o gradiente. Ela o move de 0,502/0,604 para **0,502/0,601**, uma diferença de um ponto percentual.
+- **Sítios problemáticos.** Retirando `C44` e `C80`, os níveis sobem para **0,592** e **0,696**, e a distância entre os quartis se mantém.
+- **Diagnóstico privado.** É o viés mais forte, e ele age **contra** o achado. Quem é diagnosticado fora do SUS não entra no Painel, mas seu óbito entra no SIM — de modo que a razão do quartil menos vulnerável está inflada, não deprimida. A exposição a esse viés é de **34,7** vínculos de plano por 100 habitantes no Q1 contra **2,5** no Q4. No limite aritmético em que todo conveniado escapasse do denominador, a razão verdadeira do Q1 cairia para cerca de 0,32 e a distância entre os quartis mais que triplicaria. O número medido é piso.
 
 **Aqui o teste pré-especificado da §2.9 reprova, e reprova com clareza.**
 
@@ -605,42 +605,42 @@ O que sustenta é o comportamento sob as três perturbações que poderiam desfa
 
 | Grupo pré-especificado | Sítios | Óbitos | Razão Q4/Q1 mediana |
 |---|---|---|---|
-| apresentação clínica | 7 | 274.614 | 1,248 |
-| depende de detecção | 7 | 227.538 | 0,963 |
-A previsão era razão maior nos tumores dependentes de detecção. O observado é o inverso: mediana **1,248** entre os sítios de apresentação clínica e **0,963** entre os dependentes de rastreamento ou imagem — ou seja, ausência de gradiente exatamente onde a hipótese de detecção o exigia.
+| apresentação clínica | 7 | 274.614 | 1,293 |
+| depende de detecção | 7 | 227.538 | 0,98 |
+A previsão era razão maior nos tumores dependentes de detecção. O observado é o inverso: mediana **1,293** entre os sítios de apresentação clínica e **0,98** entre os dependentes de rastreamento ou imagem — ou seja, ausência de gradiente exatamente onde a hipótese de detecção o exigia.
 
 **Tabela 21. Óbitos por caso diagnosticado por sítio do tumor, quartis extremos, 2022–2024 (`tabela_21_obito_por_caso_sitio.csv`).**
 
 | CID | Sítio | Óbitos | Casos | Óbitos/caso Q1 | Óbitos/caso Q4 | Razão Q4/Q1 | Grupo pré-especificado |
 |---|---|---|---|---|---|---|---|
-| C76 | Outras localizações e mal definidas | 16.159 | 20.795 | 0,547 | 2,883 | 5,274 | não classificado |
-| C26 | Outros órgãos digestivos e mal definidos | 13.130 | 4.853 | 2,012 | 9,556 | 4,749 | não classificado |
-| C44 | Outras neoplasias malignas da pele | 10.692 | 200.562 | 0,042 | 0,132 | 3,145 | fora do contraste |
-| C16 | Estômago | 44.077 | 58.734 | 0,647 | 1,354 | 2,093 | apresentação clínica |
-| C22 | Fígado e vias biliares intra-hepáticas | 33.498 | 10.461 | 3,013 | 4,427 | 1,469 | apresentação clínica |
-| C53 | Colo do útero | 21.683 | 63.763 | 0,306 | 0,449 | 1,466 | depende de detecção |
-| C61 | Próstata | 51.508 | 137.218 | 0,346 | 0,502 | 1,449 | depende de detecção |
-| C24 | Outras partes das vias biliares | 8.657 | 3.908 | 2,132 | 3,08 | 1,445 | não classificado |
-| C15 | Esôfago | 25.733 | 22.330 | 1,04 | 1,446 | 1,39 | apresentação clínica |
-| C34 | Brônquios e pulmões | 93.090 | 42.054 | 2,128 | 2,656 | 1,248 | apresentação clínica |
-| C32 | Laringe | 14.001 | 15.321 | 0,883 | 1,099 | 1,245 | não classificado |
-| C71 | Encéfalo | 26.190 | 14.809 | 1,714 | 1,984 | 1,157 | apresentação clínica |
-| C85 | Linfoma não-Hodgkin | 9.172 | 5.516 | 1,655 | 1,764 | 1,065 | não classificado |
-| C25 | Pâncreas | 40.531 | 13.408 | 3,08 | 3,191 | 1,036 | apresentação clínica |
-| C20 | Reto | 18.340 | 36.169 | 0,521 | 0,514 | 0,987 | depende de detecção |
-| C67 | Bexiga | 15.854 | 23.364 | 0,687 | 0,661 | 0,963 | depende de detecção |
-| C50 | Mama | 60.887 | 190.082 | 0,327 | 0,309 | 0,947 | depende de detecção |
-| C92 | Leucemia mieloide | 11.495 | 11.810 | 0,997 | 0,944 | 0,947 | apresentação clínica |
-| C64 | Rim | 12.775 | 15.072 | 0,872 | 0,823 | 0,943 | depende de detecção |
-| C56 | Ovário | 13.226 | 21.584 | 0,65 | 0,566 | 0,871 | não classificado |
-| C18 | Cólon | 46.491 | 79.005 | 0,614 | 0,534 | 0,869 | depende de detecção |
-| C90 | Mieloma múltiplo | 11.845 | 13.611 | 0,916 | 0,746 | 0,815 | não classificado |
-| C80 | Sem especificação de localização | 17.249 | 62.711 | 0,325 | 0,179 | 0,552 | fora do contraste |
-O detalhe por sítio mostra por que a mediana do grupo esconde mais do que revela. Entre os dependentes de detecção, colo do útero (**1,466**) e próstata (**1,449**) vão na direção prevista, enquanto mama (**0,947**), cólon (**0,869**), reto (**0,987**), rim (**0,943**) e bexiga (**0,963**) não vão a lugar nenhum. E as duas maiores razões da tabela inteira são `C76` (**5,274**) e `C26` (**4,749**), ambas categorias de **localização mal definida** — um óbito codificado assim já é, em si, medida de investigação diagnóstica ausente, de modo que o topo do ranking é um achado sobre codificação e não sobre biologia.
+| C76 | Outras localizações e mal definidas | 16.159 | 20.795 | 0,548 | 2,824 | 5,154 | não classificado |
+| C26 | Outros órgãos digestivos e mal definidos | 13.130 | 4.853 | 1,999 | 9,782 | 4,893 | não classificado |
+| C44 | Outras neoplasias malignas da pele | 10.692 | 200.562 | 0,042 | 0,136 | 3,265 | fora do contraste |
+| C16 | Estômago | 44.077 | 58.734 | 0,658 | 1,395 | 2,118 | apresentação clínica |
+| C24 | Outras partes das vias biliares | 8.657 | 3.908 | 2,121 | 3,189 | 1,504 | não classificado |
+| C22 | Fígado e vias biliares intra-hepáticas | 33.498 | 10.461 | 3,005 | 4,497 | 1,496 | apresentação clínica |
+| C53 | Colo do útero | 21.683 | 63.763 | 0,306 | 0,456 | 1,49 | depende de detecção |
+| C61 | Próstata | 51.508 | 137.218 | 0,347 | 0,515 | 1,484 | depende de detecção |
+| C15 | Esôfago | 25.733 | 22.330 | 1,041 | 1,482 | 1,423 | apresentação clínica |
+| C34 | Brônquios e pulmões | 93.090 | 42.054 | 2,135 | 2,76 | 1,293 | apresentação clínica |
+| C32 | Laringe | 14.001 | 15.321 | 0,88 | 1,089 | 1,237 | não classificado |
+| C71 | Encéfalo | 26.190 | 14.809 | 1,717 | 2,003 | 1,166 | apresentação clínica |
+| C20 | Reto | 18.340 | 36.169 | 0,518 | 0,543 | 1,049 | depende de detecção |
+| C85 | Linfoma não-Hodgkin | 9.172 | 5.516 | 1,647 | 1,714 | 1,041 | não classificado |
+| C25 | Pâncreas | 40.531 | 13.408 | 3,075 | 3,199 | 1,04 | apresentação clínica |
+| C67 | Bexiga | 15.854 | 23.364 | 0,686 | 0,672 | 0,98 | depende de detecção |
+| C50 | Mama | 60.887 | 190.082 | 0,333 | 0,316 | 0,949 | depende de detecção |
+| C64 | Rim | 12.775 | 15.072 | 0,876 | 0,83 | 0,947 | depende de detecção |
+| C92 | Leucemia mieloide | 11.495 | 11.810 | 1,006 | 0,943 | 0,938 | apresentação clínica |
+| C18 | Cólon | 46.491 | 79.005 | 0,616 | 0,553 | 0,899 | depende de detecção |
+| C56 | Ovário | 13.226 | 21.584 | 0,65 | 0,561 | 0,863 | não classificado |
+| C90 | Mieloma múltiplo | 11.845 | 13.611 | 0,916 | 0,763 | 0,832 | não classificado |
+| C80 | Sem especificação de localização | 17.249 | 62.711 | 0,312 | 0,181 | 0,581 | fora do contraste |
+O detalhe por sítio mostra por que a mediana do grupo esconde mais do que revela. Entre os dependentes de detecção, colo do útero (**1,49**) e próstata (**1,484**) vão na direção prevista, enquanto mama (**0,949**), cólon (**0,899**), reto (**1,049**), rim (**0,947**) e bexiga (**0,98**) não vão a lugar nenhum. E as duas maiores razões da tabela inteira são `C76` (**5,154**) e `C26` (**4,893**), ambas categorias de **localização mal definida** — um óbito codificado assim já é, em si, medida de investigação diagnóstica ausente, de modo que o topo do ranking é um achado sobre codificação e não sobre biologia.
 
 Há ainda um confundidor que a classificação da §2.9 não previu e que a atravessa: o Painel conta diagnósticos da **mesma janela** dos óbitos. Para tumor rápido — pâncreas, pulmão, fígado, esôfago, estômago — morto e diagnosticado são quase a mesma pessoa; para tumor lento — mama, cólon, próstata —, os óbitos de 2022 a 2024 vêm de casos diagnosticados antes da janela. Os dois grupos pré-especificados estão correlacionados com a velocidade do tumor, e a comparação testa as duas coisas de uma vez. O teste, portanto, não apenas reprovou: ele estava mal construído, e isso só ficou visível depois.
 
-Um resíduo aponta na direção da detecção por via independente, e é fraco. Entre os casos com estádio informado, **65,9%** estão em estádio III ou IV no quartil mais vulnerável contra **62,1%** no menos vulnerável. Mas o campo de estadiamento é preenchido em **32,9%** dos casos no Q1 e **38,7%** no Q4 — proporções que a literatura brasileira de registros de câncer classifica como completude "muito ruim" —, e uma diferença de menos de quatro pontos percentuais medida sobre um terço dos casos não sustenta conclusão. Sustenta uma frase com ressalva, que é o que ela é aqui.
+Um resíduo aponta na direção da detecção por via independente, e é fraco. Entre os casos com estádio informado, **65,8%** estão em estádio III ou IV no quartil mais vulnerável contra **62,1%** no menos vulnerável. Mas o campo de estadiamento é preenchido em **33,4%** dos casos no Q1 e **38,7%** no Q4 — proporções que a literatura brasileira de registros de câncer classifica como completude "muito ruim" —, e uma diferença de menos de quatro pontos percentuais medida sobre um terço dos casos não sustenta conclusão. Sustenta uma frase com ressalva, que é o que ela é aqui.
 
 ---
 
@@ -666,11 +666,11 @@ O que a Tabela 20 **não** faz é estabelecer o mecanismo, e o teste desenhado p
 
 Há uma consequência metodológica que independe do mecanismo. A Estimativa de Incidência do INCA aplica razões I/M aos óbitos corrigidos do SIM e supõe essas razões geograficamente estáveis dentro de cada região [12]. A medida da Tabela 20 é um proxy independente dessa razão, e ele varia de modo sistemático com a vulnerabilidade municipal. O proxy tem vieses próprios e não autoriza dizer que a suposição está errada; autoriza dizer que ela é **testável com dado já público**, e que vale testá-la.
 
-O que permite avançar sobre a mistura de mecanismos, sem dado individual de incidência, é o comportamento sítio a sítio. Um efeito puro de detecção produziria gradiente aproximadamente uniforme; o que se observa na Tabela 10 é uma dispersão de razões entre 0,33 e 1,42, com significado clínico legível: os sítios que dependem de exame de rastreamento ou imagem de alta complexidade (cólon, mama, pâncreas, rim, bexiga, reto) concentram-se abaixo de 1, e os que se manifestam clinicamente sem depender de programa organizado de detecção concentram-se perto ou acima de 1.
+O que permite avançar sobre a mistura de mecanismos, sem dado individual de incidência, é o comportamento sítio a sítio. Um efeito puro de detecção produziria gradiente aproximadamente uniforme; o que se observa na Tabela 10 é uma dispersão de razões entre 0,33 e 1,39, com significado clínico legível: os sítios que dependem de exame de rastreamento ou imagem de alta complexidade (cólon, mama, pâncreas, rim, bexiga, reto) concentram-se abaixo de 1, e os que se manifestam clinicamente sem depender de programa organizado de detecção concentram-se perto ou acima de 1.
 
 ### 4.3 O colo do útero como indicador de equidade
 
-Entre todos os sítios examinados, o do colo do útero é o que se comporta de maneira mais consistente com desigualdade de acesso, e ele o faz nos três recortes independentes deste trabalho: entre unidades da federação (9,55 no Amazonas contra 2,2 em Minas Gerais, Tabela 8), entre quartis de vulnerabilidade municipal (razão 1,27, Tabela 10) e entre grupos de cor/raça (10,54 entre indígenas contra 5,73 entre brancas, Tabela 12). Os três recortes usam populações diferentes, denominadores diferentes e níveis de agregação diferentes, e apontam na mesma direção.
+Entre todos os sítios examinados, o do colo do útero é o que se comporta de maneira mais consistente com desigualdade de acesso, e ele o faz nos três recortes independentes deste trabalho: entre unidades da federação (9,55 no Amazonas contra 2,2 em Minas Gerais, Tabela 8), entre quartis de vulnerabilidade municipal (razão 1,31, Tabela 10) e entre grupos de cor/raça (10,54 entre indígenas contra 5,73 entre brancas, Tabela 12). Os três recortes usam populações diferentes, denominadores diferentes e níveis de agregação diferentes, e apontam na mesma direção.
 
 A coerência importa porque o colo do útero é um caso quase experimental dentro da oncologia: tem etiologia infecciosa estabelecida, vacina disponível, história natural longa o bastante para que a detecção precoce mude o desfecho, e é o único tumor para o qual a Organização Mundial da Saúde definiu uma **meta de eliminação** — incidência abaixo de 4 casos por 100 mil mulheres ao ano, sustentada pelas metas 90–70–90 de vacinação, rastreamento e tratamento até 2030 [3]. Mortalidade elevada por câncer de colo do útero mede, com pouca ambiguidade, ausência de programa alcançando aquela população — e não maior ocorrência da doença por acaso geográfico. É, por isso, o candidato natural a indicador-síntese de equidade oncológica no Brasil, papel que a mortalidade total por câncer não pode cumprir pelas razões da seção anterior.
 

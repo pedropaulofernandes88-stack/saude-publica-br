@@ -78,19 +78,67 @@ def fetch_alfabetizacao() -> pd.DataFrame:
     return df[["municipio_cod", "taxa_analfabetismo"]].dropna()
 
 
+#: Categorias da classificação c1821 da tabela 6803 do SIDRA. Ela é
+#: HIERÁRQUICA, e essa é a armadilha: 72146 e 72147 não são irmãos de 72145,
+#: são FILHOS dele.
+#:
+#:     72129  Total
+#:     72144    Possui ligação à rede geral e a utiliza como forma principal
+#:     72145    Possui ligação à rede geral, mas utiliza principalmente outra
+#:     72146      ... Poço profundo ou artesiano        <- filho de 72145
+#:     72147      ... Poço raso, freático ou cacimba    <- filho de 72145
+#:     72148      ... Fonte, nascente ou mina           <- filho de 72145
+#:     72149..72152  ... (demais formas)                <- filhos de 72145
+#:     72153    Não possui ligação com a rede geral
+#:     72154..72160  ... (por forma de abastecimento)   <- filhos de 72153
+#:
+#: Somar 72144+72145+72146+72147 como "com água" — o que este arquivo fazia até
+#: 2026-09-12 — conta os dois primeiros filhos DE NOVO dentro do pai, e ainda
+#: ignora os outros cinco. Em Cruzaltense/RS dava 967 domicílios com água num
+#: total de 616, e `pct_sem_agua` saía −56,98%.
+#:
+#: Medido em 2026-09-12: o valor estava errado em 5.477 dos 5.570 municípios
+#: (98,3%) — os 93 restantes coincidiam por acaso —, com 418 negativos.
+#:
+#: A conta certa não precisa somar nada: `72153` JÁ É "não possui ligação",
+#: e 72144+72145+72153 fecha com o total em 100,00% dos municípios (conferido
+#: na guarda abaixo, que aborta se deixar de fechar).
+TOTAL, SEM_LIGACAO = "72129", "72153"
+COM_LIGACAO = ("72144", "72145")
+
+
 def fetch_sem_agua() -> pd.DataFrame:
     print("[ivs] água encanada (Censo 2022, t/6803)...")
-    # total (72129) e categorias 'possui ligação à rede geral' (72144..72147)
-    cats = "72129,72144,72145,72146,72147"
+    cats = ",".join((TOTAL, *COM_LIGACAO, SEM_LIGACAO))
     df = _sidra(f"{SIDRA}/t/6803/n6/all/v/381/p/2022/c1821/{cats}")
     df = df[["D1C", "D4C", "V"]].rename(columns={"D1C": "cod7", "D4C": "cat", "V": "dom"})
     df["dom"] = pd.to_numeric(df["dom"], errors="coerce").fillna(0)
     df["municipio_cod"] = df["cod7"].astype(str).str[:6]
-    tot = df[df["cat"] == "72129"].set_index("municipio_cod")["dom"]
-    comraj = (df[df["cat"] != "72129"].groupby("municipio_cod")["dom"].sum())
-    out = pd.DataFrame({"total": tot, "com_agua": comraj}).reset_index()
-    out["pct_sem_agua"] = ((1 - out["com_agua"] / out["total"]) * 100).round(2)
-    return out[["municipio_cod", "pct_sem_agua"]].replace([float("inf")], pd.NA).dropna()
+    p = df.pivot_table(index="municipio_cod", columns="cat", values="dom",
+                       aggfunc="sum").fillna(0)
+
+    # GUARDA: as três categorias de primeiro nível têm de somar o total. É ela
+    # que teria pego o defeito original — e é ela que pega se o IBGE remexer a
+    # classificação, porque aí a hierarquia deixa de fechar.
+    faltando = [c for c in (TOTAL, *COM_LIGACAO, SEM_LIGACAO) if c not in p.columns]
+    if faltando:
+        raise SystemExit(f"[ivs] SIDRA não devolveu as categorias {faltando} — "
+                         "a classificação c1821 mudou; a conta precisa ser refeita.")
+    soma = p[list(COM_LIGACAO)].sum(axis=1) + p[SEM_LIGACAO]
+    fora = (soma - p[TOTAL]).abs() > 1
+    if fora.any():
+        ex = p[fora].head(3).index.tolist()
+        raise SystemExit(
+            f"[ivs] em {int(fora.sum()):,} municípios as categorias de primeiro nível "
+            f"não somam o total (ex.: {ex}). A hierarquia da c1821 mudou, e somar "
+            "categoria de nível errado é exatamente o defeito de 2026-09-12.")
+
+    out = p.reset_index()
+    out["pct_sem_agua"] = (100 * out[SEM_LIGACAO] / out[TOTAL]).round(2)
+    out = out.replace([float("inf")], pd.NA).dropna(subset=["pct_sem_agua"])
+    if not out.pct_sem_agua.between(0, 100).all():
+        raise SystemExit("[ivs] pct_sem_agua fora de 0–100 — proporção impossível.")
+    return out[["municipio_cod", "pct_sem_agua"]]
 
 
 def main() -> int:
