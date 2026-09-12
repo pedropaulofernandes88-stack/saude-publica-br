@@ -123,7 +123,7 @@ O trabalho usa exclusivamente dados de domínio público, agregados, sem identif
 | Óbitos codificados em B34.2 (COVID-19 no SIM brasileiro) | 718.811 |
 | Causas mal definidas, em % dos óbitos | 5,33 |
 
-A guarda de U07 não disparou: zero óbitos nesse código em dez anos, e 718.811 em B34.2. A proporção de causas mal definidas, 5,33%, é o confundidor de fundo de todo este trabalho e volta na §4.3.
+A guarda de U07 não disparou: zero óbitos nesse código em dez anos, e 718.811 em B34.2. O total de 14.484.496 óbitos inclui os registros cujo município de residência não é identificável — 27.278 óbitos em 25 códigos do tipo `110000`, "município ignorado" dentro da unidade da federação. Este desenho **não** agrega por município e por isso os mantém; o manuscrito irmão sobre vigilância da água, que agrega por município, os exclui e trabalha com 14.457.218. Os dois números descrevem a mesma versão dos microdados, e a diferença é inteiramente a exigência de município utilizável. A proporção de causas mal definidas, 5,33%, é o confundidor de fundo de todo este trabalho e volta na §4.3.
 
 ### 3.2 O instrumento oficial identifica 4,03 óbitos por 10 mil
 
@@ -481,7 +481,7 @@ A limitação central não é de método: é de fonte, e vale para toda a litera
 
 O Brasil dispõe de um instrumento oficial para contar mortes evitáveis por vacina, e ele identifica quatro óbitos em cada dez mil registrados, número que não se move há uma década. A estabilidade não é epidemiológica. Ela decorre de o instrumento parar aos 74 anos, descrever um calendário vacinal anterior a 2011 e ser dominado internamente por uma causa cuja evitabilidade por vacina não se sustenta na idade em que ocorre.
 
-No mesmo período, doenças com vacina disponível e ausentes desse instrumento produziram um surto de febre amarela com 452 óbitos em áreas fora da recomendação vigente, a perda do certificado de eliminação do sarampo com 19 óbitos em lactentes, o retorno da coqueluche em menores de 1 ano e uma série de influenza cujo valor mais recente é o maior de onze anos. Um indicador de evitabilidade que não registra nenhum desses eventos não está medindo mal: está medindo outra coisa.
+No mesmo período, doenças com vacina disponível produziram um surto de febre amarela com 452 óbitos em áreas fora da recomendação vigente — essa, sim, ausente do subgrupo 1.1 —, a perda do certificado de eliminação do sarampo com 19 óbitos em lactentes, o retorno da coqueluche em menores de 1 ano e uma série de influenza cujo valor mais recente é o maior de onze anos. **Sarampo e coqueluche já constam da lista**, e ressurgiram assim mesmo: o problema do instrumento não se reduz a quais códigos ele inclui. Um indicador de evitabilidade que não registra nenhum desses eventos não está medindo mal: está medindo outra coisa.
 
 Atualizar a Lista Brasileira é decisão de vigilância, não exercício estatístico, e as quatro mudanças que os resultados sustentam são explícitas. Nenhuma delas, porém, atravessa o teto imposto pela ausência de investigação etiológica na declaração de óbito — que continua sendo, no Brasil, o fator que mais limita o que qualquer lista de causas evitáveis consegue enxergar.
 
@@ -511,8 +511,10 @@ A lista termina aos 74 anos, e 35,8% dos óbitos estão acima desse corte.
 idade sem proteção estabelecida pela BCG; em azul, o que resta. *Fonte: Tabela 6.*
 
 **Figura 5.** Febre amarela, sarampo e coqueluche ano a ano. A parte hachurada é
-a fração em menores de 1 ano. Nenhuma das três está no subgrupo 1.1 com a
-cobertura que a década exigiria. *Fonte: Tabela 8.*
+a fração em menores de 1 ano. **Sarampo (B05) e coqueluche (A37) já constam do
+subgrupo 1.1**; a febre amarela não. As duas primeiras ressurgiram no período
+com a lista já as incluindo — o que indica que a limitação do instrumento não se
+resolve apenas acrescentando códigos. *Fonte: Tabela 8.*
 
 **Figura 6.** O teto de codificação: óbitos por código com agente etiológico
 nomeado (azul) e sem (cinza). Escala logarítmica. *Fonte: Tabela 12.*

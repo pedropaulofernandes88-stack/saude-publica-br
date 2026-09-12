@@ -18,8 +18,9 @@ existe para tornar visível uma das três falhas medidas:
   2. ele para aos 74 anos, e é acima disso que se morre;
   3. metade do que ele conta é tuberculose de adulto, que a BCG não previne.
 
-E duas que dizem o que ele NÃO vê: os eventos fora do subgrupo, e o teto de
-codificação que limita qualquer medição de doença bacteriana no Brasil.
+E duas sobre o limite do instrumento: os três eventos da década — dois deles
+JÁ NA LISTA, o que mostra que incluir o código não era o que faltava — e o teto
+de codificação que limita qualquer medição de doença bacteriana no Brasil.
 
 A SEXTA MOSTRA UM RESULTADO NULO
 ---------------------------------
@@ -294,11 +295,20 @@ def figura_05_eventos() -> None:
         ax.set_xticks([2015, 2019, 2023])
         _limpar(ax)
     eixos[0].set_ylabel("Óbitos no ano")
-    eixos[1].text(0.5, 0.92, "hachurado: < 1 ano", transform=eixos[1].transAxes,
-                  ha="center", fontsize=7, color=TINTA2)
-    fig.suptitle("Fora do subgrupo 1.1: o que a década teve e o instrumento não conta",
-                 fontsize=9.4, fontweight="bold", color=TINTA, y=1.05)
-    _salvar(fig, "figura_05_eventos_fora_da_lista")
+    # No canto ESQUERDO do painel do sarampo, que e' a unica regiao dos tres
+    # paineis sem barra alta. Centralizado em cima, como estava, o rotulo caia
+    # exatamente sobre o pico de 2021.
+    eixos[1].text(0.02, 0.88, "hachurado: < 1 ano", transform=eixos[1].transAxes,
+                  ha="left", fontsize=6.8, color=TINTA2)
+    # O TITULO ANTERIOR ERA FALSO, e o revisor o pegou: dizia "Fora do subgrupo
+    # 1.1", mas A37 (coqueluche) e B05 (sarampo) ESTAO no subgrupo — quem esta
+    # fora e' so' a febre amarela. O ponto verdadeiro e' mais forte que o falso:
+    # essas duas doencas ressurgiram COM a lista ja' as incluindo, o que mostra
+    # que incluir o codigo nao e' o que faltava.
+    fig.suptitle("A lista já inclui sarampo e coqueluche, e as duas ressurgiram na"
+                 " década. Só a febre amarela está fora do subgrupo 1.1",
+                 fontsize=9.2, fontweight="bold", color=TINTA, y=1.08)
+    _salvar(fig, "figura_05_tres_eventos")
 
 
 # ── 6. o teto de codificação ───────────────────────────────────────────────
@@ -356,9 +366,13 @@ LEGENDAS: tuple[tuple[str, str, str], ...] = (
      "doenças com vacina disponível no país e à COVID-19. Escala logarítmica: a "
      "COVID-19 está duas ordens de grandeza acima das demais categorias, e uma "
      "escala linear achataria a comparação entre elas. Fonte: Tabela S4."),
-    ("3.6", "figura_05_eventos_fora_da_lista",
+    ("3.6", "figura_05_tres_eventos",
      "Óbitos anuais por febre amarela, sarampo e coqueluche. A porção hachurada "
-     "é a fração em menores de 1 ano. Fonte: Tabela S8."),
+     "é a fração em menores de 1 ano. Sarampo (B05) e coqueluche (A37) JÁ "
+     "constam do subgrupo 1.1 da Lista Brasileira; a febre amarela não. As duas "
+     "primeiras ressurgiram no período com a lista já as incluindo, o que "
+     "indica que a limitação do instrumento não se resolve apenas "
+     "acrescentando códigos. Fonte: Tabela S8."),
     ("3.9", "figura_06_teto_de_codificacao",
      "Óbitos por código da CID-10 segundo o agente etiológico seja nomeado "
      "(azul) ou não (cinza). Escala logarítmica. O teto de medição de doença "

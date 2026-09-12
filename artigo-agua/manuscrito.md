@@ -46,7 +46,13 @@ Esse silêncio tem consequência operacional. O Brasil mantém, desde 2014, um s
 
 Todos os óbitos não fetais registrados no Sistema de Informações sobre Mortalidade (SIM) entre 2015 e 2024, agregados por município de residência, ano e categoria de três caracteres da CID-10. O ano de 2025 aparece nas figuras e na Tabela 2 identificado como preliminar, e **não entra em nenhuma estimativa**: ele é mostrado porque omitir o dado mais recente seria esconder informação, e é marcado porque colá-lo à série consolidada afirmaria uma completude que não existe.
 
-O denominador populacional é a Projeção da População do IBGE, revisão 2024, somada sobre os dez anos para produzir pessoas-ano. A Tabela 1 traz o recorte fechado: 14.457.218 óbitos, 49.429 deles por A00–A09, 831.816 pelo controle, sobre 2.085.404.546 pessoas-ano.
+O denominador populacional é a Projeção da População do IBGE, revisão 2024, somada sobre os dez anos para produzir pessoas-ano.
+
+**Dois totais, e por que eles diferem.** O mart do SIM traz 14.484.496 óbitos no período. Deles, **27.278 estão em 25 códigos do tipo `110000` ou `120000`** — "município ignorado" dentro da unidade da federação. Esses códigos não são municípios: não têm classe de vigilância, não têm população e não podem entrar em nenhuma razão por habitante. Excluídos, restam **14.457.218**, e é sobre esse conjunto que toda estimativa deste artigo é calculada.
+
+A distinção precisa ser explícita porque as duas pontas do funil aparecem no material suplementar: a Tabela 1 traz o conjunto analisável, e a Tabela 2 traz a série anual sobre o mart inteiro. A Tabela 1 mostra o funil completo, com a perda nomeada, justamente para que a diferença não seja lida como inconsistência. A perda no desfecho é pequena — 21 óbitos por A00–A09 e 994 por infecção respiratória — e não se concentra em nenhum ano.
+
+O manuscrito irmão sobre imunoprevenção, que não depende de município, usa o total de **14.484.496**. Os dois números descrevem o mesmo SIM e a mesma versão dos microdados; o que difere é a exigência de município de residência utilizável, que só um dos dois desenhos faz. A Tabela 1 traz o recorte fechado: 14.457.218 óbitos, 49.429 deles por A00–A09, 831.816 pelo controle, sobre 2.085.404.546 pessoas-ano.
 
 ### 2.2 A exposição, e o que ela não é
 
@@ -255,12 +261,18 @@ Os dados primários — o mart municipal do SISAGUA (397.380 linhas) e a sua tab
 
 | Recorte | Valor |
 |---|---|
-| Municípios do país | 5.571 |
+| Municipios do pais (dim_municipio) | 5.571 |
 | Coletados pelo SISAGUA | 5.570 |
-| Analisáveis (com denominador) | 5.570 |
-| Óbitos totais 2015–2024 | 14.457.218 |
+| Analisaveis (coletados e com denominador) | 5.570 |
+| --- obitos, o funil --- | — |
+| Obitos no mart, 2015-2024 | 14.484.496 |
+| (-) em codigo de municipio ignorado (25 codigos) | -27.278 |
+| = Obitos no conjunto analisavel | 14.457.218 |
+| --- desfecho e controle, no conjunto analisavel --- | — |
 | Óbitos por A00–A09 (subgrupo 1.2) | 49.429 |
+| (dos quais perdidos em municipio ignorado) | -21 |
 | Óbitos por infecção respiratória (subgrupo 1.2) | 831.816 |
+| (dos quais perdidos em municipio ignorado) | -994 |
 | Pessoas-ano | 2.085.404.546 |
 
 **Tabela 2. Óbitos por A00–A09, controle respiratório e causas mal definidas, Brasil, 2015–2025 (`tabela_2_serie_anual.csv`).**

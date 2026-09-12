@@ -234,13 +234,42 @@ def ic(d: pd.DataFrame, fn, reps: int = REPS) -> tuple[float, float, float]:
 
 # ── tabelas ────────────────────────────────────────────────────────────────
 def tab01_base(d: pd.DataFrame) -> pd.DataFrame:
+    """O FUNIL, nao so' o recorte final.
+
+    A primeira versao desta tabela dava apenas os totais do conjunto analisavel,
+    e a Tabela 2 — que le o mart inteiro, ano a ano — dava outros. As duas
+    estavam certas e o manuscrito nao dizia que eram recortes diferentes: um
+    revisor leu 49.429 aqui e somou 49.450 ali, e viu inconsistencia onde havia
+    omissao. A diferenca sao 25 codigos do tipo `110000`, `120000` — "municipio
+    ignorado" dentro da UF —, que nao sao municipios e por isso nao tem classe
+    de vigilancia nem denominador populacional.
+
+    Agora as duas pontas do funil aparecem na mesma tabela, com a perda nomeada.
+    """
+    m = pd.read_parquet(MARTS / "mart_mortalidade_causa_municipio.parquet",
+                        columns=["municipio_cod", "ano", "causabas_3", "obitos"])
+    m = m[m.ano.isin(ANOS)]
+    codigos_reais = set(pd.read_parquet(MARTS / "dim_municipio.parquet")
+                        .municipio_cod.astype(str))
+    fora = m[~m.municipio_cod.astype(str).isin(codigos_reais)]
+
+    def soma(tab, padrao=None):
+        return int(tab[tab.causabas_3.str.match(padrao)].obitos.sum() if padrao
+                   else tab.obitos.sum())
+
     return pd.DataFrame([
-        ("Municipios do pais", 5571),
+        ("Municipios do pais (dim_municipio)", 5571),
         ("Coletados pelo SISAGUA", int(d.coletado.sum())),
-        ("Analisaveis (com denominador)", len(d)),
-        ("Obitos totais 2015-2024", int(d.obitos_total.sum())),
+        ("Analisaveis (coletados e com denominador)", len(d)),
+        ("--- obitos, o funil ---", None),
+        ("Obitos no mart, 2015-2024", soma(m)),
+        ("(-) em codigo de municipio ignorado (25 codigos)", -soma(fora)),
+        ("= Obitos no conjunto analisavel", int(d.obitos_total.sum())),
+        ("--- desfecho e controle, no conjunto analisavel ---", None),
         ("Obitos por A00-A09 (subgrupo 1.2)", int(d.hidrica.sum())),
+        ("(dos quais perdidos em municipio ignorado)", -soma(fora, HIDRICA)),
         ("Obitos por infeccao respiratoria (subgrupo 1.2)", int(d.controle.sum())),
+        ("(dos quais perdidos em municipio ignorado)", -soma(fora, CONTROLE)),
         ("Pessoas-ano", int(d.pessoas_ano.sum())),
     ], columns=["Recorte", "Valor"])
 

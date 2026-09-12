@@ -1,8 +1,14 @@
 Recorte,Valor
-Municipios do pais,5571
-Coletados pelo SISAGUA,5570
-Analisaveis (com denominador),5570
-Obitos totais 2015-2024,14457218
-Obitos por A00-A09 (subgrupo 1.2),49429
-Obitos por infeccao respiratoria (subgrupo 1.2),831816
-Pessoas-ano,2085404546
+Municipios do pais (dim_municipio),5571.0
+Coletados pelo SISAGUA,5570.0
+Analisaveis (coletados e com denominador),5570.0
+"--- obitos, o funil ---",
+"Obitos no mart, 2015-2024",14484496.0
+(-) em codigo de municipio ignorado (25 codigos),-27278.0
+= Obitos no conjunto analisavel,14457218.0
+"--- desfecho e controle, no conjunto analisavel ---",
+Obitos por A00-A09 (subgrupo 1.2),49429.0
+(dos quais perdidos em municipio ignorado),-21.0
+Obitos por infeccao respiratoria (subgrupo 1.2),831816.0
+(dos quais perdidos em municipio ignorado),-994.0
+Pessoas-ano,2085404546.0

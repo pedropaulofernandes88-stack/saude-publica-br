@@ -130,6 +130,12 @@ DECIMAIS_SEM_TABELA = {
         "3.467", "4,03",
     },
     "artigo-imunopreveniveis": {
+        # O recorte do manuscrito IRMÃO (água), citado na §3.1 para reconciliar
+        # os dois totais. 14.457.218 é o conjunto com município utilizável e
+        # 27.278 é a perda em códigos de "município ignorado" — fatos sobre o
+        # outro desenho, não resultados deste. A reconciliação existe porque um
+        # revisor leu os dois totais e viu inconsistência onde havia omissão.
+        "14.457.218", "27.278",
         # Limiar de nulidade declarado ANTES de olhar o resultado (§2.6):
         # |rho| < 0,30. É parâmetro de decisão, não medida — não sai de tabela
         # nenhuma, e cravá-lo numa seria fingir que foi observado.
