@@ -166,6 +166,49 @@ A Tabela 7 mostra de onde vinha esse gradiente. A coluna do **controle** é perf
 
 ---
 
+### 3.8 Quando a exposição deixa de ser papelada (extensão exploratória)
+
+A objeção mais forte ao resultado acima é que a exposição mede um ato
+administrativo. Um município pode analisar a água e não reportar, e o desenho
+não separa as duas coisas — de modo que um nulo poderia ser apenas erro de
+classificação da exposição.
+
+Esta seção testa a versão da pergunta que não tem essa saída. Entre os
+município-anos em que **houve** amostra analisada e reportada, a exposição passa
+a ser o **resultado** do laboratório: encontrou-se *Escherichia coli* na água
+distribuída no ano anterior, ou não. O estimador, os cinco grupos de causa e o
+bootstrap são os mesmos.
+
+O recorte é condicional a reportar, e essa seleção é parte do estimando: são
+5.170 municípios e 40.638 linhas município-ano, contra os 5.570 e 50.130 do
+painel principal, e nada nesta seção se aplica a quem não reporta. Em 8.791
+linhas — 21,6% — houve detecção. O conjunto que identifica o efeito é maior que
+o do painel principal: 2.343 municípios mudam de estado de detecção **e** têm
+óbito por A00–A09, contra 1.468 lá (Tabela E1).
+
+**O resultado é o mesmo.** O IRR da detecção de *E. coli* sobre a mortalidade
+por A00–A09 é **0,991 [0,944–1,037]**, e os quatro controles dão 1,009, 0,995,
+1,018 e 0,997 — nenhum exclui 1, e o maior de todos é novamente o das isquêmicas
+do coração (Tabela E2, Figura E1). Sem o efeito fixo de município, a associação
+das demais infecciosas do subgrupo 1.2 sobe para 1,207 e colapsa para 0,995 com
+ele, repetindo o padrão de confundimento entre municípios da §3.4 (Tabela E3).
+
+Um artefato previsível foi testado e não é o caso: quem coleta mais amostras
+encontra mais *E. coli* por acaso, e incluir o logaritmo do número de amostras
+analisadas no desenho move o IRR da hipótese de 0,991 para 0,985, sem mudar de
+direção em nenhum dos cinco grupos (Tabela E4). A robustez também não se move
+(Tabela E5).
+
+**Esta extensão é exploratória e não pré-especificada.** Ela foi concebida
+depois de observar o resultado do painel principal, a partir de uma auditoria
+externa; os seus quatro critérios foram escritos antes de qualquer número dela
+ser calculado, o que não é a mesma coisa que pré-especificação anterior aos
+dados, e vai dito com essas palavras.
+
+O que ela acrescenta é a remoção de uma explicação alternativa. O nulo do painel
+principal poderia ser erro de medida na exposição administrativa; aqui a
+exposição é a medida, e o nulo persiste.
+
 ## 4. Discussão
 
 ### 4.1 O que foi medido, e o que foi refutado
@@ -241,6 +284,8 @@ O estimador de painel está em `scripts/_poisson_fe.py` e os testes que o demons
 **Figura P3.** Óbitos por doenças infecciosas intestinais (A00–A09), observados e projetados a partir da tendência log-linear ajustada apenas em 2015 a 2019, em dois denominadores: por 10 mil óbitos do ano e por milhão de habitantes. *Fonte: Tabela P4.*
 
 **Figura P4.** IRR da ausência de vigilância sobre a mortalidade por A00–A09 em cada recorte de sensibilidade. *Fonte: Tabela P5.*
+
+**Figura E1.** Razão de taxas (IRR) da detecção de *Escherichia coli* na água no ano anterior, por grupo de causa, entre os município-anos em que houve amostra analisada e reportada. Mesma gramática da Figura P1, para comparação direta. *Fonte: Tabela E2.*
 
 **Figura 1.** Óbitos por doenças infecciosas intestinais, Brasil, 2015–2025, em contagem absoluta e por 10 mil óbitos do ano. O ano preliminar aparece com marcador vazado e linha pontilhada. *Fonte: Tabela 2.*
 
@@ -332,6 +377,72 @@ O estimador de painel está em `scripts/_poisson_fe.py` e os testes que o demons
 | Somente Sudeste | 1.668 | 0,979 | 0,851 | 1,098 |
 | Somente Sul | 1.191 | 0,848 | 0,701 | 1,027 |
 | Sem 2022 e 2023 (troca de base populacional) | 5.570 | 0,988 | 0,939 | 1,045 |
+
+**Tabela E1. A extensão microbiológica: universo condicional a reportar (`tabela_e1_painel.csv`).**
+
+| Recorte | Valor |
+|---|---|
+| Municipios com alguma amostra reportada | 5.170 |
+| Municipio-ano no recorte (condicional a reportar) | 40.638 |
+| Municipio-ano com E. coli detectada no ano anterior | 8.791 |
+| Municipio-ano com E. coli detectada (%) | 21,6 |
+| Amostras analisadas no periodo | 792.990.201 |
+| Deteccoes de E. coli no periodo | 62.461 |
+| Municipios que MUDARAM de estado de deteccao | 2.879 |
+| Obitos: A00-A09 intestinais (hipotese) | 39.011 |
+| Municipios que mudam E tem obito: A00-A09 intestinais (hipotese) | 2.343 |
+| Obitos: J00-J22 respiratorias (subgrupo 1.2) | 677.663 |
+| Municipios que mudam E tem obito: J00-J22 respiratorias (subgrupo 1.2) | 2.874 |
+| Obitos: outras infecciosas do subgrupo 1.2 | 199.472 |
+| Municipios que mudam E tem obito: outras infecciosas do subgrupo 1.2 | 2.751 |
+| Obitos: I20-I25 isquemicas do coracao | 931.269 |
+| Municipios que mudam E tem obito: I20-I25 isquemicas do coracao | 2.877 |
+| Obitos: V01-Y98 causas externas | 1.180.164 |
+| Municipios que mudam E tem obito: V01-Y98 causas externas | 2.879 |
+
+**Tabela E2. IRR da detecção de *E. coli* no ano anterior, por grupo de causa (`tabela_e2_especificidade.csv`).**
+
+| Grupo de causa | IRR | IC95% inferior | IC95% superior | Exclui 1 |
+|---|---|---|---|---|
+| A00-A09 intestinais (hipotese) | 0,991 | 0,944 | 1,037 | nao |
+| J00-J22 respiratorias (subgrupo 1.2) | 1,009 | 0,986 | 1,032 | nao |
+| outras infecciosas do subgrupo 1.2 | 0,995 | 0,975 | 1,021 | nao |
+| I20-I25 isquemicas do coracao | 1,018 | 0,999 | 1,042 | nao |
+| V01-Y98 causas externas | 0,997 | 0,981 | 1,014 | nao |
+
+**Tabela E3. O mesmo IRR com e sem efeito fixo de município (`tabela_e3_efeito_fixo.csv`).**
+
+| Grupo de causa | IRR sem efeito fixo | IRR com efeito fixo | Removido pelo efeito fixo | RRR contra o controle, sem efeito fixo | RRR contra o controle, com efeito fixo |
+|---|---|---|---|---|---|
+| A00-A09 intestinais (hipotese) | 1,021 | 0,991 | 0,03 | 1,007 | 0,982 |
+| J00-J22 respiratorias (subgrupo 1.2) | 1,014 | 1,009 | 0,005 | 1 | 1 |
+| outras infecciosas do subgrupo 1.2 | 1,207 | 0,995 | 0,212 | 1,19 | 0,986 |
+| I20-I25 isquemicas do coracao | 1,041 | 1,018 | 0,023 | 1,027 | 1,009 |
+| V01-Y98 causas externas | 0,928 | 0,997 | -0,07 | 0,915 | 0,988 |
+
+**Tabela E4. O IRR quando o esforço de amostragem entra no desenho (`tabela_e4_intensidade.csv`).**
+
+| Grupo de causa | IRR sem ajuste por amostras | IRR ajustado por log(amostras) | Deslocamento | Muda de direcao |
+|---|---|---|---|---|
+| A00-A09 intestinais (hipotese) | 0,991 | 0,985 | -0,006 | nao |
+| J00-J22 respiratorias (subgrupo 1.2) | 1,009 | 1,013 | 0,004 | nao |
+| outras infecciosas do subgrupo 1.2 | 0,995 | 1,002 | 0,007 | sim |
+| I20-I25 isquemicas do coracao | 1,018 | 1,023 | 0,004 | nao |
+| V01-Y98 causas externas | 0,997 | 0,999 | 0,002 | nao |
+
+**Tabela E5. Robustez do IRR da detecção por recorte (`tabela_e5_robustez.csv`).**
+
+| Recorte | Municipios | IRR | IC95% inferior | IC95% superior |
+|---|---|---|---|---|
+| Painel completo | 5.170 | 0,991 | 0,944 | 1,037 |
+| Sem o Distrito Federal | 5.170 | 0,991 | 0,944 | 1,037 |
+| Sem municipios com menos de 5.000 hab. | 4.008 | 0,99 | 0,943 | 1,038 |
+| Sem o DF e sem municipios pequenos | 4.008 | 0,99 | 0,943 | 1,038 |
+| Somente Centro-Oeste | 448 | 0,921 | 0,8 | 1,035 |
+| Somente Nordeste | 1.574 | 0,97 | 0,897 | 1,058 |
+| Somente Norte | 335 | 1,142 | 0,828 | 1,268 |
+| Somente Sudeste | 1.624 | 0,972 | 0,924 | 1,033 |
+| Somente Sul | 1.189 | 1,042 | 0,962 | 1,119 |
 
 **Tabela 1. O recorte do desenho transversal: municípios, óbitos e pessoas-ano, 2015–2024 (`tabela_1_base.csv`).**
 

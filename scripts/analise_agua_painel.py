@@ -173,7 +173,7 @@ def montar_painel() -> pd.DataFrame:
     return base
 
 
-def empilhar(d: pd.DataFrame) -> dict:
+def empilhar(d: pd.DataFrame, exposicao: str = "sem_vigilancia_t1") -> dict:
     """Converte o painel em MATRIZES (municipio x ano), uma vez.
 
     O painel e' balanceado — 9 anos para cada um dos 5.570 municipios, conferido
@@ -193,7 +193,10 @@ def empilhar(d: pd.DataFrame) -> dict:
             "embaralharia municipio com ano sem que nada acuse.")
 
     # desenho: exposicao + indicadoras de ano (a primeira fica de fora)
-    colunas = [d.sem_vigilancia_t1.to_numpy().reshape(M, T)]
+    # `exposicao` e' parametro porque a analise irma do E. coli
+    # (`analise_agua_ecoli.py`) reusa esta funcao com outra coluna. O nome
+    # padrao preserva o comportamento de quem ja chamava sem argumento.
+    colunas = [d[exposicao].to_numpy().reshape(M, T)]
     for a in anos[1:]:
         colunas.append((d.ano.to_numpy() == a).astype(float).reshape(M, T))
     X = np.stack(colunas, axis=2)

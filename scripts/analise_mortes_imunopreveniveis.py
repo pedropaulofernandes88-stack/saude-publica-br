@@ -178,7 +178,14 @@ AMPLIADO: tuple[tuple[str, str, str], ...] = (
     ("Sarampo",                     "substr(causabas,1,3) = 'B05'",                      "PNI (todo o período)"),
     ("Rubéola e SRC",               "substr(causabas,1,3) = 'B06' OR causabas = 'P350'", "PNI (todo o período)"),
     ("Caxumba",                     "substr(causabas,1,3) = 'B26'",                      "PNI (todo o período)"),
-    ("Hepatite B aguda",            "substr(causabas,1,3) = 'B16'",                      "PNI (todo o período)"),
+    # P35.3 entrou aqui em 2026-09-12. A decomposicao do residuo (tabela_residuo)
+    # mostrou que 14 obitos eram contados pelo subgrupo 1.1 e NAO pelo conjunto
+    # ampliado — o unico codigo da lista oficial sem correspondente aqui. Isso
+    # quebrava a propriedade que o artigo inteiro usa: o ampliado e' um teto
+    # sobre o que a lista conta, e um teto que nao contem o piso nao e' teto.
+    # `guardas` passa a conferir a contencao, por codigo e nao por contagem.
+    ("Hepatite B aguda e viral congênita",
+     "substr(causabas,1,3) = 'B16' OR causabas = 'P353'",                                "PNI (todo o período)"),
     ("Poliomielite",                "substr(causabas,1,3) = 'A80'",                      "PNI (todo o período)"),
 )
 
@@ -294,6 +301,29 @@ def guardas(con: duckdb.DuckDBPyConnection, anos: list[int]) -> None:
                 f"GUARDA: {invalidos} não existem em dim_cid10_categoria. Código "
                 "inexistente devolve zero óbitos, que se lê como 'ninguém morreu'.")
 
+    # O CONJUNTO AMPLIADO TEM DE CONTER A LISTA OFICIAL
+    # ---------------------------------------------------
+    # O artigo lê o ampliado como TETO sobre o que o subgrupo 1.1 conta. Um teto
+    # que não contém o piso não é teto, e a aritmética de "ampliado menos
+    # subgrupo" — usada na Figura 2 — passa a subtrair conjuntos que se cruzam
+    # sem se conter.
+    #
+    # A conferência é por CÓDIGO, e não por contagem: P35.3 ficou de fora por
+    # dois meses com 14 óbitos, um número pequeno o bastante para não chamar
+    # atenção em nenhuma soma. Quem achou foi a decomposição do resíduo, ao
+    # reparar que "contado pelo subgrupo 1.1" dava 5.818 e não 5.832.
+    texto_ampliado = " ".join(p for _, p, _ in AMPLIADO)
+    da_lista = sorted(set(OFICIAL_0A4) | set(OFICIAL_5A74)
+                      | set(OFICIAL_0A4_4) | set(OFICIAL_5A74_4))
+    descobertos = [c for c in da_lista if c not in texto_ampliado]
+    if descobertos:
+        raise SystemExit(
+            f"GUARDA: {descobertos} constam da lista oficial e não aparecem em "
+            "predicado algum do conjunto ampliado. O ampliado deixa de conter o "
+            "subgrupo 1.1, e com isso deixa de ser um teto sobre ele — a "
+            "diferença entre os dois passa a misturar o que a lista conta a mais "
+            "com o que ela conta a menos.")
+
 
 def tabela_oficial(con, anos_cons) -> pd.DataFrame:
     faixa = ",".join(str(a) for a in anos_cons)
@@ -338,6 +368,80 @@ def tabela_idade(con, anos_cons) -> pd.DataFrame:
                sum(CASE WHEN {_predicado_oficial()} THEN obitos ELSE 0 END)::INT AS lista_oficial
         FROM obitos4 WHERE ano IN ({faixa}) GROUP BY 1 ORDER BY 1
     """).df()
+
+
+def tabela_residuo(con, anos_cons) -> pd.DataFrame:
+    """POR QUE o conjunto ampliado conta mais que o subgrupo oficial.
+
+    A DIFERENCA ENTRE DOIS TOTAIS NAO DIZ DE ONDE ELA VEM
+    ------------------------------------------------------
+    O manuscrito reporta 5.832 obitos no subgrupo 1.1 e 27.917 no conjunto
+    ampliado sem COVID-19, e a razao de 4,79 entre os dois. Isso descreve o
+    tamanho do desacordo e nao a sua estrutura: nao se sabe se o instrumento
+    deixa de contar porque a idade ficou fora da janela, porque o codigo nunca
+    esteve na lista, ou porque a idade nao foi registrada.
+
+    As tres causas pedem respostas diferentes. Idade fora da janela e' decisao
+    de escopo do instrumento e se corrige mudando a janela. Codigo fora da lista
+    e' decisao de conteudo e se corrige acrescentando codigos. Idade ignorada
+    nao e' decisao de ninguem: e' falha de registro, e nenhuma revisao da lista
+    a resolve.
+
+    Cada obito do conjunto ampliado cai em EXATAMENTE UM estado, e a soma dos
+    estados reproduz o total — e' o que a guarda no fim confere.
+
+    ESTA TABELA E' EXPLORATORIA
+    ----------------------------
+    Ela nasceu de auditoria externa, depois de os totais ja terem sido
+    observados. Nao e' analise pre-especificada, e o manuscrito diz isso.
+    """
+    faixa = ",".join(str(a) for a in anos_cons)
+    c04 = ",".join(f"'{c}'" for c in OFICIAL_0A4)
+    c04_4 = ",".join(f"'{c}'" for c in OFICIAL_0A4_4)
+    c574 = ",".join(f"'{c}'" for c in OFICIAL_5A74)
+    c574_4 = ",".join(f"'{c}'" for c in OFICIAL_5A74_4)
+
+    # "o codigo consta de ALGUMA das duas versoes da lista", sem olhar a idade
+    na_lista = (f"(substr(causabas,1,3) IN ({c04}) OR causabas IN ({c04_4})"
+                f" OR substr(causabas,1,3) IN ({c574}) OR causabas IN ({c574_4}))")
+
+    d = con.execute(f"""
+        WITH amp AS (
+          SELECT causabas, idade_anos, obitos
+          FROM obitos4
+          WHERE ano IN ({faixa}) AND causabas <> 'B342'
+                AND {_predicado_ampliado(incluir_covid=False)})
+        SELECT CASE
+                 WHEN {_predicado_oficial()} THEN
+                   '1. Contado pelo subgrupo 1.1'
+                 WHEN idade_anos IS NULL THEN
+                   '2. Idade ignorada no registro'
+                 WHEN {na_lista} AND idade_anos > 74 THEN
+                   '3. Codigo da lista, idade acima de 74 anos'
+                 WHEN {na_lista} THEN
+                   '4. Codigo da lista, idade fora da versao que o contem'
+                 ELSE
+                   '5. Codigo que nao consta de nenhuma versao da lista'
+               END                       AS estado,
+               sum(obitos)::INT          AS obitos
+        FROM amp GROUP BY 1 ORDER BY 1
+    """).df()
+
+    total = con.execute(f"""
+        SELECT sum(obitos)::INT FROM obitos4
+        WHERE ano IN ({faixa}) AND causabas <> 'B342'
+              AND {_predicado_ampliado(incluir_covid=False)}
+    """).fetchone()[0]
+
+    # A GUARDA: estados mutuamente exclusivos tem de somar o universo.
+    if int(d.obitos.sum()) != int(total):
+        raise SystemExit(
+            f"os estados somam {int(d.obitos.sum()):,} e o conjunto ampliado sem "
+            f"COVID-19 tem {int(total):,}. Um obito caiu em dois estados ou em "
+            "nenhum, e a reparticao deixa de descrever o desacordo.")
+
+    d["% do conjunto ampliado"] = (100 * d.obitos / total).round(1)
+    return d
 
 
 def tabela_teto_codificacao(con, anos_cons) -> pd.DataFrame:
@@ -466,6 +570,7 @@ def main() -> None:
     ofic = tabela_oficial(con, anos_cons)
     amp = tabela_ampliado(con, anos_todos)
     idade = tabela_idade(con, anos_cons)
+    residuo = tabela_residuo(con, anos_cons)
     teto = tabela_teto_codificacao(con, anos_cons)
     evt = eventos(con)
 
@@ -475,6 +580,8 @@ def main() -> None:
     print(amp.to_string(index=False), "\n")
     print("== 3. Estrutura etaria - o que a lista nao alcanca ==")
     print(idade.to_string(index=False), "\n")
+    print("== 3b. De onde vem o desacordo entre o ampliado e o subgrupo 1.1 ==")
+    print(residuo.to_string(index=False), "\n")
     print("== 4. Teto de codificacao: o agente nao e registrado ==")
     print(teto.to_string(index=False), "\n")
     for nome, df in evt.items():
@@ -482,7 +589,8 @@ def main() -> None:
         print(df.to_string(index=False), "\n")
 
     tabelas = {"lista_oficial_por_ano": ofic, "ampliado_por_causa_ano": amp,
-               "estrutura_etaria": idade, "teto_codificacao": teto, **evt}
+               "estrutura_etaria": idade, "residuo_por_estado": residuo,
+               "teto_codificacao": teto, **evt}
 
     rhos: dict[int, float] = {}
     if not args.sem_cruzamento:

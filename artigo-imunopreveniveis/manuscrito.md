@@ -16,7 +16,7 @@
 
 **Métodos.** Todos os óbitos não fetais registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024, com a causa básica preservada em quatro caracteres da CID-10 — grão exigido pela própria lista oficial, que nomeia G00.0, P35.0 e P35.3, e pelo código que o Brasil usa para COVID-19, B34.2. O subgrupo 1.1 foi transcrito literalmente das notas técnicas do TabNet/DataSUS, nas suas duas versões etárias, e aplicado com a idade que cada versão determina. Um conjunto ampliado reúne, além dele, as demais doenças com vacina disponível no país, cada uma anotada com o ano de entrada no PNI; um terceiro grupo, de latência longa, é reportado à parte e nunca somado. Um cruzamento ecológico entre óbitos por influenza em 60 anos ou mais e doses de influenza por habitante dessa faixa, por unidade da federação, teve o critério de nulidade declarado antes da análise.
 
-**Resultados.** Em 14.484.496 óbitos, o subgrupo 1.1 identifica 5.832 — 4,03 por 10 mil óbitos, sem tendência na década (Tabela 3). O conjunto ampliado sem COVID-19 — que é um **teto**, não uma estimativa de mortes evitáveis — soma 27.917 óbitos, razão de 4,79 sobre o instrumento oficial, e a COVID-19 sozinha soma 718.811 (Tabela 4). Três limitações estruturais explicam a diferença. A lista termina aos 74 anos, e 267.276 óbitos por causas com vacina — 35,8% do conjunto — ocorreram acima dessa idade, invisíveis por construção (Tabela 5). Ela antecede as vacinas incorporadas depois de 2010 e classifica influenza fora da imunoprevenção. E 3.189 dos 5.832 óbitos que ela conta são tuberculose miliar ou do sistema nervoso, dos quais 3.092 entre 5 e 74 anos — faixa em que a relação entre o óbito e a vacinação infantil é bem mais incerta do que a que a justificativa da lista invoca, ainda que a proteção conferida na infância possa persistir décadas [10]; excluída a tuberculose, restam 2.643 óbitos em dez anos (Tabela 6). O teto de medição é de codificação, não de epidemiologia: há 631.108 óbitos por pneumonia sem agente identificado (J18) contra 809 atribuídos ao pneumococo (J13), razão de 780,1 (Tabelas 12 e 13). Um cruzamento ecológico entre doses de influenza e mortalidade por influenza em idosos foi conduzido e **é reportado apenas como nota de qualidade de dado**: o registro `INF3` cobre todas as idades a partir de 6 meses e, dividido pela população de 60 anos ou mais, produz mais de uma dose por habitante em todas as unidades da federação em 2024 (Tabela 14). O quociente não mede cobertura em idosos, e nenhuma inferência sobre vacinação é extraída dele.
+**Resultados.** Em 14.484.496 óbitos, o subgrupo 1.1 identifica 5.832 — 4,03 por 10 mil óbitos, sem tendência na década (Tabela 3). O conjunto ampliado sem COVID-19 — que é um **teto**, não uma estimativa de mortes evitáveis — soma 27.931 óbitos, razão de 4,79 sobre o instrumento oficial, e a COVID-19 sozinha soma 718.811 (Tabela 4). Três limitações estruturais explicam a diferença. A lista termina aos 74 anos, e 267.276 óbitos por causas com vacina — 35,8% do conjunto — ocorreram acima dessa idade, invisíveis por construção (Tabela 5). Ela antecede as vacinas incorporadas depois de 2010 e classifica influenza fora da imunoprevenção. E 3.189 dos 5.832 óbitos que ela conta são tuberculose miliar ou do sistema nervoso, dos quais 3.092 entre 5 e 74 anos — faixa em que a relação entre o óbito e a vacinação infantil é bem mais incerta do que a que a justificativa da lista invoca, ainda que a proteção conferida na infância possa persistir décadas [10]; excluída a tuberculose, restam 2.643 óbitos em dez anos (Tabela 6). O teto de medição é de codificação, não de epidemiologia: há 631.108 óbitos por pneumonia sem agente identificado (J18) contra 809 atribuídos ao pneumococo (J13), razão de 780,1 (Tabelas 12 e 13). Um cruzamento ecológico entre doses de influenza e mortalidade por influenza em idosos foi conduzido e **é reportado apenas como nota de qualidade de dado**: o registro `INF3` cobre todas as idades a partir de 6 meses e, dividido pela população de 60 anos ou mais, produz mais de uma dose por habitante em todas as unidades da federação em 2024 (Tabela 14). O quociente não mede cobertura em idosos, e nenhuma inferência sobre vacinação é extraída dele.
 
 **Conclusões.** O instrumento oficial brasileiro de evitabilidade por imunoprevenção não está errado: está defasado, e de três formas que se somam. Ele descreve um calendário vacinal que não é mais o do país, ignora a faixa etária onde a mortalidade por doença imunoprevenível se concentra, e é dominado internamente por uma causa cuja evitabilidade por vacina não se sustenta na idade em que ela ocorre. Atualizá-lo é decisão de vigilância, não exercício estatístico. Independentemente disso, a ausência de investigação etiológica na declaração de óbito impõe um teto ao que qualquer lista consegue medir.
 
@@ -195,8 +195,8 @@ A terceira coluna da Tabela 3 antecipa o resultado seguinte: os **mesmos código
 | Conjunto | Óbitos 2015–2024 | Por 10 mil óbitos do período | Razão sobre o subgrupo 1.1 |
 |---|---|---|---|
 | Subgrupo 1.1 da Lista Brasileira (o instrumento oficial) | 5.832 | 4,03 | 1 |
-| Conjunto ampliado, sem COVID-19 | 27.917 | 19,27 | 4,79 |
-| Conjunto ampliado, sem COVID-19 e sem herpes zoster | 26.674 | 18,42 | 4,57 |
+| Conjunto ampliado, sem COVID-19 | 27.931 | 19,28 | 4,79 |
+| Conjunto ampliado, sem COVID-19 e sem herpes zoster | 26.688 | 18,43 | 4,58 |
 | COVID-19 (B34.2) | 718.811 | 496,26 | 123,25 |
 | Latência longa (colo do útero, fígado e hepatite B crônica) | 174.100 | 120,2 | 29,85 |
 
@@ -204,13 +204,13 @@ A terceira coluna da Tabela 3 antecipa o resultado seguinte: os **mesmos código
 
 | Faixa etária | Subgrupo 1.1 | Ampliado sem COVID-19 | COVID-19 | Total | % do total |
 |---|---|---|---|---|---|
-| Menores de 5 anos | 355 | 2.067 | 1.802 | 3.869 | 0,5 |
+| Menores de 5 anos | 355 | 2.081 | 1.802 | 3.883 | 0,5 |
 | 5 a 74 anos | 5.477 | 16.654 | 458.845 | 475.499 | 63,7 |
 | 75 anos ou mais | 0 | 9.183 | 258.093 | 267.276 | 35,8 |
 | Idade ignorada | 0 | 13 | 71 | 84 | 0 |
-| Todas as idades | 5.832 | 27.917 | 718.811 | 746.728 | 100 |
+| Todas as idades | 5.832 | 27.931 | 718.811 | 746.742 | 100 |
 
-Dos 746.728 óbitos por causas com vacina disponível registrados na década, 267.276 — 35,8% — ocorreram em pessoas de 75 anos ou mais. Para essa faixa, a coluna do subgrupo 1.1 é **zero por construção**: não existe lista brasileira de evitabilidade acima dos 74 anos. A faixa que o instrumento cobre inteira, a de menores de cinco anos, responde por 3.869 óbitos, 0,5% do conjunto.
+Dos 746.742 óbitos por causas com vacina disponível registrados na década, 267.276 — 35,8% — ocorreram em pessoas de 75 anos ou mais. Para essa faixa, a coluna do subgrupo 1.1 é **zero por construção**: não existe lista brasileira de evitabilidade acima dos 74 anos. A faixa que o instrumento cobre inteira, a de menores de cinco anos, responde por 3.883 óbitos, 0,5% do conjunto.
 
 O corte etário tem origem conceitual conhecida — listas de evitabilidade nasceram para monitorar mortalidade prematura —, e a consequência é específica desta aplicação: influenza, doença pneumocócica e COVID-19 matam predominantemente idosos. Um instrumento que exclui a idade em que a doença mata não subestima a carga por descuido de medida; ele a define para fora.
 
@@ -241,7 +241,7 @@ Excluída a tuberculose, o núcleo do instrumento oficial fica em 2.643 óbitos 
 | COVID-19 | PNI a partir de 2021 | 718.811 | 5.605 | 2.568 |
 | Influenza | campanha anual desde 1999 | 14.622 | 2.458 | 4.575 |
 | Tuberculose miliar e do SNC | BCG (formas graves na criança) | 3.511 | 425 | 491 |
-| Hepatite B aguda | PNI (todo o período) | 2.013 | 179 | 171 |
+| Hepatite B aguda e viral congênita | PNI (todo o período) | 2.027 | 181 | 171 |
 | Doença meningocócica | PNI (MenC 2010; ACWY 2020) | 1.531 | 140 | 183 |
 | Herpes zoster | FORA do PNI (rede privada) | 1.243 | 181 | 196 |
 | Meningite pneumocócica | PNI (VPC10 2010; VPP23 idosos) | 1.121 | 182 | 186 |
@@ -260,12 +260,61 @@ Excluída a tuberculose, o núcleo do instrumento oficial fica em 2.643 óbitos 
 | Sarampo | PNI (todo o período) | 41 | 0 | 0 |
 | Raiva | PNI (profilaxia pós-exposição) | 22 | 2 | 0 |
 | Poliomielite | PNI (todo o período) | 0 | 0 | 0 |
-| Subtotal, sem COVID-19 | — | 27.917 | 3.908 | 6.107 |
-| Subtotal, sem COVID-19 e sem herpes zoster | — | 26.674 | 3.727 | 5.911 |
+| Subtotal, sem COVID-19 | — | 27.931 | 3.910 | 6.107 |
+| Subtotal, sem COVID-19 e sem herpes zoster | — | 26.688 | 3.729 | 5.911 |
 
-Sem a COVID-19, o conjunto ampliado soma 27.917 óbitos, razão de 4,79 sobre o instrumento oficial (Tabela 4); excluído também o herpes zoster, que tem vacina fora do PNI, ficam 26.674 e a razão cai para 4,57. Quatro causas ausentes do subgrupo 1.1 respondem sozinhas por mais óbitos do que ele inteiro: influenza (14.622), doença meningocócica (1.531), meningite pneumocócica (1.121) e pneumonia pneumocócica (809).
+Sem a COVID-19, o conjunto ampliado soma 27.931 óbitos, razão de 4,79 sobre o instrumento oficial (Tabela 4); excluído também o herpes zoster, que tem vacina fora do PNI, ficam 26.688 e a razão cai para 4,58. Quatro causas ausentes do subgrupo 1.1 respondem sozinhas por mais óbitos do que ele inteiro: influenza (14.622), doença meningocócica (1.531), meningite pneumocócica (1.121) e pneumonia pneumocócica (809).
 
 A composição por disponibilidade é o que dá sentido ao número. Das causas com maior contagem, a influenza tem campanha anual desde 1999 e está classificada pela Lista Brasileira no subgrupo 1.2, entre as doenças infecciosas, e não no de imunoprevenção. A meningocócica ACWY, de 2020, não teria como constar de uma lista revista em 2011. A meningocócica C e a pneumocócica 10-valente, ambas incorporadas em 2010, teriam — e não constam. A defasagem, portanto, não é só o tempo que passou desde a última revisão: parte dela já existia no dia em que ela foi feita.
+
+### 3.5b De onde vem o desacordo entre os dois conjuntos (extensão exploratória)
+
+A razão de 4,79 entre o conjunto ampliado e o subgrupo 1.1 diz o **tamanho** do
+desacordo e não a sua estrutura. As três causas possíveis pedem respostas
+diferentes: idade fora da janela se corrige mudando a janela, código fora da
+lista se corrige acrescentando código, e idade ignorada não se corrige por
+revisão nenhuma, porque é falha de registro e não decisão de escopo.
+
+Repartindo o conjunto ampliado em estados mutuamente exclusivos — cada óbito
+entra uma vez, e a soma reproduz o total:
+
+**Tabela 17 — De onde vem o desacordo entre o conjunto ampliado e o subgrupo 1.1 (`tabela_17_residuo_por_estado.csv`).**
+
+| Estado | Óbitos | % do conjunto ampliado |
+|---|---|---|
+| 1. Contado pelo subgrupo 1.1 | 5.832 | 20,9 |
+| 2. Idade ignorada no registro | 13 | 0 |
+| 3. Codigo da lista, idade acima de 74 anos | 798 | 2,9 |
+| 4. Codigo da lista, idade fora da versao que o contem | 51 | 0,2 |
+| 5. Codigo que nao consta de nenhuma versao da lista | 21.237 | 76 |
+
+**O desacordo é de conteúdo, não de idade.** Três quartos dele são códigos que
+não constam de nenhuma das duas versões do subgrupo 1.1 — influenza, doença
+pneumocócica, doença meningocócica, varicela, febre amarela. O corte aos 74 anos
+responde por 2,9% da diferença entre os dois conjuntos.
+
+Isso não contradiz a §3.3, e convém dizer por quê: lá a medida é a distribuição
+etária da **carga** (35,8% dos óbitos por causa com vacina estão acima do
+corte), e ela é dominada pela COVID-19. Aqui a medida é a composição da
+**diferença de contagem** entre os dois conjuntos, com a COVID-19 fora. As duas
+são verdadeiras e respondem a perguntas distintas: o corte etário importa para
+quem a lista deixa de enxergar, e a defasagem de códigos importa para o que ela
+deixa de contar.
+
+**Um achado de validação, produzido por esta repartição.** Ao exigir que os
+estados somassem o universo, a conta revelou que 14 óbitos eram contados pelo
+subgrupo 1.1 e **não** pelo conjunto ampliado: o código P35.3 (hepatite viral
+congênita) consta da versão de menores de 5 anos da lista oficial e não tinha
+correspondente no conjunto ampliado. O ampliado, portanto, não continha a lista
+que se propõe a superar — e um teto que não contém o piso não é teto. O código
+foi acrescentado e os totais desta versão já o incluem; a análise passa a abortar
+se algum código da lista oficial ficar descoberto. A diferença é pequena em
+óbitos e não muda conclusão alguma; o que ela mostra é que a diferença entre dois
+totais não revela a estrutura que os separa, que é exatamente o argumento desta
+seção.
+
+**Esta extensão é exploratória e não pré-especificada.** Ela nasceu de auditoria
+externa, depois de os totais terem sido observados.
 
 ### 3.6 Três eventos em que a vacina existia e a doença matou
 

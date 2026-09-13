@@ -448,6 +448,23 @@ def tabela_16_latencia(con) -> pd.DataFrame:
 
 
 # --------------------------------------------------------------------------- #
+# --------------------------------------------------------------------------- #
+# 17. De onde vem o desacordo entre o conjunto ampliado e o subgrupo 1.1       #
+# --------------------------------------------------------------------------- #
+def tabela_17_residuo(con) -> pd.DataFrame:
+    """Reparte o conjunto ampliado em estados mutuamente exclusivos.
+
+    A razão de 4,79 entre os dois conjuntos descreve o TAMANHO do desacordo e não
+    a sua estrutura. Idade fora da janela se corrige mudando a janela; código
+    fora da lista se corrige acrescentando código; idade ignorada não se corrige
+    por revisão nenhuma, porque é falha de registro. A tabela separa os três.
+    """
+    from analise_mortes_imunopreveniveis import tabela_residuo
+    d = tabela_residuo(con, [int(a) for a in FAIXA_CONS.split(",")])
+    return d.rename(columns={"estado": "Estado", "obitos": "Óbitos",
+                             "% do conjunto ampliado": "% do conjunto ampliado"})
+
+
 def main() -> None:
     SAIDA.mkdir(parents=True, exist_ok=True)
     con = duckdb.connect()
@@ -476,6 +493,7 @@ def main() -> None:
         "tabela_14_influenza_doses_uf": cruz,
         "tabela_15_correlacao_por_ano": corr,
         "tabela_16_latencia_longa": tabela_16_latencia(con),
+        "tabela_17_residuo_por_estado": tabela_17_residuo(con),
     }
     for nome, d in tabelas.items():
         d.to_csv(SAIDA / f"{nome}.csv", index=False, encoding="utf-8")

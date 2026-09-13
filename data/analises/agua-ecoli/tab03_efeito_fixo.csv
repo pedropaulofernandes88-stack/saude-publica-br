@@ -1,0 +1,6 @@
+Grupo de causa,IRR sem efeito fixo,IRR com efeito fixo,Removido pelo efeito fixo,"RRR contra o controle, sem efeito fixo","RRR contra o controle, com efeito fixo"
+A00-A09 intestinais (hipotese),1.021,0.991,0.03,1.007,0.982
+J00-J22 respiratorias (subgrupo 1.2),1.014,1.009,0.005,1.0,1.0
+outras infecciosas do subgrupo 1.2,1.207,0.995,0.212,1.19,0.986
+I20-I25 isquemicas do coracao,1.041,1.018,0.023,1.027,1.009
+V01-Y98 causas externas,0.928,0.997,-0.07,0.915,0.988

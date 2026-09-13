@@ -37,6 +37,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 RAIZ = Path(__file__).resolve().parent
 ANALISE = RAIZ.parent / "data" / "analises" / "agua-painel"
+ANALISE_EC = RAIZ.parent / "data" / "analises" / "agua-ecoli"
 TABELAS = RAIZ / "tabelas"
 
 #: origem → (destino no artigo, colunas que o manuscrito lê)
@@ -65,16 +66,51 @@ MAPA = {
         ("Recorte", "Municipios", "IRR", "IC95% inferior", "IC95% superior")),
 }
 
+#: A serie E: a analise do E. coli, condicional a reportar. Mora em outra pasta
+#: de analise porque e' outro painel — desbalanceado, com outro universo — e
+#: misturar as duas saidas no mesmo diretorio convidaria a comparar linhas que
+#: nao descrevem os mesmos municipios.
+MAPA_EC = {
+    "tab01_painel": ("tabela_e1_painel", ("Recorte", "Valor")),
+    "tab02_especificidade": (
+        "tabela_e2_especificidade",
+        ("Grupo de causa", "IRR", "IC95% inferior", "IC95% superior", "Exclui 1")),
+    "tab03_efeito_fixo": (
+        "tabela_e3_efeito_fixo",
+        ("Grupo de causa", "IRR sem efeito fixo", "IRR com efeito fixo",
+         "Removido pelo efeito fixo",
+         "RRR contra o controle, sem efeito fixo",
+         "RRR contra o controle, com efeito fixo")),
+    "tab04_intensidade": (
+        "tabela_e4_intensidade",
+        ("Grupo de causa", "IRR sem ajuste por amostras",
+         "IRR ajustado por log(amostras)", "Deslocamento", "Muda de direcao")),
+    "tab05_robustez": (
+        "tabela_e5_robustez",
+        ("Recorte", "Municipios", "IRR", "IC95% inferior", "IC95% superior")),
+}
+
 
 def main() -> None:
     TABELAS.mkdir(parents=True, exist_ok=True)
-    if not ANALISE.exists():
-        raise SystemExit(
-            f"{ANALISE} não existe. Rode `scripts/analise_agua_painel.py` "
-            "antes — este script transporta tabela, não a produz.")
+    for pasta, script in ((ANALISE, "analise_agua_painel.py"),
+                          (ANALISE_EC, "analise_agua_ecoli.py")):
+        if not pasta.exists():
+            raise SystemExit(
+                f"{pasta} não existe. Rode `scripts/{script}` antes — este "
+                "script transporta tabela, não a produz.")
 
-    for origem, (destino, colunas) in MAPA.items():
-        caminho = ANALISE / f"{origem}.csv"
+    for pasta, mapa in ((ANALISE, MAPA), (ANALISE_EC, MAPA_EC)):
+        _transportar(pasta, mapa)
+
+    total = len(MAPA) + len(MAPA_EC)
+    print(f"[ok] {total} tabelas em {TABELAS.relative_to(RAIZ.parent)}")
+
+
+def _transportar(pasta: Path, mapa: dict) -> None:
+    """Copia um conjunto de tabelas conferindo as colunas que o texto cita."""
+    for origem, (destino, colunas) in mapa.items():
+        caminho = pasta / f"{origem}.csv"
         if not caminho.exists():
             raise SystemExit(
                 f"{caminho} não existe. A análise do painel escreve as cinco "
@@ -88,8 +124,6 @@ def main() -> None:
                 "poria no pacote uma tabela que o texto não descreve.")
         shutil.copyfile(caminho, TABELAS / f"{destino}.csv")
         print(f"[tab] {destino}.csv — {len(d)} linhas, {len(d.columns)} colunas")
-
-    print(f"[ok] {len(MAPA)} tabelas em {TABELAS.relative_to(RAIZ.parent)}")
 
 
 if __name__ == "__main__":

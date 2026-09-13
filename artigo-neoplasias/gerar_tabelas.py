@@ -470,6 +470,21 @@ def tabela_22_contraste_deteccao() -> pd.DataFrame:
     })
 
 
+def tabela_23_decomposicao_sitio() -> pd.DataFrame:
+    """A diferença Q1−Q4 repartida entre todos os sítios, com a soma fechando."""
+    d = _ler("tab22_decomposicao_sitio")
+    return pd.DataFrame({
+        "CID": d.causabas_3,
+        "Sítio": d.sitio,
+        "Natureza": d.natureza,
+        "Óbitos": d.obitos.astype(int),
+        "Taxa Q1 (menos vulnerável)": d.taxa_Q1.round(2),
+        "Taxa Q4 (mais vulnerável)": d.taxa_Q4.round(2),
+        "Contribuição Q1−Q4": d.contribuicao.round(2),
+        "% da diferença": d.pct_da_diferenca,
+    })
+
+
 TABELAS = [
     ("tabela_1_base", "enquadramento do estudo", tabela_1_base),
     ("tabela_2_serie_nacional", "série nacional 2015–2024", tabela_2_serie),
@@ -502,6 +517,8 @@ TABELAS = [
      tabela_21_obito_por_caso_sitio),
     ("tabela_22_contraste_deteccao", "o teste pré-especificado que reprovou",
      tabela_22_contraste_deteccao),
+    ("tabela_23_decomposicao_sitio", "composição do gradiente social por sítio",
+     tabela_23_decomposicao_sitio),
 ]
 
 

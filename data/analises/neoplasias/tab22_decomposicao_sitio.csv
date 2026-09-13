@@ -1,0 +1,90 @@
+causabas_3,sitio,natureza,obitos,taxa_Q1,taxa_Q4,contribuicao,pct_da_diferenca
+C18,Neopl malig do colon,sítio anatômico,46490.998358,9.153,3.02,6.132,16.9
+C34,Neopl malig dos bronquios e dos pulmoes,sítio anatômico,93089.996766,16.196,10.646,5.55,15.3
+C50,Neopl malig da mama,sítio anatômico,60886.99619,11.038,5.867,5.17,14.2
+C25,Neopl malig do pancreas,sítio anatômico,40531.002358,7.549,3.665,3.884,10.7
+C20,Neopl malig do reto,sítio anatômico,18340.0,3.415,1.57,1.845,5.1
+C67,Neopl malig da bexiga,sítio anatômico,15854.0,2.942,1.337,1.604,4.4
+C80,Neopl malig s/especificacao de localiz,sítio primário não identificado,17248.997633,3.012,1.724,1.288,3.5
+C71,Neopl malig do encefalo,sítio anatômico,26190.000076,4.406,3.148,1.258,3.5
+C64,Neopl malig do rim exceto pelve renal,sítio anatômico,12775.0,2.39,1.142,1.248,3.4
+C90,Mieloma mult e neopl malig de plasmocitos,sítio anatômico,11845.0,2.188,1.084,1.104,3.0
+C56,Neopl malig do ovario,sítio anatômico,13226.0,2.379,1.362,1.018,2.8
+C22,Neopl malig figado vias biliares intra-hepat,sítio anatômico,33497.998729,5.543,4.548,0.995,2.7
+C85,Linfoma nao-Hodgkin de outr tipos e tipo NE,sítio anatômico,9172.0,1.713,0.754,0.958,2.6
+C92,Leucemia mieloide,sítio anatômico,11495.0,2.082,1.202,0.88,2.4
+C54,Neopl malig do corpo do utero,sítio anatômico,7574.0,1.409,0.664,0.746,2.1
+C26,Neopl malig outr mal def aparelho digestivo,sítio primário não identificado,13130.0,2.169,1.504,0.666,1.8
+C43,Melanoma malig da pele,sítio anatômico,6037.0,1.134,0.519,0.614,1.7
+C24,Neopl malig outr partes e NE vias biliares,sítio anatômico,8656.999074,1.536,0.986,0.55,1.5
+C19,Neopl malig da juncao retossigmoide,sítio anatômico,5741.0,1.04,0.531,0.51,1.4
+C91,Leucemia linfoide,sítio anatômico,6243.0,1.083,0.701,0.382,1.0
+C72,Neop mal med esp nerv cran out sist nerv cen,sítio anatômico,3799.0,0.701,0.32,0.381,1.0
+C49,Neopl malig tec conjuntivo e outr tec moles,sítio anatômico,4868.0,0.866,0.499,0.367,1.0
+C10,Neopl malig da orofaringe,sítio anatômico,6952.998557,1.174,0.845,0.329,0.9
+C55,Neopl malig do utero porcao NE,sítio anatômico,5527.0,0.905,0.645,0.259,0.7
+C32,Neopl malig da laringe,sítio anatômico,14001.00133,2.254,2.031,0.223,0.6
+C02,Neopl malig outr partes e NE da lingua,sítio anatômico,4570.999812,0.774,0.555,0.219,0.6
+C83,Linfoma nao-Hodgkin difuso,sítio anatômico,2924.0,0.524,0.33,0.194,0.5
+C38,Neopl malig do coracao mediastino e pleura,sítio anatômico,2622.0,0.447,0.285,0.161,0.4
+C48,Neopl malig tec moles retro- e peritonio,sítio anatômico,5525.0,0.907,0.748,0.159,0.4
+C21,Neopl malig do anus e do canal anal,sítio anatômico,2702.0,0.455,0.318,0.137,0.4
+C62,Neopl malig dos testiculos,sítio anatômico,1470.0,0.261,0.145,0.116,0.3
+C84,Linfomas de celulas T cutaneas e perifericas,sítio anatômico,1017.0,0.195,0.078,0.116,0.3
+C51,Neopl malig da vulva,sítio anatômico,1513.0,0.268,0.153,0.114,0.3
+C81,Doenc de Hodgkin,sítio anatômico,1752.0,0.308,0.207,0.101,0.3
+C13,Neopl malig da hipofaringe,sítio anatômico,1245.0,0.212,0.126,0.086,0.2
+C74,Neopl malig da gland supra-renal,sítio anatômico,1134.0,0.204,0.122,0.082,0.2
+C01,Neopl malig da base da lingua,sítio anatômico,1739.0,0.297,0.217,0.08,0.2
+C07,Neopl malig da gland parotida,sítio anatômico,1069.000107,0.19,0.114,0.076,0.2
+C68,Neopl malig de outr orgaos urinarios e NE,sítio anatômico,688.0,0.13,0.062,0.069,0.2
+C45,Mesotelioma,sítio anatômico,385.0,0.078,0.011,0.067,0.2
+C95,Leucemia de tipo celular NE,sítio anatômico,3889.999605,0.606,0.541,0.066,0.2
+C05,Neopl malig do palato,sítio anatômico,879.0,0.155,0.094,0.061,0.2
+C82,Linfoma nao-Hodgkin folicular,sítio anatômico,646.0,0.118,0.06,0.058,0.2
+C75,Neopl malig outr gland endocrinas estr relac,sítio anatômico,867.0,0.156,0.1,0.056,0.2
+C70,Neopl malig das meninges,sítio anatômico,577.0,0.105,0.053,0.053,0.1
+C09,Neopl malig da amigdala,sítio anatômico,482.0,0.089,0.04,0.049,0.1
+C57,Neopl malig outr org genitais femin e NE,sítio anatômico,698.0,0.127,0.078,0.049,0.1
+C23,Neopl malig da vesicula biliar,sítio anatômico,3521.0,0.568,0.521,0.048,0.1
+C11,Neopl malig da nasofaringe,sítio anatômico,1118.0,0.193,0.147,0.046,0.1
+C66,Neopl malig dos ureteres,sítio anatômico,303.0,0.06,0.021,0.039,0.1
+C08,Neopl malig outr gland saliv maiores e NE,sítio anatômico,448.0,0.081,0.053,0.028,0.1
+C37,Neopl malig do timo,sítio anatômico,245.0,0.046,0.019,0.027,0.1
+C94,Outr leucemias de celulas de tipo espec,sítio anatômico,459.0,0.079,0.053,0.025,0.1
+C88,Doenc imunoproliferativas malignas,sítio anatômico,172.0,0.035,0.011,0.025,0.1
+C12,Neopl malig do seio piriforme,sítio anatômico,164.0,0.03,0.009,0.021,0.1
+C65,Neopl malig da pelve renal,sítio anatômico,289.0,0.051,0.03,0.02,0.1
+C93,Leucemia monocitica,sítio anatômico,174.0,0.033,0.015,0.018,0.1
+C52,Neopl malig da vagina,sítio anatômico,447.0,0.073,0.06,0.013,0.0
+C17,Neopl malig do intestino delgado,sítio anatômico,5156.0,0.836,0.828,0.008,0.0
+C03,Neopl malig da gengiva,sítio anatômico,142.0,0.025,0.021,0.004,0.0
+C47,Neopl malig nervos perif e sist nerv autonom,sítio anatômico,174.0,0.03,0.027,0.003,0.0
+C86,,sítio anatômico,1.0,0.0,0.0,0.0,0.0
+C00,Neopl malig do labio,sítio anatômico,222.0,0.036,0.036,-0.001,-0.0
+C58,Neopl malig da placenta,sítio anatômico,18.0,0.002,0.003,-0.001,-0.0
+C96,Outr neopl mal e NE tec linf hematop e corr,sítio anatômico,664.0,0.107,0.109,-0.003,-0.0
+C30,Neopl malig cavidade nasal e do ouvido medio,sítio anatômico,454.0,0.069,0.073,-0.004,-0.0
+C46,Sarcoma de Kaposi,sítio anatômico,197.0,0.03,0.034,-0.004,-0.0
+C97,Neopl malig de localiz mult independentes,sítio primário não identificado,160.0,0.023,0.03,-0.007,-0.0
+C31,Neopl malig dos seios da face,sítio anatômico,662.0,0.101,0.112,-0.011,-0.0
+C63,Neopl malig outr org genit masc e NE,sítio anatômico,97.0,0.014,0.03,-0.016,-0.0
+C06,Neopl malig outr partes e partes NE da boca,sítio anatômico,3486.000479,0.549,0.564,-0.016,-0.0
+C14,Neop mal out loc mal def labio cav oral far,sítio anatômico,2137.0,0.316,0.332,-0.016,-0.0
+C39,Neop mal out loc mal def ap resp org intrat,sítio primário não identificado,313.0,0.047,0.066,-0.02,-0.1
+C40,Neopl malig ossos/cartilag artic membros,sítio anatômico,612.0,0.084,0.112,-0.028,-0.1
+C33,Neopl malig da traqueia,sítio anatômico,273.0,0.039,0.067,-0.028,-0.1
+C69,Neopl malig do olho e anexos,sítio anatômico,695.0,0.1,0.133,-0.032,-0.1
+C73,Neopl malig da gland tireoide,sítio anatômico,2865.0,0.446,0.48,-0.034,-0.1
+C77,Neopl malig secund e NE gangl linfaticos,sítio primário não identificado,479.0,0.064,0.115,-0.051,-0.1
+C04,Neopl malig do assoalho da boca,sítio anatômico,942.0,0.138,0.199,-0.061,-0.2
+C15,Neopl malig do esofago,sítio anatômico,25733.002906,3.885,3.947,-0.062,-0.2
+C41,Neopl malig ossos/cartil artic outr loc e NE,sítio anatômico,5759.999115,0.876,0.958,-0.082,-0.2
+C16,Neopl malig do estomago,sítio anatômico,44076.994287,6.972,7.168,-0.196,-0.5
+C60,Neopl malig do penis,sítio anatômico,1562.0,0.198,0.41,-0.212,-0.6
+C61,Neopl malig da prostata,sítio anatômico,51507.999936,7.962,8.193,-0.231,-0.6
+C79,Neopl malig secund de outr localiz,sítio primário não identificado,4841.999349,0.632,1.066,-0.434,-1.2
+C78,Neopl malig secund org respirat e digestivos,sítio primário não identificado,6895.0,0.942,1.417,-0.475,-1.3
+C76,Neopl malig outr localiz e mal definidas,sítio primário não identificado,16159.000198,2.373,2.872,-0.499,-1.4
+C44,Outr neopl malig da pele,sítio anatômico,10692.000484,1.537,2.136,-0.599,-1.6
+C53,Neopl malig do colo do utero,sítio anatômico,21682.997233,3.137,4.103,-0.967,-2.7

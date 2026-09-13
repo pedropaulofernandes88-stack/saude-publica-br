@@ -484,6 +484,51 @@ Dos 23 sítios com pelo menos 8 mil óbitos no período, **seis matam mais no qu
 
 Duas linhas dessa tabela não são doença e sim codificação, e apontam em sentidos contrários: "outras localizações e mal definidas" (C76) tem razão 1,22, enquanto "sem especificação de localização" (C80) tem 0,57. Se o quartil vulnerável simplesmente codificasse pior, as duas subiriam juntas. Elas divergem, o que sugere práticas de codificação **distintas** — categorias residuais diferentes, escolhidas por serviços diferentes — e não apenas piores.
 
+### 3.8b A composição do gradiente, sítio a sítio (extensão exploratória)
+
+A §3.8 estabelece que a mortalidade padronizada é maior no quartil menos
+vulnerável, e a tabela de sítios traz a razão Q4/Q1 de cada um. Razão e peso são
+coisas diferentes: uma razão extrema pode corresponder a pouquíssima
+mortalidade, e uma razão modesta pode responder por grande parte da diferença.
+Ordenar por razão não distingue os dois casos.
+
+Esta seção mede o peso. Para cada sítio,
+
+$$D_s = 	ext{taxa padronizada em Q1} - 	ext{taxa padronizada em Q4}$$
+
+sobre a mesma população, o mesmo padrão etário e o mesmo universo territorial da
+taxa total, de modo que a **soma de $D_s$ sobre todos os sítios C00–C97 reproduz
+a diferença entre as taxas totais dos dois quartis**. É identidade, não modelo:
+nenhuma contribuição aqui é fração atribuível, efeito de rastreamento ou morte
+evitável. A análise aborta se a soma não fechar, e por isso nenhum sítio pode
+ser podado — o filtro de contagem mínima da tabela de razões não existe nesta.
+
+Dos 89 sítios, 62 sustentam o gradiente e 27 o compensam. Quatro respondem por
+mais da metade: cólon (6,13 por 100 mil, 16,9% da diferença), brônquios e
+pulmões (5,55, 15,3%), mama (5,17, 14,2%) e pâncreas (3,88, 10,7%). Do lado que
+compensa, o maior é o colo do útero (−0,97), seguido de outras neoplasias da
+pele (−0,6) e de outras localizações e mal definidas (−0,5) (Tabela 23).
+
+**O gradiente não é artefato de codificação, e a decomposição completa é o que
+permite dizer isso.** Oito categorias da CID-10 não nomeiam sítio anatômico —
+mal definidas, sem especificação de localização, localizações múltiplas e as
+secundárias, que como causa básica significam que o tumor de origem não foi
+registrado. Elas aparecem dos dois lados e quase se cancelam. Do lado que sustenta estão
+C80, sem especificação de localização, com 1,29, e as outras mal definidas do
+aparelho digestivo, com 0,67; do lado que compensa, outras localizações e mal
+definidas com −0,5 e as secundárias com −0,48 e −0,43. O saldo das oito é
+positivo e menor que a contribuição de qualquer um dos quatro maiores sítios
+isoladamente (Tabela 23).
+
+Ler apenas uma parte delas produziria qualquer narrativa desejada — é
+precisamente o que uma leitura sobre a tabela truncada de razões sugeriu antes
+desta conta, e que a decomposição completa desmentiu.
+
+**Esta extensão é exploratória e não pré-especificada.** Ela foi concebida
+depois de observar os resultados, a partir de auditoria externa. O que ela
+acrescenta é descritivo: qual é a composição da diferença, e não por que ela
+existe. Nada nela identifica detecção, acesso, tratamento ou risco competitivo.
+
 ### 3.9 Cor e raça
 
 **Tabela 11. Taxa de mortalidade por câncer por cor ou raça, 2022–2023 (`tabela_11_raca.csv`).**
@@ -604,6 +649,100 @@ O que sustenta é o comportamento sob as três perturbações que poderiam desfa
 - **Diagnóstico privado.** É o viés mais forte, e ele age **contra** o achado. Quem é diagnosticado fora do SUS não entra no Painel, mas seu óbito entra no SIM — de modo que a razão do quartil menos vulnerável está inflada, não deprimida. A exposição a esse viés é de **34,7** vínculos de plano por 100 habitantes no Q1 contra **2,5** no Q4. No limite aritmético em que todo conveniado escapasse do denominador, a razão verdadeira do Q1 cairia para cerca de 0,32 e a distância entre os quartis mais que triplicaria. O número medido é piso.
 
 **Aqui o teste pré-especificado da §2.9 reprova, e reprova com clareza.**
+
+**Tabela 23. Composição da diferença de mortalidade padronizada entre os quartis extremos de vulnerabilidade, por sítio (`tabela_23_decomposicao_sitio.csv`).**
+
+| CID | Sítio | Natureza | Óbitos | Taxa Q1 (menos vulnerável) | Taxa Q4 (mais vulnerável) | Contribuição Q1−Q4 | % da diferença |
+|---|---|---|---|---|---|---|---|
+| C18 | Neopl malig do colon | sítio anatômico | 46.490 | 9,15 | 3,02 | 6,13 | 16,9 |
+| C34 | Neopl malig dos bronquios e dos pulmoes | sítio anatômico | 93.089 | 16,2 | 10,65 | 5,55 | 15,3 |
+| C50 | Neopl malig da mama | sítio anatômico | 60.886 | 11,04 | 5,87 | 5,17 | 14,2 |
+| C25 | Neopl malig do pancreas | sítio anatômico | 40.531 | 7,55 | 3,66 | 3,88 | 10,7 |
+| C20 | Neopl malig do reto | sítio anatômico | 18.340 | 3,42 | 1,57 | 1,84 | 5,1 |
+| C67 | Neopl malig da bexiga | sítio anatômico | 15.854 | 2,94 | 1,34 | 1,6 | 4,4 |
+| C80 | Neopl malig s/especificacao de localiz | sítio primário não identificado | 17.248 | 3,01 | 1,72 | 1,29 | 3,5 |
+| C71 | Neopl malig do encefalo | sítio anatômico | 26.190 | 4,41 | 3,15 | 1,26 | 3,5 |
+| C64 | Neopl malig do rim exceto pelve renal | sítio anatômico | 12.775 | 2,39 | 1,14 | 1,25 | 3,4 |
+| C90 | Mieloma mult e neopl malig de plasmocitos | sítio anatômico | 11.845 | 2,19 | 1,08 | 1,1 | 3 |
+| C56 | Neopl malig do ovario | sítio anatômico | 13.226 | 2,38 | 1,36 | 1,02 | 2,8 |
+| C22 | Neopl malig figado vias biliares intra-hepat | sítio anatômico | 33.497 | 5,54 | 4,55 | 1 | 2,7 |
+| C85 | Linfoma nao-Hodgkin de outr tipos e tipo NE | sítio anatômico | 9.172 | 1,71 | 0,75 | 0,96 | 2,6 |
+| C92 | Leucemia mieloide | sítio anatômico | 11.495 | 2,08 | 1,2 | 0,88 | 2,4 |
+| C54 | Neopl malig do corpo do utero | sítio anatômico | 7.574 | 1,41 | 0,66 | 0,75 | 2,1 |
+| C26 | Neopl malig outr mal def aparelho digestivo | sítio primário não identificado | 13.130 | 2,17 | 1,5 | 0,67 | 1,8 |
+| C43 | Melanoma malig da pele | sítio anatômico | 6.037 | 1,13 | 0,52 | 0,61 | 1,7 |
+| C24 | Neopl malig outr partes e NE vias biliares | sítio anatômico | 8.656 | 1,54 | 0,99 | 0,55 | 1,5 |
+| C19 | Neopl malig da juncao retossigmoide | sítio anatômico | 5.741 | 1,04 | 0,53 | 0,51 | 1,4 |
+| C91 | Leucemia linfoide | sítio anatômico | 6.243 | 1,08 | 0,7 | 0,38 | 1 |
+| C72 | Neop mal med esp nerv cran out sist nerv cen | sítio anatômico | 3.799 | 0,7 | 0,32 | 0,38 | 1 |
+| C49 | Neopl malig tec conjuntivo e outr tec moles | sítio anatômico | 4.868 | 0,87 | 0,5 | 0,37 | 1 |
+| C10 | Neopl malig da orofaringe | sítio anatômico | 6.952 | 1,17 | 0,84 | 0,33 | 0,9 |
+| C55 | Neopl malig do utero porcao NE | sítio anatômico | 5.527 | 0,9 | 0,64 | 0,26 | 0,7 |
+| C32 | Neopl malig da laringe | sítio anatômico | 14.001 | 2,25 | 2,03 | 0,22 | 0,6 |
+| C02 | Neopl malig outr partes e NE da lingua | sítio anatômico | 4.570 | 0,77 | 0,56 | 0,22 | 0,6 |
+| C83 | Linfoma nao-Hodgkin difuso | sítio anatômico | 2.924 | 0,52 | 0,33 | 0,19 | 0,5 |
+| C38 | Neopl malig do coracao mediastino e pleura | sítio anatômico | 2.622 | 0,45 | 0,28 | 0,16 | 0,4 |
+| C48 | Neopl malig tec moles retro- e peritonio | sítio anatômico | 5.525 | 0,91 | 0,75 | 0,16 | 0,4 |
+| C21 | Neopl malig do anus e do canal anal | sítio anatômico | 2.702 | 0,46 | 0,32 | 0,14 | 0,4 |
+| C62 | Neopl malig dos testiculos | sítio anatômico | 1.470 | 0,26 | 0,14 | 0,12 | 0,3 |
+| C84 | Linfomas de celulas T cutaneas e perifericas | sítio anatômico | 1.017 | 0,2 | 0,08 | 0,12 | 0,3 |
+| C51 | Neopl malig da vulva | sítio anatômico | 1.513 | 0,27 | 0,15 | 0,11 | 0,3 |
+| C81 | Doenc de Hodgkin | sítio anatômico | 1.752 | 0,31 | 0,21 | 0,1 | 0,3 |
+| C13 | Neopl malig da hipofaringe | sítio anatômico | 1.245 | 0,21 | 0,13 | 0,09 | 0,2 |
+| C74 | Neopl malig da gland supra-renal | sítio anatômico | 1.134 | 0,2 | 0,12 | 0,08 | 0,2 |
+| C01 | Neopl malig da base da lingua | sítio anatômico | 1.739 | 0,3 | 0,22 | 0,08 | 0,2 |
+| C07 | Neopl malig da gland parotida | sítio anatômico | 1.069 | 0,19 | 0,11 | 0,08 | 0,2 |
+| C68 | Neopl malig de outr orgaos urinarios e NE | sítio anatômico | 688 | 0,13 | 0,06 | 0,07 | 0,2 |
+| C45 | Mesotelioma | sítio anatômico | 385 | 0,08 | 0,01 | 0,07 | 0,2 |
+| C95 | Leucemia de tipo celular NE | sítio anatômico | 3.889 | 0,61 | 0,54 | 0,07 | 0,2 |
+| C05 | Neopl malig do palato | sítio anatômico | 879 | 0,16 | 0,09 | 0,06 | 0,2 |
+| C82 | Linfoma nao-Hodgkin folicular | sítio anatômico | 646 | 0,12 | 0,06 | 0,06 | 0,2 |
+| C75 | Neopl malig outr gland endocrinas estr relac | sítio anatômico | 867 | 0,16 | 0,1 | 0,06 | 0,2 |
+| C70 | Neopl malig das meninges | sítio anatômico | 577 | 0,1 | 0,05 | 0,05 | 0,1 |
+| C09 | Neopl malig da amigdala | sítio anatômico | 482 | 0,09 | 0,04 | 0,05 | 0,1 |
+| C57 | Neopl malig outr org genitais femin e NE | sítio anatômico | 698 | 0,13 | 0,08 | 0,05 | 0,1 |
+| C23 | Neopl malig da vesicula biliar | sítio anatômico | 3.521 | 0,57 | 0,52 | 0,05 | 0,1 |
+| C11 | Neopl malig da nasofaringe | sítio anatômico | 1.118 | 0,19 | 0,15 | 0,05 | 0,1 |
+| C66 | Neopl malig dos ureteres | sítio anatômico | 303 | 0,06 | 0,02 | 0,04 | 0,1 |
+| C08 | Neopl malig outr gland saliv maiores e NE | sítio anatômico | 448 | 0,08 | 0,05 | 0,03 | 0,1 |
+| C37 | Neopl malig do timo | sítio anatômico | 245 | 0,05 | 0,02 | 0,03 | 0,1 |
+| C94 | Outr leucemias de celulas de tipo espec | sítio anatômico | 459 | 0,08 | 0,05 | 0,02 | 0,1 |
+| C88 | Doenc imunoproliferativas malignas | sítio anatômico | 172 | 0,04 | 0,01 | 0,02 | 0,1 |
+| C12 | Neopl malig do seio piriforme | sítio anatômico | 164 | 0,03 | 0,01 | 0,02 | 0,1 |
+| C65 | Neopl malig da pelve renal | sítio anatômico | 289 | 0,05 | 0,03 | 0,02 | 0,1 |
+| C93 | Leucemia monocitica | sítio anatômico | 174 | 0,03 | 0,02 | 0,02 | 0,1 |
+| C52 | Neopl malig da vagina | sítio anatômico | 447 | 0,07 | 0,06 | 0,01 | 0 |
+| C17 | Neopl malig do intestino delgado | sítio anatômico | 5.156 | 0,84 | 0,83 | 0,01 | 0 |
+| C03 | Neopl malig da gengiva | sítio anatômico | 142 | 0,02 | 0,02 | 0 | 0 |
+| C47 | Neopl malig nervos perif e sist nerv autonom | sítio anatômico | 174 | 0,03 | 0,03 | 0 | 0 |
+| C86 | — | sítio anatômico | 1 | 0 | 0 | 0 | 0 |
+| C00 | Neopl malig do labio | sítio anatômico | 222 | 0,04 | 0,04 | 0 | 0 |
+| C58 | Neopl malig da placenta | sítio anatômico | 18 | 0 | 0 | 0 | 0 |
+| C96 | Outr neopl mal e NE tec linf hematop e corr | sítio anatômico | 664 | 0,11 | 0,11 | 0 | 0 |
+| C30 | Neopl malig cavidade nasal e do ouvido medio | sítio anatômico | 454 | 0,07 | 0,07 | 0 | 0 |
+| C46 | Sarcoma de Kaposi | sítio anatômico | 197 | 0,03 | 0,03 | 0 | 0 |
+| C97 | Neopl malig de localiz mult independentes | sítio primário não identificado | 160 | 0,02 | 0,03 | -0,01 | 0 |
+| C31 | Neopl malig dos seios da face | sítio anatômico | 662 | 0,1 | 0,11 | -0,01 | 0 |
+| C63 | Neopl malig outr org genit masc e NE | sítio anatômico | 97 | 0,01 | 0,03 | -0,02 | 0 |
+| C06 | Neopl malig outr partes e partes NE da boca | sítio anatômico | 3.486 | 0,55 | 0,56 | -0,02 | 0 |
+| C14 | Neop mal out loc mal def labio cav oral far | sítio anatômico | 2.137 | 0,32 | 0,33 | -0,02 | 0 |
+| C39 | Neop mal out loc mal def ap resp org intrat | sítio primário não identificado | 313 | 0,05 | 0,07 | -0,02 | -0,1 |
+| C40 | Neopl malig ossos/cartilag artic membros | sítio anatômico | 612 | 0,08 | 0,11 | -0,03 | -0,1 |
+| C33 | Neopl malig da traqueia | sítio anatômico | 273 | 0,04 | 0,07 | -0,03 | -0,1 |
+| C69 | Neopl malig do olho e anexos | sítio anatômico | 695 | 0,1 | 0,13 | -0,03 | -0,1 |
+| C73 | Neopl malig da gland tireoide | sítio anatômico | 2.865 | 0,45 | 0,48 | -0,03 | -0,1 |
+| C77 | Neopl malig secund e NE gangl linfaticos | sítio primário não identificado | 479 | 0,06 | 0,12 | -0,05 | -0,1 |
+| C04 | Neopl malig do assoalho da boca | sítio anatômico | 942 | 0,14 | 0,2 | -0,06 | -0,2 |
+| C15 | Neopl malig do esofago | sítio anatômico | 25.733 | 3,88 | 3,95 | -0,06 | -0,2 |
+| C41 | Neopl malig ossos/cartil artic outr loc e NE | sítio anatômico | 5.759 | 0,88 | 0,96 | -0,08 | -0,2 |
+| C16 | Neopl malig do estomago | sítio anatômico | 44.076 | 6,97 | 7,17 | -0,2 | -0,5 |
+| C60 | Neopl malig do penis | sítio anatômico | 1.562 | 0,2 | 0,41 | -0,21 | -0,6 |
+| C61 | Neopl malig da prostata | sítio anatômico | 51.507 | 7,96 | 8,19 | -0,23 | -0,6 |
+| C79 | Neopl malig secund de outr localiz | sítio primário não identificado | 4.841 | 0,63 | 1,07 | -0,43 | -1,2 |
+| C78 | Neopl malig secund org respirat e digestivos | sítio primário não identificado | 6.895 | 0,94 | 1,42 | -0,48 | -1,3 |
+| C76 | Neopl malig outr localiz e mal definidas | sítio primário não identificado | 16.159 | 2,37 | 2,87 | -0,5 | -1,4 |
+| C44 | Outr neopl malig da pele | sítio anatômico | 10.692 | 1,54 | 2,14 | -0,6 | -1,6 |
+| C53 | Neopl malig do colo do utero | sítio anatômico | 21.682 | 3,14 | 4,1 | -0,97 | -2,7 |
 
 **Tabela 22. O contraste entre os dois grupos de sítios, definidos antes da medida (`tabela_22_contraste_deteccao.csv`).**
 

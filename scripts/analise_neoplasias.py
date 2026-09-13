@@ -1049,6 +1049,108 @@ def vulnerabilidade(con: duckdb.DuckDBPyConnection) -> None:
     print(f"  sítios com mortalidade MAIOR no quartil vulnerável: "
           f"{', '.join(piores.causabas_3) or '(nenhum)'}")
 
+    decomposicao_sitio(con, tab08)
+
+
+#: Categorias em que o SÍTIO PRIMÁRIO NÃO FOI IDENTIFICADO na declaração.
+#:
+#: São três famílias: mal definidas (C26, C39, C76), sem especificação de
+#: localização (C80) e localizações múltiplas (C97) — e as secundárias
+#: (C77–C79), que como CAUSA BÁSICA significam a mesma coisa: a metástase foi
+#: registrada e o tumor de origem não. Elas entram na decomposição como qualquer
+#: outra, porque a soma tem de fechar, mas são separadas na leitura: uma
+#: contribuição vinda daqui informa sobre qualidade de registro, e não sobre
+#: onde o câncer mata.
+#:
+#: Reunir as oito é o que torna a leitura possível. Vistas isoladamente elas se
+#: contradizem — C80 contribui +1,29 e C76 contribui −0,50 —, e escolher um
+#: subconjunto conveniente produziria qualquer narrativa desejada.
+RESIDUAIS = ("C26", "C39", "C76", "C77", "C78", "C79", "C80", "C97")
+
+
+def decomposicao_sitio(con: duckdb.DuckDBPyConnection, tab08) -> None:
+    """tab22 — quanto cada sítio compõe a diferença de mortalidade Q1 − Q4.
+
+    O QUE ESTA TABELA ACRESCENTA À tab09
+    -------------------------------------
+    A tab09 traz a RAZÃO Q4/Q1 por sítio, ordenada, e filtra sítios com menos de
+    oito mil óbitos. Razão extrema pode corresponder a pouquíssima mortalidade, e
+    razão modesta pode responder por grande parte da diferença: as duas situações
+    são indistinguíveis numa coluna de razões.
+
+    Aqui a medida é aditiva. Para cada sítio,
+
+        D_s = taxa padronizada do sítio em Q1 − taxa padronizada em Q4
+
+    e a soma de D_s sobre TODOS os sítios C00–C97 reproduz a diferença entre as
+    taxas totais dos dois quartis. É identidade, não modelo: nada aqui identifica
+    mecanismo, e o filtro de oito mil óbitos da tab09 não pode existir nesta,
+    porque podar a soma quebra a identidade.
+
+    A GUARDA É A PRÓPRIA IDENTIDADE
+    --------------------------------
+    Se a soma não fechar com a tab08, alguma coisa está fora — sítio omitido,
+    padrão diferente, denominador diferente. A tabela aborta em vez de publicar
+    uma decomposição que não decompõe.
+
+    ESTA TABELA É EXPLORATÓRIA
+    ---------------------------
+    Concebida depois de observar os resultados, a partir de auditoria externa.
+    Não é análise pré-especificada, e o manuscrito diz isso.
+    """
+    res = ",".join(f"'{c}'" for c in RESIDUAIS)
+    d = con.execute(f"""
+      with skel as (select d.q, d.fx, c.causabas_3
+                    from denom_q d cross join (select distinct causabas_3 from ob_q) c),
+      r as (select s.q, s.causabas_3, sum(coalesce(o.ob,0)) ob,
+                   1e5*sum(coalesce(o.ob,0)/d.py*w.w)/sum(w.w) padr
+            from skel s
+              join denom_q d on d.q=s.q and d.fx=s.fx
+              join padrao_mun w on w.fx=s.fx
+              left join ob_q o on o.q=s.q and o.fx=s.fx and o.causabas_3=s.causabas_3
+            group by 1,2),
+      tot as (select causabas_3, sum(ob) ob from r group by 1)
+      select r.causabas_3 causabas_3,
+             trim(regexp_replace(c.descricao, '^C[0-9]+\\s+', '')) sitio,
+             t.ob obitos,
+             max(case when r.q='Q1' then r.padr end) taxa_Q1,
+             max(case when r.q='Q4' then r.padr end) taxa_Q4,
+             case when r.causabas_3 in ({res}) then 'sítio primário não identificado'
+                  else 'sítio anatômico' end natureza
+      from r join tot t using(causabas_3) left join cat c using(causabas_3)
+      where r.causabas_3 between '{CID_MALIGNA[0]}' and '{CID_MALIGNA[1]}'
+      group by 1,2,3,6""").df()
+
+    d["contribuicao"] = d.taxa_Q1 - d.taxa_Q4
+    alvo = float(tab08.iloc[0].taxa_padronizada_100k - tab08.iloc[-1].taxa_padronizada_100k)
+    soma = float(d.contribuicao.sum())
+    if abs(soma - alvo) > 0.15:
+        raise SystemExit(
+            f"a soma das contribuições por sítio dá {soma:.3f} e a diferença entre "
+            f"as taxas totais de Q1 e Q4 é {alvo:.3f}. Uma decomposição que não "
+            "reproduz o total que decompõe não é decomposição — confira se algum "
+            "sítio ficou fora, ou se o padrão etário difere entre as duas contas.")
+
+    d = d.sort_values("contribuicao", ascending=False)
+    escrever(d.assign(
+        taxa_Q1=d.taxa_Q1.round(3), taxa_Q4=d.taxa_Q4.round(3),
+        contribuicao=d.contribuicao.round(3),
+        pct_da_diferenca=(100 * d.contribuicao / soma).round(1),
+    )[["causabas_3", "sitio", "natureza", "obitos", "taxa_Q1", "taxa_Q4",
+       "contribuicao", "pct_da_diferenca"]], "tab22_decomposicao_sitio")
+
+    pos, neg = d[d.contribuicao > 0], d[d.contribuicao < 0]
+    cod = d[d.natureza == "sítio primário não identificado"]
+    print(f"  soma das contribuições: {soma:.2f} por 100 mil "
+          f"(diferença total Q1−Q4: {alvo:.2f}) — identidade fecha")
+    print(f"  {len(pos)} sítios sustentam o gradiente (+{pos.contribuicao.sum():.2f}), "
+          f"{len(neg)} compensam ({neg.contribuicao.sum():.2f})")
+    print(f"  sítio primário não identificado (8 categorias): "
+          f"{cod.contribuicao.sum():+.2f} "
+          f"({100*cod.contribuicao.sum()/soma:.1f}% da diferença total)")
+    for _, r in d.head(4).iterrows():
+        print(f"     {r.causabas_3} {r.sitio[:34]:<34} {r.contribuicao:+.2f}")
+
 
 def deteccao(con: duckdb.DuckDBPyConnection) -> None:
     """tab19/tab20 — óbitos por caso diagnosticado, por quartil de IVS e por sítio.

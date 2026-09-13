@@ -68,6 +68,10 @@ TABELAS_ESPERADAS = {
     "tabela_p1_painel.csv", "tabela_p2_especificidade.csv",
     "tabela_p3_efeito_fixo.csv", "tabela_p4_tendencia.csv",
     "tabela_p5_robustez.csv",
+    # a extensao microbiologica, condicional a reportar
+    "tabela_e1_painel.csv", "tabela_e2_especificidade.csv",
+    "tabela_e3_efeito_fixo.csv", "tabela_e4_intensidade.csv",
+    "tabela_e5_robustez.csv",
 }
 FIGURAS_ESPERADAS = {
     "figura_01_serie_nacional.png", "figura_02_alta_por_faixa.png",
@@ -75,6 +79,7 @@ FIGURAS_ESPERADAS = {
     "figura_05_rrr_por_idade.png",
     "figura_p1_especificidade.png", "figura_p2_com_e_sem_efeito_fixo.png",
     "figura_p3_tendencia.png", "figura_p4_robustez.png",
+    "figura_e1_ecoli.png",
 }
 
 #: O que entra além das tabelas e figuras, e como se chama no pacote.
@@ -92,6 +97,8 @@ CONTEUDO = [
     (ROOT / "scripts" / "analise_agua_painel.py",
      "codigo/analise_agua_painel.py",
      "A ANÁLISE PRIMÁRIA: painel de efeitos fixos de município, exposição defasada, quatro critérios declarados no cabeçalho"),
+    (ROOT / "scripts" / "analise_agua_ecoli.py", "codigo/analise_agua_ecoli.py",
+     "A EXTENSAO MICROBIOLOGICA: deteccao de E. coli como exposicao, condicional a reportar, com os quatro criterios no cabecalho"),
     (ROOT / "scripts" / "_poisson_fe.py", "codigo/_poisson_fe.py",
      "O estimador de Poisson condicional de efeitos fixos, com o autoteste de recuperação"),
     (AQUI / "gerar_tabelas_painel.py", "codigo/gerar_tabelas_painel.py",

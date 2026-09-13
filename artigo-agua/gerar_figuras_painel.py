@@ -50,6 +50,7 @@ if hasattr(sys.stdout, "reconfigure"):
 
 RAIZ = Path(__file__).resolve().parent
 ANALISE = RAIZ.parent / "data" / "analises" / "agua-painel"
+ANALISE_EC = RAIZ.parent / "data" / "analises" / "agua-ecoli"
 FIGURAS = RAIZ / "figuras"
 
 AZUL, LARANJA = "#2a78d6", "#eb6834"
@@ -260,6 +261,49 @@ def fig4_robustez() -> str:
     return nome
 
 
+def fig5_ecoli() -> str:
+    """Os cinco IRR da DETECÇÃO de E. coli, condicional a reportar.
+
+    Mesma gramática da figura 1, de propósito: o leitor compara as duas de
+    relance, e a comparação é o argumento — trocar a papelada pelo resultado do
+    laboratório não muda o quadro.
+    """
+    d = pd.read_csv(ANALISE_EC / "tab02_especificidade.csv")
+    fig, ax = plt.subplots(figsize=(LARGURA, 3.2), dpi=300)
+    _base(fig, ax)
+    _linha_do_um(ax)
+
+    y = range(len(d))[::-1]
+    for yi, (_, r) in zip(y, d.iterrows()):
+        hipotese = r["Grupo de causa"].endswith("(hipotese)")
+        cor = VERMELHO if hipotese else TINTA2
+        ax.plot([r["IC95% inferior"], r["IC95% superior"]], [yi, yi],
+                color=cor, lw=1.6, solid_capstyle="butt", zorder=2)
+        ax.plot([r["IRR"]], [yi], "o", color=cor, ms=6, zorder=3,
+                markeredgecolor="white", markeredgewidth=0.8)
+        ax.annotate(f"{r['IRR']:.3f}  [{r['IC95% inferior']:.3f}, "
+                    f"{r['IC95% superior']:.3f}]",
+                    (r["IC95% superior"], yi), xytext=(7, 0),
+                    textcoords="offset points", va="center", fontsize=7.5,
+                    color=cor)
+
+    ax.set_yticks(list(y))
+    ax.set_yticklabels([CURTO.get(g, g) for g in d["Grupo de causa"]], fontsize=7.5)
+    ax.set_xlabel("IRR da detecção de E. coli no ano anterior (escala log)",
+                  fontsize=8, color=TINTA)
+    ax.set_xscale("log")
+    ax.set_xlim(0.85, 1.30)
+    ax.set_xticks([0.9, 0.95, 1.0, 1.05, 1.1])
+    ax.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:g}"))
+    ax.set_title("Entre municípios que reportam: o que o laboratório encontrou",
+                 fontsize=8, color=TINTA2, loc="left", pad=8)
+    fig.tight_layout()
+    nome = "figura_e1_ecoli.png"
+    fig.savefig(FIGURAS / nome, bbox_inches="tight", facecolor="white")
+    plt.close(fig)
+    return nome
+
+
 #: (seção do manuscrito, nome do arquivo sem extensão, legenda).
 #:
 #: `artigo/gerar_docx.py` le esta tupla — do `gerar_figuras.py` da pasta, que
@@ -287,6 +331,13 @@ LEGENDAS: tuple[tuple[str, str, str], ...] = (
      "sensível à inflação do denominador pela COVID-19 em 2020 e 2021; o "
      "segundo, o contrário. A faixa sombreada está fora da base do ajuste. "
      "Fonte: Tabela P4."),
+    ("3.7", "figura_e1_ecoli",
+     "Razão de taxas (IRR) da detecção de Escherichia coli na água no ano "
+     "anterior, por grupo de causa, entre os município-anos em que houve "
+     "amostra analisada e reportada ao SISAGUA. Mesmo estimador e mesma "
+     "gramática da Figura P1, para comparação direta: a exposição deixa de ser "
+     "o ato de reportar e passa a ser o resultado da análise. "
+     "Fonte: Tabela E2."),
     ("3.6", "figura_p4_robustez",
      "IRR da ausência de vigilância sobre a mortalidade por A00–A09 em cada "
      "recorte de sensibilidade, incluindo a exclusão do Distrito Federal e "
@@ -297,7 +348,7 @@ LEGENDAS: tuple[tuple[str, str, str], ...] = (
 def main() -> None:
     FIGURAS.mkdir(parents=True, exist_ok=True)
     feitas = [fig1_especificidade(), fig2_com_e_sem_efeito_fixo(),
-              fig3_tendencia(), fig4_robustez()]
+              fig3_tendencia(), fig5_ecoli(), fig4_robustez()]
     if [f"{n}.png" for _, n, _ in LEGENDAS] != feitas:
         raise SystemExit(
             f"as legendas não correspondem às figuras desenhadas.\n"

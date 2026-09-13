@@ -140,20 +140,25 @@ class Tabela:
     legenda: str
     csv: str
 
+    #: Ordem das séries no suplemento: primeiro a análise primária (P), depois
+    #: a extensão microbiológica (E), depois o desenho transversal (numérica).
+    SERIES = ("P", "E")
+
     @property
     def ordem(self) -> tuple[int, int]:
-        """Série P primeiro, e dentro de cada série, pela ordem numérica."""
-        serie = self.numero.startswith("P")
-        return (0 if serie else 1, int(self.numero.lstrip("P")))
+        """Série por série, e dentro de cada uma, pela ordem numérica."""
+        letra = self.numero[0] if self.numero[0].isalpha() else ""
+        pos = self.SERIES.index(letra) if letra in self.SERIES else len(self.SERIES)
+        return (pos, int(self.numero.lstrip("PE")))
 
     @property
     def rotulo(self) -> str:
         """Como a tabela é chamada no documento.
 
-        A série numérica ganha o "S" de suplementar; a série P já se distingue
-        pela letra, e "Tabela SP1" não ajudaria ninguém.
+        A série numérica ganha o "S" de suplementar; as séries com letra já se
+        distinguem por ela, e "Tabela SP1" não ajudaria ninguém.
         """
-        return self.numero if self.numero.startswith("P") else f"S{self.numero}"
+        return self.numero if self.numero[0].isalpha() else f"S{self.numero}"
 
 
 def _paragrafo_com_marcacao(p, texto: str) -> None:
@@ -202,7 +207,7 @@ def carregar_markdown() -> tuple[str, list[str], list[Tabela]]:
     # Reescrever dezesseis legendas para caber no regex seria dobrar o texto à
     # ferramenta; o regex é que cede.
     anuncio = re.compile(
-        r"^\*\*Tabela (P?\d+)\s*[.—-]\s*(.+?)\s*\(`(tabela_[a-z0-9_]+\.csv)`\)\.?\*\*$")
+        r"^\*\*Tabela ([PE]?\d+)\s*[.—-]\s*(.+?)\s*\(`(tabela_[a-z0-9_]+\.csv)`\)\.?\*\*$")
     while i < len(corpo):
         m = anuncio.match(corpo[i].strip())
         if m:
