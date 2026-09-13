@@ -101,6 +101,7 @@ from _poisson_fe import ajustar_matriz  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
+REFS = ROOT / "data" / "refs"
 SAIDA = ROOT / "data" / "analises" / "agua-painel"
 
 #: Desfecho de 2016 a 2024; a exposicao e' o ano anterior, e 2015 fornece o
@@ -227,6 +228,48 @@ def _filtrar(P: dict, selecao: np.ndarray) -> dict:
     return Q
 
 
+def sem_anos(P: dict, fora: set[int]) -> dict:
+    """Sub-painel sem os anos indicados, com as indicadoras de ano REFEITAS.
+
+    POR QUE ISTO EXISTE
+    --------------------
+    O offset do painel e' a populacao municipal de `dim_populacao`, e essa serie
+    troca de base em 2022: estimativas ate 2021, Censo em 2022, interpolacao em
+    2023. A parte da troca que e' comum ao pais e' absorvida pelas indicadoras de
+    ano; a parte que e' propria de cada municipio — e o Censo reviu municipios em
+    direcoes diferentes — vira erro de medida no offset, e o efeito fixo nao a
+    remove.
+
+    Nao existe serie municipal harmonizada para reconstruir o denominador. O que
+    da' para fazer e' medir o quanto o resultado depende dos anos afetados, e e'
+    o que este recorte faz. Se o IRR nao se mover ao remove-los, a emenda do
+    Censo nao explica o achado.
+
+    Refazer as indicadoras e' obrigatorio: reaproveitar as do painel cheio
+    deixaria colunas todas-zero para os anos removidos, e a matriz de desenho
+    ficaria singular sem que nada acusasse.
+    """
+    fica = np.array([a not in fora for a in P["anos"]])
+    if fica.sum() < 3:
+        raise SystemExit(
+            f"sobraram {int(fica.sum())} anos depois de remover {sorted(fora)}. "
+            "Um painel de menos de tres anos nao sustenta efeito fixo com "
+            "indicadora de ano.")
+    anos = P["anos"][fica]
+    M, T = P["M"], len(anos)
+
+    colunas = [P["X"][:, fica, 0]]
+    for a in anos[1:]:
+        colunas.append(np.tile((anos == a).astype(float), (M, 1)))
+    Q = dict(P)
+    Q["anos"], Q["T"] = anos, T
+    Q["X"] = np.stack(colunas, axis=2)
+    Q["OFF"] = P["OFF"][:, fica]
+    Q["Y"] = {n: v[:, fica] for n, v in P["Y"].items()}
+    Q["tabela"] = None
+    return Q
+
+
 def irr(P: dict, causa: str, com_fe: bool = True) -> float:
     """Razao de taxas da ausencia de vigilancia, para uma causa."""
     Y, X, OFF = P["Y"][causa], P["X"], P["OFF"]
@@ -289,6 +332,17 @@ def tab01_painel(P: dict) -> pd.DataFrame:
                         & (sem_por_municipio < P["T"])).sum())))
     linhas.append(("Municipio-ano sem vigilancia no ano anterior (%)",
                    round(100 * float(P["X"][:, :, 0].mean()), 1)))
+    # O CONJUNTO QUE DE FATO IDENTIFICA O EFEITO
+    # -------------------------------------------
+    # Municipio que muda de exposicao mas nao tem obito algum pela causa nao
+    # contribui: a multinomial condicional dele e' degenerada e ele sai da
+    # verossimilhanca. Reportar so os que mudam superestima a informacao
+    # disponivel — uma auditoria externa apontou, e a recontagem confirmou.
+    muda = ((sem_por_municipio > 0) & (sem_por_municipio < P["T"]))
+    for nome in GRUPOS:
+        tem = P["Y"][nome].sum(axis=1) > 0
+        linhas.append((f"Municipios que mudam E tem obito: {nome}",
+                       int((muda & tem).sum())))
     del d
     # dtype=object: a linha do percentual e' float e as outras sao contagens.
     # Sem isto o pandas promove a coluna inteira e o CSV sai com
@@ -366,14 +420,47 @@ def tab04_tendencia(_: dict) -> pd.DataFrame:
            .groupby("ano").obitos.sum())
     tot = m.groupby("ano").obitos.sum()
 
-    pop = pd.read_parquet(MARTS / "dim_populacao.parquet")[
-        ["municipio_cod", "ano", "populacao"]].groupby("ano").populacao.sum()
+    # O DENOMINADOR NACIONAL NAO PODE SER dim_populacao
+    # ---------------------------------------------------
+    # `dim_populacao` nao e' uma serie: a coluna `fonte` mostra estimativas
+    # anuais ate 2021, o CENSO em 2022, interpolacao em 2023 e estimativas de
+    # novo em 2024. A emenda produz queda de 4,80% de 2021 para 2022 e alta de
+    # 2,34% no ano seguinte, nenhuma das duas demografica. Medir excesso contra
+    # tendencia sobre essa serie atribui ao desfecho o que e' do divisor: com ela
+    # 2022 aparecia 2,7% ACIMA da tendencia, e com serie continua aparece 2,1%
+    # ABAIXO. O sinal do ano trocava por causa do denominador.
+    #
+    # `pop_idade_uf_ano` e' a projecao do IBGE, revisao 2024, que reescreve a
+    # serie retrospectiva inteira sob a mesma metodologia — e e' a que os outros
+    # artigos deste repositorio ja usam. O painel NAO muda: ele compara cada
+    # municipio consigo mesmo e as indicadoras de ano absorvem qualquer salto
+    # comum ao pais. O que muda e' esta tabela, que e' nacional e por ano.
+    pop = (pd.read_parquet(REFS / "pop_idade_uf_ano.parquet")
+           .groupby("ano").populacao.sum())
     anos = [a for a in range(2015, 2025) if a in pop.index]
     if len(anos) != 10:
         raise SystemExit(
-            f"dim_populacao cobre {anos} de 2015 a 2024. A serie por habitante "
+            f"a projecao cobre {anos} de 2015 a 2024. A serie por habitante "
             "precisa dos dez anos; sem eles a projecao compara periodos "
             "diferentes sem nada acusar.")
+
+    # GUARDA DE CONTINUIDADE, QUE E' O QUE FALTAVA
+    # ---------------------------------------------
+    # Nada neste projeto conferia se a serie populacional era continua, e por
+    # isso a emenda do Censo passou por toda a analise anterior. A populacao
+    # brasileira varia menos de 1% ao ano; qualquer salto maior e' troca de base,
+    # nao demografia. O limiar de 2% e' folgado de proposito — ele nao existe
+    # para detectar erro fino, existe para impedir que uma serie remendada seja
+    # usada como se fosse uma.
+    variacao = pop.loc[anos].pct_change().dropna()
+    saltos = {int(a): round(100 * v, 2) for a, v in variacao.items() if abs(v) > 0.02}
+    if saltos:
+        raise SystemExit(
+            f"a serie populacional tem salto nao demografico em {saltos} (% ao "
+            "ano). Populacao nacional nao muda mais de 2% em um ano: isto e' "
+            "troca de base entre Censo e projecao. Medir excesso contra "
+            "tendencia sobre serie remendada atribui ao desfecho o que e' do "
+            "divisor.")
 
     por_obito = (1e4 * hid / tot).loc[2015:2024]
     por_hab = (1e6 * hid.loc[2015:2024] / pop.loc[anos])
@@ -431,6 +518,16 @@ def tab05_robustez(P: dict) -> pd.DataFrame:
                        "IRR": round(v, 3), "IC95% inferior": round(lo, 3),
                        "IC95% superior": round(hi, 3)})
         print(f"   {nome:<40} IRR {v:.3f} [{lo:.3f}, {hi:.3f}]", flush=True)
+
+    # O recorte por ANO, e nao por municipio: 2022 e' o ano do Censo e 2023 o da
+    # interpolacao em `dim_populacao`, que e' o offset do modelo. Ver `sem_anos`.
+    sub = sem_anos(P, {2022, 2023})
+    v, lo, hi = ic_municipio(sub, lambda p: irr(p, causa), reps=REPS)
+    linhas.append({"Recorte": "Sem 2022 e 2023 (troca de base populacional)",
+                   "Municipios": int(P["M"]), "IRR": round(v, 3),
+                   "IC95% inferior": round(lo, 3), "IC95% superior": round(hi, 3)})
+    print(f"   {'Sem 2022 e 2023 (troca de base)':<40} IRR {v:.3f} "
+          f"[{lo:.3f}, {hi:.3f}]", flush=True)
     return pd.DataFrame(linhas)
 
 

@@ -16,7 +16,7 @@
 
 **Métodos.** Todos os óbitos por neoplasia maligna (CID-10 C00–C97, causa básica truncada em três caracteres) registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024, agregados por município de residência, ano, faixa etária e sexo (Tabela 1). Denominador pela Projeção da População do IBGE, revisão 2024, por idade simples. Taxas padronizadas pelo método direto com duas populações padrão — Brasil/Censo 2022 e padrão mundial da OMS —, esta última para permitir comparação externa. O aumento no número de óbitos foi decomposto em três termos — tamanho da população, estrutura etária e taxas específicas por idade — pela média das seis ordens de aplicação. O eixo social usa o microdado nacional de 2022–2023, único recorte em disco que traz cor/raça, escolaridade e local de ocorrência; o denominador por cor/raça vem da tabela 9606 do SIDRA (Censo 2022). O gradiente municipal usa quartis de um índice de vulnerabilidade social construído sobre analfabetismo e falta de água, com análise de sensibilidade por redistribuição pro-rata das causas mal definidas. A razão entre a mortalidade de 60 anos ou mais e a de 15 a 49, por capítulo e por sítio, é reportada em log2 com intervalo exato condicional. Como denominador independente do SIM, o Painel de Oncologia do DataSUS fornece os casos diagnosticados por município e ano de diagnóstico; a razão entre óbitos e casos é reportada bruta, padronizada por idade e sem os sítios C44 e C80, com um critério de refutação por sítio declarado antes da medida.
 
-**Resultados.** Os óbitos por neoplasia maligna passaram de 205.998 em 2015 para 259.084 em 2024, enquanto a taxa padronizada por idade caiu de 123,04 para 120,18 por 100 mil pelo padrão brasileiro e de 84,56 para 81,43 pelo padrão mundial da OMS (Tabela 2). A decomposição atribui +47.314 óbitos ao envelhecimento e +11.390 ao crescimento populacional, contra −5.619 devidos à queda das taxas específicas (Tabela 4): o aumento é integralmente demográfico. A probabilidade de uma pessoa de 30 anos morrer de câncer antes dos 70 caiu de 7,428% para 7,138% (Tabela 16). Mantido o risco de 2019, teriam sido registrados mais 48.543 óbitos entre 2020 e 2024 (Tabela 5), com o déficit encolhendo de 5,3% para 2,1% ao longo do período. O sítio predominante muda com a idade — leucemias e encéfalo na infância, mama e colo do útero entre 30 e 44 anos, brônquios/pulmões e próstata depois dos 60 (Tabela 6). A mortalidade padronizada é maior onde há menos vulnerabilidade: 127,7 por 100 mil no quartil menos vulnerável contra 91,3 no mais vulnerável, com causas mal definidas em 4,02% e 7,27% dos óbitos respectivamente; redistribuídas as mal definidas, o gradiente cai de 39% para 35% e **persiste** (Tabela 9). Entre 23 sítios, seis são mais letais no quartil vulnerável, encabeçados pelo colo do útero (razão 1,31), enquanto o cólon é 0,33 (Tabela 10). O colo do útero é também o segundo sítio mais precoce entre os 43 examinados: a razão em log2 entre a mortalidade dos idosos e a dos jovens é de 1,92, contra 9,11 na próstata (Tabela 19). O mesmo padrão reaparece no recorte individual: a taxa padronizada é 132,7 entre pessoas brancas e 98,3 entre pretas, mas o colo do útero mata 10,54 por 100 mil entre indígenas e 5,73 entre brancas, e a próstata 19,82 entre pretos e 16,54 entre brancos (Tabelas 11 e 12). Os óbitos por caso diagnosticado no Painel de Oncologia sobem monotonicamente com a vulnerabilidade, de 0,502 [0,500–0,503] no quartil menos vulnerável a 0,604 [0,598–0,610] no mais vulnerável, resistindo à padronização por idade (0,502 contra 0,601) e à exclusão de C44 e C80 (0,592 contra 0,696); o viés do diagnóstico privado, com 34,7 vínculos de plano por 100 habitantes no Q1 contra 2,5 no Q4, atua no sentido de subestimar o gradiente (Tabela 20). O teste declarado de antemão para atribuir esse gradiente à detecção **reprovou**: a razão mediana é 1,293 nos sítios de apresentação clínica e 0,98 nos dependentes de rastreamento (Tabela 22).
+**Resultados.** Os óbitos por neoplasia maligna passaram de 205.998 em 2015 para 259.084 em 2024, enquanto a taxa padronizada por idade caiu de 123,04 para 120,18 por 100 mil pelo padrão brasileiro e de 96,93 para 93,67 pelo padrão mundial da OMS (Tabela 2). A decomposição atribui +47.314 óbitos ao envelhecimento e +11.390 ao crescimento populacional, contra −5.619 devidos à queda das taxas específicas (Tabela 4): o aumento é integralmente demográfico. A probabilidade de uma pessoa de 30 anos morrer de câncer antes dos 70 caiu de 6,079% para 5,766% (Tabela 16). Mantido o risco de 2019, teriam sido registrados mais 48.543 óbitos entre 2020 e 2024 (Tabela 5), com o déficit encolhendo de 5,3% para 2,1% ao longo do período. O sítio predominante muda com a idade — leucemias e encéfalo na infância, mama e colo do útero entre 30 e 44 anos, brônquios/pulmões e próstata depois dos 60 (Tabela 6). A mortalidade padronizada é maior onde há menos vulnerabilidade: 127,7 por 100 mil no quartil menos vulnerável contra 91,3 no mais vulnerável, com causas mal definidas em 4,02% e 7,27% dos óbitos respectivamente; redistribuídas as mal definidas, o gradiente cai de 39% para 35% e **persiste** (Tabela 9). Entre 23 sítios, seis são mais letais no quartil vulnerável, encabeçados pelo colo do útero (razão 1,31), enquanto o cólon é 0,33 (Tabela 10). O colo do útero é também o segundo sítio mais precoce entre os 43 examinados: a razão em log2 entre a mortalidade dos idosos e a dos jovens é de 1,92, contra 9,11 na próstata (Tabela 19). O mesmo padrão reaparece no recorte individual: a taxa padronizada é 132,7 entre pessoas brancas e 98,3 entre pretas, mas o colo do útero mata 10,54 por 100 mil entre indígenas e 5,73 entre brancas, e a próstata 19,82 entre pretos e 16,54 entre brancos (Tabelas 11 e 12). Os óbitos por caso diagnosticado no Painel de Oncologia sobem monotonicamente com a vulnerabilidade, de 0,502 [0,500–0,503] no quartil menos vulnerável a 0,604 [0,598–0,610] no mais vulnerável, resistindo à padronização por idade (0,502 contra 0,601) e à exclusão de C44 e C80 (0,592 contra 0,696); o viés do diagnóstico privado, com 34,7 vínculos de plano por 100 habitantes no Q1 contra 2,5 no Q4, atua no sentido de subestimar o gradiente (Tabela 20). O teste declarado de antemão para atribuir esse gradiente à detecção **reprovou**: a razão mediana é 1,293 nos sítios de apresentação clínica e 0,98 nos dependentes de rastreamento (Tabela 22).
 
 **Conclusões.** O aumento das mortes por câncer no Brasil não é aumento de risco. O gradiente social da mortalidade registrada aparece invertido em relação à expectativa, e a razão entre óbitos e casos diagnosticados anda no sentido oposto ao dele — padrão compatível com diferença de captação, embora este desenho não estabeleça o mecanismo e o teste desenhado para isso tenha reprovado. Os sítios que dependem de rastreamento — colo do útero acima de todos — resistem a essa inversão e são os candidatos naturais a indicador de equidade oncológica no Brasil. O colo do útero acumula as quatro desigualdades medidas neste trabalho: território, vulnerabilidade municipal, cor/raça e idade ao morrer.
 
@@ -84,9 +84,13 @@ A escolha foi feita depois de refazer o estudo inteiro sob cada alternativa (Tab
 
 Ter idade simples também resolve duas limitações declaradas na primeira versão deste trabalho: a padronização pelo padrão mundial passa a ser possível no grão quinquenal em que ele é publicado, e o recorte de 30 a 69 anos da OMS (§3.2) deixa de ser impossível de montar.
 
-As taxas padronizadas usam o **método direto** com **duas** populações padrão, publicadas lado a lado. A do **Brasil (Censo 2022)** em sete faixas mantém a comparabilidade interna com o resto da plataforma. A do **padrão mundial da OMS 2000–2025** [9], em grupos quinquenais, é a que torna esta série comparável com o INCA, a IARC e o GLOBOCAN — a primeira versão deste artigo declarava essa incomparabilidade como limitação, e ela deixa de existir. As duas colunas usam exatamente os mesmos óbitos.
+As taxas padronizadas usam o **método direto** com **duas** populações padrão, publicadas lado a lado. A do **Brasil (Censo 2022)** em sete faixas mantém a comparabilidade interna com o resto da plataforma. A do **padrão mundial da OMS 2000–2025** [9], em grupos quinquenais, permite comparação com fontes que adotem **esse mesmo padrão**. As duas colunas usam exatamente os mesmos óbitos.
+
+Uma ressalva que a primeira versão deste artigo errou e aqui fica corrigida: a taxa pelo padrão da OMS **não** é diretamente comparável com as séries do GLOBOCAN e do *Cancer Incidence in Five Continents*. Essas usam o padrão mundial de Segi, modificado por Doll, que tem distribuição etária bem diferente — muito menos peso nas idades avançadas. Taxas padronizadas por populações-padrão distintas não são intercambiáveis, e trocar uma pela outra desloca o nível sem deslocar a tendência. Qualquer comparação externa exige nomear o padrão do comparador; onde ele for Segi–Doll, é preciso recalcular a série sob esse padrão antes de confrontar números.
 
 Uma armadilha de implementação merece registro, porque produziu um resultado falso e plausível na primeira medição. Ao padronizar uma taxa por sítio, os estratos sem nenhum óbito não existem no dado agregado; somar apenas os estratos presentes renormaliza os pesos para as faixas em que o tumor ocorre, e infla o resultado. O câncer de laringe apareceu assim com 29,4 óbitos por 100 mil habitantes — cerca de quatro vezes o valor real — porque só as faixas idosas entravam na conta. Toda taxa por sítio neste trabalho parte de um produto cartesiano completo entre estrato e causa, com zero contado como zero.
+
+Uma segunda armadilha, apontada por auditoria externa e confirmada por reprodução, merece o mesmo registro. Os grupos quinquenais eram montados convertendo a idade dividida por cinco para inteiro, e essa conversão **arredonda** em vez de truncar: 3 e 4 anos caíam no grupo rotulado 5, 33 e 34 no rotulado 35, 68 e 69 no rotulado 70 — 36 das 95 idades no grupo errado. Como óbito e população passavam pela mesma expressão, a taxa dentro de cada grupo permanecia coerente e nenhuma verificação aritmética acusava; o erro estava em aplicar o peso do padrão rotulado "5" a um grupo que continha de 3 a 7 anos. O recorte de 30 a 69 anos, usado na mortalidade prematura, produzia nove intervalos em vez de oito. Corrigido, o nível da taxa pelo padrão mundial sobe (de 84,56 para 96,93 em 2015) e a probabilidade sintética cai (de 7,428% para 6,079%); a direção de queda das duas medidas não muda, e as colunas que não dependem do agrupamento quinquenal — contagem e padrão brasileiro em sete faixas — ficam idênticas. A bateria de testes desta análise conferia os pesos e a aritmética da padronização, e nenhum teste olhava a formação dos grupos; passou a olhar.
 
 ### 2.3 O que a auditoria do dado encontrou, e o que foi corrigido
 
@@ -176,22 +180,22 @@ Não há teste de hipótese nem modelo de regressão neste trabalho, e o interva
 
 | Ano | Óbitos | População | Taxa bruta | Padronizada (Brasil) | Padronizada (OMS) | % causa mal definida | % C80 entre os cânceres |
 |---|---|---|---|---|---|---|---|
-| 2015 | 205.998 | 202.403.642 | 101,78 | 123,04 | 84,56 | 5,63 | 3,1 |
-| 2016 | 211.343 | 203.871.925 | 103,66 | 122,57 | 84,13 | 5,76 | 2,92 |
-| 2017 | 217.697 | 205.211.557 | 106,08 | 122,68 | 83,9 | 5,43 | 2,62 |
-| 2018 | 223.757 | 206.529.038 | 108,34 | 122,47 | 83,54 | 5,33 | 2,44 |
-| 2019 | 231.038 | 207.900.099 | 111,13 | 122,81 | 83,59 | 5,53 | 2,39 |
-| 2020 | 224.829 | 209.164.889 | 107,49 | 116,22 | 78,98 | 5,78 | 2,38 |
-| 2021 | 230.764 | 210.103.642 | 109,83 | 116,46 | 79,06 | 5,11 | 2,43 |
-| 2022 | 238.623 | 210.862.983 | 113,16 | 117,49 | 79,76 | 5,32 | 2,4 |
-| 2023 | 249.942 | 211.695.158 | 118,07 | 119,55 | 81,06 | 4,82 | 2,21 |
-| 2024 | 259.084 | 212.583.750 | 121,87 | 120,18 | 81,43 | 4,48 | 2,32 |
+| 2015 | 205.998 | 202.403.642 | 101,78 | 123,04 | 96,93 | 5,63 | 3,1 |
+| 2016 | 211.343 | 203.871.925 | 103,66 | 122,57 | 96,4 | 5,76 | 2,92 |
+| 2017 | 217.697 | 205.211.557 | 106,08 | 122,68 | 96,24 | 5,43 | 2,62 |
+| 2018 | 223.757 | 206.529.038 | 108,34 | 122,47 | 95,89 | 5,33 | 2,44 |
+| 2019 | 231.038 | 207.900.099 | 111,13 | 122,81 | 95,97 | 5,53 | 2,39 |
+| 2020 | 224.829 | 209.164.889 | 107,49 | 116,22 | 90,68 | 5,78 | 2,38 |
+| 2021 | 230.764 | 210.103.642 | 109,83 | 116,46 | 90,81 | 5,11 | 2,43 |
+| 2022 | 238.623 | 210.862.983 | 113,16 | 117,49 | 91,64 | 5,32 | 2,4 |
+| 2023 | 249.942 | 211.695.158 | 118,07 | 119,55 | 93,22 | 4,82 | 2,21 |
+| 2024 | 259.084 | 212.583.750 | 121,87 | 120,18 | 93,67 | 4,48 | 2,32 |
 
-Os óbitos por câncer passaram de 205.998 para 259.084 entre as pontas da série. No mesmo intervalo, a taxa bruta subiu de 101,78 para 121,87 por 100 mil habitantes — e a taxa padronizada por idade **caiu**, de 123,04 para 120,18 pelo padrão brasileiro e de 84,56 para 81,43 pelo padrão mundial da OMS. As duas padronizações discordam do nível e concordam do sinal, que é o que uma população padrão faz.
+Os óbitos por câncer passaram de 205.998 para 259.084 entre as pontas da série. No mesmo intervalo, a taxa bruta subiu de 101,78 para 121,87 por 100 mil habitantes — e a taxa padronizada por idade **caiu**, de 123,04 para 120,18 pelo padrão brasileiro e de 96,93 para 93,67 pelo padrão mundial da OMS. As duas padronizações discordam do nível e concordam do sinal, que é o que uma população padrão faz.
 
 As duas taxas usam exatamente os mesmos óbitos e a mesma população. A única diferença entre elas é que a padronizada aplica a todos os anos a mesma estrutura etária, de modo que o que sobra seja risco. Publicar a bruta, num país em transição demográfica, é publicar a pirâmide etária com nome de epidemiologia.
 
-A coluna do padrão mundial é a que permite sair do Brasil: 81,43 por 100 mil em 2024 é diretamente comparável com as séries do INCA, da IARC e do GLOBOCAN, o que a primeira versão deste artigo declarava impossível.
+A coluna do padrão mundial dá o nível sob a estrutura etária da OMS 2000–2025: 93,67 por 100 mil em 2024. Ela **não** substitui a série do GLOBOCAN nem a do *Cancer Incidence in Five Continents*, que padronizam por Segi–Doll (§2.2); comparar as duas diretamente compararia padrões, e não países.
 
 As duas últimas colunas são a defesa contra a explicação mais barata de qualquer queda de mortalidade específica: a de que a doença deixou de ser registrada. A fração de óbitos por causa mal definida caiu de 5,63% para 4,48% no período, e a fração de cânceres sem especificação de localização (C80), de 3,1% para 2,32%. O registro brasileiro ficou **mais** preciso, não menos.
 
@@ -217,22 +221,22 @@ Cai onde há mais massa — 10,9% entre 5 e 14 anos, 10,7% entre 45 e 59 — e �
 
 | Ano | Óbitos de 30 a 69 | População de 30 a 69 | Taxa bruta | Prob. de morrer antes dos 70 (%) |
 |---|---|---|---|---|
-| 2015 | 110.317 | 95.049.605 | 116,1 | 7,428 |
-| 2016 | 113.007 | 96.858.590 | 116,7 | 7,419 |
-| 2017 | 115.730 | 98.562.641 | 117,4 | 7,386 |
-| 2018 | 118.009 | 100.151.730 | 117,8 | 7,384 |
-| 2019 | 121.006 | 101.667.451 | 119 | 7,407 |
-| 2020 | 117.377 | 103.078.466 | 113,9 | 6,989 |
-| 2021 | 119.299 | 104.298.056 | 114,4 | 6,979 |
-| 2022 | 122.143 | 105.482.848 | 115,8 | 6,997 |
-| 2023 | 126.929 | 106.732.086 | 118,9 | 7,127 |
-| 2024 | 129.580 | 107.954.487 | 120 | 7,138 |
+| 2015 | 110.317 | 95.049.605 | 116,1 | 6,079 |
+| 2016 | 113.007 | 96.858.590 | 116,7 | 6,06 |
+| 2017 | 115.730 | 98.562.641 | 117,4 | 6,038 |
+| 2018 | 118.009 | 100.151.730 | 117,8 | 6,005 |
+| 2019 | 121.006 | 101.667.451 | 119 | 6,012 |
+| 2020 | 117.377 | 103.078.466 | 113,9 | 5,684 |
+| 2021 | 119.299 | 104.298.056 | 114,4 | 5,662 |
+| 2022 | 122.143 | 105.482.848 | 115,8 | 5,672 |
+| 2023 | 126.929 | 106.732.086 | 118,9 | 5,767 |
+| 2024 | 129.580 | 107.954.487 | 120 | 5,766 |
 
-O indicador de mortalidade prematura por doença crônica não transmissível da OMS, alvo do Objetivo de Desenvolvimento Sustentável 3.4, é a probabilidade de uma pessoa de 30 anos morrer da causa antes dos 70. Para o câncer no Brasil ela era de **7,428%** em 2015 e é de **7,138%** em 2024 — uma queda de 3,9%.
+O indicador de mortalidade prematura por doença crônica não transmissível da OMS, alvo do Objetivo de Desenvolvimento Sustentável 3.4, é a probabilidade de uma pessoa de 30 anos morrer da causa antes dos 70. Para o câncer no Brasil ela era de **6,079%** em 2015 e é de **5,766%** em 2024 — uma queda de 5,1%.
 
 A quantidade merece destaque por uma propriedade que nenhuma outra tabela deste artigo tem: ela **não depende de população padrão nenhuma**. É uma probabilidade sintética construída por tábua de vida sobre as taxas quinquenais, e por isso comparável entre países sem que seja preciso combinar antes qual população servirá de padrão — o problema que a §2.2 discute. Um leitor que desconfie das duas colunas padronizadas da Tabela 2 pode ler esta.
 
-O perfil no tempo repete o das taxas padronizadas, inclusive o degrau: 7,407% em 2019, 6,989% em 2020, e recuperação lenta até 7,138% em 2024.
+O perfil no tempo repete o das taxas padronizadas, inclusive o degrau: 6,012% em 2019, 5,684% em 2020, e recuperação lenta até 5,766% em 2024.
 
 ### 3.3 Onde o câncer se situa entre as causas, e qual câncer mata cedo
 
@@ -343,12 +347,12 @@ Não há, nesta série, um componente de "avanço da doença" a ser explicado. H
 
 | Ano | Observado | Esperado (risco de 2019) | Diferença | % |
 |---|---|---|---|---|
-| 2020 | 224.828 | 237.532 | -12.703 | -5,3 |
-| 2021 | 230.763 | 243.321 | -12.557 | -5,2 |
-| 2022 | 238.622 | 249.414 | -10.791 | -4,3 |
+| 2020 | 224.829 | 237.532 | -12.703 | -5,3 |
+| 2021 | 230.764 | 243.321 | -12.557 | -5,2 |
+| 2022 | 238.623 | 249.414 | -10.791 | -4,3 |
 | 2023 | 249.942 | 256.752 | -6.810 | -2,7 |
-| 2024 | 259.083 | 264.766 | -5.682 | -2,1 |
-| 2020–2024 | 1.203.238 | 1.251.785 | -48.543 | -3,9 |
+| 2024 | 259.084 | 264.766 | -5.682 | -2,1 |
+| 2020–2024 | 1.203.242 | 1.251.785 | -48.543 | -3,9 |
 
 Mantido o risco de 2019, teriam sido registrados 48.543 óbitos por câncer a mais entre 2020 e 2024 — 3,9% acima do observado. O déficit encolhe monotonicamente: 5,3% em 2020, 4,3% em 2022, **2,1% em 2024**.
 

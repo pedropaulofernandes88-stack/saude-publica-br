@@ -842,10 +842,38 @@ def contrafactual(con: duckdb.DuckDBPyConnection) -> None:
     for y in range(2020, 2025):
         esp = (d[d.ano == y].set_index("fx")["pop"] * m19).sum()
         obs = d[d.ano == y].ob.sum()
-        linhas.append({"ano": y, "obitos_observados": int(obs),
+        # `round`, e nao `int`. A soma vem fracionaria porque a idade ignorada e'
+        # redistribuida pro rata, e `int` TRUNCA: a coluna do observado ficava um
+        # obito abaixo da mesma contagem em tab01, enquanto a coluna da diferenca
+        # — calculada sobre o valor cheio, logo abaixo — usava o numero maior. A
+        # mesma linha discordava de si mesma em um obito, cinco vezes.
+        linhas.append({"ano": y, "obitos_observados": round(obs),
                        "obitos_esperados_taxa_2019": round(esp),
                        "diferenca": round(obs - esp), "pct": round(100 * (obs - esp) / esp, 1)})
     tab = escrever(pd.DataFrame(linhas), "tab04_contrafactual_2019")
+
+    # A MESMA CONTAGEM TEM DE DAR O MESMO NUMERO EM DUAS TABELAS
+    # -----------------------------------------------------------
+    # Os obitos de 2020 a 2024 aparecem em tab01 e aqui. Saem do mesmo dado, por
+    # caminhos diferentes, e por isso podem divergir sem que nada acuse: foi o
+    # que aconteceu quando esta funcao truncava e tab01 arredondava. Uma
+    # auditoria externa achou a diferenca de quatro obitos que nenhuma guarda
+    # deste projeto olhava — nenhum teste le as saidas da analise. A conferencia
+    # passa a morar aqui, onde os dois numeros existem ao mesmo tempo.
+    serie = SAIDA / "tab01_serie_nacional.csv"
+    if serie.exists():
+        t1 = pd.read_csv(serie).set_index("ano").obitos
+        divergem = {int(r.ano): (int(r.obitos_observados), int(t1[r.ano]))
+                    for r in tab.itertuples()
+                    if r.ano in t1.index and int(r.obitos_observados) != int(t1[r.ano])}
+        if divergem:
+            raise SystemExit(
+                f"tab04 e tab01 discordam sobre a contagem de obitos: {divergem} "
+                "(tab04, tab01). Sao o mesmo dado por caminhos diferentes; se "
+                "divergem, um dos dois arredonda a soma fracionaria da "
+                "redistribuicao de idade ignorada de um jeito que o outro nao "
+                "faz, e uma das duas tabelas do artigo esta errada.")
+
     print(f"  2020–2024 acumulado: {tab.diferenca.sum():+,.0f} óbitos "
           f"({100*tab.diferenca.sum()/tab.obitos_esperados_taxa_2019.sum():+.1f}%)")
 

@@ -109,6 +109,14 @@ DECIMAIS_SEM_TABELA = {
         # uma célula da Tabela 15 — o que o faria passar pelo motivo errado. Está
         # declarado aqui para que a procedência seja a real.
         "6,9",
+        # Valores ERRADOS da taxa pelo padrão da OMS em 2015 e da probabilidade
+        # sintética de morrer dos 30 aos 70 em 2015, citados na §2.2 como a
+        # medida do defeito de agrupamento quinquenal que a auditoria apontou.
+        # Pelo mesmo motivo do "29,4" acima: são o número que o método corrigiu,
+        # e existir em tabela seria o erro. Os valores corretos — 96,93 e
+        # 6,079 — estão nas Tabelas 2 e 16 e são citados no resto do texto.
+        "84,56",
+        "7,428",
     },
     "artigo-agua": {
         # Registros brutos recuperados na coleta nacional do SISAGUA e linhas do
