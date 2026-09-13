@@ -1,4 +1,4 @@
-# Óbitos por doenças imunopreveníveis no Brasil, 2015–2024: perda de sensibilidade de um instrumento oficial por delimitação etária, defasagem tecnológica e especificidade etiológica do registro
+# Óbitos por doenças imunopreveníveis no Brasil, 2015–2024: o escopo de um instrumento oficial diante das causas com vacina disponível, e três limites que o delimitam
 
 **Pedro Paulo Fernandes**¹
 
@@ -16,7 +16,7 @@
 
 **Métodos.** Todos os óbitos não fetais registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024, com a causa básica preservada em quatro caracteres da CID-10 — grão exigido pela própria lista oficial, que nomeia G00.0, P35.0 e P35.3, e pelo código que o Brasil usa para COVID-19, B34.2. O subgrupo 1.1 foi transcrito literalmente das notas técnicas do TabNet/DataSUS, nas suas duas versões etárias, e aplicado com a idade que cada versão determina. Um conjunto ampliado reúne, além dele, as demais doenças com vacina disponível no país, cada uma anotada com o ano de entrada no PNI; um terceiro grupo, de latência longa, é reportado à parte e nunca somado. Um cruzamento ecológico entre óbitos por influenza em 60 anos ou mais e doses de influenza por habitante dessa faixa, por unidade da federação, teve o critério de nulidade declarado antes da análise.
 
-**Resultados.** Em 14.484.496 óbitos, o subgrupo 1.1 identifica 5.832 — 4,03 por 10 mil óbitos, sem tendência na década (Tabela 3). O conjunto ampliado sem COVID-19 — que é um **teto**, não uma estimativa de mortes evitáveis — soma 27.917 óbitos, razão de 4,79 sobre o instrumento oficial, e a COVID-19 sozinha soma 718.811 (Tabela 4). Três limitações estruturais explicam a diferença. A lista termina aos 74 anos, e 267.276 óbitos por causas com vacina — 35,8% do conjunto — ocorreram acima dessa idade, invisíveis por construção (Tabela 5). Ela antecede as vacinas incorporadas depois de 2010 e classifica influenza fora da imunoprevenção. E 3.189 dos 5.832 óbitos que ela conta são tuberculose miliar ou do sistema nervoso, dos quais 3.092 entre 5 e 74 anos — faixa em que a relação entre o óbito e a vacinação infantil é bem mais incerta do que a que a justificativa da lista invoca, ainda que a proteção conferida na infância possa persistir décadas [10]; excluída a tuberculose, restam 2.643 óbitos em dez anos (Tabela 6). O teto de medição é de codificação, não de epidemiologia: há 631.108 óbitos por pneumonia sem agente identificado (J18) contra 809 atribuídos ao pneumococo (J13), razão de 780,1 (Tabelas 12 e 13). O cruzamento ecológico deu nulo pelo critério declarado — correlação de Spearman +0,389 em 2023 e −0,056 em 2024 —, e a própria fonte explica parte disso: o PNI/RNDS registra 16.621.107 doses de influenza em 2023 contra 54.215.093 em 2024 (Tabela 15).
+**Resultados.** Em 14.484.496 óbitos, o subgrupo 1.1 identifica 5.832 — 4,03 por 10 mil óbitos, sem tendência na década (Tabela 3). O conjunto ampliado sem COVID-19 — que é um **teto**, não uma estimativa de mortes evitáveis — soma 27.917 óbitos, razão de 4,79 sobre o instrumento oficial, e a COVID-19 sozinha soma 718.811 (Tabela 4). Três limitações estruturais explicam a diferença. A lista termina aos 74 anos, e 267.276 óbitos por causas com vacina — 35,8% do conjunto — ocorreram acima dessa idade, invisíveis por construção (Tabela 5). Ela antecede as vacinas incorporadas depois de 2010 e classifica influenza fora da imunoprevenção. E 3.189 dos 5.832 óbitos que ela conta são tuberculose miliar ou do sistema nervoso, dos quais 3.092 entre 5 e 74 anos — faixa em que a relação entre o óbito e a vacinação infantil é bem mais incerta do que a que a justificativa da lista invoca, ainda que a proteção conferida na infância possa persistir décadas [10]; excluída a tuberculose, restam 2.643 óbitos em dez anos (Tabela 6). O teto de medição é de codificação, não de epidemiologia: há 631.108 óbitos por pneumonia sem agente identificado (J18) contra 809 atribuídos ao pneumococo (J13), razão de 780,1 (Tabelas 12 e 13). Um cruzamento ecológico entre doses de influenza e mortalidade por influenza em idosos foi conduzido e **é reportado apenas como nota de qualidade de dado**: o registro `INF3` cobre todas as idades a partir de 6 meses e, dividido pela população de 60 anos ou mais, produz mais de uma dose por habitante em todas as unidades da federação em 2024 (Tabela 14). O quociente não mede cobertura em idosos, e nenhuma inferência sobre vacinação é extraída dele.
 
 **Conclusões.** O instrumento oficial brasileiro de evitabilidade por imunoprevenção não está errado: está defasado, e de três formas que se somam. Ele descreve um calendário vacinal que não é mais o do país, ignora a faixa etária onde a mortalidade por doença imunoprevenível se concentra, e é dominado internamente por uma causa cuja evitabilidade por vacina não se sustenta na idade em que ela ocorre. Atualizá-lo é decisão de vigilância, não exercício estatístico. Independentemente disso, a ausência de investigação etiológica na declaração de óbito impõe um teto ao que qualquer lista consegue medir.
 
@@ -31,6 +31,8 @@ Perguntar quantas pessoas morrem no Brasil de doenças que uma vacina previne pa
 Entre a última revisão da lista e hoje, o Programa Nacional de Imunizações mudou. Entraram a vacina contra rotavírus, a meningocócica C e depois a ACWY, a pneumocócica 10-valente, a varicela, o HPV. E entrou, em janeiro de 2021, a vacinação contra a COVID-19, que é a maior campanha da história do programa e responde à doença que mais matou brasileiros no período coberto por este trabalho. Uma lista de evitabilidade cujo último ajuste é anterior a tudo isso não descreve o que o SUS oferece hoje.
 
 **Duas ausências são de naturezas diferentes, e só uma é esperada.** A ausência da COVID-19 não é crítica ao instrumento: a vacina não existia quando a lista foi revista, e nenhuma classificação poderia tê-la previsto. Já a **pneumocócica conjugada** entrou no PNI em 2010 e a **meningocócica C** em 2010, ambas no intervalo da própria revisão — que foi publicada entre 2010 e 2011. A ausência dessas duas do subgrupo de imunoprevenção não se explica por defasagem temporal, e merece exame à parte.
+
+**A inclusão da COVID-19 já tem precedente institucional, e este trabalho não a propõe como novidade.** O boletim epidemiológico especial *Saúde da mulher brasileira*, do Ministério da Saúde, de março de 2023 [11], adaptou a classificação de Malta e colaboradores justamente para incluir a COVID-19 entre as causas redutíveis por ações de imunoprevenção, considerando a disponibilidade de vacina desde janeiro de 2021. É preciso, portanto, distinguir duas camadas que este artigo tratava como uma só: a **lista formal disponibilizada no TabNet**, cujo conteúdo é o que se audita aqui, e as **adaptações analíticas** publicadas em relatórios do próprio Ministério, que já avançaram sobre essa questão. O que se reporta abaixo é a composição da primeira; a existência da segunda mostra que o debate sobre o escopo da lista está aberto dentro da instituição, e não apenas fora dela.
 
 A hipótese mais parcimoniosa, e a que os resultados deste trabalho sustentam, é que a ausência delas é consequência do problema de codificação e não de esquecimento: doença pneumocócica invasiva praticamente não aparece como causa básica no SIM — 809 óbitos em J13 contra 631.108 em J18 (§3.9) —, e uma causa que o registro não identifica não produz indicador utilizável, ainda que a vacina esteja no calendário. Se essa leitura estiver certa, ela reforça a conclusão central: o teto do instrumento é de investigação etiológica, não de escolha de códigos.
 
@@ -103,7 +105,9 @@ Estas três causas estão no artigo porque são o argumento mais forte a favor d
 
 Para testar se a variação territorial da mortalidade por influenza guarda relação com a intensidade da vacinação, foram cruzados, por unidade da federação e para 2023 e 2024, os óbitos por influenza (J09–J11) em pessoas de 60 anos ou mais, os denominadores populacionais dessa faixa [9] e as doses de influenza (`INF3`) registradas no PNI/RNDS [8] (Tabela 14).
 
-O critério de interpretação foi fixado **antes** de observar o resultado: correlação de Spearman com módulo inferior a 0,30, ou sinal diferente entre os dois anos, seria tratada como ausência de sinal — e ausência de sinal seria reportada como resultado, não como convite a procurar outro recorte. Declarar o critério antes é o que separa um achado nulo de uma busca por especificação que produza significância.
+O critério de interpretação foi fixado **antes** de observar o resultado: correlação de Spearman com módulo inferior a 0,30, ou sinal diferente entre os dois anos, seria tratada como ausência de sinal — e ausência de sinal seria reportada como resultado, não como convite a procurar outro recorte.
+
+Declarar o critério antes separa um achado nulo de uma busca por especificação, mas **não protege contra exposição mal medida**, que é o que ocorreu aqui. A §3.10 mostra que o quociente construído não mede cobertura vacinal em idosos, e por isso o cruzamento é reportado como nota de qualidade de dado, e não como teste. O critério pré-declarado fica registrado porque ele foi de fato declarado antes; o que ele não pode fazer é validar a medida sobre a qual foi aplicado.
 
 ### 2.7 Guardas computacionais
 
@@ -433,7 +437,11 @@ A literatura internacional atribui ao pneumococo uma fração substancial da pne
 | 2023 | 26 | 16.621.107 | 824 | 0,389 | 0,05 |
 | 2024 | 27 | 54.215.093 | 1.719 | -0,056 | 0,783 |
 
-Pelo critério declarado na §2.6, o resultado é **nulo**: a correlação de Spearman é +0,389 em 2023 e −0,056 em 2024, com troca de sinal entre os anos e um deles abaixo do limiar de módulo. O dado por unidade da federação que sustenta o teste está em `tabela_14_influenza_doses_uf.csv`.
+Pelo critério declarado na §2.6, o resultado é **nulo**: a correlação de Spearman é +0,389 em 2023 e −0,056 em 2024, com troca de sinal entre os anos e um deles abaixo do limiar de módulo.
+
+**Este teste não deve ser lido como evidência sobre vacinação de idosos, e a razão é aritmética.** Auditoria posterior mostrou que o numerador e o denominador descrevem populações diferentes: `INF3` é o registro de dose de influenza a partir dos 6 meses de idade, e inclui a campanha infantil e as demais estratégias, enquanto o denominador é a população de 60 anos ou mais. A consequência aparece na própria Tabela 14: em 2024, **as 27 unidades da federação** têm mais de uma dose por habitante de 60 anos ou mais, de 1,145 a 2,837. Nenhuma cobertura pode exceder 1, e a razão excede em todas — prova direta de que o quociente não mede cobertura em idosos. Um nulo obtido sobre uma exposição mal medida não informa ausência de associação; informa que a exposição não foi medida.
+
+A Tabela 14 permanece publicada como **nota de qualidade de dado**, e não como teste: ela documenta que o total `INF3` não serve de denominador de cobertura em 60 anos ou mais, e que a série de 2023 chegou incompleta ao registro nacional. As duas observações valem para além deste artigo. O que sai é a inferência: este trabalho não estima relação entre intensidade de vacinação e mortalidade por influenza, e a pergunta exigiria doses estratificadas por idade, definição de campanha e tratamento de sazonalidade e causalidade reversa.
 
 Três razões desaconselham insistir com outra especificação. A campanha responde ao surto, o que inverte a direção causal esperada. A unidade de análise é a unidade da federação, sujeita à falácia ecológica com menos de trinta pontos por ano (Tabela 15). E, decisiva, a fonte do denominador está incompleta em um dos dois anos: o PNI/RNDS registra 16.621.107 doses de influenza em 2023 contra 54.215.093 em 2024, enquanto o total de doses de todos os imunobiológicos quase não varia entre os dois anos. Não é queda de campanha; é a campanha de 2023 que não chegou inteira ao registro nacional. Dose de influenza de 2023 nessa base não serve de denominador — observação que vale para além deste artigo.
 
@@ -513,17 +521,17 @@ ser conferido no número exato.
 óbitos do ano, com a linha dos mesmos códigos em 75 anos ou mais — a faixa que o
 instrumento não alcança. *Fonte: Tabela 3.*
 
-**Figura 2.** O que o subgrupo 1.1 conta, comparado ao conjunto ampliado de
-doenças com vacina disponível e à COVID-19. Escala logarítmica, porque a
-COVID-19 está duas ordens de grandeza acima do resto e uma escala linear
-achataria a comparação que importa. *Fonte: Tabela 4.*
-
-**Figura 3.** Distribuição etária dos óbitos por causas com vacina disponível.
+**Figura 2.** Distribuição etária dos óbitos por causas com vacina disponível.
 A lista termina aos 74 anos, e 35,8% dos óbitos estão acima desse corte.
 *Fonte: Tabela 5.*
 
-**Figura 4.** Composição interna do subgrupo 1.1. Em vermelho, a tuberculose em
+**Figura 3.** Composição interna do subgrupo 1.1. Em vermelho, a tuberculose em
 idade em que a relação entre o óbito e a vacinação infantil é incerta; em azul, o que resta. *Fonte: Tabela 6.*
+
+**Figura 4.** O que o subgrupo 1.1 conta, comparado ao conjunto ampliado de
+doenças com vacina disponível e à COVID-19. Escala logarítmica, porque a
+COVID-19 está duas ordens de grandeza acima do resto e uma escala linear
+achataria a comparação que importa. *Fonte: Tabela 4.*
 
 **Figura 5.** Febre amarela, sarampo e coqueluche ano a ano. A parte hachurada é
 a fração em menores de 1 ano. **Sarampo (B05) e coqueluche (A37) já constam do
@@ -574,3 +582,4 @@ Itens conhecidos e não resolvidos, listados para que não sejam confundidos com
 - **[8]** Brasil. Ministério da Saúde. *Programa Nacional de Imunizações: doses aplicadas*. OpenDataSUS, competências mensais de 2023 a 2026.
 - **[9]** Instituto Brasileiro de Geografia e Estatística. *Censo Demográfico 2022* e *Estimativas da população residente*. Rio de Janeiro: IBGE.
 - **[10]** Aronson NE, Santosham M, Comstock GW, Howard RS, Moulton LH, Rhoades ER, Harrison LH. Long-term efficacy of BCG vaccine in American Indians and Alaska Natives: a 60-year follow-up study. *JAMA*. 2004;291(17):2086–91. doi:10.1001/jama.291.17.2086
+- **[11]** Brasil. Ministério da Saúde. Secretaria de Vigilância em Saúde e Ambiente. *Saúde da mulher brasileira: uma perspectiva integrada entre vigilância e atenção à saúde*. Boletim Epidemiológico, número especial. Brasília: Ministério da Saúde; mar. 2023. p. 20. Disponível em `gov.br/saude/pt-br/centrais-de-conteudo/publicacoes/boletins/epidemiologicos/especiais/2023`. Acesso em 12 set. 2026.

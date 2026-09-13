@@ -151,7 +151,7 @@ def figura_01_serie_oficial() -> None:
 
 
 # ── 2. o que a lista vê e o que existe ─────────────────────────────────────
-def figura_02_panorama() -> None:
+def figura_04_panorama() -> None:
     """4,79x fora do instrumento, e a COVID-19 numa escala à parte."""
     d = _ler("tabela_4_panorama")
     nomes = [n.replace(", ", ",\n") for n in d["Conjunto"].astype(str)]
@@ -179,11 +179,11 @@ def figura_02_panorama() -> None:
     ax.set_axisbelow(True)
     ax.set_title("O que o instrumento conta (azul) e o que existe ao lado dele",
                  color=TINTA, loc="left")
-    _salvar(fig, "figura_02_panorama")
+    _salvar(fig, "figura_04_panorama")
 
 
 # ── 3. a lista para aos 74 anos ────────────────────────────────────────────
-def figura_03_corte_etario() -> None:
+def figura_02_corte_etario() -> None:
     """35,8% dos óbitos com vacina disponível estão acima do corte."""
     d = _ler("tabela_5_estrutura_etaria")
     d = d[~d["Faixa etária"].astype(str).str.lower().str.contains("total")]
@@ -213,11 +213,11 @@ def figura_03_corte_etario() -> None:
     ax.set_axisbelow(True)
     ax.set_title("A lista termina aos 74 anos — e é acima disso que se morre",
                  color=TINTA, loc="left")
-    _salvar(fig, "figura_03_corte_etario")
+    _salvar(fig, "figura_02_corte_etario")
 
 
 # ── 4. metade do que a lista conta é tuberculose ───────────────────────────
-def figura_04_composicao() -> None:
+def figura_03_composicao() -> None:
     d = _ler("tabela_6_composicao_subgrupo_1_1")
     # Quebrar em duas linhas, NAO truncar: a parte cortada destes rotulos e'
     # exatamente a que diz por que a linha esta ali ("idade em que a BCG
@@ -270,7 +270,7 @@ def figura_04_composicao() -> None:
     ax.set_axisbelow(True)
     ax.set_title("Metade do que a lista conta é tuberculose em idade\n"
                  "sem proteção estabelecida pela BCG", color=TINTA, loc="left")
-    _salvar(fig, "figura_04_composicao")
+    _salvar(fig, "figura_03_composicao")
 
 
 # ── 5. o que acontece fora do instrumento ──────────────────────────────────
@@ -353,15 +353,15 @@ LEGENDAS: tuple[tuple[str, str, str], ...] = (
      "(A) Contagem anual, com os mesmos códigos em 75 anos ou mais — faixa que "
      "o instrumento não alcança por construção. (B) Óbitos por 10 mil óbitos do "
      "ano. A série não tem tendência na década. Fonte: Tabela S3."),
-    ("3.3", "figura_03_corte_etario",
+    ("3.3", "figura_02_corte_etario",
      "Distribuição etária dos óbitos por causas com vacina disponível, "
      "2015–2024. A Lista Brasileira termina aos 74 anos; 35,8% dos óbitos estão "
      "acima desse corte, invisíveis ao instrumento. Fonte: Tabela S5."),
-    ("3.4", "figura_04_composicao",
+    ("3.4", "figura_03_composicao",
      "Composição interna do subgrupo 1.1. Em vermelho, a tuberculose miliar e "
      "do sistema nervoso em idade sem proteção estabelecida pela BCG; em azul, "
      "o que resta do subgrupo. Fonte: Tabela S6."),
-    ("3.5", "figura_02_panorama",
+    ("3.5", "figura_04_panorama",
      "O que o subgrupo 1.1 identifica, comparado ao conjunto ampliado de "
      "doenças com vacina disponível no país e à COVID-19. Escala logarítmica: a "
      "COVID-19 está duas ordens de grandeza acima das demais categorias, e uma "
@@ -382,9 +382,9 @@ LEGENDAS: tuple[tuple[str, str, str], ...] = (
 
 FIGURAS_DO_ARTIGO = [
     ("figura_01_serie_oficial", figura_01_serie_oficial),
-    ("figura_02_panorama", figura_02_panorama),
-    ("figura_03_corte_etario", figura_03_corte_etario),
-    ("figura_04_composicao", figura_04_composicao),
+    ("figura_02_corte_etario", figura_02_corte_etario),
+    ("figura_03_composicao", figura_03_composicao),
+    ("figura_04_panorama", figura_04_panorama),
     ("figura_05_eventos_fora_da_lista", figura_05_eventos),
     ("figura_06_teto_de_codificacao", figura_06_teto),
 ]

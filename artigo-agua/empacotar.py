@@ -36,6 +36,9 @@ import sys
 import zipfile
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "artigo"))
+from _conferir_imports import conferir  # noqa: E402
+
 AQUI = Path(__file__).resolve().parent
 ROOT = AQUI.parent
 #: O nome do zip carrega o assunto pela mesma razão do .docx: os dois
@@ -181,6 +184,9 @@ def main() -> None:
         for nome in sorted(esperado):
             itens.append((f"{pasta}/{nome}",
                           (AQUI / pasta / nome).read_bytes(), descricao))
+
+    # O pacote tem de conter o que os seus proprios scripts importam.
+    conferir(itens, DESTINO.name)
 
     manifesto = io.StringIO()
     w = csv.writer(manifesto, lineterminator="\n")

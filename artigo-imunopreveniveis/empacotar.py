@@ -40,6 +40,9 @@ from pathlib import Path
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "artigo"))
+from _conferir_imports import conferir  # noqa: E402
+
 AQUI = Path(__file__).resolve().parent
 ROOT = AQUI.parents[0]
 #: O nome do zip carrega o assunto pela mesma razão do .docx: os dois
@@ -61,6 +64,10 @@ CONTEUDO: tuple[tuple[Path, str, str], ...] = (
      "As listas de CID-10, a derivação do óbito e as guardas"),
     (AQUI / "gerar_tabelas.py", "codigo/gerar_tabelas.py",
      "Formata as dezesseis tabelas do artigo a partir do microdado"),
+    (ROOT / "scripts" / "_achados.py", "codigo/_achados.py",
+     "Registro de achados que a análise importa — sem ele a análise nem começa"),
+    (AQUI / "gerar_figuras.py", "codigo/gerar_figuras.py",
+     "Desenha as seis figuras a partir das tabelas"),
     (ROOT / "scripts" / "_sim_obitos.py", "codigo/_sim_obitos.py",
      "A definição compartilhada de óbito no SIM, importada pelos dois anteriores"),
 )
@@ -212,6 +219,9 @@ def main() -> None:
     for fig in figuras:
         itens.append((f"figuras/{fig.name}",
                       fig.read_bytes(), "Figura do manuscrito (PNG, 300 dpi)"))
+
+    # O pacote tem de conter o que os seus proprios scripts importam.
+    conferir(itens, DESTINO.name)
 
     manifesto = io.StringIO()
     w = csv.writer(manifesto, lineterminator="\n")
