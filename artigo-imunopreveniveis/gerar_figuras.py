@@ -190,14 +190,45 @@ def figura_02_corte_etario() -> None:
     fx = d["Faixa etária"].astype(str)
     y = list(range(len(d)))[::-1]
 
-    fig, ax = plt.subplots(figsize=(LARGURA, 2.3))
+    # AS PARCELAS EMPILHADAS TEM DE SER MUTUAMENTE EXCLUSIVAS
+    # ---------------------------------------------------------
+    # O subgrupo 1.1 e' SUBCONJUNTO do conjunto ampliado: a coluna `Total` do
+    # CSV e' `Ampliado sem COVID-19 + COVID-19`, e nao a soma das tres colunas.
+    # A primeira versao desta figura empilhava as tres, somando o subgrupo duas
+    # vezes — 4.224 em menores de 5 anos contra 3.869 reais, e 752.560 no total
+    # contra 746.728. Auditoria externa apontou; o defeito era da composicao
+    # visual, nao da contagem, e por isso nenhuma conferencia de tabela o pegava.
+    #
+    # A parcela desenhada passa a ser o ACRESCIMO: ampliado menos subgrupo.
+    d = d.copy()
+    d["_ampliado_adicional"] = (d["Ampliado sem COVID-19"].astype(float)
+                                - d["Subgrupo 1.1"].astype(float))
+    if (d["_ampliado_adicional"] < 0).any():
+        raise SystemExit(
+            "ha faixa em que o subgrupo 1.1 excede o conjunto ampliado, o que "
+            "contradiz a definicao de subconjunto. A tabela 5 mudou de "
+            "significado, e a figura nao pode ser desenhada assim.")
+
+    fig, ax = plt.subplots(figsize=(LARGURA, 2.7))
     esq = [0.0] * len(d)
     for col, cor, rot in (("Subgrupo 1.1", AZUL, "subgrupo 1.1"),
-                          ("Ampliado sem COVID-19", AQUA, "ampliado (sem COVID-19)"),
+                          ("_ampliado_adicional", AQUA,
+                           "ampliado, além do subgrupo (sem COVID-19)"),
                           ("COVID-19", LARANJA, "COVID-19")):
         v = d[col].astype(float).tolist()
         ax.barh(y, v, left=esq, color=cor, height=0.58, label=rot, zorder=3)
         esq = [a + b for a, b in zip(esq, v)]
+
+    # A barra tem de terminar no total que a tabela declara. E' a conferencia
+    # que faltava: figura errada passa em qualquer revisao de tabela.
+    total = d["Total"].astype(float).tolist()
+    divergem = {f: (round(e), round(t)) for f, e, t in zip(d["Faixa etária"], esq, total)
+                if abs(e - t) > 0.5}
+    if divergem:
+        raise SystemExit(
+            f"a barra empilhada nao fecha com a coluna Total: {divergem} "
+            "(desenhado, tabela). Parcelas empilhadas precisam ser mutuamente "
+            "exclusivas, e o subgrupo 1.1 esta dentro do conjunto ampliado.")
     for i, yy in enumerate(y):
         ax.text(esq[i] * 1.02, yy,
                 f"{_br(d['% do total'].astype(float).iloc[i])}%",
@@ -205,7 +236,11 @@ def figura_02_corte_etario() -> None:
     ax.set_yticks(y)
     ax.set_yticklabels(fx, fontsize=7.6)
     ax.set_xlabel("Óbitos 2015–2024")
-    ax.legend(loc="lower right", fontsize=7.2)
+    # ABAIXO do eixo: com a parcela adicional nomeada por extenso, a legenda nao
+    # cabe mais no canto — cobria a barra de todas as idades — nem acima, onde
+    # colidia com o titulo. Embaixo ela nao disputa espaco com nada.
+    ax.legend(loc="upper center", bbox_to_anchor=(0.5, -0.30), ncol=3,
+              fontsize=6.8, frameon=False)
     for lado in ("top", "right", "left"):
         ax.spines[lado].set_visible(False)
     ax.tick_params(axis="y", length=0)

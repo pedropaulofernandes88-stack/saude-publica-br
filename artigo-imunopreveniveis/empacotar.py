@@ -41,7 +41,7 @@ if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "artigo"))
-from _conferir_imports import conferir  # noqa: E402
+from _conferir_imports import conferir, conferir_derivados  # noqa: E402
 
 AQUI = Path(__file__).resolve().parent
 ROOT = AQUI.parents[0]
@@ -222,6 +222,7 @@ def main() -> None:
 
     # O pacote tem de conter o que os seus proprios scripts importam.
     conferir(itens, DESTINO.name)
+    conferir_derivados(itens, AQUI / "manuscrito.md", DESTINO.name)
 
     manifesto = io.StringIO()
     w = csv.writer(manifesto, lineterminator="\n")

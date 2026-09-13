@@ -421,23 +421,36 @@ def tab04_tendencia(_: dict) -> pd.DataFrame:
            .groupby("ano").obitos.sum())
     tot = m.groupby("ano").obitos.sum()
 
-    # O DENOMINADOR NACIONAL NAO PODE SER dim_populacao
-    # ---------------------------------------------------
+    # O DENOMINADOR NACIONAL: QUAL SERIE, E COMO SABER QUE E' ELA
+    # -------------------------------------------------------------
     # `dim_populacao` nao e' uma serie: a coluna `fonte` mostra estimativas
     # anuais ate 2021, o CENSO em 2022, interpolacao em 2023 e estimativas de
-    # novo em 2024. A emenda produz queda de 4,80% de 2021 para 2022 e alta de
-    # 2,34% no ano seguinte, nenhuma das duas demografica. Medir excesso contra
-    # tendencia sobre essa serie atribui ao desfecho o que e' do divisor: com ela
-    # 2022 aparecia 2,7% ACIMA da tendencia, e com serie continua aparece 2,1%
-    # ABAIXO. O sinal do ano trocava por causa do denominador.
+    # novo em 2024. A emenda produz queda de 4,80% de 2021 para 2022, que nao e'
+    # demografia. Medir excesso contra tendencia sobre ela atribui ao desfecho o
+    # que e' do divisor.
     #
-    # `pop_idade_uf_ano` e' a projecao do IBGE, revisao 2024, que reescreve a
-    # serie retrospectiva inteira sob a mesma metodologia — e e' a que os outros
-    # artigos deste repositorio ja usam. O painel NAO muda: ele compara cada
-    # municipio consigo mesmo e as indicadoras de ano absorvem qualquer salto
-    # comum ao pais. O que muda e' esta tabela, que e' nacional e por ano.
-    pop = (pd.read_parquet(REFS / "pop_idade_uf_ano.parquet")
-           .groupby("ano").populacao.sum())
+    # A primeira tentativa de conserto trocou por `pop_idade_uf_ano.parquet` — e
+    # ERROU: esse arquivo e' a projecao de 2018, PRE-Censo. O proprio
+    # `pipeline_projecao_ibge.py` documenta isso em tabela, e `analise_neoplasias`
+    # o rotula "Projecao rev. 2018 (anterior)". A serie oficial pos-Censo, que os
+    # outros artigos usam, e' `pop_proj2024_uf_ano_idade.parquet`.
+    #
+    # POR QUE O ERRO PASSOU, E O QUE A GUARDA PRECISA CONFERIR
+    # ---------------------------------------------------------
+    # A guarda anterior verificava CONTINUIDADE — variacao anual abaixo de 2% —
+    # e a projecao de 2018 e' perfeitamente continua, porque nunca foi tocada
+    # pelo Censo. Suavidade foi lida como correcao. Continuidade nao distingue
+    # duas series suaves de revisoes diferentes; so a PROCEDENCIA distingue, e e'
+    # ela que passa a ser conferida, contra totais ancora publicados do IBGE.
+    arq = REFS / "pop_proj2024_uf_ano_idade.parquet"
+    if not arq.exists():
+        raise SystemExit(
+            f"{arq} nao existe. Rode `scripts/pipeline_projecao_ibge.py`. Nao "
+            "substitua por `pop_idade_uf_ano.parquet`: aquele e' a projecao de "
+            "2018, anterior ao Censo, e usa-lo aqui reporta excesso calculado "
+            "sobre uma populacao que o pais nao tem.")
+    proj = pd.read_parquet(arq, columns=["ano", "sexo", "populacao"])
+    pop = proj[proj.sexo == "T"].groupby("ano").populacao.sum()
     anos = [a for a in range(2015, 2025) if a in pop.index]
     if len(anos) != 10:
         raise SystemExit(
@@ -445,23 +458,26 @@ def tab04_tendencia(_: dict) -> pd.DataFrame:
             "precisa dos dez anos; sem eles a projecao compara periodos "
             "diferentes sem nada acusar.")
 
-    # GUARDA DE CONTINUIDADE, QUE E' O QUE FALTAVA
-    # ---------------------------------------------
-    # Nada neste projeto conferia se a serie populacional era continua, e por
-    # isso a emenda do Censo passou por toda a analise anterior. A populacao
-    # brasileira varia menos de 1% ao ano; qualquer salto maior e' troca de base,
-    # nao demografia. O limiar de 2% e' folgado de proposito — ele nao existe
-    # para detectar erro fino, existe para impedir que uma serie remendada seja
-    # usada como se fosse uma.
+    #: Totais nacionais publicados da Revisao 2024. Servem de impressao digital:
+    #: a projecao de 2018 da' 214.828.540 em 2022, e o Censo bruto da'
+    #: 203.080.756 — nenhum dos dois passa por aqui.
+    ANCORAS = {2022: 210_862_983, 2024: 212_583_750}
+    fora = {a: int(pop.loc[a]) for a, esperado in ANCORAS.items()
+            if abs(int(pop.loc[a]) - esperado) > 1000}
+    if fora:
+        raise SystemExit(
+            f"a serie populacional nao e' a Revisao 2024 do IBGE: {fora} contra "
+            f"o esperado {ANCORAS}. Conferir a PROCEDENCIA, e nao so a forma da "
+            "curva: a projecao de 2018 tambem e' suave, e foi aceita por uma "
+            "guarda que so olhava continuidade.")
+
     variacao = pop.loc[anos].pct_change().dropna()
     saltos = {int(a): round(100 * v, 2) for a, v in variacao.items() if abs(v) > 0.02}
     if saltos:
         raise SystemExit(
             f"a serie populacional tem salto nao demografico em {saltos} (% ao "
             "ano). Populacao nacional nao muda mais de 2% em um ano: isto e' "
-            "troca de base entre Censo e projecao. Medir excesso contra "
-            "tendencia sobre serie remendada atribui ao desfecho o que e' do "
-            "divisor.")
+            "troca de base entre Censo e projecao.")
 
     por_obito = (1e4 * hid / tot).loc[2015:2024]
     por_hab = (1e6 * hid.loc[2015:2024] / pop.loc[anos])

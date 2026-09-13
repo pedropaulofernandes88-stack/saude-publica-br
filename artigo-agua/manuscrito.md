@@ -16,7 +16,7 @@
 
 **Métodos.** Todos os 14.457.218 óbitos não fetais registrados no Sistema de Informações sobre Mortalidade entre 2015 e 2024 com município de residência utilizável (Tabela 1). A **análise primária é um painel**: 5.570 municípios por 9 anos de desfecho, 50.130 linhas município-ano e 1.880.954.497 pessoas-ano (Tabela P1). A exposição é binária e **defasada** — o município não reportou análise alguma ao SISAGUA no ano anterior —, e ocorre em 9.492 linhas município-ano. O estimador é o Poisson condicional de efeitos fixos de município com indicadoras de ano, que absorve todo confundidor constante no tempo, medido ou não; os IC95% vêm de bootstrap de município, com 400 reamostragens. A mesma medida é repetida para **quatro causas-controle**, e quatro critérios de refutação foram escritos no cabeçalho do script antes de qualquer resultado. O desenho transversal da versão anterior — razão de razões entre classes de vigilância, com controle negativo — é mantido e reportado para comparação.
 
-**Resultados.** Os óbitos por A00–A09 passaram de 4.875 em 2019 para 7.177 em 2024 (Tabela P4). Contra uma tendência log-linear ajustada **somente em 2015–2019** — plana, com desvios entre −2,5% e +2,7% —, 2024 está **26,6% acima** quando medido por 10 mil óbitos do ano e **35,2% acima** quando medido por milhão de habitantes. A alta não é de um código, não é de uma faixa etária e não é redistribuição de causas mal definidas (Tabelas 3 a 5). **No painel, porém, não se observa associação detectável:** o IRR da ausência de vigilância no ano anterior é **0,99 [0,943–1,041]** para A00–A09, e 0,984, 0,996, 1,006 e 1,002 para os quatro controles — nenhum exclui 1 (Tabela P2). Sem o efeito fixo, no mesmo painel e com o mesmo código, o IRR é 1,074 para A00–A09 e **0,773** para o controle respiratório, uma razão de razões de **1,39**; com o efeito fixo, ela cai para **1,006** (Tabela P3). As causas externas, que não partilham caminho hídrico algum, produzem razão de razões de **1,339** sem o efeito fixo. O resultado se mantém nos dez recortes de robustez, inclusive sem o Distrito Federal e sem municípios pequenos (Tabela P5). O desenho transversal, em contraste, produzia razão de razões de 2,075 [1,776–2,518], e a sua aparente dose-resposta é monotônica na coluna do **controle** (0,558; 0,886; 0,903; 1) e não na do desfecho (1,158; 1,351; 1,068; 1) (Tabela 7).
+**Resultados.** Os óbitos por A00–A09 passaram de 4.875 em 2019 para 7.177 em 2024 (Tabela P4). Contra uma tendência log-linear ajustada **somente em 2015–2019** — plana, com desvios entre −2,5% e +2,7% —, 2024 está **26,6% acima** quando medido por 10 mil óbitos do ano e **36% acima** quando medido por milhão de habitantes. A alta não é de um código, não é de uma faixa etária e não é redistribuição de causas mal definidas (Tabelas 3 a 5). **No painel, porém, não se observa associação detectável:** o IRR da ausência de vigilância no ano anterior é **0,99 [0,943–1,041]** para A00–A09, e 0,984, 0,996, 1,006 e 1,002 para os quatro controles — nenhum exclui 1 (Tabela P2). Sem o efeito fixo, no mesmo painel e com o mesmo código, o IRR é 1,074 para A00–A09 e **0,773** para o controle respiratório, uma razão de razões de **1,39**; com o efeito fixo, ela cai para **1,006** (Tabela P3). As causas externas, que não partilham caminho hídrico algum, produzem razão de razões de **1,339** sem o efeito fixo. O resultado se mantém nos dez recortes de robustez, inclusive sem o Distrito Federal e sem municípios pequenos (Tabela P5). O desenho transversal, em contraste, produzia razão de razões de 2,075 [1,776–2,518], e a sua aparente dose-resposta é monotônica na coluna do **controle** (0,558; 0,886; 0,903; 1) e não na do desfecho (1,158; 1,351; 1,068; 1) (Tabela 7).
 
 **Conclusões.** A alta da mortalidade por doenças infecciosas intestinais é real, sobrevive a dois denominadores e não é artefato de registro. A hipótese de que a **ausência de registro de vigilância** da qualidade da água a explique não encontra apoio: dentro do município, ao longo do tempo, a exposição não antecede mortalidade detectavelmente maior por nenhuma causa, inclusive a da hipótese. O estimando é o registro anual no SISAGUA, e não a vigilância efetivamente realizada nem a qualidade da água — um município pode analisar e não reportar, e o desenho não separa as duas coisas. A associação transversal é composição entre municípios, e o controle negativo não era neutro — ele carregava associação própria em sentido oposto, que a razão de razões converteu em especificidade aparente. A ausência de registro de vigilância continua útil como **marcador** que identifica municípios, e não como determinante.
 
@@ -112,11 +112,11 @@ Esse desenho foi submetido a três critérios pré-declarados e a um teste post-
 
 ### 3.1 A alta, em dois denominadores
 
-Os óbitos por doenças infecciosas intestinais passaram de 4.875 em 2019 para 7.177 em 2024 (Tabela P4). Medidos por 10 mil óbitos do ano, foram de 36,12 para 46,85; por milhão de habitantes, de 23,2 para 32,97.
+Os óbitos por doenças infecciosas intestinais passaram de 4.875 em 2019 para 7.177 em 2024 (Tabela P4). Medidos por 10 mil óbitos do ano, foram de 36,12 para 46,85; por milhão de habitantes, de 23,45 para 33,76.
 
 A tendência de 2015 a 2019 é plana. Ajustada log-linearmente apenas nesse intervalo, ela deixa resíduos entre −2,5% e +2,7% na medida por óbitos e entre −3,3% e +4,1% na medida por habitante — ou seja, o período pré-pandêmico não tem inclinação que projete a alta posterior.
 
-Contra essa projeção, 2020 e 2021 ficam abaixo, e o tamanho da queda depende do denominador: −27% e −40,1% por óbitos do ano, contra −16,7% e −20,6% por habitante. A diferença é o efeito esperado da COVID-19 sobre o divisor, e é a razão de reportar as duas séries. As duas convergem em direção a partir de 2023, e em 2024 ficam **+26,6% por óbitos do ano e +35,2% por habitante** (Figura P3). Em 2022 elas ainda discordam — −11,6% por óbitos do ano contra −2,5% por habitante —, e é nesse ano que os dois denominadores param de dizer a mesma coisa.
+Contra essa projeção, 2020 e 2021 ficam abaixo, e o tamanho da queda depende do denominador: −27% e −40,1% por óbitos do ano, contra −16,7% e −20,4% por habitante. A diferença é o efeito esperado da COVID-19 sobre o divisor, e é a razão de reportar as duas séries. As duas convergem em direção a partir de 2023, e em 2024 ficam **+26,6% por óbitos do ano e +36% por habitante** (Figura P3). Os dois denominadores concordam de sinal em todos os anos; o que muda entre eles é a magnitude, e ela difere mais em 2022 — −11,6% por óbitos do ano contra −2,1% por habitante —, ano em que a COVID-19 ainda inflava o total de óbitos que serve de divisor à primeira medida.
 
 ### 3.2 A alta não é artefato de registro
 
@@ -154,7 +154,9 @@ A exclusão do Distrito Federal merece nota porque ela foi pedida na revisão do
 
 **O denominador municipal, e o recorte que ele exige.** O *offset* do painel é a população municipal, e essa série troca de base em 2022: estimativas anuais até 2021, Censo em 2022, interpolação em 2023. A parte da troca que é comum ao país é absorvida pelas indicadoras de ano; a parte que é própria de cada município — e o Censo reviu municípios em direções diferentes — não é, e vira erro de medida no *offset*. Não existe série municipal harmonizada com que reconstruir o denominador, de modo que o que cabe é medir a dependência: removidos 2022 e 2023, o IRR é **0,988 [0,939–1,045]**, contra 0,99 [0,943–1,041] no painel completo (Tabela P5). A troca de base não explica o resultado.
 
-A série **nacional** da §3.1, que não tem efeito fixo para absorver a emenda, foi reconstruída sobre a projeção do IBGE revisão 2024, que reescreve a série retrospectiva inteira sob a mesma metodologia. A diferença não é acadêmica: com a série remendada, 2022 aparecia acima da tendência, e com a série contínua aparece abaixo. A análise agora aborta se a série populacional que recebe tiver variação anual acima de 2%, porque população nacional não muda tanto em um ano e um salto desses é troca de base, não demografia.
+A série **nacional** da §3.1, que não tem efeito fixo para absorver a emenda, foi reconstruída sobre a Projeção da População do IBGE, Revisão 2024, reconciliada com a Pesquisa de Pós-Enumeração [9] — a mesma série que os trabalhos irmãos deste repositório adotam. A diferença não é acadêmica: com a série remendada, 2022 aparecia acima da tendência; com a série oficial, aparece abaixo.
+
+A verificação que a análise faz sobre essa série merece registro, porque a primeira versão dela era insuficiente de um modo instrutivo. Conferir **continuidade** — abortar se a variação anual passar de 2% — detecta a emenda entre Censo e projeção, mas não distingue duas séries suaves de revisões diferentes: uma tentativa intermediária de conserto usou a projeção de 2018, anterior ao Censo, que é perfeitamente contínua e passou na conferência. A análise passa a conferir **procedência**, comparando os totais nacionais contra valores-âncora publicados da Revisão 2024; a projeção de 2018 é reprovada por essa comparação. Suavidade de curva não é identidade de fonte.
 
 ### 3.7 O que o desenho transversal media
 
@@ -168,7 +170,7 @@ A Tabela 7 mostra de onde vinha esse gradiente. A coluna do **controle** é perf
 
 ### 4.1 O que foi medido, e o que foi refutado
 
-Entre 2015 e 2019 a mortalidade brasileira por doenças infecciosas intestinais foi estável; em 2024 ela está entre 26,6% e 35,2% acima do que essa estabilidade projetava, conforme o denominador. A alta sobrevive ao exame das explicações alternativas de registro conhecidas e permanece **sem explicação identificada**.
+Entre 2015 e 2019 a mortalidade brasileira por doenças infecciosas intestinais foi estável; em 2024 ela está entre 26,6% e 36% acima do que essa estabilidade projetava, conforme o denominador. A alta sobrevive ao exame das explicações alternativas de registro conhecidas e permanece **sem explicação identificada**.
 
 A hipótese de que a **ausência de registro de vigilância** da qualidade da água a explique não encontra apoio nestes dados. Ela foi testada no desenho com maior poder de controle de confundimento disponível para dado municipal brasileiro — efeito fixo de município, que absorve todo confundidor constante no tempo sem exigir que ele tenha sido medido ou sequer imaginado — e o resultado é um intervalo estreito em torno de 1, replicado em dez recortes e indistinguível do obtido em quatro causas-controle.
 
@@ -305,16 +307,16 @@ O estimador de painel está em `scripts/_poisson_fe.py` e os testes que o demons
 
 | Ano | Obitos por A00-A09 | Observado por 10 mil obitos | Projetado por 10 mil obitos | Excesso relativo % (obitos) | Observado por milhao de habitantes | Projetado por milhao de habitantes | Excesso relativo % (habitantes) | Base do ajuste |
 |---|---|---|---|---|---|---|---|---|
-| 2015 | 4.372 | 34,58 | 35,45 | -2,5 | 21,49 | 22,22 | -3,3 | sim |
-| 2016 | 4.793 | 36,59 | 35,62 | 2,7 | 23,36 | 22,45 | 4,1 | sim |
-| 2017 | 4.795 | 36,53 | 35,79 | 2,1 | 23,19 | 22,68 | 2,2 | sim |
-| 2018 | 4.633 | 35,19 | 35,96 | -2,2 | 22,22 | 22,91 | -3 | sim |
-| 2019 | 4.875 | 36,12 | 36,13 | -0,1 | 23,2 | 23,15 | 0,2 | sim |
-| 2020 | 4.126 | 26,5 | 36,31 | -27 | 19,48 | 23,39 | -16,7 | nao |
-| 2021 | 4.005 | 21,85 | 36,48 | -40,1 | 18,77 | 23,63 | -20,6 | nao |
-| 2022 | 5.003 | 32,4 | 36,65 | -11,6 | 23,29 | 23,88 | -2,5 | nao |
-| 2023 | 5.671 | 38,69 | 36,83 | 5,1 | 26,22 | 24,13 | 8,7 | nao |
-| 2024 | 7.177 | 46,85 | 37 | 26,6 | 32,97 | 24,38 | 35,2 | nao |
+| 2015 | 4.372 | 34,58 | 35,45 | -2,5 | 21,6 | 22,33 | -3,3 | sim |
+| 2016 | 4.793 | 36,59 | 35,62 | 2,7 | 23,51 | 22,59 | 4,1 | sim |
+| 2017 | 4.795 | 36,53 | 35,79 | 2,1 | 23,37 | 22,86 | 2,2 | sim |
+| 2018 | 4.633 | 35,19 | 35,96 | -2,2 | 22,43 | 23,13 | -3 | sim |
+| 2019 | 4.875 | 36,12 | 36,13 | -0,1 | 23,45 | 23,4 | 0,2 | sim |
+| 2020 | 4.126 | 26,5 | 36,31 | -27 | 19,73 | 23,68 | -16,7 | nao |
+| 2021 | 4.005 | 21,85 | 36,48 | -40,1 | 19,06 | 23,96 | -20,4 | nao |
+| 2022 | 5.003 | 32,4 | 36,65 | -11,6 | 23,73 | 24,24 | -2,1 | nao |
+| 2023 | 5.671 | 38,69 | 36,83 | 5,1 | 26,79 | 24,53 | 9,2 | nao |
+| 2024 | 7.177 | 46,85 | 37 | 26,6 | 33,76 | 24,82 | 36 | nao |
 
 **Tabela P5. Critério 4 — robustez do IRR da hipótese por recorte (`tabela_p5_robustez.csv`).**
 

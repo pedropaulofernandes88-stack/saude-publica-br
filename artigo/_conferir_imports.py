@@ -89,3 +89,41 @@ def conferir(itens: list[tuple[str, bytes, str]], pacote: str) -> None:
             "Quem receber o ZIP não consegue executar: a análise falha no "
             "import, antes de ler qualquer dado. Acrescente o arquivo a "
             "CONTEUDO, ou remova o script do pacote.")
+
+
+def conferir_derivados(itens: list[tuple[str, bytes, str]], fonte: Path,
+                       pacote: str) -> None:
+    """Aborta se um derivado do manuscrito for mais antigo que o manuscrito.
+
+    POR QUE ESTA GUARDA EXISTE
+    ---------------------------
+    O pacote do artigo de imunopreveníveis distribuía um `manuscrito.html` e um
+    `manuscrito.pdf` gerados semanas antes da revisão. Eles traziam o título
+    anterior e, pior, a frase "o cruzamento ecológico deu nulo pelo critério
+    declarado" — uma conclusão que o autor havia **retirado** do DOCX por ser
+    baseada em exposição mal medida. Quem abrisse o pacote pelo PDF leria a
+    versão retratada, e nada no ZIP indicava qual das duas valia.
+
+    O manuscrito em Markdown é a fonte; tudo o que deriva dele tem de ser mais
+    novo que ele. A comparação é de data de modificação em disco, o que é
+    grosseiro mas suficiente: o modo de falha real não é uma diferença de
+    segundos, é um derivado de semanas atrás que ninguém regerou.
+    """
+    if not fonte.exists():
+        raise SystemExit(f"{fonte} não existe; nada para comparar.")
+    ref = fonte.stat().st_mtime
+    velhos = {}
+    for destino, _, _ in itens:
+        if not destino.endswith((".html", ".pdf", ".docx")):
+            continue
+        local = fonte.parent / Path(destino).name
+        if local.exists() and local.stat().st_mtime < ref - 1:
+            velhos[destino] = local.name
+    if velhos:
+        raise SystemExit(
+            f"{pacote}: derivados mais antigos que o manuscrito: "
+            f"{sorted(velhos)}.\n"
+            "Eles podem trazer título, conclusão ou números de uma versão "
+            "anterior, e quem recebe o pacote não tem como saber qual vale. "
+            "Rode `artigo/renderizar.py` e `artigo/gerar_docx.py` antes de "
+            "empacotar.")
