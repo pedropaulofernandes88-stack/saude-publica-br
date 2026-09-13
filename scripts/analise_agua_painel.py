@@ -341,6 +341,7 @@ def tab01_painel(P: dict) -> pd.DataFrame:
     muda = ((sem_por_municipio > 0) & (sem_por_municipio < P["T"]))
     for nome in GRUPOS:
         tem = P["Y"][nome].sum(axis=1) > 0
+        linhas.append((f"Municipios com algum obito: {nome}", int(tem.sum())))
         linhas.append((f"Municipios que mudam E tem obito: {nome}",
                        int((muda & tem).sum())))
     del d
