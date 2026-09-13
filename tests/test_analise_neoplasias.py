@@ -156,3 +156,63 @@ def test_padrao_da_oms_e_monotonicamente_decrescente_a_partir_dos_10_anos():
     idades = sorted(PADRAO_OMS)
     pesos = [PADRAO_OMS[i] for i in idades if i >= 10]
     assert pesos == sorted(pesos, reverse=True)
+
+
+# ── o agrupamento quinquenal ───────────────────────────────────────────────
+#
+# POR QUE ESTE TESTE EXISTE
+# --------------------------
+# `_sql_quinquenal` montava o grupo com `(idade / 5)::int * 5`. A conversão para
+# inteiro no DuckDB **arredonda**, e não trunca: 3 e 4 anos caíam no grupo
+# rotulado 5, 33 e 34 no grupo 35, 68 e 69 no grupo 70. Óbito e população usam a
+# mesma expressão, de modo que as taxas dentro de cada grupo continuam
+# coerentes — mas o PESO do padrão mundial da OMS rotulado "5" passava a ser
+# aplicado a um grupo que continha de 3 a 7 anos. A taxa padronizada saía
+# errada, e a probabilidade de morrer dos 30 aos 70 passava a somar NOVE
+# intervalos em vez de oito.
+#
+# O defeito atravessou toda a bateria acima porque ela testa os PESOS e a
+# aritmética da padronização, e nenhum teste olhava a formação dos grupos. É a
+# assinatura conhecida neste projeto: a guarda cobre o que é fácil de conferir,
+# e o erro mora no passo anterior.
+
+def test_grupo_quinquenal_usa_piso_e_nao_arredondamento():
+    """Cada idade tem de cair no grupo que começa no múltiplo de 5 abaixo dela."""
+    import duckdb
+
+    from scripts.analise_neoplasias import _sql_quinquenal
+
+    idades = list(range(0, 95))
+    con = duckdb.connect()
+    obtidos = dict(con.execute(
+        f"select i, {_sql_quinquenal('i')} from (select unnest(?) as i)",
+        [idades]).fetchall())
+
+    errados = {i: obtidos[i] for i in idades
+               if obtidos[i] != (90 if i >= 90 else (i // 5) * 5)}
+    assert not errados, (
+        f"{len(errados)} idades caíram no grupo errado: {dict(list(errados.items())[:8])}"
+        " ... O grupo de uma idade é o múltiplo de 5 IGUAL OU ABAIXO dela. "
+        "Arredondar joga 3 e 4 anos no grupo rotulado 5 e 68 e 69 no rotulado "
+        "70, e o peso do padrão da OMS passa a pesar a população errada.")
+
+
+def test_trinta_a_sessenta_e_nove_da_exatamente_oito_grupos():
+    """A probabilidade de morrer dos 30 aos 70 soma oito intervalos, não nove.
+
+    Com arredondamento, 29 entrava no grupo 30 e 69 no grupo 70, e o recorte
+    30–69 produzia nove grupos — dois deles parciais — a que o cálculo aplicava
+    cinco anos de duração cada.
+    """
+    import duckdb
+
+    from scripts.analise_neoplasias import _sql_quinquenal
+
+    con = duckdb.connect()
+    grupos = [g for (g,) in con.execute(
+        f"select distinct {_sql_quinquenal('i')} from (select unnest(?) as i) "
+        "order by 1", [list(range(30, 70))]).fetchall()]
+    assert grupos == [30, 35, 40, 45, 50, 55, 60, 65], (
+        f"o recorte 30–69 produziu {len(grupos)} grupos: {grupos}. "
+        "Devem ser os oito quinquênios de 30-34 a 65-69; qualquer outro número "
+        "faz o cálculo aplicar cinco anos de duração a um intervalo parcial.")

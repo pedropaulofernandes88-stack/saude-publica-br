@@ -361,8 +361,23 @@ def _sql_faixa7(coluna: str) -> str:
 
 
 def _sql_quinquenal(coluna: str) -> str:
-    """Grupos quinquenais até 90 ou mais, o grão do padrão mundial da OMS."""
-    return f"case when {coluna} >= 90 then 90 else ({coluna} / 5)::int * 5 end"
+    """Grupos quinquenais até 90 ou mais, o grão do padrão mundial da OMS.
+
+    O PISO É EXPLÍCITO PORQUE O CAST ARREDONDA
+    -------------------------------------------
+    A primeira versão escrevia `({coluna} / 5)::int * 5`. No DuckDB a conversão
+    para inteiro **arredonda**, e não trunca: 3 e 4 anos caíam no grupo rotulado
+    5, 33 e 34 no rotulado 35, 68 e 69 no rotulado 70. Como óbito e população
+    passam pela mesma expressão, a taxa DENTRO de cada grupo continuava
+    coerente, e nada na aritmética da padronização acusava — mas o peso do
+    padrão mundial rotulado "5" passava a pesar um grupo que continha de 3 a 7
+    anos, e o recorte 30–69 produzia nove intervalos em vez de oito.
+
+    `floor` torna a intenção explícita e não depende da regra de conversão do
+    motor. `tests/test_analise_neoplasias.py` confere as fronteiras 0/4/5,
+    29/30/34/35, 64/65/69/70 e 89/90, e que 30–69 dá exatamente oito grupos.
+    """
+    return f"case when {coluna} >= 90 then 90 else floor({coluna} / 5)::int * 5 end"
 
 
 def obitos_idade_exata(con: duckdb.DuckDBPyConnection) -> None:
