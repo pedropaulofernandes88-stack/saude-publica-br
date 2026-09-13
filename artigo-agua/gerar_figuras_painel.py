@@ -45,6 +45,9 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 import pandas as pd  # noqa: E402
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "artigo"))
+from _acentuar import acentuar  # noqa: E402
+
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
 
@@ -71,6 +74,16 @@ CURTO = {
 }
 
 
+def _br(v: float, casas: int = 3) -> str:
+    """Número no padrão brasileiro: decimal com vírgula, milhar com ponto.
+
+    Faltava aqui, e as quatro figuras do painel saíram com ponto decimal
+    enquanto todas as outras do repositório usam vírgula. Num mesmo documento,
+    "0.991" ao lado de "2,075" faz o leitor procurar a diferença que não existe.
+    """
+    return f"{v:,.{casas}f}".replace(",", "@").replace(".", ",").replace("@", ".")
+
+
 def _base(fig, ax) -> None:
     """Moldura comum: sem caixa, grade discreta, tinta escura."""
     for lado in ("top", "right"):
@@ -80,6 +93,24 @@ def _base(fig, ax) -> None:
     ax.tick_params(colors=TINTA2, labelsize=8, length=3)
     fig.patch.set_facecolor("white")
     ax.set_facecolor("white")
+
+
+def _virgula(ax, eixo: str = "x") -> None:
+    """Troca o ponto decimal dos TICKS por vírgula.
+
+    Tem de ser chamado por último: `set_xscale("log")` e `set_xticks` recriam o
+    formatador, e uma troca feita antes deles é silenciosamente desfeita. Foi o
+    que aconteceu na primeira versão — os rótulos saíram com vírgula e o eixo,
+    logo abaixo, com ponto.
+    """
+    alvo = ax.get_xaxis() if eixo == "x" else ax.get_yaxis()
+    alvo.set_major_formatter(
+        plt.FuncFormatter(lambda v, _: _br(v, 2).rstrip("0").rstrip(",")))
+    # Em escala log o matplotlib rotula também os ticks MENORES, em notação
+    # científica e em corpo grande: "8 x 10^-1" aparecia na borda esquerda,
+    # maior que os próprios números do eixo. Trocar só o formatador maior não
+    # o alcança.
+    alvo.set_minor_formatter(matplotlib.ticker.NullFormatter())
 
 
 def _linha_do_um(ax, horizontal: bool = False) -> None:
@@ -114,22 +145,24 @@ def fig1_especificidade() -> str:
                 color=cor, lw=1.6, solid_capstyle="butt", zorder=2)
         ax.plot([r["IRR"]], [yi], "o", color=cor, ms=6, zorder=3,
                 markeredgecolor="white", markeredgewidth=0.8)
-        ax.annotate(f"{r['IRR']:.3f}  [{r['IC95% inferior']:.3f}, "
-                    f"{r['IC95% superior']:.3f}]",
+        ax.annotate(f"{_br(r['IRR'])}  [{_br(r['IC95% inferior'])}, "
+                    f"{_br(r['IC95% superior'])}]",
                     (r["IC95% superior"], yi), xytext=(7, 0),
                     textcoords="offset points", va="center", fontsize=7.5,
                     color=cor)
 
     ax.set_yticks(list(y))
-    ax.set_yticklabels([CURTO.get(g, g) for g in d["Grupo de causa"]], fontsize=7.5)
+    ax.set_yticklabels([CURTO.get(g, acentuar(g)) for g in d["Grupo de causa"]], fontsize=7.5)
     ax.set_xlabel("IRR da ausência de vigilância no ano anterior (escala log)",
                   fontsize=8, color=TINTA)
     ax.set_xscale("log")
     ax.set_xlim(0.80, 1.45)
     ax.set_xticks([0.85, 0.9, 1.0, 1.1, 1.2])
-    ax.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:g}"))
+    ax.get_xaxis().set_major_formatter(
+        plt.FuncFormatter(lambda v, _: _br(v, 2).rstrip("0").rstrip(",")))
     ax.set_title("Marcador vermelho: a causa da hipótese hídrica",
                  fontsize=8, color=TINTA2, loc="left", pad=8)
+    _virgula(ax)
     fig.tight_layout()
     nome = "figura_p1_especificidade.png"
     fig.savefig(FIGURAS / nome, bbox_inches="tight", facecolor="white")
@@ -156,15 +189,15 @@ def fig2_com_e_sem_efeito_fixo() -> str:
                 markeredgecolor=cor, markeredgewidth=1.3)
         ax.plot([com], [yi], "o", color=cor, ms=7, zorder=3,
                 markeredgecolor="white", markeredgewidth=0.8)
-        ax.annotate(f"{sem:.3f}", (sem, yi), xytext=(0, 9),
+        ax.annotate(_br(sem), (sem, yi), xytext=(0, 9),
                     textcoords="offset points", ha="center", fontsize=7,
                     color=cor)
-        ax.annotate(f"{com:.3f}", (com, yi), xytext=(0, -14),
+        ax.annotate(_br(com), (com, yi), xytext=(0, -14),
                     textcoords="offset points", ha="center", fontsize=7,
                     color=cor)
 
     ax.set_yticks(y)
-    ax.set_yticklabels([CURTO.get(g, g) for g in d["Grupo de causa"]], fontsize=7.5)
+    ax.set_yticklabels([CURTO.get(g, acentuar(g)) for g in d["Grupo de causa"]], fontsize=7.5)
     # folga vertical: o rotulo da ultima linha e' desenhado 14 pontos ABAIXO do
     # marcador, e sem esta margem ele cai sobre o eixo x
     ax.set_ylim(-0.75, len(d) - 0.4)
@@ -172,6 +205,7 @@ def fig2_com_e_sem_efeito_fixo() -> str:
                   "de município", fontsize=8, color=TINTA)
     ax.set_title("O comprimento da seta é a associação que era diferença ENTRE "
                  "municípios", fontsize=8, color=TINTA2, loc="left", pad=8)
+    _virgula(ax)
     fig.tight_layout()
     nome = "figura_p2_com_e_sem_efeito_fixo.png"
     fig.savefig(FIGURAS / nome, bbox_inches="tight", facecolor="white")
@@ -214,12 +248,17 @@ def fig3_tendencia() -> str:
         ax.set_xlabel("Ano", fontsize=8, color=TINTA)
         ax.set_xticks([2015, 2018, 2021, 2024])
 
+    for ax in eixos:
+        _virgula(ax, "y")
     eixos[0].set_ylabel("Óbitos por A00–A09", fontsize=8, color=TINTA)
     eixos[0].legend(frameon=False, fontsize=7, loc="lower left")
     eixos[1].annotate("faixa sombreada:\nfora da base do ajuste",
                       (fim + 0.7, eixos[1].get_ylim()[1]), xytext=(0, -4),
                       textcoords="offset points", fontsize=6.5, color=TINTA2,
                       va="top")
+    # SEM `_virgula` no eixo x aqui: ele é o ANO, que é rótulo e não contagem.
+    # A primeira versão aplicou o formatador nele e 2015 virou "2.015" — o mesmo
+    # engano que `sincronizar_tabelas.py` já evita com COLUNAS_SEM_SEPARADOR.
     fig.tight_layout()
     nome = "figura_p3_tendencia.png"
     fig.savefig(FIGURAS / nome, bbox_inches="tight", facecolor="white")
@@ -242,18 +281,19 @@ def fig4_robustez() -> str:
                 color=cor, lw=1.5, solid_capstyle="butt", zorder=2)
         ax.plot([r["IRR"]], [yi], "o", color=cor, ms=5.5, zorder=3,
                 markeredgecolor="white", markeredgewidth=0.8)
-        ax.annotate(f"{r['IRR']:.3f}", (r["IC95% superior"], yi), xytext=(6, 0),
+        ax.annotate(_br(r["IRR"]), (r["IC95% superior"], yi), xytext=(6, 0),
                     textcoords="offset points", va="center", fontsize=7,
                     color=cor)
 
     ax.set_yticks(y)
-    ax.set_yticklabels([f"{r['Recorte']}  (n={r['Municipios']:,})"
+    ax.set_yticklabels([f"{acentuar(r['Recorte'])}  (n={r['Municipios']:,})"
                         .replace(",", ".") for _, r in d.iterrows()],
                        fontsize=7.5)
     ax.set_xlabel("IRR da ausência de vigilância, óbitos por A00–A09",
                   fontsize=8, color=TINTA)
     ax.set_title("Marcador vermelho: o painel completo", fontsize=8,
                  color=TINTA2, loc="left", pad=8)
+    _virgula(ax)
     fig.tight_layout()
     nome = "figura_p4_robustez.png"
     fig.savefig(FIGURAS / nome, bbox_inches="tight", facecolor="white")
@@ -281,22 +321,24 @@ def fig5_ecoli() -> str:
                 color=cor, lw=1.6, solid_capstyle="butt", zorder=2)
         ax.plot([r["IRR"]], [yi], "o", color=cor, ms=6, zorder=3,
                 markeredgecolor="white", markeredgewidth=0.8)
-        ax.annotate(f"{r['IRR']:.3f}  [{r['IC95% inferior']:.3f}, "
-                    f"{r['IC95% superior']:.3f}]",
+        ax.annotate(f"{_br(r['IRR'])}  [{_br(r['IC95% inferior'])}, "
+                    f"{_br(r['IC95% superior'])}]",
                     (r["IC95% superior"], yi), xytext=(7, 0),
                     textcoords="offset points", va="center", fontsize=7.5,
                     color=cor)
 
     ax.set_yticks(list(y))
-    ax.set_yticklabels([CURTO.get(g, g) for g in d["Grupo de causa"]], fontsize=7.5)
+    ax.set_yticklabels([CURTO.get(g, acentuar(g)) for g in d["Grupo de causa"]], fontsize=7.5)
     ax.set_xlabel("IRR da detecção de E. coli no ano anterior (escala log)",
                   fontsize=8, color=TINTA)
     ax.set_xscale("log")
     ax.set_xlim(0.85, 1.30)
     ax.set_xticks([0.9, 0.95, 1.0, 1.05, 1.1])
-    ax.get_xaxis().set_major_formatter(plt.FuncFormatter(lambda v, _: f"{v:g}"))
+    ax.get_xaxis().set_major_formatter(
+        plt.FuncFormatter(lambda v, _: _br(v, 2).rstrip("0").rstrip(",")))
     ax.set_title("Entre municípios que reportam: o que o laboratório encontrou",
                  fontsize=8, color=TINTA2, loc="left", pad=8)
+    _virgula(ax)
     fig.tight_layout()
     nome = "figura_e1_ecoli.png"
     fig.savefig(FIGURAS / nome, bbox_inches="tight", facecolor="white")

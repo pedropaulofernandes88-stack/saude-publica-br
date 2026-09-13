@@ -350,7 +350,7 @@ O estimador de painel está em `scripts/_poisson_fe.py` e os testes que o demons
 
 **Tabela P4. Critério 3 — observado contra a tendência de 2015–2019, em dois denominadores (`tabela_p4_tendencia.csv`).**
 
-| Ano | Obitos por A00-A09 | Observado por 10 mil obitos | Projetado por 10 mil obitos | Excesso relativo % (obitos) | Observado por milhao de habitantes | Projetado por milhao de habitantes | Excesso relativo % (habitantes) | Base do ajuste |
+| Ano | Óbitos por A00–A09 | Observado por 10 mil óbitos | Projetado por 10 mil óbitos | Excesso relativo % (óbitos) | Observado por milhão de habitantes | Projetado por milhão de habitantes | Excesso relativo % (habitantes) | Base do ajuste |
 |---|---|---|---|---|---|---|---|---|
 | 2015 | 4.372 | 34,58 | 35,45 | -2,5 | 21,6 | 22,33 | -3,3 | sim |
 | 2016 | 4.793 | 36,59 | 35,62 | 2,7 | 23,51 | 22,59 | 4,1 | sim |
@@ -365,7 +365,7 @@ O estimador de painel está em `scripts/_poisson_fe.py` e os testes que o demons
 
 **Tabela P5. Critério 4 — robustez do IRR da hipótese por recorte (`tabela_p5_robustez.csv`).**
 
-| Recorte | Municipios | IRR | IC95% inferior | IC95% superior |
+| Recorte | Municípios | IRR | IC95% inferior | IC95% superior |
 |---|---|---|---|---|
 | Painel completo | 5.570 | 0,99 | 0,943 | 1,041 |
 | Sem o Distrito Federal | 5.569 | 0,989 | 0,94 | 1,036 |
@@ -422,7 +422,7 @@ O estimador de painel está em `scripts/_poisson_fe.py` e os testes que o demons
 
 **Tabela E4. O IRR quando o esforço de amostragem entra no desenho (`tabela_e4_intensidade.csv`).**
 
-| Grupo de causa | IRR sem ajuste por amostras | IRR ajustado por log(amostras) | Deslocamento | Muda de direcao |
+| Grupo de causa | IRR sem ajuste por amostras | IRR ajustado por log(amostras) | Deslocamento | Muda de direção |
 |---|---|---|---|---|
 | A00-A09 intestinais (hipotese) | 0,991 | 0,985 | -0,006 | nao |
 | J00-J22 respiratorias (subgrupo 1.2) | 1,009 | 1,013 | 0,004 | nao |
@@ -432,7 +432,7 @@ O estimador de painel está em `scripts/_poisson_fe.py` e os testes que o demons
 
 **Tabela E5. Robustez do IRR da detecção por recorte (`tabela_e5_robustez.csv`).**
 
-| Recorte | Municipios | IRR | IC95% inferior | IC95% superior |
+| Recorte | Municípios | IRR | IC95% inferior | IC95% superior |
 |---|---|---|---|---|
 | Painel completo | 5.170 | 0,991 | 0,944 | 1,037 |
 | Sem o Distrito Federal | 5.170 | 0,991 | 0,944 | 1,037 |

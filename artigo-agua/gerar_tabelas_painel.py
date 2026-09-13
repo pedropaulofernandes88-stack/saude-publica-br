@@ -26,11 +26,13 @@ desenho transversal, que continuam no pacote como material do desenho anterior.
 """
 from __future__ import annotations
 
-import shutil
 import sys
 from pathlib import Path
 
 import pandas as pd
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "artigo"))
+from _acentuar import acentuar_tabela  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
     sys.stdout.reconfigure(encoding="utf-8", errors="replace")
@@ -122,7 +124,11 @@ def _transportar(pasta: Path, mapa: dict) -> None:
                 f"{origem}.csv não tem {faltam}. O manuscrito cita essas "
                 f"colunas; as que existem são {list(d.columns)}. Copiar assim "
                 "poria no pacote uma tabela que o texto não descreve.")
-        shutil.copyfile(caminho, TABELAS / f"{destino}.csv")
+        # Acentuar na camada de apresentação, e não copiar cru: a análise
+        # escreve rótulos em ASCII, e o manuscrito é em português. `acentuar`
+        # aborta se aparecer rótulo novo fora do mapa. Ver `artigo/_acentuar.py`.
+        acentuar_tabela(d).to_csv(TABELAS / f"{destino}.csv", index=False,
+                                  encoding="utf-8")
         print(f"[tab] {destino}.csv — {len(d)} linhas, {len(d.columns)} colunas")
 
 

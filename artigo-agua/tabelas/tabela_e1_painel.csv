@@ -1,18 +1,18 @@
 Recorte,Valor
-Municipios com alguma amostra reportada,5170
-Municipio-ano no recorte (condicional a reportar),40638
-Municipio-ano com E. coli detectada no ano anterior,8791
+Municipios com alguma amostra reportada,5170.0
+Municipio-ano no recorte (condicional a reportar),40638.0
+Municipio-ano com E. coli detectada no ano anterior,8791.0
 Municipio-ano com E. coli detectada (%),21.6
-Amostras analisadas no periodo,792990201
-Deteccoes de E. coli no periodo,62461
-Municipios que MUDARAM de estado de deteccao,2879
-Obitos: A00-A09 intestinais (hipotese),39011
-Municipios que mudam E tem obito: A00-A09 intestinais (hipotese),2343
-Obitos: J00-J22 respiratorias (subgrupo 1.2),677663
-Municipios que mudam E tem obito: J00-J22 respiratorias (subgrupo 1.2),2874
-Obitos: outras infecciosas do subgrupo 1.2,199472
-Municipios que mudam E tem obito: outras infecciosas do subgrupo 1.2,2751
-Obitos: I20-I25 isquemicas do coracao,931269
-Municipios que mudam E tem obito: I20-I25 isquemicas do coracao,2877
-Obitos: V01-Y98 causas externas,1180164
-Municipios que mudam E tem obito: V01-Y98 causas externas,2879
+Amostras analisadas no periodo,792990201.0
+Deteccoes de E. coli no periodo,62461.0
+Municipios que MUDARAM de estado de deteccao,2879.0
+Obitos: A00-A09 intestinais (hipotese),39011.0
+Municipios que mudam E tem obito: A00-A09 intestinais (hipotese),2343.0
+Obitos: J00-J22 respiratorias (subgrupo 1.2),677663.0
+Municipios que mudam E tem obito: J00-J22 respiratorias (subgrupo 1.2),2874.0
+Obitos: outras infecciosas do subgrupo 1.2,199472.0
+Municipios que mudam E tem obito: outras infecciosas do subgrupo 1.2,2751.0
+Obitos: I20-I25 isquemicas do coracao,931269.0
+Municipios que mudam E tem obito: I20-I25 isquemicas do coracao,2877.0
+Obitos: V01-Y98 causas externas,1180164.0
+Municipios que mudam E tem obito: V01-Y98 causas externas,2879.0

@@ -103,6 +103,8 @@ CONTEUDO = [
      "O estimador de Poisson condicional de efeitos fixos, com o autoteste de recuperação"),
     (AQUI / "gerar_tabelas_painel.py", "codigo/gerar_tabelas_painel.py",
      "Transporta as cinco tabelas do painel, conferindo as colunas que o texto cita"),
+    (ROOT / "artigo" / "_acentuar.py", "codigo/_acentuar.py",
+     "Devolve os acentos aos rótulos na camada de apresentação, e aborta em rótulo novo fora do mapa"),
     (AQUI / "gerar_figuras_painel.py", "codigo/gerar_figuras_painel.py",
      "Desenha as quatro figuras do painel"),
     (ROOT / "data" / "refs" / "Obitos_Evitaveis_5_a_74_anos.pdf",

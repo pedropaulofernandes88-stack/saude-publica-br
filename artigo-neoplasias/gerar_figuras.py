@@ -326,7 +326,10 @@ def figura_5_sitio_vulnerabilidade() -> None:
                label="mais mortalidade onde há mais vulnerabilidade"),
         Line2D([], [], color=AZUL, marker="o", linestyle="", markersize=5.5,
                label="menos mortalidade onde há mais vulnerabilidade")],
-        loc="upper left", fontsize=7.5, labelcolor=TINTA2)
+        loc="lower center", bbox_to_anchor=(0.5, 1.01), ncol=2,
+        fontsize=7.5, labelcolor=TINTA2)
+    # ACIMA do quadro: em "upper left" a legenda cobria as duas barras mais
+    # longas do lado vermelho, que são justamente as que o texto discute.
     fig.tight_layout()
     _salvar(fig, "figura_05_sitio_por_vulnerabilidade")
 
