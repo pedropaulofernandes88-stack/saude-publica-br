@@ -162,6 +162,53 @@ def test_instructions_mandam_chamar_a_metodologia(texto_mcp: str):
     )
 
 
+# ---------------------------------------------------------------------------
+# A procedência que a ferramenta promete tem de existir em algum lugar
+# ---------------------------------------------------------------------------
+#: Chaves que o MCP usa e que nenhum script deste repositório declara. Duas
+#: situações diferentes, as duas conhecidas e nenhuma silenciosa:
+#:
+#: fonte_sisagua — ainda NÃO existe em meta_dataset, então a ferramenta de água
+#: cai no texto genérico de `_procedencia` ("DATASUS/Ministério da Saúde e
+#: IBGE"), que não é falso mas é vago: o SISAGUA é do Ministério da Saúde e não
+#: do DataSUS. pipeline_sisagua.py só grava Parquet e quem sobe o mart é
+#: publicar.py; nenhum dos dois escreve meta_dataset, e decidir onde a chave
+#: entra é desenho do pipeline, não do servidor.
+#:
+#: fonte_agravo_hospital — está VIVA no banco e em site/public/sdata/meta.json,
+#: e mesmo assim nenhum script do repositório a declara. A citação funciona hoje
+#: e não é reproduzível a partir do código: republicar do zero a perderia.
+PROCEDENCIA_SEM_PIPELINE = {"fonte_sisagua", "fonte_agravo_hospital"}
+
+
+def test_chave_de_procedencia_e_declarada_por_algum_pipeline(texto_mcp: str):
+    """Uma chave inventada no servidor não quebra nada — degrada em silêncio.
+
+    `_procedencia` faz `m.get(chave, <texto generico>)`: errar o nome da chave
+    devolve uma citação vaga em vez de erro, e a ferramenta continua respondendo.
+    Este teste é a única coisa entre um typo e um numero publicado citando
+    "DATASUS/Ministerio da Saude e IBGE" no lugar da fonte real.
+
+    Offline de proposito: le o que os pipelines DECLARAM, nao o que o banco tem.
+    Chave declarada e ausente em producao e outro defeito, e nenhum pipeline
+    confere a resposta do POST que a grava.
+    """
+    usadas = set(re.findall(r'@procedencia\("([a-z_]+)"\)', texto_mcp))
+    declaradas = set()
+    for script in (RAIZ / "scripts").glob("*.py"):
+        # Dois formatos convivem nos pipelines: `{"chave": "fonte_x", ...}` e a
+        # tupla `("fonte_x", "...")`. Casar a string citada cobre os dois.
+        declaradas |= set(
+            re.findall(r'"(fonte_[a-z_]+)"', script.read_text(encoding="utf-8"))
+        )
+    orfas = sorted(usadas - declaradas - PROCEDENCIA_SEM_PIPELINE)
+    assert orfas == [], (
+        f"o MCP cita procedência que nenhum pipeline grava: {orfas}. Ou a chave está "
+        "escrita errada, ou o pipeline da fonte precisa publicá-la em meta_dataset. "
+        "Enquanto isso a ferramenta devolve a citação genérica sem reclamar."
+    )
+
+
 def test_catalogo_viaja_dentro_do_pacote():
     """O wheel do PyPI só leva o diretório do pacote.
 

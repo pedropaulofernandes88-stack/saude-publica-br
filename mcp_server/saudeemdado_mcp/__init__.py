@@ -27,18 +27,19 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server import MCPServer
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"
 
 # A 2.0.0 do SDK renomeou FastMCP para MCPServer e removeu mcp.server.fastmcp.
-# A API de decorators nao mudou: as 20 @mcp.tool() seguem iguais.
+# A API de decorators nao mudou: as 26 @mcp.tool() seguem iguais.
 mcp = MCPServer(
     "saudeemdado",
     version=__version__,
     title="Saúde em Dado",
     description=(
         "Dados oficiais de saúde no Brasil — mortalidade (SIM), dengue (SINAN), "
-        "internações SUS (SIH), leitos e serviços (CNES), nascimentos (SINASC) e "
-        "financiamento (SIOPS), a partir dos microdados do DataSUS e do IBGE."
+        "internações SUS (SIH), leitos e serviços (CNES), nascimentos (SINASC), "
+        "vacinação (PNI/RNDS), vigilância da água (SISAGUA) e financiamento "
+        "(SIOPS), a partir dos microdados do DataSUS, do Ministério da Saúde e do IBGE."
     ),
     website_url="https://saudeemdado.com",
     instructions=(
@@ -336,6 +337,184 @@ def dengue_municipios(uf: str = "", ano: int = 2024) -> list[dict]:
 def dengue_semanal(uf: str, ano: int = 2024) -> list[dict]:
     """Dengue (SINAN) por semana epidemiológica de uma UF/ano — curvas sazonais e picos."""
     return sd.dengue(uf=uf, ano=ano, nivel="semana")
+
+
+# ── Água para consumo humano (SISAGUA) ──────────────────────────────────────
+#
+# Duas ferramentas, e a segunda não é acessório: a ausência de um município em
+# `mart_sisagua_municipio` tem DOIS significados — ele não reportou análise, ou
+# não conseguimos coletar. Sem a cobertura da coleta ao lado, as duas viram
+# "zero análises", que é a leitura errada mais fácil desta fonte.
+@mcp.tool()
+@procedencia("fonte_sisagua")
+def agua_vigilancia_municipio(
+    uf: str = "", municipio_cod: str = "", ano: int = 2024, parametro: str = ""
+) -> list[dict]:
+    """Vigilância da qualidade da água (SISAGUA), controle mensal, 2014–2026: amostras
+    analisadas, resultados de Escherichia coli e coliformes totais, meses com análise no
+    ano e formas de abastecimento. Informe uf OU municipio_cod (6 dígitos).
+
+    MEDE VOLUME E REGULARIDADE DE ANÁLISE, NÃO POTABILIDADE DA ÁGUA. Um município
+    com muitas amostras não tem água melhor: tem mais vigilância registrada.
+
+    AUSÊNCIA NÃO É ZERO. Município que não aparece ou não reportou análise alguma, ou
+    não foi coletado — as duas produzem a mesma linha faltando. Chame
+    agua_cobertura_da_coleta antes de dizer que um município "não analisa".
+
+    parametro vazio = todos. Os do controle básico: 'Escherichia coli',
+    'Coliformes totais', 'Cloro Residual Livre (mg/L)', 'Turbidez (uT)', 'Cor (uH)',
+    'pH', 'Fluoreto (mg/L)', 'Dióxido de Cloro', 'Bactérias Heterotróficas (UFC/mL)'."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,parametro,"
+                  "amostras_analisadas,escherichia_coli,coliformes_totais,"
+                  "meses_com_analise,formas_de_abastecimento",
+        "ano": f"eq.{ano}", "order": "municipio_cod,parametro",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    if parametro:
+        params["parametro"] = f"eq.{parametro}"
+    return sd._get("mart_sisagua_municipio", params)
+
+
+@mcp.tool()
+@procedencia("fonte_sisagua")
+def agua_cobertura_da_coleta(uf: str = "", municipio_cod: str = "") -> list[dict]:
+    """COBERTURA da coleta do SISAGUA: uma linha por município do país, para separar
+    'não analisou' de 'não coletamos'. Consulte SEMPRE que for afirmar ausência de
+    vigilância em agua_vigilancia_municipio.
+
+    coletado=false: a coleta falhou para este município — a ausência é nossa, não dele.
+    coletado=true com linhas_no_mart=0: coletamos e ele não reportou análise alguma.
+    As duas produzem a mesma ausência no mart; só esta tabela as distingue."""
+    params = {"select": "municipio_cod,uf_sigla,coletado,registros_brutos,linhas_no_mart",
+              "order": "municipio_cod"}
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_sisagua_cobertura", params)
+
+
+# ── Vacinação (PNI/RNDS) ─────────────────────────────────────────────────────
+#
+# Duas ferramentas porque são duas coisas, e confundi-las é o erro clássico desta
+# fonte: DOSE é contagem e não precisa de denominador; COBERTURA precisa, e o
+# denominador só serve por UF. A separação aqui é a regra 'dose não é cobertura'
+# implementada como superfície, não como aviso.
+@mcp.tool()
+@procedencia("fonte_pni")
+def vacinacao_doses(uf: str = "", competencia: str = "", imunobiologico: str = "") -> list[dict]:
+    """Doses aplicadas do PNI por competência mensal, UF e imunobiológico. FONTE MAIS
+    ATUAL do acervo histórico: cerca de um mês de defasagem (vai até 2026-08), enquanto
+    as demais param no DataSUS consolidado de 2024.
+
+    DOSE NÃO É COBERTURA e NÃO É PESSOA. É contagem de aplicações: a mesma criança
+    aparece uma vez por dose do esquema. Para cobertura, use cobertura_vacinal_uf —
+    e leia o limite dela antes.
+
+    competencia no formato 'AAAA-MM'; vazio = toda a série. imunobiologico vazio =
+    todos (78 na competência mais recente, incluindo várias apresentações de COVID-19:
+    somar rótulos diferentes do mesmo produto duplica)."""
+    params = {"select": "competencia,uf_sigla,imunobiologico,doses",
+              "order": "competencia,uf_sigla,imunobiologico"}
+    if uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    if competencia:
+        params["competencia"] = f"eq.{competencia}"
+    if imunobiologico:
+        params["imunobiologico"] = f"eq.{imunobiologico}"
+    return sd._get("mart_vacinacao_uf_mes", params)
+
+
+@mcp.tool()
+@procedencia("fonte_pni")
+def cobertura_vacinal_uf(uf: str = "", ano: int = 2024) -> list[dict]:
+    """Cobertura vacinal em menores de 1 ano, POR UF e apenas 2023–2024, para cinco
+    indicadores da atenção básica: Pentavalente, Poliomielite, Rotavirus, Pneumococica
+    e Meningococica, todos 1ª dose. Denominador: nascidos vivos definitivos (SINASC).
+
+    NÃO EXISTE COBERTURA MUNICIPAL AQUI, e não é omissão: foi testada e REPROVADA por
+    viés sistemático de denominador. A mediana cai de 102,7% nos municípios com 50–100
+    nascidos para 86,2% nos com 5.000+, e mais da metade dos pequenos passa de 100%.
+    NÃO derive cobertura municipal dividindo vacinacao_doses por população — é
+    exatamente o cálculo reprovado.
+
+    BCG e hepatite B ao nascer estão EXCLUÍDAS mesmo por UF: aplicadas na maternidade,
+    chegam a 127,8% (CE) e 121,0% (AL) em 2024, porque o denominador é por residência
+    da mãe. Cobertura acima de 100% é guarda de erro de composição, não desempenho.
+
+    Cada indicador declara qual tipo de dose conta; somar tipos diferentes conta a
+    mesma criança duas vezes."""
+    params = {"select": "uf_sigla,ano,indicador,doses,nascidos,cobertura_pct",
+              "ano": f"eq.{ano}", "order": "uf_sigla,indicador"}
+    if uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_cobertura_vacinal_uf", params)
+
+
+# ── Financiamento (SIOPS) ────────────────────────────────────────────────────
+@mcp.tool()
+@procedencia("fonte_siops")
+def gasto_saude_municipio(uf: str = "", municipio_cod: str = "", ano: int = 2024) -> list[dict]:
+    """Gasto público municipal em saúde (SIOPS), 2021–2024: gasto próprio por habitante,
+    despesa total, transferências SUS por habitante, % da receita própria aplicada em
+    saúde e se ficou abaixo do mínimo constitucional (EC 29). Informe uf OU
+    municipio_cod (6 dígitos).
+
+    É despesa EMPENHADA e AUTODECLARADA pelo ente — não é despesa paga nem auditada.
+
+    GASTO NÃO MEDE ACESSO NEM QUALIDADE. Gastar mais por habitante não implica melhor
+    serviço, e o teste desta plataforma contra o %ICSAP é um dos achados nulos do
+    projeto. Não construa ranking de 'melhor gestão' com este campo.
+
+    populacao_siops é a declarada pelo ente no sistema e pode divergir da projeção do
+    IBGE usada nos demais indicadores; não a misture com outros denominadores."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,populacao_siops,"
+                  "gasto_proprio_saude_hab,despesa_total_saude,transf_sus_hab,"
+                  "pct_receita_propria_saude,abaixo_do_minimo_ec29",
+        "ano": f"eq.{ano}", "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_siops_municipio", params)
+
+
+# ── Vazio assistencial: leitos x local do óbito ─────────────────────────────
+@mcp.tool()
+@procedencia("fonte_obitos")
+def vazio_assistencial(uf: str = "", municipio_cod: str = "") -> list[dict]:
+    """Cruzamento de leitos (CNES) com mortalidade (SIM) por município, 2023: leitos
+    totais e SUS, leitos SUS por mil, se o município não tem leito, óbitos em hospital
+    e em domicílio, taxa bruta e PADRONIZADA por idade, porte e vulnerabilidade.
+    Informe uf OU municipio_cod (6 dígitos).
+
+    O QUE ESTE CRUZAMENTO JÁ RESPONDEU: viver em município sem leito local NÃO eleva a
+    mortalidade padronizada — muda o LOCAL do óbito, com mais mortes em domicílio. O
+    efeito bruto que parecia existir era confundido por porte populacional. Portanto
+    NÃO apresente ausência de leito local como causa de mais mortes; apresente como
+    deslocamento do local de morte e dependência de outro município (ver
+    fluxo_pacientes).
+
+    Use taxa_padronizada_100k para comparar municípios; a bruta reflete a estrutura
+    etária. pct_obito_domicilio é o campo em que a diferença aparece."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,populacao,"
+                  "porte_quartil,leitos_total,leitos_sus,leitos_sus_por_mil,sem_leito,"
+                  "obitos,obitos_hospital,obitos_domicilio,pct_obito_domicilio,"
+                  "pct_obito_hospital,taxa_obitos_100k,taxa_padronizada_100k,ivs_score",
+        "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_vazio_assistencial_municipio", params)
 
 
 # ── Copiloto: anomalias ──────────────────────────────────────────────────────

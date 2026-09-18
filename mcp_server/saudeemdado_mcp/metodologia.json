@@ -254,6 +254,145 @@
       ],
       "refutado": [],
       "ferramentas": ["boletim_semanal"]
+    },
+
+    "agua_vigilancia": {
+      "nome": "Vigilância da qualidade da água (SISAGUA)",
+      "definicao": "Registro do controle mensal de parâmetros básicos da água para consumo humano, por município de referência, ano e parâmetro.",
+      "numerador": "Amostras analisadas e resultados reportados ao SISAGUA, por parâmetro; meses_com_analise conta os meses do ano com alguma análise",
+      "denominador": "Não se aplica: é contagem de análise registrada, não proporção de amostras conformes",
+      "unidade": "amostras analisadas; meses com análise no ano (0 a 12)",
+      "cobertura": "2014–2026; parâmetros do controle mensal básico (E. coli, coliformes totais, cloro residual livre, turbidez, cor, pH, fluoreto, dióxido de cloro, bactérias heterotróficas)",
+      "defasagem": "A série alcança o ano corrente, mas o município reporta ao longo do ano: ano corrente é sempre parcial.",
+      "nao_mede": [
+        "potabilidade nem qualidade da água — mede VOLUME E REGULARIDADE DE ANÁLISE registrada",
+        "vigilância efetivamente realizada: um município pode analisar e não reportar, e o dado não separa as duas coisas",
+        "ausência: município que não aparece ou não reportou, ou não foi coletado — só mart_sisagua_cobertura distingue"
+      ],
+      "ao_relatar": [
+        "Muitas amostras não significam água melhor, significam mais vigilância registrada. A frase 'município X tem água pior' não é sustentável por esta fonte.",
+        "Antes de afirmar que um município não analisa, consulte agua_cobertura_da_coleta: coletado=false põe a ausência do nosso lado, não do dele.",
+        "O ponto de abastecimento SAA e o SAC não são duplicata de grafia do mesmo ponto; não deduplicar por nome.",
+        "A redação do campo mudou em 2023; comparação de série longa por rótulo textual precisa checar isso antes."
+      ],
+      "refutado": [
+        {
+          "leitura": "A ausência de vigilância da água explica a alta da mortalidade por doenças infecciosas intestinais (A00–A09) — sugerida por uma razão de razões transversal de 2,075 [1,776–2,518]",
+          "resultado": "Não encontra apoio no desenho de painel. Com efeito fixo de município e indicadoras de ano (5.570 municípios x 9 anos, 50.130 linhas município-ano), o IRR da ausência de reporte no ano anterior é 0,99 [0,943–1,041] para A00–A09, e 0,984 / 0,996 / 1,006 / 1,002 nas quatro causas-controle: nenhum exclui 1. Sem o efeito fixo a razão de razões é 1,39; com ele cai para 1,006. O controle negativo não era neutro — carregava associação própria em sentido oposto (0,558), e a razão de razões somava os dois desvios atribuindo-os ao numerador.",
+          "evidencia": "artigo-agua/manuscrito.md, análise primária em painel, Poisson condicional com bootstrap de município (400 reamostragens), mantido em dez recortes de robustez",
+          "consequencia": "O que está refutado é estreito e deve ser dito assim: que a associação transversal reflita efeito da exposição. NÃO está demonstrada ausência de efeito hídrico em geral — a exposição medida é o REGISTRO, a defasagem testada é de um ano, e intervalo contendo 1 delimita magnitude, não prova ausência. A alta de 2015–2024 é real e segue sem explicação identificada. A falta de registro continua útil como MARCADOR que identifica municípios, não como determinante."
+        }
+      ],
+      "ferramentas": ["agua_vigilancia_municipio", "agua_cobertura_da_coleta"]
+    },
+
+    "vacinacao_doses": {
+      "nome": "Doses aplicadas (PNI/RNDS)",
+      "definicao": "Contagem de doses aplicadas registradas no PNI, por competência mensal, UF e imunobiológico.",
+      "numerador": "Doses aplicadas registradas, por residência declarada na vacinação",
+      "denominador": "Não se aplica: é contagem, e por isso não herda nenhum problema de denominador",
+      "unidade": "doses aplicadas",
+      "cobertura": "Série mensal por UF e imunobiológico; 78 imunobiológicos na competência mais recente",
+      "defasagem": "Cerca de um mês — é a fonte mais atual do acervo histórico, enquanto as demais param no DataSUS consolidado de 2024.",
+      "nao_mede": [
+        "pessoas vacinadas — a mesma criança aparece uma vez por dose do esquema",
+        "cobertura vacinal, que exige população-alvo e tipo de dose declarado",
+        "local de aplicação: o registro é por residência declarada"
+      ],
+      "ao_relatar": [
+        "Escreva 'doses aplicadas', nunca 'crianças vacinadas' nem 'cobertura'.",
+        "Somar rótulos diferentes da mesma vacina duplica. Há várias apresentações de COVID-19 com nomes distintos, e o PNI também registra diluentes, que não são dose.",
+        "Por ser a fonte mais atual, é a tentação natural para derivar cobertura municipal dividindo por população. Esse cálculo está reprovado: ver o indicador cobertura_vacinal."
+      ],
+      "refutado": [],
+      "ferramentas": ["vacinacao_doses"]
+    },
+
+    "cobertura_vacinal": {
+      "nome": "Cobertura vacinal em menores de 1 ano",
+      "definicao": "Proporção da população-alvo alcançada pela dose declarada do indicador, publicada APENAS por UF.",
+      "numerador": "Doses do tipo declarado por cada indicador (1ª dose), por UF e ano",
+      "denominador": "Nascidos vivos definitivos do SINASC, por residência da mãe no parto",
+      "unidade": "% de cobertura",
+      "cobertura": "2023 e 2024 — os anos com nascidos vivos definitivos — e cinco indicadores da atenção básica: Pentavalente, Poliomielite, Rotavirus, Pneumococica e Meningococica, todos 1ª dose",
+      "defasagem": "Limitada pelo fechamento do SINASC, não pelo PNI.",
+      "nao_mede": [
+        "cobertura municipal, que foi testada e reprovada",
+        "BCG e hepatite B ao nascer, excluídas mesmo por UF",
+        "esquema completo: os indicadores contam a 1ª dose declarada"
+      ],
+      "ao_relatar": [
+        "Cobertura acima de 100% é guarda automática de erro de composição, não desempenho. Um conjunto genérico de '1ª dose, única, dose' produziu 110,6% em BCG.",
+        "Cada indicador declara qual tipo de dose conta; somar tipos diferentes conta a mesma criança duas vezes.",
+        "A composição move o número mais do que se gostaria: incluir hexavalente e pentavalente acelular levou a pentavalente de 92,2% para 96,4% em 2024 — quatro pontos por uma decisão de rótulo."
+      ],
+      "refutado": [
+        {
+          "leitura": "Dá para publicar cobertura vacinal por município, ou derivá-la dividindo doses municipais por população",
+          "resultado": "Reprovada por viés SISTEMÁTICO de denominador, não por ruído. O critério foi fixado antes de olhar o resultado (correlação 2023x2024 abaixo de 0,50 seria ruído) e o resultado ficou em 0,591 de Pearson e 0,529 de Spearman: nem ruído puro nem sinal utilizável. A mediana cai de 102,7% nos municípios com 50–100 nascidos para 86,2% nos com 5.000+, e 56,0% dos pequenos passam de 100%. Ruído não tem direção; isso tem. Acima de 300 nascidos, onde a correlação passa de 0,70, quase 30% seguem acima de 100%: onde o indicador é estável, o nível continua errado. BCG e hepatite B ao nascer chegam a 127,8% (CE) e 121,0% (AL) por UF em 2024, porque são aplicadas na maternidade.",
+          "evidencia": "docs/vacinacao-pni-metodologia.md, seção 'O que NÃO publicamos, e por quê'",
+          "consequencia": "Publicamos DOSES por município e COBERTURA só por UF. A hipótese óbvia para o viés também foi testada e refutada: o descasamento geográfico entre numerador e denominador tem correlação +0,002 com o excesso de cobertura, e o numerador já é por residência. O descasamento de coorte existe e é pequeno (+0,5% em 2023, +3,1% em 2024): explica parte do nível nacional, nada da dispersão municipal."
+        }
+      ],
+      "ferramentas": ["cobertura_vacinal_uf"]
+    },
+
+    "gasto_publico_saude": {
+      "nome": "Gasto público municipal em saúde (SIOPS)",
+      "definicao": "Indicadores de despesa municipal em saúde declarados ao SIOPS pelo próprio ente.",
+      "numerador": "Despesa EMPENHADA em saúde: gasto próprio, despesa total e transferências SUS",
+      "denominador": "populacao_siops, declarada pelo ente no sistema; e receita própria para o percentual aplicado",
+      "unidade": "R$ por habitante; R$ totais; % da receita própria aplicada em saúde; indicador booleano de descumprimento do mínimo (EC 29)",
+      "cobertura": "2021–2024, municípios",
+      "defasagem": "Depende do envio do ente; o ano mais recente tem menos municípios declarados.",
+      "nao_mede": [
+        "acesso nem qualidade do serviço — gastar mais por habitante não implica melhor atendimento",
+        "despesa paga: empenhada é etapa anterior do ciclo",
+        "gasto auditado: o dado é autodeclarado"
+      ],
+      "ao_relatar": [
+        "Não construa ranking de 'melhor gestão' com gasto por habitante.",
+        "populacao_siops pode divergir da projeção do IBGE usada nos demais indicadores; não misture denominadores entre ferramentas.",
+        "abaixo_do_minimo_ec29 é indicador declaratório de descumprimento do mínimo constitucional, não apuração de responsabilidade."
+      ],
+      "refutado": [
+        {
+          "leitura": "Municípios que gastam mais em saúde têm menos internações evitáveis (%ICSAP)",
+          "resultado": "Achado nulo. É um dos testes de explicação do %ICSAP que a plataforma rodou e que não sustentou associação utilizável, ao lado de vazio assistencial, cobertura da APS e saúde suplementar.",
+          "evidencia": "docs/vacinacao-pni-metodologia.md cita os quatro achados nulos anteriores sobre o %ICSAP; SIOPS é um deles",
+          "consequencia": "Não apresente gasto como explicação do %ICSAP nem como preditor de desfecho municipal sem desenho próprio."
+        }
+      ],
+      "ferramentas": ["gasto_saude_municipio"]
+    },
+
+    "vazio_assistencial": {
+      "nome": "Vazio assistencial: leitos e local do óbito",
+      "definicao": "Cruzamento da oferta de leitos (CNES) com a mortalidade (SIM) por município, para testar o efeito de não haver leito local.",
+      "numerador": "Leitos totais e SUS; óbitos totais, em hospital e em domicílio",
+      "denominador": "População residente para leitos por mil e taxa por 100 mil; população padrão para a taxa padronizada por idade",
+      "unidade": "leitos; leitos SUS por mil habitantes; óbitos; % de óbitos por local; óbitos por 100 mil (bruta e padronizada)",
+      "cobertura": "2023, municípios, com porte em quartis e escore de vulnerabilidade",
+      "defasagem": "Ano único; não é série.",
+      "nao_mede": [
+        "efeito da ausência de leito sobre a mortalidade — testado, e não encontrado",
+        "capacidade em operação: leito cadastrado no CNES não comprova leito funcionando, com equipe",
+        "para onde os residentes vão se internar — isso é fluxo_pacientes"
+      ],
+      "ao_relatar": [
+        "Use taxa_padronizada_100k para comparar municípios; a bruta reflete a estrutura etária.",
+        "O campo em que a diferença aparece é pct_obito_domicilio, não a mortalidade.",
+        "Relate junto com o porte: foi ele que confundia o efeito bruto."
+      ],
+      "refutado": [
+        {
+          "leitura": "Viver em município sem leito local eleva a mortalidade",
+          "resultado": "Não se sustenta para a mortalidade padronizada. O que muda é o LOCAL do óbito, com mais mortes em domicílio. O efeito bruto que parecia existir era confundido por porte populacional.",
+          "evidencia": "mart_vazio_assistencial_municipio, CNES-LT cruzado com SIM, 2023",
+          "consequencia": "Apresente ausência de leito local como deslocamento do local de morte e dependência de outro município, nunca como causa de mais mortes. Vale a mesma cautela do %ICSAP: a oferta local muda onde o evento é registrado antes de mudar o risco."
+        }
+      ],
+      "ferramentas": ["vazio_assistencial"]
     }
   }
 }

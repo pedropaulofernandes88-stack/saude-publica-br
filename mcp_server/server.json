@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-09-29/server.schema.json",
   "name": "io.github.pedropaulofernandes88-stack/saudeemdado",
-  "description": "Saúde do Brasil (DataSUS + IBGE) consultável por IA — mortalidade, dengue e internações SUS",
+  "description": "Saúde do Brasil (DataSUS + IBGE) consultável por IA — mortalidade, dengue, internações SUS, vacinação, água e gasto público",
   "repository": {
     "url": "https://github.com/pedropaulofernandes88-stack/saude-publica-br",
     "source": "github"
   },
   "websiteUrl": "https://saudeemdado.com",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "packages": [
     {
       "registryType": "pypi",
       "registryBaseUrl": "https://pypi.org",
       "identifier": "saudeemdado-mcp",
-      "version": "0.8.0",
+      "version": "0.9.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
