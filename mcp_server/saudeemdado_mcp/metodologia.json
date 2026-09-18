@@ -1,0 +1,259 @@
+{
+  "versao": "1.0.0",
+  "por_que_isto_existe": [
+    "O que distingue esta plataforma não é ter o dado do DataSUS — é saber o que cada",
+    "número NÃO sustenta. Esse conhecimento estava em três lugares que nenhum agente",
+    "consulta sob demanda: prosa em site/app/metodologia/page.tsx, texto fixo no campo",
+    "`instructions` do servidor (que todo cliente carrega inteiro em toda sessão, use ou",
+    "não) e docstrings de ferramenta (que um cliente pode nunca ler).",
+    "Aqui ele vira dado consultável, com a mesma disciplina de fontes.ts: um arquivo só,",
+    "e um teste que reprova quando uma ferramenta de dado fica sem entrada.",
+    "REGRA DE ESCRITA: só entra aqui o que foi medido ou documentado neste repositório.",
+    "`refutado` é reservado a hipótese que foi TESTADA e caiu — não a suspeita."
+  ],
+  "indicadores": {
+    "mortalidade": {
+      "nome": "Mortalidade (SIM)",
+      "definicao": "Óbitos de residentes por causa básica (CID-10), do Sistema de Informações sobre Mortalidade.",
+      "numerador": "Óbitos registrados no SIM, por município de residência e capítulo/categoria CID-10",
+      "denominador": "População residente (IBGE) para taxa bruta; população padrão para a taxa padronizada por idade",
+      "unidade": "óbitos; óbitos por 100 mil habitantes (bruta e padronizada por idade, com IC95%)",
+      "cobertura": "2015–2024",
+      "defasagem": "O ano mais recente é preliminar e sobe em revisões posteriores.",
+      "nao_mede": [
+        "risco individual de morrer — é medida ecológica, agregada por município",
+        "qualidade do serviço de saúde local, que exige ajuste de risco e outras fontes",
+        "causa confiável onde o registro é ruim: consulte qualidade_registro antes de afirmar causa"
+      ],
+      "ao_relatar": [
+        "Para COMPARAR municípios use taxa_padronizada_100k. A taxa bruta engana: ela reflete a estrutura etária, e município mais velho aparece pior sem ter risco maior.",
+        "R99 é causa mal-definida, ou seja, ausência de diagnóstico. Não é doença e não entra em ranking de causa como se fosse.",
+        "Reporte o IC95% (ic95_inf/ic95_sup) em município pequeno: a taxa oscila muito com poucos óbitos."
+      ],
+      "refutado": [],
+      "ferramentas": ["serie_mensal_obitos", "municipios_indicadores", "principais_causas"]
+    },
+
+    "excesso_mortalidade": {
+      "nome": "Excesso de mortalidade",
+      "definicao": "Diferença entre óbitos observados e esperados por mês e UF, a partir de 2020.",
+      "numerador": "Óbitos observados no mês",
+      "denominador": "Óbitos esperados pelo baseline de TENDÊNCIA linear 2015–2019, que capta o envelhecimento da população",
+      "unidade": "óbitos em excesso; e % sobre o esperado",
+      "cobertura": "2020 em diante, por UF e Brasil",
+      "defasagem": "Acompanha a defasagem do SIM; o ano corrente é preliminar.",
+      "nao_mede": [
+        "mortes por uma causa específica — excesso é saldo, não diagnóstico",
+        "efeito de uma política ou intervenção, que exigiria desenho próprio"
+      ],
+      "ao_relatar": [
+        "O baseline é TENDÊNCIA 2015–2019, não média do período. Média subestimaria o esperado numa população que envelhece, e inflaria o excesso.",
+        "Referências: pico pandêmico no Brasil em 2020–2021 em torno de 643 mil; 2024 próximo de zero, ainda preliminar."
+      ],
+      "refutado": [],
+      "ferramentas": ["excesso_mortalidade"]
+    },
+
+    "qualidade_registro": {
+      "nome": "Qualidade do registro de óbitos",
+      "definicao": "Proporção de óbitos com causa mal-definida (capítulo XVIII/R99) no município, usada como camada de confiabilidade antes de afirmar causa de morte.",
+      "numerador": "Óbitos com causa básica mal-definida",
+      "denominador": "Óbitos totais do município no período",
+      "unidade": "% de mal-definidas, e classe: Bom abaixo de 5%, Regular de 5 a 10%, Ruim acima de 10%",
+      "cobertura": "2022–2024",
+      "defasagem": "Segue o SIM.",
+      "nao_mede": [
+        "precisão da codificação quando a causa está preenchida — um município pode ter pouca mal-definida e ainda codificar mal",
+        "qualidade do atendimento; mede qualidade do REGISTRO"
+      ],
+      "ao_relatar": [
+        "Classe Ruim não invalida o dado: obriga a dizer, na mesma frase, que a causa daquele município é pouco confiável.",
+        "O percentual de mal-definidas é piso, não retrato completo da qualidade da codificação."
+      ],
+      "refutado": [],
+      "ferramentas": ["qualidade_registro"]
+    },
+
+    "internacoes": {
+      "nome": "Internações SUS (SIH/AIH)",
+      "definicao": "Produção hospitalar do SUS medida em AIHs aprovadas, por município, capítulo CID e agravo traçador.",
+      "numerador": "AIHs APROVADAS (produção), incluindo a AIH de continuação emitida quando a internação se prolonga",
+      "denominador": "População residente para taxas por 100 mil; aih_normal (= internacoes menos aih_continuacao) para médias por episódio",
+      "unidade": "AIHs aprovadas; permanência média em dias; mortalidade intra-hospitalar em %; custo médio em R$",
+      "cobertura": "Rede SUS, 2024 nas ferramentas municipais e por agravo",
+      "defasagem": "Consolidado do DataSUS; não é dado corrente.",
+      "nao_mede": [
+        "pacientes — a AIH pública não tem identificador de paciente, e uma pessoa pode gerar várias",
+        "episódios de internação — a AIH de continuação duplica o episódio longo",
+        "a rede privada e os atendimentos não hospitalares"
+      ],
+      "ao_relatar": [
+        "NUNCA escreva 'pacientes' para este número. Escreva 'internações registradas' ou 'AIHs aprovadas'.",
+        "permanencia_media e custo_medio já vêm calculados sobre aih_normal. Não os recalcule dividindo por internacoes.",
+        "A divergência é grande nos capítulos V (transtornos mentais, 25% de continuação) e VI (sistema nervoso, 10%), e quase nula nos demais. Nos agravos de saúde mental (depressao, esquizofrenia, alcool_drogas) a ressalva é obrigatória."
+      ],
+      "refutado": [],
+      "ferramentas": ["internacoes_municipios", "internacoes_por_agravo"]
+    },
+
+    "icsap": {
+      "nome": "ICSAP — internações por condições sensíveis à atenção primária",
+      "definicao": "Proporção das internações SUS cuja causa consta da Lista Brasileira de ICSAP, por município de residência.",
+      "numerador": "AIHs aprovadas com causa na Lista Brasileira de ICSAP",
+      "denominador": "AIHs aprovadas totais do município no ano (pct_icsap); população residente (icsap_100k)",
+      "unidade": "% das internações; internações por 100 mil habitantes",
+      "cobertura": "5.570 municípios, 2024",
+      "defasagem": "Segue o SIH consolidado.",
+      "nao_mede": [
+        "qualidade ou cobertura da atenção primária — ver `refutado`",
+        "risco individual; é associação ecológica municipal",
+        "internações da rede privada"
+      ],
+      "ao_relatar": [
+        "NÃO é economia disponível. Chegar à mediana dos pares exige INVESTIR em atenção primária, não cortar; o valor mede o tamanho do problema, não caixa a resgatar.",
+        "Nem toda ICSAP é evitável: a Lista reúne condições SENSÍVEIS à atenção primária, e boa cobertura reduz sem zerar. Por isso a referência é a mediana dos pares, nunca zero.",
+        "Relate sempre junto com a oferta hospitalar local, o porte e a cobertura privada.",
+        "O custo em reais é TETO: deriva de 6 agravos traçadores que pendem para o lado caro da lista (AVC e ICC), sem as condições baratas (gastroenterite, infecção urinária, anemia).",
+        "Comparar com a média nacional é injusto; compare com pares do mesmo estrato."
+      ],
+      "refutado": [
+        {
+          "leitura": "%ICSAP alto indica atenção primária frágil — e, na variante mecanicista, 'onde falta leito a eletiva some e a fatia de ICSAP sobe'",
+          "resultado": "Refutada na direção e no mecanismo. A correlação do %ICSAP com leitos SUS por mil é POSITIVA (rho +0,32; +0,34 controlando porte e vulnerabilidade). Municípios SEM leito local têm %ICSAP mediano MENOR (17,7%) que os com leito (21,4%). Ter leito local aumenta a internação por ICSAP em +51% a +85% conforme o porte, sem mexer nas demais: o efeito está no NUMERADOR. Um município que abre um hospital pequeno vê o %ICSAP SUBIR sem ter piorado a atenção primária.",
+          "evidencia": "§19 da metodologia — CNES cruzado com SIH nos 5.570 municípios, 2024",
+          "consequencia": "O indicador mede, em parte relevante, a EXISTÊNCIA DE LEITO na cidade. É indicador de sistema, não de má gestão local."
+        }
+      ],
+      "ferramentas": ["internacoes_evitaveis_icsap", "icsap_distancia_dos_pares"]
+    },
+
+    "hospitais": {
+      "nome": "Desempenho por estabelecimento (CNES/SIH)",
+      "definicao": "Visão por estabelecimento da produção hospitalar SUS: volume, permanência, mortalidade e custo.",
+      "numerador": "AIHs aprovadas do estabelecimento, com piso de 50 internações no ano",
+      "denominador": "AIHs do próprio estabelecimento para as médias e para a mortalidade",
+      "unidade": "AIHs; dias; % de mortalidade bruta; R$",
+      "cobertura": "2024, estabelecimentos com pelo menos 50 internações",
+      "defasagem": "Segue o SIH consolidado.",
+      "nao_mede": [
+        "qualidade do hospital — a mortalidade é BRUTA, sem ajuste de risco ou case-mix",
+        "identidade do estabelecimento além do código CNES; a ferramenta não traz o nome"
+      ],
+      "ao_relatar": [
+        "Não construa ranking de qualidade com mortalidade bruta. Hospital que recebe caso grave aparece pior sem ser pior.",
+        "Vale a mesma regra de AIH: volume é produção, não pacientes."
+      ],
+      "refutado": [],
+      "ferramentas": ["hospitais"]
+    },
+
+    "fluxo_intermunicipal": {
+      "nome": "Fluxo intermunicipal de internação",
+      "definicao": "Para onde os residentes de um município viajam para se internar, pelo par município de residência x município de internação.",
+      "numerador": "AIHs aprovadas por par residência-internação, com piso de 5 no ano",
+      "denominador": "Não se aplica; é contagem",
+      "unidade": "AIHs aprovadas",
+      "cobertura": "SIH 2024, fluxos com 5 ou mais internações",
+      "defasagem": "Segue o SIH consolidado.",
+      "nao_mede": [
+        "escolha do paciente — o destino reflete oferta, pactuação e referência regional",
+        "fluxo da rede privada",
+        "fluxos pequenos, suprimidos pelo piso de 5"
+      ],
+      "ao_relatar": [
+        "Revela dependência de polo regional e evasão da rede local; não demonstra falha do município de origem.",
+        "O piso de 5 significa que a soma dos fluxos visíveis é menor que o total de internações dos residentes."
+      ],
+      "refutado": [],
+      "ferramentas": ["fluxo_pacientes"]
+    },
+
+    "dengue": {
+      "nome": "Dengue (SINAN)",
+      "definicao": "Casos prováveis de dengue por município, ano e semana epidemiológica, e o canal endêmico por UF.",
+      "numerador": "Casos prováveis = notificações NÃO descartadas; casos graves e óbitos como recortes",
+      "denominador": "População residente para incidência por 100 mil; casos prováveis para letalidade",
+      "unidade": "casos; incidência por 100 mil; letalidade em %",
+      "cobertura": "Série histórica desde 2015; canal endêmico com baseline 2015 em diante, excluindo o ano observado",
+      "defasagem": "SINAN consolidado, histórico. Para a situação corrente use boletim_semanal, que traz o InfoDengue.",
+      "nao_mede": [
+        "casos confirmados laboratorialmente — caso provável inclui notificação não descartada",
+        "a semana corrente: a notificação chega com atraso de digitação e o dado recente subestima"
+      ],
+      "ao_relatar": [
+        "2024 foi epidemia recorde, com 6,56 milhões de casos. Comparar qualquer ano com 2024 sem dizer isso distorce a leitura.",
+        "No canal endêmico, a faixa esperada é P25–P75 das mesmas semanas em anos anteriores, com o ano observado excluído do baseline. 13 semanas ou mais acima do P75 (um trimestre) é o limiar de surto prolongado adotado aqui.",
+        "A palavra 'surto' exige a definição operacional acima; não a use como sinônimo de alta."
+      ],
+      "refutado": [],
+      "ferramentas": ["dengue_municipios", "dengue_semanal", "canal_endemico_dengue"]
+    },
+
+    "pares": {
+      "nome": "Comparação com pares (estrato de saúde)",
+      "definicao": "Compara um município com os do mesmo estrato de saúde, definido por tercis fixos de mortalidade x vulnerabilidade x internações.",
+      "numerador": "Valor do município em cada métrica",
+      "denominador": "Distribuição dos pares do mesmo estrato, resumida por mediana e percentil",
+      "unidade": "valor da métrica; mediana dos pares; percentil de 0 a 100, em que alto é pior em mortalidade e vulnerabilidade",
+      "cobertura": "Cerca de 1.700 municípios maiores, base 2023",
+      "defasagem": "Estratos recalculados quando a base muda; a versão vigente é de 2026-08-29.",
+      "nao_mede": [
+        "causa da diferença entre o município e seus pares",
+        "municípios fora da base de estratos, que recebem aviso em vez de comparação"
+      ],
+      "ao_relatar": [
+        "A comparação é legítima porque os pares têm perfil estrutural semelhante, não apenas a mesma UF. Diga qual é o critério de pareamento ao reportar o percentil."
+      ],
+      "refutado": [
+        {
+          "leitura": "Agrupar municípios por k-means produz estratos utilizáveis para comparação",
+          "resultado": "Reprovado em teste de estabilidade e substituído por tercis fixos e determinísticos em 2026-08-29. Agrupamento não supervisionado nunca falha sozinho: produz grupos mesmo sem estrutura, e a instabilidade só aparece quando se testa.",
+          "evidencia": "dim_cluster_municipio; troca registrada no repositório",
+          "consequencia": "Estrato é definido por regra fixa e reproduzível, não por ajuste que muda a cada execução."
+        }
+      ],
+      "ferramentas": ["comparar_com_pares"]
+    },
+
+    "sinais_municipio": {
+      "nome": "Sinais priorizados do município (copiloto)",
+      "definicao": "Resumo de sinais de um município para briefing: confiabilidade do registro, %ICSAP com a oferta de leitos ao lado, e letalidade de dengue.",
+      "numerador": "Deriva dos indicadores qualidade_registro, icsap e dengue",
+      "denominador": "Ver cada indicador de origem",
+      "unidade": "lista de sinais com gravidade e fonte",
+      "cobertura": "Municípios presentes nas bases de origem",
+      "defasagem": "A do indicador mais defasado entre os três.",
+      "nao_mede": [
+        "prioridade de política pública — é triagem de leitura, não recomendação",
+        "ausência de problema: 'sem anomalias nos limiares avaliados' significa que os limiares desta ferramenta não dispararam, não que está tudo bem"
+      ],
+      "ao_relatar": [
+        "O sinal de ICSAP vem acompanhado da oferta de leitos do próprio município. Relate os dois juntos ou não relate nenhum.",
+        "Os limiares (%ICSAP acima de 30 com pelo menos 200 internações; classe de registro Ruim; óbito por dengue maior que zero) são convenções desta ferramenta, não pontos de corte oficiais."
+      ],
+      "refutado": [],
+      "ferramentas": ["detectar_anomalias"]
+    },
+
+    "vigilancia_corrente": {
+      "nome": "Situação atual (boletim semanal e InfoDengue)",
+      "definicao": "Única superfície de dado corrente do servidor: boletim semanal publicado, com nowcasting do InfoDengue para as 27 capitais e as seções históricas.",
+      "numerador": "Casos notificados e casos ESTIMADOS por semana; nível de alerta de 1 a 4; Rt",
+      "denominador": "Ver cada seção histórica do boletim",
+      "unidade": "casos; nível de alerta; Rt, em que acima de 1 indica transmissão crescendo",
+      "cobertura": "27 capitais para a vigilância corrente, dengue e chikungunya",
+      "defasagem": "A edição publicada usa vigilância de semanas anteriores. A rede sentinela do projeto cobre 451 municípios, não o país inteiro.",
+      "nao_mede": [
+        "todos os municípios — o nowcasting cobre as capitais",
+        "previsão de surto; alerta e Rt descrevem o presente estimado"
+      ],
+      "ao_relatar": [
+        "Nunca cite só o notificado da semana corrente: ele subestima. O estimado corrige o atraso de digitação.",
+        "Credite o InfoDengue (Fiocruz/FGV) pela vigilância corrente, não o DataSUS.",
+        "Diga a semana epidemiológica de referência, que é anterior à data de publicação."
+      ],
+      "refutado": [],
+      "ferramentas": ["boletim_semanal"]
+    }
+  }
+}

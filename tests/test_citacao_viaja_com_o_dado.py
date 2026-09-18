@@ -77,10 +77,17 @@ def test_linhas_meta_traz_as_tres_chaves_que_o_dado_carrega():
 # ---------------------------------------------------------------------------
 # O MCP: toda ferramenta de DADO envelopa a procedência
 # ---------------------------------------------------------------------------
-#: A única ferramenta que não leva envelope, e por quê: ela JÁ É a procedência,
-#: e envelopá-la produziria `{"dados": {...metadados...}, "procedencia": {...}}`
-#: com a mesma informação nos dois níveis.
-SEM_ENVELOPE = {"metadados_dataset"}
+#: As duas ferramentas que não levam envelope, e por quê.
+#:
+#: `metadados_dataset` JÁ É a procedência: envelopá-la produziria
+#: `{"dados": {...metadados...}, "procedencia": {...}}` com a mesma informação
+#: nos dois níveis.
+#:
+#: `metodologia` não devolve número do dataset — devolve definição, denominador
+#: e limite de uso, que são conhecimento editorial desta plataforma e não uma
+#: leitura do DataSUS. O envelope diria "cite o DataSUS" para uma frase que o
+#: DataSUS não escreveu, e é atribuição errada em vez de atribuição faltando.
+SEM_ENVELOPE = {"metadados_dataset", "metodologia"}
 
 
 def _ferramentas(texto: str) -> list[tuple[str, bool]]:

@@ -27,10 +27,10 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server import MCPServer
 
-__version__ = "0.7.0"
+__version__ = "0.8.0"
 
 # A 2.0.0 do SDK renomeou FastMCP para MCPServer e removeu mcp.server.fastmcp.
-# A API de decorators nao mudou: as 19 @mcp.tool() seguem iguais.
+# A API de decorators nao mudou: as 20 @mcp.tool() seguem iguais.
 mcp = MCPServer(
     "saudeemdado",
     version=__version__,
@@ -66,17 +66,19 @@ mcp = MCPServer(
         "7. NÃO faça inferência causal, extrapolação além do dado, nem recomendação "
         "clínica individual. Estes dados são agregados/ecológicos e retrospectivos.\n"
         "8. ICSAP NÃO É TERMÔMETRO DA ATENÇÃO PRIMÁRIA. A leitura convencional "
-        "('%ICSAP alto = APS fraca') foi TESTADA nesta plataforma e não se sustenta: "
-        "cruzando leitos do CNES com ICSAP nos 5.570 municípios (2024), a correlação com "
-        "leitos SUS/mil é POSITIVA (ρ=+0,32; +0,34 controlando porte e vulnerabilidade), e "
-        "municípios SEM leito local têm %ICSAP MENOR (mediana 17,7%), não maior, que os "
-        "com leito (21,4%). O efeito está no NUMERADOR: ter leito local aumenta a "
-        "internação por ICSAP em +51% a +85% conforme o porte, sem mexer nas demais. "
-        "Um município que abre um hospital pequeno vê seu %ICSAP SUBIR. Portanto: NUNCA "
-        "traduza %ICSAP alto como 'atenção primária frágil'; descreva-o como sinal que "
-        "exige comparação com oferta hospitalar local, porte, cobertura privada e pares. "
-        "A hipótese inversa — 'onde falta leito a eletiva some e a fatia de ICSAP sobe' — "
-        "está REFUTADA; não a repita. Detalhes na §19 da metodologia.\n"
+        "('%ICSAP alto = APS fraca') foi TESTADA nesta plataforma e REFUTADA na direção "
+        "e no mecanismo: o %ICSAP responde fortemente à existência de LEITO local — a "
+        "associação com leitos SUS/mil é POSITIVA, e municípios SEM leito têm proporção "
+        "MENOR, não maior. NUNCA traduza %ICSAP alto como 'atenção primária frágil'; "
+        "descreva-o como sinal que exige comparação com oferta hospitalar local, porte, "
+        "cobertura privada e pares. Os valores medidos e a hipótese refutada por extenso "
+        "estão em metodologia('icsap').\n"
+        "9. ANTES de escrever a frase que acompanha um número, chame "
+        "`metodologia(<indicador ou nome da ferramenta>)`. Ela devolve numerador, "
+        "denominador, unidade, defasagem, o que o indicador NÃO mede, as ressalvas "
+        "obrigatórias ao relatar e as leituras já testadas e refutadas aqui. É o que "
+        "impede repetir uma explicação que a plataforma já descartou. Sem entrada no "
+        "catálogo, diga que não há limite documentado — não improvise uma ressalva.\n"
         "Metodologia: https://saudeemdado.com/metodologia/"
     ),
 )
@@ -592,6 +594,68 @@ def boletim_semanal(edicao: str = "") -> dict:
 def metadados_dataset() -> dict[str, str]:
     """Fontes, metodologia resumida, exclusões, licença, DOI e versão do dataset."""
     return sd.metadados()
+
+
+# ── Metodologia: o que o número NÃO sustenta ────────────────────────────────
+#
+# O conhecimento que separa esta plataforma de um dump do DataSUS é saber onde
+# cada indicador engana. Ele morava em três lugares que ninguém consulta sob
+# demanda: a prosa da página de metodologia, as docstrings (que um cliente pode
+# nunca ler) e o campo `instructions`, que todo cliente carrega inteiro em toda
+# sessão — use ou não. A cada armadilha nova, `instructions` crescia e competia
+# com o contexto do usuário.
+#
+# `metodologia.json` é o catálogo canônico; esta ferramenta o serve. As
+# `instructions` ficam com a regra operativa, e a evidência vem por chamada.
+_CATALOGO: dict | None = None
+
+
+def _catalogo() -> dict:
+    global _CATALOGO
+    if _CATALOGO is None:
+        import json
+
+        _CATALOGO = json.loads(
+            (Path(__file__).with_name("metodologia.json")).read_text(encoding="utf-8")
+        )
+    return _CATALOGO
+
+
+@mcp.tool()
+def metodologia(indicador: str = "") -> dict:
+    """DEFINIÇÃO E LIMITES de um indicador: numerador, denominador, unidade, defasagem,
+    o que ele NÃO mede, as ressalvas obrigatórias ao relatar e as leituras que já foram
+    TESTADAS E REFUTADAS nesta plataforma.
+
+    Chame ANTES de interpretar um número, e sempre que for escrever a frase que
+    acompanha o valor — é o que impede repetir uma explicação que a plataforma já
+    descartou. Aceita o id do indicador (ex.: 'icsap') OU o nome de uma ferramenta
+    (ex.: 'internacoes_evitaveis_icsap'). Sem argumento, devolve o índice."""
+    catalogo = _catalogo()
+    indicadores: dict[str, dict] = catalogo["indicadores"]
+    chave = indicador.strip().lower()
+    if not chave:
+        return {
+            "versao": catalogo["versao"],
+            "indicadores": [
+                {"id": k, "nome": v["nome"], "ferramentas": v["ferramentas"]}
+                for k, v in indicadores.items()
+            ],
+            "como_usar": "Chame metodologia('<id>') ou metodologia('<nome_da_ferramenta>').",
+        }
+    if chave in indicadores:
+        return {"id": chave, **indicadores[chave]}
+    # Resolver pelo nome da ferramenta: o modelo acabou de chamar uma e sabe o
+    # nome dela, não o id do indicador.
+    for k, v in indicadores.items():
+        if chave in [f.lower() for f in v["ferramentas"]]:
+            return {"id": k, **v}
+    return {
+        "erro": f"indicador '{indicador}' não está no catálogo",
+        "disponiveis": sorted(indicadores),
+        "nota": "Sem entrada aqui, não há limite documentado para citar — diga isso "
+                "em vez de improvisar uma ressalva.",
+    }
 
 
 def main() -> None:
