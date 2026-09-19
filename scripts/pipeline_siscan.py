@@ -94,6 +94,12 @@ ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
 
 FTP_HOST = "ftp.datasus.gov.br"
+#: Digitado aqui, e não lido de `_fontes.py`, por uma razão de ORDEM: o registro
+#: exige que o id exista também em `site/lib/fontes.ts`, e o site exige que toda
+#: fonte declarada tenha tabela no manifesto. O mart do SISCAN ainda não foi
+#: publicado, então declarar a fonte agora quebraria a guarda do site.
+#: `tests/test_registro_de_fontes.py` carrega a exceção com a condição de saída;
+#: ao publicar o mart, este caminho vira `fonte("siscan").local(...).caminho`.
 FTP_DIR = "/dissemin/publicos/SISCAN/SISCAN"
 
 #: Os três exames desta fatia, com o rótulo que vai para a coluna `exame`.
