@@ -124,7 +124,7 @@
           "consequencia": "O indicador mede, em parte relevante, a EXISTÊNCIA DE LEITO na cidade. É indicador de sistema, não de má gestão local."
         }
       ],
-      "ferramentas": ["internacoes_evitaveis_icsap", "icsap_distancia_dos_pares"]
+      "ferramentas": ["internacoes_evitaveis_icsap", "icsap_distancia_dos_pares", "oferta_local_e_icsap"]
     },
 
     "hospitais": {
@@ -463,7 +463,7 @@
           "consequencia": "Não apresente cobertura de APS como explicação do %ICSAP nem como indicador de desempenho. É um dos achados nulos bem testados do projeto, ao lado de vazio assistencial, saúde suplementar e gasto público."
         }
       ],
-      "ferramentas": ["cobertura_aps_municipio"]
+      "ferramentas": ["cobertura_aps_municipio", "cobertura_aps_e_icsap", "equidade_aps_no_porte"]
     },
 
     "saude_suplementar": {
@@ -506,6 +506,164 @@
       ],
       "refutado": [],
       "ferramentas": ["rede_cadastrada_municipio"]
+    },
+
+    "hsmr": {
+      "nome": "HSMR — mortalidade hospitalar padronizada",
+      "definicao": "Razão entre óbitos observados e esperados de um estabelecimento, por padronização indireta.",
+      "numerador": "Óbitos observados no estabelecimento no ano",
+      "denominador": "Óbitos esperados, ajustados por faixa etária × capítulo CID-10",
+      "unidade": "razão (1,0 = observado igual ao esperado), com IC95% e significância",
+      "cobertura": "Estabelecimentos com internação SUS, por ano",
+      "defasagem": "Segue o SIH consolidado.",
+      "nao_mede": [
+        "qualidade do hospital — HSMR alto indica investigar, não pior desempenho",
+        "gravidade dentro do capítulo CID, case-mix fino ou área de captação",
+        "razão confiável onde os óbitos esperados são poucos: `estavel=false`"
+      ],
+      "ao_relatar": [
+        "Não ranqueie por HSMR sem filtrar `estavel` e sem mostrar o IC95%. Linhas instáveis são publicadas marcadas, não omitidas.",
+        "É o par ajustado da mortalidade bruta devolvida por `hospitais`; nunca apresente as duas como se fossem a mesma medida."
+      ],
+      "refutado": [],
+      "ferramentas": ["hsmr_hospital"]
+    },
+
+    "permanencia_hospitalar": {
+      "nome": "Tempo de permanência por diagnóstico",
+      "definicao": "Mediana de dias de internação do estabelecimento por CID-10 de 3 caracteres, contra a mediana nacional.",
+      "numerador": "Dias de permanência das internações do estabelecimento naquele diagnóstico",
+      "denominador": "Não se aplica; é mediana, e o desvio é a diferença contra a mediana nacional",
+      "unidade": "dias; desvio em dias (positivo = interna por mais tempo que a mediana nacional)",
+      "cobertura": "Estabelecimentos com internação SUS, por ano e CID de 3 caracteres",
+      "defasagem": "Segue o SIH consolidado.",
+      "nao_mede": [
+        "eficiência: permanência maior pode ser gravidade, falta de retaguarda para alta ou espera por vaga",
+        "desfecho: permanência menor pode ser alta precoce ou óbito",
+        "a distribuição contínua — as medianas são aproximadas por histograma de faixas de dias"
+      ],
+      "ao_relatar": [
+        "Trate o desvio como ordem de grandeza, não como número exato: a mediana vem de faixas.",
+        "Compare dentro do mesmo diagnóstico; entre diagnósticos, a permanência não é comparável."
+      ],
+      "refutado": [],
+      "ferramentas": ["permanencia_por_diagnostico"]
+    },
+
+    "demanda_hospitalar": {
+      "nome": "Série mensal de internações por hospital",
+      "definicao": "Histórico mensal de volume, óbitos e valor aprovado por estabelecimento.",
+      "numerador": "AIHs aprovadas na competência",
+      "denominador": "Não se aplica; é série de contagem",
+      "unidade": "AIHs aprovadas; óbitos; R$ aprovados",
+      "cobertura": "Estabelecimentos com internação SUS, por competência mensal",
+      "defasagem": "Segue o SIH consolidado.",
+      "nao_mede": [
+        "pacientes nem episódios — vale a mesma ressalva da AIH",
+        "demanda reprimida: mede o que foi internado, não quem precisou",
+        "queda de necessidade: uma queda pode ser fechamento de serviço, descredenciamento ou atraso de digitação"
+      ],
+      "ao_relatar": [
+        "Antes de chamar uma queda de 'redução da demanda', descarte mudança de oferta e de registro.",
+        "É a base sobre a qual a projeção é feita; não a apresente como previsão."
+      ],
+      "refutado": [],
+      "ferramentas": ["demanda_mensal_hospital"]
+    },
+
+    "forecast_demanda": {
+      "nome": "Projeção de internações por hospital",
+      "definicao": "Projeção mensal de internações por estabelecimento, por tendência sobre a série própria, com faixa de incerteza e erro medido no estrato.",
+      "numerador": "Internações previstas na competência projetada",
+      "denominador": "Não se aplica; o que qualifica a previsão é o IC95% e o sMAPE do estrato",
+      "unidade": "internações previstas, com ic_inferior e ic_superior; sMAPE em %",
+      "cobertura": "Horizonte de até 3 meses a partir da última competência; hospitais com pelo menos 5 internações/mês",
+      "defasagem": "A previsão envelhece: `ultima_competencia` mais `horizonte_meses` diz até quando ela é futuro.",
+      "nao_mede": [
+        "dimensionamento de leitos, escalas ou orçamento — a largura mediana do IC95% é 74% da previsão nos hospitais grandes e 217% nos de 6 a 20 internações/mês",
+        "comparação entre hospitais: o modelo é ajustado por estabelecimento, sem case-mix, porte ou captação",
+        "piora assistencial: a tendência mistura demanda, oferta, credenciamento e registro",
+        "qualquer horizonte além de 3 meses, que não foi validado"
+      ],
+      "ao_relatar": [
+        "Leia a FAIXA, nunca o ponto.",
+        "Diga o `status_validacao`: A é validado (sMAPE ≤30%) e B é experimental (30–50% ou histórico curto), publicado com aviso.",
+        "Confira se o horizonte ainda está no futuro em relação à decisão do usuário. Previsão vencida não é previsão."
+      ],
+      "refutado": [
+        {
+          "leitura": "Trocar a tendência por um modelo sazonal melhoraria a projeção, já que a série nacional agregada tem sazonalidade visível",
+          "resultado": "Refutada no backtest por unidade. A sazonalidade que aparece no agregado nacional não se transfere para a série de um hospital, e a troca não melhorou o erro medido por estabelecimento.",
+          "evidencia": "backtest do model card, ~915 mil previsões (7 modelos × 3 horizontes)",
+          "consequencia": "O modelo publicado segue sendo tendência sobre a série própria. Agregado nacional não é evidência sobre a unidade."
+        }
+      ],
+      "ferramentas": ["forecast_demanda_hospital"]
+    },
+
+    "anomalia_de_causa": {
+      "nome": "Excesso de óbitos por causa no município",
+      "definicao": "Células município × causa × ano cujo número de óbitos excede a história do próprio município em 2015–2019.",
+      "numerador": "Óbitos observados na célula município × CID-10 de 3 caracteres × ano",
+      "denominador": "Esperado por binomial negativa ajustada à história 2015–2019 do próprio município, com controle de FDR a 1%",
+      "unidade": "óbitos; razão observado/esperado; excesso absoluto; valor-p próprio e relativo",
+      "cobertura": "2020–2024",
+      "defasagem": "Segue o SIM; o ano preliminar não entra.",
+      "nao_mede": [
+        "surto — excesso estatístico não é definição epidemiológica de surto",
+        "causa do excesso: mudança de codificação, de cobertura do registro ou de composição etária produzem o mesmo sinal",
+        "comparação entre municípios: cada um é comparado consigo mesmo"
+      ],
+      "ao_relatar": [
+        "Consulte qualidade_registro do município antes de afirmar qualquer coisa sobre a causa.",
+        "Use `esperado_relativo`/`p_relativo` quando quiser descontar a variação nacional do ano.",
+        "Os controles positivos do método são COVID em 2020–2021 e dengue apenas em 2024: se uma execução deixar de encontrá-los, o detector está quebrado, e é isso que se reporta."
+      ],
+      "refutado": [],
+      "ferramentas": ["anomalia_de_causa_municipio"]
+    },
+
+    "perfil_de_causas": {
+      "nome": "Perfil de causas de morte do município",
+      "definicao": "Coordenadas do município num espaço de perfil de causas, depois de removidos porte, estrutura etária, qualidade do registro e COVID.",
+      "numerador": "Composição de causas do município em 2015–2024",
+      "denominador": "Não se aplica: são componentes, sem unidade",
+      "unidade": "componentes pc1 a pc6 (adimensionais); índice de inespecificidade; rótulo de grupo",
+      "cobertura": "2015–2024, municípios",
+      "defasagem": "Período fechado; não é série corrente.",
+      "nao_mede": [
+        "qualidade do município — `grupo` é rótulo de agrupamento, não diagnóstico",
+        "direção boa ou ruim: o sinal de um componente não tem interpretação valorativa",
+        "estrutura além dos seis componentes: os demais eram indistinguíveis do nulo multinomial e não foram publicados"
+      ],
+      "ao_relatar": [
+        "Não ranqueie municípios por componente, e não traduza componente em indicador.",
+        "`indice_inespecificidade` alto significa registro fraco, não doença.",
+        "É parcialmente redundante com contexto_social: o maior |r| entre os dois conjuntos é 0,46. Não os apresente como evidências independentes."
+      ],
+      "refutado": [],
+      "ferramentas": ["perfil_de_causas_municipio"]
+    },
+
+    "contexto_social": {
+      "nome": "Contexto social e de sistema de saúde do município",
+      "definicao": "Quatro eixos que resumem 15 variáveis de vulnerabilidade, oferta, financiamento e porte.",
+      "numerador": "Não se aplica: são componentes derivados das 15 variáveis originais",
+      "denominador": "Não se aplica",
+      "unidade": "componentes spc1 a spc4 (adimensionais), mais as variáveis originais em suas unidades",
+      "cobertura": "Municípios",
+      "defasagem": "A do insumo mais defasado entre as 15 variáveis.",
+      "nao_mede": [
+        "tudo o que distingue os municípios: os quatro eixos somam 61,5% da variância, e quase 40% fica de fora",
+        "posição em ranking — componente não é índice",
+        "causalidade entre contexto e desfecho"
+      ],
+      "ao_relatar": [
+        "Reporte que os eixos explicam 61,5% da variância sempre que usá-los para agrupar ou comparar.",
+        "Redundância medida com o perfil de causas: maior |r| de 0,46. As duas leituras são parcialmente a mesma coisa."
+      ],
+      "refutado": [],
+      "ferramentas": ["contexto_social_municipio"]
     }
   }
 }

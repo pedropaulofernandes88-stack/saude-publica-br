@@ -27,10 +27,10 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server import MCPServer
 
-__version__ = "0.10.0"
+__version__ = "0.11.0"
 
 # A 2.0.0 do SDK renomeou FastMCP para MCPServer e removeu mcp.server.fastmcp.
-# A API de decorators nao mudou: as 31 @mcp.tool() seguem iguais.
+# A API de decorators nao mudou: as 41 @mcp.tool() seguem iguais.
 mcp = MCPServer(
     "saudeemdado",
     version=__version__,
@@ -650,6 +650,285 @@ def vazio_assistencial(uf: str = "", municipio_cod: str = "") -> list[dict]:
     elif uf:
         params["uf_sigla"] = f"eq.{uf.upper()}"
     return sd._get("mart_vazio_assistencial_municipio", params)
+
+
+# ── Hospital: mortalidade ajustada, permanência e demanda ───────────────────
+@mcp.tool()
+@procedencia("fonte_sih")
+def hsmr_hospital(uf: str = "", cnes: str = "", ano: int = 2024, top: int = 50) -> list[dict]:
+    """HSMR — razão de mortalidade hospitalar padronizada por estabelecimento (CNES):
+    óbitos observados vs. esperados, ajustada por faixa etária × capítulo CID-10
+    (padronização indireta), com IC95%, significância e o estrato usado.
+    Informe uf OU cnes.
+
+    É a mortalidade hospitalar COM ajuste de risco, ao contrário de `hospitais`, que
+    devolve a bruta. Mesmo assim NÃO É MEDIDA DE QUALIDADE: HSMR alto indica que vale
+    investigar, não que o hospital é pior. O ajuste cobre idade e capítulo, não
+    gravidade dentro do capítulo, case-mix fino nem área de captação.
+
+    `estavel=false` quando os óbitos esperados são menos de 5 — a razão fica instável e
+    é publicada assim mesmo, marcada, em vez de omitida. Não ranqueie por HSMR sem
+    filtrar por `estavel` e sem olhar o IC95%."""
+    params = {
+        "select": "cnes,municipio_cod,municipio_nome,uf_sigla,ano,internacoes,"
+                  "obitos_observados,obitos_esperados,hsmr,estavel,hsmr_ic95_inf,"
+                  "hsmr_ic95_sup,significancia,tem_uti,leitos_total,leitos_uti,estrato",
+        "ano": f"eq.{ano}", "order": "hsmr.desc", "limit": str(top),
+    }
+    if cnes:
+        params["cnes"] = f"eq.{cnes}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_hsmr_hospital", params)
+
+
+@mcp.tool()
+@procedencia("fonte_sih")
+def permanencia_por_diagnostico(uf: str = "", cnes: str = "", cid3: str = "",
+                                ano: int = 2024, top: int = 100) -> list[dict]:
+    """Tempo de permanência por diagnóstico (CID-10 de 3 caracteres) e estabelecimento:
+    mediana do hospital, mediana nacional e o desvio em dias. Informe uf OU cnes;
+    cid3 vazio = todos. desvio_dias > 0 = interna por mais tempo que a mediana nacional.
+
+    As medianas são APROXIMADAS por histograma de faixas de dias, não calculadas sobre
+    a distribuição contínua — trate a diferença como ordem de grandeza.
+
+    Permanência maior não é ineficiência: pode ser perfil de gravidade, falta de
+    retaguarda para alta ou espera por vaga em outro serviço. E permanência menor não
+    é eficiência — pode ser alta precoce ou óbito."""
+    params = {
+        "select": "cnes,municipio_cod,municipio_nome,uf_sigla,ano,cid3,capitulo_cid,"
+                  "internacoes,mediana_hospital_dias,mediana_nacional_dias,desvio_dias",
+        "ano": f"eq.{ano}", "order": "internacoes.desc", "limit": str(top),
+    }
+    if cnes:
+        params["cnes"] = f"eq.{cnes}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    if cid3:
+        params["cid3"] = f"eq.{cid3.upper()}"
+    return sd._get("mart_los_hospital", params)
+
+
+@mcp.tool()
+@procedencia("fonte_sih")
+def demanda_mensal_hospital(cnes: str = "", uf: str = "", top: int = 500) -> list[dict]:
+    """Série mensal de internações por estabelecimento (CNES): volume, óbitos e valor
+    aprovado por competência. Informe cnes OU uf. É a base histórica sobre a qual a
+    projeção é feita — para a projeção em si, use forecast_demanda_hospital.
+
+    Conta AIHs aprovadas, com a mesma ressalva de sempre: não são pacientes nem
+    episódios. Queda numa competência pode ser fechamento de serviço, mudança de
+    credenciamento ou atraso de digitação, não queda de demanda."""
+    params = {"select": "cnes,municipio_cod,municipio_nome,uf_sigla,ano_mes,internacoes,"
+                        "obitos,valor_total",
+              "order": "ano_mes", "limit": str(top)}
+    if cnes:
+        params["cnes"] = f"eq.{cnes}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_demanda_mensal_hospital", params)
+
+
+@mcp.tool()
+@procedencia("fonte_sih")
+def forecast_demanda_hospital(cnes: str = "", uf: str = "", top: int = 200) -> list[dict]:
+    """Projeção de internações mensais por hospital, com faixa de incerteza, horizonte,
+    erro medido no estrato (sMAPE do backtest) e o commit do código que a gerou.
+    Informe cnes OU uf.
+
+    LEIA A FAIXA, NUNCA O PONTO. O IC95% tem largura mediana de 74% da previsão nos
+    hospitais grandes e 217% nos de 6 a 20 internações por mês.
+
+    USOS QUE A MODEL CARD DESACONSELHA, e que você não deve produzir:
+    dimensionar leitos, escalas ou orçamento; comparar hospitais (não há ajuste de
+    case-mix, porte ou captação); ler queda prevista como piora assistencial (a
+    projeção segue a tendência, que mistura demanda, oferta, credenciamento e
+    registro); qualquer horizonte além de 3 meses, que não foi validado.
+
+    `status_validacao` A é validado (sMAPE ≤30%), B é experimental (30–50%, ou
+    histórico curto) e sai com aviso. Hospitais abaixo de 5 internações/mês não são
+    publicados. CONFIRA `ultima_competencia` e `horizonte_meses`: uma previsão cujo
+    horizonte já passou não é previsão — é histórico não corrigido."""
+    params = {
+        "select": "cnes,municipio_cod,municipio_nome,uf_sigla,ano_mes_previsto,"
+                  "internacoes_previstas,ic_inferior,ic_superior,n_meses_historico,"
+                  "confianca,horizonte_meses,faixa_volume,status_validacao,motivo_status,"
+                  "smape_backtest_pct,modelo,ultima_competencia,treinado_em,commit_codigo",
+        "order": "ano_mes_previsto", "limit": str(top),
+    }
+    if cnes:
+        params["cnes"] = f"eq.{cnes}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_forecast_demanda_hospital", params)
+
+
+# ── Os cruzamentos que testaram explicações do %ICSAP ───────────────────────
+#
+# Três marts que existem porque uma hipótese foi testada, não porque um painel
+# precisava de mais uma aba. Expor cada um junto do resultado é o que impede que
+# alguém refaça o cruzamento e anuncie como achado o que já deu nulo.
+@mcp.tool()
+@procedencia("fonte_fluxo_icsap")
+def oferta_local_e_icsap(uf: str = "", municipio_cod: str = "") -> list[dict]:
+    """Cruzamento de leitos (CNES) com ICSAP (SIH) por município, 2024: leitos totais e
+    SUS, leitos por mil, se o município não tem leito local, internações totais e
+    sensíveis, %ICSAP e vulnerabilidade. Informe uf OU municipio_cod (6 dígitos).
+
+    É o cruzamento que MEDIU a dependência do %ICSAP com a oferta local — chame
+    metodologia('icsap') para o resultado por extenso antes de interpretar qualquer
+    linha daqui.
+
+    ATENÇÃO à assimetria das chaves: ICSAP é por município de RESIDÊNCIA do paciente e
+    leitos são por município do ESTABELECIMENTO. `sem_leito` significa sem oferta
+    LOCAL, não sem acesso — o residente pode se internar no município vizinho, o que
+    fluxo_pacientes mostra."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,populacao,"
+                  "leitos_total,leitos_sus,leitos_sus_por_mil,sem_leito,internacoes_total,"
+                  "internacoes_por_mil,internacoes_icsap,pct_icsap,icsap_100k,ivs_score",
+        "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_leitos_icsap_municipio", params)
+
+
+@mcp.tool()
+@procedencia("fonte_fluxo_icsap")
+def cobertura_aps_e_icsap(uf: str = "", municipio_cod: str = "", ano: int = 2024) -> list[dict]:
+    """Cruzamento da cobertura potencial da APS com o %ICSAP por município, 2024, com
+    cobertura efetiva, equipes, internações sensíveis e vulnerabilidade.
+    Informe uf OU municipio_cod (6 dígitos).
+
+    ESTE CRUZAMENTO JÁ FOI FEITO E DEU NULO: Spearman +0,004 bruto e +0,018
+    controlando porte e vulnerabilidade. A cobertura potencial satura acima de 100% em
+    86% dos municípios e o que ela correlaciona forte é PORTE (ρ −0,54 com população).
+
+    Use estes dados para mostrar a ausência de associação, não para reencontrá-la.
+    Ver metodologia('cobertura_aps')."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,populacao,"
+                  "cobertura_pct,cobertura_efetiva,qt_esf,internacoes_total,"
+                  "internacoes_icsap,pct_icsap,icsap_100k,ivs_score",
+        "ano": f"eq.{ano}", "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_cobertura_icsap_municipio", params)
+
+
+@mcp.tool()
+@procedencia("fonte_fluxo_icsap")
+def equidade_aps_no_porte(uf: str = "", municipio_cod: str = "", ano: int = 2024) -> list[dict]:
+    """Teste de robustez do cruzamento anterior, comparando cada município SÓ com os do
+    mesmo quartil de porte: densidade de ESF por 10 mil habitantes (e não a cobertura %,
+    que satura) contra %ICSAP (e não ICSAP/100k, que embute acesso hospitalar geral).
+    Informe uf OU municipio_cod (6 dígitos).
+
+    RESULTADO TAMBÉM NULO: ρ entre −0,02 e +0,18 dentro do porte. As colunas
+    `pct_esf_no_porte` e `pct_icsap_no_porte` são percentis DENTRO do quartil, não
+    nacionais — não os compare entre quartis diferentes.
+
+    A existência deste mart é o ponto: a hipótese sobreviveu a uma troca de medida e a
+    um controle mais duro, e continuou nula."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,populacao,"
+                  "porte_quartil,esf_por_10k,pct_esf_no_porte,pct_icsap,icsap_100k,"
+                  "pct_icsap_no_porte,ivs_score,ivs_quartil,atencao",
+        "ano": f"eq.{ano}", "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_equidade_aps_municipio", params)
+
+
+# ── Perfil e anomalia de causas de morte ────────────────────────────────────
+@mcp.tool()
+@procedencia("fonte_mortalidade_causa_municipio")
+def anomalia_de_causa_municipio(municipio_cod: str = "", ano: int = 2024,
+                                top: int = 50) -> list[dict]:
+    """Células município × causa (CID-10 de 3 caracteres) × ano com excesso sobre a
+    história do PRÓPRIO município em 2015–2019, por binomial negativa com controle de
+    FDR a 1%. Cobre 2020–2024. Informe municipio_cod (6 dígitos).
+
+    A comparação é do município consigo mesmo, não com outros — é detecção de mudança,
+    não de nível. `esperado_relativo` e `p_relativo` trazem a versão que também desconta
+    a variação nacional do ano.
+
+    Os controles positivos do método são COVID em 2020–2021 e dengue apenas em 2024:
+    se uma execução deixar de encontrá-los, o detector está quebrado.
+
+    Excesso detectado NÃO é surto nem causa identificada. Pode ser mudança de
+    codificação, de cobertura do registro ou de composição etária — consulte
+    qualidade_registro antes de afirmar qualquer coisa sobre a causa."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,ano,causabas_3,obitos,esperado,"
+                  "esperado_relativo,razao,p_proprio,p_relativo,excesso_proprio,"
+                  "excesso_relativo",
+        "ano": f"eq.{ano}", "order": "excesso_proprio.desc", "limit": str(top),
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    return sd._get("mart_anomalia_causa_municipio", params)
+
+
+@mcp.tool()
+@procedencia("fonte_mortalidade_causa_municipio")
+def perfil_de_causas_municipio(uf: str = "", municipio_cod: str = "") -> list[dict]:
+    """Coordenadas do perfil de causas de morte do município (2015–2024), DEPOIS de
+    remover porte, estrutura etária, qualidade do registro e COVID: grupo, índice de
+    inespecificidade e seis componentes. Informe uf OU municipio_cod (6 dígitos).
+
+    São COMPONENTES, não indicadores: pc1 a pc6 não têm unidade e o sinal não tem
+    direção boa ou ruim. Só seis ficaram acima do nulo multinomial — os demais eram
+    indistinguíveis de ruído e não foram publicados.
+
+    `grupo` é rótulo de agrupamento, não diagnóstico do município, e não autoriza
+    comparação de qualidade entre grupos. `indice_inespecificidade` mede quanto do
+    perfil é causa mal definida: alto significa registro fraco, não doença."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,obitos_periodo,grupo,"
+                  "indice_inespecificidade,pc1,pc2,pc3,pc4,pc5,pc6",
+        "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_perfil_mortalidade_municipio", params)
+
+
+@mcp.tool()
+@procedencia("fonte_ivs")
+def contexto_social_municipio(municipio_cod: str = "", top: int = 200) -> list[dict]:
+    """Eixos de contexto social e de sistema de saúde do município: quatro componentes
+    (spc1 a spc4) resumindo 15 variáveis — vulnerabilidade, APS, leitos, gasto SIOPS,
+    suplementar, CNES, natalidade e porte — mais as variáveis originais.
+    Informe municipio_cod (6 dígitos).
+
+    Os quatro eixos somam 61,5% da variância: quase 40% do que distingue os municípios
+    NÃO está aqui. Componente não é índice e não tem unidade; não ranqueie por spc1.
+
+    Redundância medida com o perfil de causas: o maior |r| entre os dois conjuntos é
+    0,46, ou seja, as duas leituras são parcialmente a mesma coisa. Não as apresente
+    como evidências independentes."""
+    params = {
+        "select": "municipio_cod,spc1,spc2,spc3,spc4,taxa_analfabetismo,ivs_score,"
+                  "estab_por_10k,vinculos_plano_por_100_hab,gasto_proprio_saude_hab,"
+                  "pct_prenatal_7mais,cobertura_pct,leitos_sus_por_mil,hosp_por_10k,log_pop",
+        "order": "municipio_cod", "limit": str(top),
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    return sd._get("mart_contexto_social_municipio", params)
 
 
 # ── Copiloto: anomalias ──────────────────────────────────────────────────────
