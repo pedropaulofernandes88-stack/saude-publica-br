@@ -393,6 +393,119 @@
         }
       ],
       "ferramentas": ["vazio_assistencial"]
+    },
+
+    "natalidade": {
+      "nome": "Nascidos vivos (SINASC)",
+      "definicao": "Nascidos vivos por município de residência da mãe e ano, com indicadores de peso, prematuridade e pré-natal.",
+      "numerador": "Nascidos vivos registrados no SINASC, por residência da mãe (CODMUNRES)",
+      "denominador": "Nascidos do próprio município para os percentuais; não se aplica ao volume",
+      "unidade": "nascidos; % de baixo peso, de prematuros e de 7+ consultas; idade média da mãe em anos",
+      "cobertura": "2021–2024, municípios",
+      "defasagem": "Limitada pelo fechamento do SINASC; o ano recente pode não ter definitivo.",
+      "nao_mede": [
+        "local do parto — é residência da mãe, e por isso município com maternidade de referência não infla",
+        "gestações, natimortos ou abortos: óbitos fetais estão fora de todos os marts",
+        "qualidade do pré-natal além da contagem de consultas"
+      ],
+      "ao_relatar": [
+        "É o denominador da mortalidade infantil e da cobertura vacinal desta plataforma. Ao usá-lo assim, diga se o ano tem SINASC definitivo.",
+        "Baixo peso é <2500 g e prematuro é <37 semanas; os dois se sobrepõem e não devem ser somados."
+      ],
+      "refutado": [],
+      "ferramentas": ["natalidade_municipio"]
+    },
+
+    "mortalidade_infantil": {
+      "nome": "Taxa de mortalidade infantil (TMI)",
+      "definicao": "Óbitos de menores de 1 ano por mil nascidos vivos, por UF e ano.",
+      "numerador": "Óbitos de menores de 1 ano (SIM)",
+      "denominador": "Nascidos vivos do mesmo ano e UF (SINASC)",
+      "unidade": "óbitos por mil nascidos vivos",
+      "cobertura": "Por UF e ano",
+      "defasagem": "A do sistema mais lento entre SIM e SINASC.",
+      "nao_mede": [
+        "TMI municipal — não é publicada aqui, e não por esquecimento",
+        "causa do óbito infantil; é contagem",
+        "mortalidade neonatal e pós-neonatal separadamente"
+      ],
+      "ao_relatar": [
+        "NÃO derive TMI municipal dividindo óbitos por nascidos de um município: em município pequeno, poucos óbitos movem a taxa em dezenas de pontos, e o resultado é ruído com aparência de indicador.",
+        "Numerador e denominador vêm de sistemas com fechamentos diferentes; ano sem SINASC definitivo não entra."
+      ],
+      "refutado": [],
+      "ferramentas": ["mortalidade_infantil_uf"]
+    },
+
+    "cobertura_aps": {
+      "nome": "Cobertura potencial da atenção primária",
+      "definicao": "Proporção da população coberta pela capacidade instalada das equipes de atenção primária cadastradas, por município e mês.",
+      "numerador": "Capacidade das equipes cadastradas (ESF, EAP 20h e 30h, eSFR, eCR, EAPP 20h e 30h)",
+      "denominador": "População do município",
+      "unidade": "% de cobertura potencial; e contagem de equipes por tipo",
+      "cobertura": "2021 em diante, mensal, municípios",
+      "defasagem": "Acompanha o e-Gestor AB; é a fonte mais corrente depois do PNI.",
+      "nao_mede": [
+        "população efetivamente acompanhada — é capacidade instalada, não atendimento",
+        "qualidade ou desempenho da atenção primária: ver `refutado`",
+        "equipes em funcionamento: o dado é de cadastro"
+      ],
+      "ao_relatar": [
+        "Passar de 100% é comportamento documentado do indicador oficial, não erro: em município pequeno a capacidade por equipe supera a população local.",
+        "Diga sempre 'cobertura potencial', nunca 'cobertura'.",
+        "Compare dentro da mesma faixa de porte; o indicador satura e a saturação não é desempenho."
+      ],
+      "refutado": [
+        {
+          "leitura": "Cobertura maior da atenção primária se traduz em menos internações por condições sensíveis (%ICSAP)",
+          "resultado": "Associação praticamente nula. Spearman +0,004 bruto e +0,018 controlando porte e vulnerabilidade. A cobertura potencial satura acima de 100% em 86% dos municípios, e o que ela correlaciona forte é PORTE (rho −0,54 com população). Um teste de robustez adicional trocou a cobertura por densidade de ESF por 10 mil habitantes e o %ICSAP por comparação dentro do mesmo quartil de porte: o resultado também foi nulo, com rho entre −0,02 e +0,18.",
+          "evidencia": "mart_cobertura_icsap_municipio e mart_equidade_aps_municipio, 2024",
+          "consequencia": "Não apresente cobertura de APS como explicação do %ICSAP nem como indicador de desempenho. É um dos achados nulos bem testados do projeto, ao lado de vazio assistencial, saúde suplementar e gasto público."
+        }
+      ],
+      "ferramentas": ["cobertura_aps_municipio"]
+    },
+
+    "saude_suplementar": {
+      "nome": "Vínculos de planos de saúde (ANS)",
+      "definicao": "Vínculos de planos médico-hospitalares por município e ano, como contexto de dependência do SUS.",
+      "numerador": "Vínculos de planos médico-hospitalares registrados na ANS",
+      "denominador": "População do município, para vínculos por 100 habitantes",
+      "unidade": "vínculos; vínculos por 100 habitantes",
+      "cobertura": "Municípios, por ano",
+      "defasagem": "Acompanha a divulgação da ANS.",
+      "nao_mede": [
+        "pessoas com plano — vínculo não é pessoa, e quem tem dois planos conta duas vezes",
+        "residência: o vínculo é do município do CONTRATO",
+        "população SUS-dependente, que não sai por subtração"
+      ],
+      "ao_relatar": [
+        "Use `razao_implausivel` para excluir os municípios acima de 100 vínculos por 100 habitantes antes de qualquer leitura de cobertura privada.",
+        "Trate como contexto territorial, não como taxa de cobertura."
+      ],
+      "refutado": [],
+      "ferramentas": ["saude_suplementar_municipio"]
+    },
+
+    "rede_cadastrada": {
+      "nome": "Rede de estabelecimentos (CNES)",
+      "definicao": "Estabelecimentos de saúde cadastrados no CNES por município, com composição por natureza jurídica.",
+      "numerador": "Estabelecimentos cadastrados, e o recorte de hospitalares",
+      "denominador": "População do município, para estabelecimentos por 10 mil habitantes",
+      "unidade": "estabelecimentos; estabelecimentos por 10 mil habitantes; % público",
+      "cobertura": "Retrato do cadastro corrente; `ano_referencia` diz de quando é",
+      "defasagem": "É cadastro corrente, não série: cada atualização substitui a anterior.",
+      "nao_mede": [
+        "capacidade — uma UBS e um hospital contam 1 cada",
+        "operação: cadastro não comprova serviço funcionando, com equipe e horário",
+        "leitos, que são outro cadastro"
+      ],
+      "ao_relatar": [
+        "Diga 'estabelecimentos cadastrados', não 'serviços disponíveis'.",
+        "A natureza vem da classificação jurídica, não da esfera de gestão: hospital privado pode atender SUS por contrato."
+      ],
+      "refutado": [],
+      "ferramentas": ["rede_cadastrada_municipio"]
     }
   }
 }

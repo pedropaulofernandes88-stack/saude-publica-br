@@ -27,10 +27,10 @@ except ImportError:  # rodando do repositório clonado sem instalar: usa o clien
 import requests
 from mcp.server import MCPServer
 
-__version__ = "0.9.0"
+__version__ = "0.10.0"
 
 # A 2.0.0 do SDK renomeou FastMCP para MCPServer e removeu mcp.server.fastmcp.
-# A API de decorators nao mudou: as 26 @mcp.tool() seguem iguais.
+# A API de decorators nao mudou: as 31 @mcp.tool() seguem iguais.
 mcp = MCPServer(
     "saudeemdado",
     version=__version__,
@@ -453,6 +453,141 @@ def cobertura_vacinal_uf(uf: str = "", ano: int = 2024) -> list[dict]:
     if uf:
         params["uf_sigla"] = f"eq.{uf.upper()}"
     return sd._get("mart_cobertura_vacinal_uf", params)
+
+
+# ── Nascimentos (SINASC) ─────────────────────────────────────────────────────
+@mcp.tool()
+@procedencia("fonte_sinasc")
+def natalidade_municipio(uf: str = "", municipio_cod: str = "", ano: int = 2024) -> list[dict]:
+    """Nascidos vivos por município e ano (SINASC), 2021–2024: volume, % de baixo peso
+    (<2500 g), % de prematuros (<37 semanas), % com 7 ou mais consultas de pré-natal e
+    idade média da mãe. Informe uf OU municipio_cod (6 dígitos).
+
+    Nascidos por RESIDÊNCIA DA MÃE, não por local do parto. Município com maternidade
+    de referência não infla aqui — é o oposto do que acontece com internação.
+
+    É o denominador oficial da mortalidade infantil e da cobertura vacinal desta
+    plataforma; quando usar como denominador, confira se o ano tem SINASC definitivo."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,nascidos,"
+                  "pct_baixo_peso,pct_prematuro,pct_prenatal_7mais,idade_media_mae",
+        "ano": f"eq.{ano}", "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_natalidade_municipio", params)
+
+
+@mcp.tool()
+@procedencia("fonte_sinasc")
+def mortalidade_infantil_uf(uf: str = "", ano: int = 0) -> list[dict]:
+    """Taxa de mortalidade infantil por UF e ano: óbitos de menores de 1 ano (SIM)
+    dividido por nascidos vivos (SINASC), por mil. uf e ano vazios = série completa.
+
+    Só por UF, e de propósito: a TMI municipal oscila demais em município pequeno,
+    onde poucos óbitos mudam a taxa em dezenas de pontos. Não a derive dividindo
+    óbitos por nascidos de um município.
+
+    O numerador vem do SIM e o denominador do SINASC — dois sistemas com fechamentos
+    diferentes. Ano sem SINASC definitivo não entra."""
+    params = {"select": "uf_sigla,ano,nascidos,obitos_menor1,tmi_por_mil",
+              "order": "uf_sigla,ano"}
+    if uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    if ano:
+        params["ano"] = f"eq.{ano}"
+    return sd._get("mart_mortalidade_infantil_uf", params)
+
+
+# ── Atenção primária (e-Gestor AB) ───────────────────────────────────────────
+@mcp.tool()
+@procedencia("fonte_cobertura_aps")
+def cobertura_aps_municipio(uf: str = "", municipio_cod: str = "", ano: int = 2026,
+                            mes: int = 0) -> list[dict]:
+    """Cobertura POTENCIAL da atenção primária por município e mês, 2021 em diante:
+    equipes (ESF, EAP, eSFR, eCR, EAPP), capacidade instalada e cobertura_pct.
+    Informe uf OU municipio_cod (6 dígitos); mes vazio = todos os meses do ano.
+
+    É COBERTURA POTENCIAL, calculada da capacidade das equipes cadastradas — não é
+    população efetivamente acompanhada. Passa de 100% em município pequeno, onde a
+    capacidade por equipe supera a população local: é comportamento documentado do
+    indicador oficial, não erro do dado.
+
+    NÃO USE COMO MEDIDA DE DESEMPENHO DA APS. Medido nesta plataforma: a associação
+    com %ICSAP é praticamente nula (Spearman +0,004 bruto, +0,018 controlando porte e
+    vulnerabilidade), a cobertura satura acima de 100% em 86% dos municípios e o que
+    ela correlaciona forte é PORTE (ρ −0,54 com população). Ver metodologia('cobertura_aps')."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,mes,mes_competencia,"
+                  "populacao,qt_esf,qt_eap20,qt_eap30,qt_esfr,qt_ecr,qt_eapp20,qt_eapp30,"
+                  "capacidade_equipe,cobertura_pct",
+        "ano": f"eq.{ano}", "order": "municipio_cod,mes",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    if mes:
+        params["mes"] = f"eq.{mes}"
+    return sd._get("mart_cobertura_aps_municipio", params)
+
+
+# ── Saúde suplementar (ANS) e rede cadastrada (CNES) ─────────────────────────
+@mcp.tool()
+@procedencia("fonte_saude_suplementar")
+def saude_suplementar_municipio(uf: str = "", municipio_cod: str = "",
+                                ano: int = 2024) -> list[dict]:
+    """Vínculos de planos de saúde médico-hospitalares por município e ano (ANS):
+    vínculos, vínculos por 100 habitantes e um sinalizador de razão implausível.
+    Informe uf OU municipio_cod (6 dígitos).
+
+    VÍNCULO NÃO É PESSOA. Uma pessoa com dois planos conta duas vezes, e o vínculo é
+    registrado pelo município do CONTRATO, que pode não ser o de residência — por isso
+    existem municípios acima de 100 vínculos por 100 habitantes. Use `razao_implausivel`
+    para excluí-los de qualquer leitura de 'cobertura privada'.
+
+    Serve como CONTEXTO de quanto da população local não depende só do SUS; não serve
+    para estimar a população SUS-dependente por subtração."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,ano,populacao,"
+                  "vinculos_medico_hospitalar,vinculos_plano_por_100_hab,razao_implausivel",
+        "ano": f"eq.{ano}", "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_saude_suplementar_municipio", params)
+
+
+@mcp.tool()
+@procedencia("fonte_cnes")
+def rede_cadastrada_municipio(uf: str = "", municipio_cod: str = "") -> list[dict]:
+    """Rede de estabelecimentos cadastrados no CNES por município: total, hospitalares,
+    composição por natureza (público, privado com e sem fins lucrativos, pessoa física,
+    internacional), estabelecimentos por 10 mil habitantes e % público.
+    Informe uf OU municipio_cod (6 dígitos).
+
+    CADASTRO NÃO É OPERAÇÃO. Estabelecimento cadastrado não comprova serviço em
+    funcionamento, com equipe ou com horário. É retrato do cadastro corrente, não série
+    histórica: `ano_referencia` diz de quando é.
+
+    Estabelecimento não é leito, e contagem de estabelecimentos não mede capacidade —
+    uma UBS e um hospital contam 1 cada."""
+    params = {
+        "select": "municipio_cod,municipio_nome,uf_sigla,regiao,estabelecimentos_total,"
+                  "estabelecimentos_hospitalares,publico,privado_lucrativo,"
+                  "sem_fins_lucrativos,pessoa_fisica,internacional,populacao,"
+                  "estab_por_10k,estab_hosp_por_10k,pct_publico,ano_referencia",
+        "order": "municipio_cod",
+    }
+    if municipio_cod:
+        params["municipio_cod"] = f"eq.{municipio_cod}"
+    elif uf:
+        params["uf_sigla"] = f"eq.{uf.upper()}"
+    return sd._get("mart_cnes_municipio", params)
 
 
 # ── Financiamento (SIOPS) ────────────────────────────────────────────────────
