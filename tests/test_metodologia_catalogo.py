@@ -257,3 +257,25 @@ def test_readme_declara_a_contagem_certa(ferramentas_do_servidor):
         f"o README anuncia {m.group(1)} ferramentas e o servidor tem "
         f"{len(ferramentas_do_servidor)}"
     )
+
+
+#: Onde mais a contagem de ferramentas é anunciada a quem lê de fora. Guardar só
+#: o README do pacote deixaria estes dois envelhecerem — e foi o que aconteceu:
+#: os três diziam 19 quando o servidor já tinha 41.
+CONTAGEM_ANUNCIADA_EM = (
+    "README.md",
+    "site/app/dados/page.tsx",
+)
+
+
+@pytest.mark.parametrize("relativo", CONTAGEM_ANUNCIADA_EM)
+def test_a_contagem_anunciada_fora_do_pacote_tambem_bate(relativo, ferramentas_do_servidor):
+    """A vitrine do projeto não pode prometer um servidor menor do que ele é."""
+    texto = (RAIZ / relativo).read_text(encoding="utf-8")
+    anunciadas = {int(n) for n in re.findall(r"(\d+)\s+ferramentas", texto)}
+    assert anunciadas, f"{relativo}: sumiu a menção a 'N ferramentas'"
+    erradas = sorted(n for n in anunciadas if n != len(ferramentas_do_servidor))
+    assert erradas == [], (
+        f"{relativo} anuncia {erradas} ferramentas e o servidor tem "
+        f"{len(ferramentas_do_servidor)}"
+    )
