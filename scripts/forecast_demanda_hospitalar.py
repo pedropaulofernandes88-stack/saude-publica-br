@@ -44,12 +44,21 @@ O QUE **NÃO** MUDOU, E POR QUÊ
 O método continua sendo tendência linear. Foram avaliados seis: naive, ingênuo
 sazonal, média móvel de 3 meses, tendência linear, sazonal+drift e tendência com
 sazonalidade. A tendência linear supera o baseline sazonal em todos os
-horizontes e em todos os estratos (MASE 0,810 / 0,867 / 0,922), o que a
-qualifica para publicação.
+horizontes (MASE 0,806 / 0,854 / 0,896), o que a qualifica para publicação — e
+em todos os estratos MENOS UM: com 55 meses, `≤5/mês` chegou a 1,014. Esse
+estrato já não era publicado por magnitude de erro.
 
-A média móvel de 3 meses é marginalmente melhor (MASE 0,762 / 0,846 / 0,917),
-mas no horizonte publicado de 3 meses a diferença é de 0,5% — dentro do ruído, e
-não justifica trocar um método já documentado publicamente.
+A média móvel de 3 meses era marginalmente melhor (MASE 0,762 / 0,846 / 0,917) e
+a diferença em 3 meses era de 0,5% — dentro do ruído, e não justificava trocar um
+método já documentado publicamente.
+
+ISSO MUDOU COM MAIS DADO. Refeito o backtest sobre 55 meses (2022-01 a 2026-07,
+251.102 linhas), a média móvel marca 0,736 / 0,811 / 0,869 contra 0,806 / 0,854 /
+0,896 do publicado: a diferença passou a 8,7% em 1 mês, 5,0% em 2 e 3,0% em 3, e
+ela vence também em MAE, sMAPE, WAPE e cobertura do intervalo nos três
+horizontes. O argumento do ruído não se aplica mais. A troca continua sendo
+decisão científica e não foi feita aqui — o que não se pode mais é dispensá-la
+como diferença desprezível.
 
 Os modelos SAZONAIS ficaram PIORES por hospital (ingênuo sazonal 1,081;
 sazonal+drift 1,105 em 3 meses), apesar de a sazonalidade ser nítida no agregado
@@ -105,14 +114,18 @@ MIN_MESES = 6
 # Os limiares saem da distribuição MEDIDA de sMAPE por estrato no backtest de 3
 # meses, não de convenção. Os valores observados foram:
 #
-#     >500/mês      13,6%        101–500/mês   18,3%
-#     21–100/mês    28,4%        6–20/mês      45,4%        ≤5/mês  58,7%
+#     >500/mês      14,0%        101–500/mês   18,8%
+#     21–100/mês    28,0%        6–20/mês      44,9%        ≤5/mês  56,6%
+#
+# (medidos sobre 55 meses; a medição anterior, de 36, dava 13,6 / 18,3 / 28,4 /
+# 45,4 / 58,7 — os cortes abaixo não se moveram.)
 #
 # O erro aproximadamente DOBRA ao cruzar de 21–100 para 6–20. O corte de 30%
 # fica logo acima do pior estrato do grupo estável; o de 50%, entre os dois
-# estratos ruins. Nenhum modelo é bloqueado por não superar o baseline, porque
-# todos superam em todos os estratos — o que separa um caso publicável de um
-# não publicável aqui é a MAGNITUDE do erro, não a comparação relativa.
+# estratos ruins. O que separa um caso publicável de um não publicável aqui é a
+# MAGNITUDE do erro, não a comparação relativa — e isso passou a importar: em
+# `≤5/mês` o modelo já não supera o baseline (MASE 1,014), e é o corte por
+# magnitude, não a comparação, que o mantém fora.
 SMAPE_VALIDADO = 30.0
 SMAPE_EXPERIMENTAL = 50.0
 
@@ -205,6 +218,10 @@ def main() -> None:
     ap.add_argument("--no-upload", action="store_true")
     ap.add_argument("--incluir-nao-publicaveis", action="store_true",
                     help="mantém as linhas de status C na saída (padrão: descarta)")
+    ap.add_argument("--cobertura-minima", type=float, default=0.90,
+                    help="fração da contagem mediana de hospitais das competências "
+                         "anteriores abaixo da qual a última competência é tratada como "
+                         "ainda em reporte e excluída da base (padrão: 0,90)")
     ap.add_argument("--sem-substituir", action="store_true",
                     help="não limpa a tabela antes de carregar; deixa resíduo de âncoras "
                          "anteriores. Só para depuração — foi este comportamento que "
@@ -224,6 +241,40 @@ def main() -> None:
             f"backtest não cobre o(s) horizonte(s) {faltando_z}. "
             f"rode: python scripts/validate_forecast.py --horizontes {' '.join(str(h) for h in range(1, args.horizonte + 1))}"
         )
+
+    # Competência incompleta não pode ancorar.
+    #
+    # A última competência do FTP quase nunca está fechada: em 2026-09 o SIH
+    # trazia 2026-07 com 25 das 27 UFs. Deixá-la ancorar faz DOIS estragos ao
+    # mesmo tempo, e o segundo é silencioso:
+    #
+    #   1. o mês parcial entra na série como queda de demanda, e a tendência
+    #      linear a projeta para frente;
+    #   2. hospital que não alcança a âncora é DESCARTADO logo abaixo — então
+    #      os estabelecimentos das UFs que ainda não reportaram somem inteiros
+    #      da projeção, sem aparecer em `descartes` como problema de cobertura.
+    #
+    # O corte é por contagem de hospitais, não de UFs: `uf_sigla` vem de um
+    # merge e pode faltar, `cnes` não.
+    por_comp = demanda.groupby("ano_mes")["cnes"].nunique().sort_index()
+    if len(por_comp) > 6:
+        referencia = float(por_comp.iloc[-7:-1].median())
+        incompletas = []
+        for comp in reversed(por_comp.index.tolist()):
+            if por_comp[comp] >= referencia * args.cobertura_minima:
+                break
+            incompletas.append(comp)
+        if incompletas:
+            for comp in reversed(incompletas):
+                print(f"[forecast] competência {comp} EXCLUÍDA: {por_comp[comp]:,} hospitais "
+                      f"contra {referencia:,.0f} das anteriores "
+                      f"({por_comp[comp] / referencia:.0%}) — ainda está sendo reportada",
+                      flush=True)
+            demanda = demanda[~demanda["ano_mes"].isin(incompletas)].copy()
+            if demanda.empty:
+                raise SystemExit(
+                    "[forecast] toda a base foi considerada incompleta — o critério de "
+                    "cobertura está errado, ou o mart está truncado. Não projeta.")
 
     # Âncora única da base. Toda previsão é para DEPOIS dela — nunca depois do
     # último mês de cada hospital, que é o que produzia previsão retrospectiva.

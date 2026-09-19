@@ -43,10 +43,10 @@ faixa de incerteza que corresponda ao erro efetivamente observado.
 |---|---|
 | Fonte | SIH/SUS (AIH), via `mart_demanda_mensal_hospital` |
 | Unidade | estabelecimento (CNES) × mês |
-| Período | 2022-01 a 2024-12 (36 meses) |
-| Linhas | 164.039 |
-| Hospitais na fonte | 5.083 |
-| Hospitais publicados | 4.361 |
+| Período | 2022-01 a 2026-07 (55 meses) |
+| Linhas | 251.102 |
+| Hospitais na fonte | 5.287 |
+| Hospitais publicados | 4.196 |
 | Variável | `internacoes` = AIHs **aprovadas**, não pacientes nem episódios |
 
 `internacoes` conta AIHs aprovadas. Uma internação longa emite várias AIHs
@@ -117,16 +117,23 @@ Horizonte de 3 meses, todos os hospitais:
 
 | modelo | MAE | sMAPE % | MASE | Cobertura IC95 % | z empírico |
 |---|---:|---:|---:|---:|---:|
-| `media_movel_3` | 41,8 | 23,18 | **0,917** | 97,1 | 1,61 |
-| `tendencia_linear` *(publicado)* | 43,9 | 24,68 | 0,922 | 87,5 | 2,80 |
-| `tendencia_linear_publicada` *(anterior)* | 43,9 | 24,69 | 0,922 | **85,0** | 3,05 |
-| `naive` | 46,1 | 25,65 | 1,013 | 97,1 | 1,63 |
-| `tendencia_sazonal` | 50,8 | 28,09 | 1,032 | 88,0 | 2,68 |
-| `seasonal_naive` | 53,7 | 28,63 | 1,081 | 88,3 | 2,68 |
-| `snaive_drift` | 55,1 | 30,53 | 1,105 | 87,9 | 2,68 |
+| `media_movel_3` | 41,4 | 22,86 | **0,869** | 97,5 | 1,54 |
+| `tendencia_linear_publicada` *(publicado)* | 44,1 | 24,68 | 0,896 | 86,6 | 2,88 |
+| `naive` | 45,8 | 25,45 | 0,963 | 97,4 | 1,55 |
+| `tendencia_sazonal` | 49,0 | 27,33 | 0,982 | 89,0 | 2,52 |
+| `seasonal_naive` | 52,3 | 28,82 | 1,064 | 89,6 | 2,54 |
+| `snaive_drift` | 54,6 | 30,54 | 1,098 | 89,1 | 2,52 |
 
-MASE por horizonte do modelo publicado: **0,810 / 0,867 / 0,922** (1, 2 e 3
+MASE por horizonte do modelo publicado: **0,806 / 0,854 / 0,896** (1, 2 e 3
 meses). Abaixo de 1 em todos — ele supera o baseline sazonal.
+
+**A razão declarada para não trocar pela média móvel deixou de valer.** Na
+medição de 36 meses a diferença em 3 meses era de 0,5% de MASE, e o argumento
+registrado era que isso estava dentro do ruído. Com 55 meses ela é de **3,0% em
+3 meses, 5,0% em 2 e 8,7% em 1**, e a `media_movel_3` vence também em MAE,
+sMAPE, WAPE e cobertura do intervalo nos três horizontes. Trocar o modelo
+publicado é decisão científica e ainda não foi tomada; o que mudou é que ela
+não pode mais ser dispensada por ruído.
 
 MAPE não é reportado: 290 hospitais têm mediana ≤5 internações/mês, e com real
 próximo de zero o MAPE mede o denominador, não o modelo. Em seu lugar, sMAPE e
@@ -136,14 +143,18 @@ WAPE.
 
 | faixa | hospitais | sMAPE % | MASE | status |
 |---|---:|---:|---:|---|
-| >500/mês | 630 | 13,6 | 0,875 | A |
-| 101–500/mês | 1.673 | 18,3 | 0,892 | A |
-| 21–100/mês | 1.471 | 28,4 | 0,964 | A |
-| 6–20/mês | 517 | 45,4 | 0,967 | B |
-| ≤5/mês | 109 | 58,7 | 0,944 | **C — não publicado** |
+| >500/mês | 676 | 14,0 | 0,847 | A |
+| 101–500/mês | 1.707 | 18,8 | 0,883 | A |
+| 21–100/mês | 1.528 | 28,0 | 0,914 | A |
+| 6–20/mês | 573 | 44,9 | 0,938 | B |
+| ≤5/mês | 142 | 56,6 | **1,014** | **C — não publicado** |
 
-O modelo supera o baseline em **todos** os estratos. O que separa publicável de
-não publicável aqui não é a comparação relativa — é a magnitude do erro.
+O modelo supera o baseline em todos os estratos **menos um**: com 55 meses, o
+estrato `≤5/mês` passou de MASE 0,944 para **1,014**, ou seja, deixou de
+acrescentar algo sobre o ingênuo sazonal ali. Ele já não era publicado, por
+magnitude de erro — agora também não se sustenta pela comparação relativa. Na
+medição anterior, de 36 meses, a afirmação "supera em todos os estratos" era
+verdadeira; com mais dado, deixou de ser.
 
 ## Critérios de publicação
 
