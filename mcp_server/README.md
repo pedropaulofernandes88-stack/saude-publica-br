@@ -88,9 +88,18 @@ O Claude vai chamar as ferramentas e responder com os números e a fonte.
 
 ---
 
-## Ferramentas disponíveis (19)
+## Ferramentas disponíveis (41)
 
-### Consulta
+Toda ferramenta de dado devolve `{"dados": ..., "procedencia": {...}}` — a
+citação viaja junto do número, porque instrução some quando a resposta é copiada.
+
+### Comece por esta
+
+| Ferramenta | O que faz |
+|---|---|
+| **`metodologia`** | **numerador, denominador, unidade, defasagem, o que o indicador NÃO mede e as leituras já testadas e REFUTADAS aqui.** Aceita o id do indicador ou o nome de uma ferramenta. É o que impede repetir uma explicação que a plataforma já descartou |
+
+### Mortalidade e qualidade do registro
 
 | Ferramenta | O que faz |
 |---|---|
@@ -100,24 +109,59 @@ O Claude vai chamar as ferramentas e responder com os números e a fonte.
 | `descricao_cid10` | descrição oficial de códigos CID-10 |
 | `excesso_mortalidade` | excesso mensal (2020+), baseline por tendência |
 | **`qualidade_registro`** | **confiabilidade do registro de óbitos** (Bom/Regular/Ruim) |
-| `internacoes_municipios` | internações SUS: volume (AIHs aprovadas), permanência e custo **por episódio**, mortalidade |
-| `internacoes_evitaveis_icsap` | ICSAP (internações evitáveis) por município |
-| `internacoes_por_agravo` | internações por agravo traçador (diabetes, AVC, DPOC…) |
+| `mortalidade_infantil_uf` | TMI por UF e ano — só por UF, e de propósito |
+| `anomalia_de_causa_municipio` | excesso por causa sobre a história do **próprio** município |
+| `perfil_de_causas_municipio` | componentes do perfil de causas, sem porte, idade, registro e COVID |
 
-| `hospitais` | visão por estabelecimento (CNES) |
-| `fluxo_pacientes` | para onde os moradores viajam para se internar |
-| `dengue_municipios` / `dengue_semanal` | dengue (SINAN) anual e por semana epidemiológica |
-| `metadados_dataset` | fontes, métodos, licença, DOI e versão |
-
-### Análise
+### Internações e hospitais
 
 | Ferramenta | O que faz |
 |---|---|
-| **`comparar_com_pares`** | compara um município com o seu **estrato de saúde** (tercis fixos de mortalidade × vulnerabilidade × internações) — valor, mediana dos pares e **percentil no grupo** |
-| **`icsap_distancia_dos_pares`** | **tradução:** quanto o município está acima de comparáveis em internações evitáveis, convertido em **internações, leitos ocupados o ano inteiro e R$** — com as ressalvas que impedem ler isso como "economia disponível" |
-| **`canal_endemico_dengue`** | **diagrama de controle** de uma UF: banda P25–P75 histórica vs. observado, semanas acima do P75 e status de surto |
-| **`boletim_semanal`** | a edição vigente (ou qualquer edição) do [boletim epidemiológico semanal](https://saudeemdado.com/boletim-semanal/) gerado automaticamente pelo pipeline |
-| **`detectar_anomalias`** | **copiloto:** resumo priorizado de sinais de um município |
+| `internacoes_municipios` | internações SUS: AIHs aprovadas, permanência e custo **por episódio** |
+| `internacoes_por_agravo` | por agravo traçador (diabetes, AVC, DPOC…) |
+| `internacoes_evitaveis_icsap` | ICSAP por município |
+| `hospitais` | visão por estabelecimento (CNES), mortalidade **bruta** |
+| `hsmr_hospital` | mortalidade hospitalar **padronizada**, com IC95% e sinalizador de instabilidade |
+| `permanencia_por_diagnostico` | permanência do hospital vs. mediana nacional, por CID |
+| `demanda_mensal_hospital` | série mensal de internações por estabelecimento |
+| `forecast_demanda_hospital` | projeção de até 3 meses — **leia a faixa, nunca o ponto** |
+| `fluxo_pacientes` | para onde os moradores viajam para se internar |
+
+### Rede, oferta e financiamento
+
+| Ferramenta | O que faz |
+|---|---|
+| `rede_cadastrada_municipio` | estabelecimentos do CNES e composição por natureza |
+| `saude_suplementar_municipio` | vínculos de planos (ANS) — vínculo **não é** pessoa |
+| `gasto_saude_municipio` | gasto público em saúde (SIOPS), empenhado e autodeclarado |
+| `cobertura_aps_municipio` | cobertura **potencial** da atenção primária, mensal |
+| `vazio_assistencial` | leitos × local do óbito: sem leito local muda **onde** se morre |
+
+### Vigilância e prevenção
+
+| Ferramenta | O que faz |
+|---|---|
+| `dengue_municipios` / `dengue_semanal` | dengue (SINAN), anual e por semana epidemiológica |
+| **`boletim_semanal`** | **situação atual**: nowcasting do InfoDengue nas 27 capitais |
+| `vacinacao_doses` | doses do PNI por competência — **fonte mais atual do acervo** |
+| `cobertura_vacinal_uf` | cobertura em menores de 1 ano, só por UF e só 5 indicadores |
+| `natalidade_municipio` | nascidos vivos, baixo peso, prematuridade e pré-natal |
+| `agua_vigilancia_municipio` | SISAGUA: **volume de análise**, não potabilidade |
+| `agua_cobertura_da_coleta` | separa "não analisou" de "não coletamos" |
+
+### Análise e comparação
+
+| Ferramenta | O que faz |
+|---|---|
+| **`comparar_com_pares`** | compara com o **estrato de saúde**: valor, mediana dos pares e percentil |
+| **`icsap_distancia_dos_pares`** | traduz o ICSAP em internações, leitos-ano e R$ — com as ressalvas que impedem ler isso como "economia disponível" |
+| **`canal_endemico_dengue`** | diagrama de controle de uma UF: banda P25–P75 vs. observado |
+| **`detectar_anomalias`** | copiloto: resumo priorizado de sinais de um município |
+| `oferta_local_e_icsap` | o cruzamento que mediu a dependência do %ICSAP com leito local |
+| `cobertura_aps_e_icsap` | o cruzamento APS × ICSAP — **deu nulo**, e serve para mostrar isso |
+| `equidade_aps_no_porte` | teste de robustez do anterior, dentro do quartil de porte — **também nulo** |
+| `contexto_social_municipio` | quatro eixos de contexto social e de sistema |
+| `metadados_dataset` | fontes, métodos, licença, DOI e versão |
 
 ## Receitas — pergunte assim
 

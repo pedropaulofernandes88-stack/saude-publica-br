@@ -227,3 +227,33 @@ def test_catalogo_viaja_dentro_do_pacote():
     assert "metodologia.json" in MCP.read_text(encoding="utf-8"), (
         "o servidor não referencia mais metodologia.json"
     )
+
+
+# ---------------------------------------------------------------------------
+# O README é a vitrine no PyPI, e envelheceu calado
+# ---------------------------------------------------------------------------
+
+def test_readme_lista_todas_as_ferramentas(ferramentas_do_servidor):
+    """O README anunciava 19 ferramentas quando já havia 41.
+
+    Ele é o texto que o PyPI e o registry mostram: um leitor decide instalar por
+    ali. Ferramenta que não aparece nele é trabalho feito e não entregue, e a
+    contagem no título envelhece sem nada reclamar — foi o que aconteceu.
+    """
+    readme = (PACOTE.parent / "README.md").read_text(encoding="utf-8")
+    citadas = set(re.findall(r"`([a-z_0-9]+)`", readme))
+    ausentes = sorted(set(ferramentas_do_servidor) - citadas)
+    assert ausentes == [], (
+        f"ferramenta fora do README do MCP: {ausentes}. Acrescente na tabela do "
+        "tema correspondente — e confira a contagem no título da seção."
+    )
+
+
+def test_readme_declara_a_contagem_certa(ferramentas_do_servidor):
+    readme = (PACOTE.parent / "README.md").read_text(encoding="utf-8")
+    m = re.search(r"## Ferramentas disponíveis \((\d+)\)", readme)
+    assert m, "sumiu o título 'Ferramentas disponíveis (N)' do README"
+    assert int(m.group(1)) == len(ferramentas_do_servidor), (
+        f"o README anuncia {m.group(1)} ferramentas e o servidor tem "
+        f"{len(ferramentas_do_servidor)}"
+    )
