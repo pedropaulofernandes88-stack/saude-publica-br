@@ -98,6 +98,12 @@ TABELAS = [
     # SINAN multi-agravo: notificações de 40 agravos por município e ano.
     "mart_sinan_agravo_municipio",
     "mart_sinan_agravo_cobertura",
+    # SISCAN: rastreamento de colo e mama, três das cinco visões do sistema.
+    # A cobertura anda junto pelo mesmo motivo do SISAGUA: ela é o que diz
+    # quais municípios responderam, e sem isso "sem exame" e "sem coleta"
+    # viram a mesma linha ausente.
+    "mart_siscan_municipio",
+    "mart_siscan_cobertura",
     # SISAGUA: volume e regularidade da análise da água, por município e ano.
     # A cobertura anda junto e não é acessório — ela tem uma linha para CADA
     # município do país, e é o que separa "não analisou" de "não coletei".

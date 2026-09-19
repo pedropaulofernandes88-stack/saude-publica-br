@@ -183,6 +183,25 @@ export const FONTES: Fonte[] = [
       + "somar os dois como rótulos distintos inventa uma quebra de série em 2023.",
   },
   {
+    id: "siscan",
+    nome: "Rastreamento de câncer",
+    sistema: "SISCAN",
+    orgao: "DataSUS/MS",
+    traz:
+      "exames de rastreamento de colo de útero e mama por município e ano de "
+      + "competência — histopatológico de colo, histopatológico de mama e citopatológico de mama",
+    observacao:
+      "São TRÊS das cinco visões do SISCAN, e a que falta é a maior. O citopatológico de "
+      + "colo (o exame de Papanicolau, o de maior volume do rastreamento) fica de fora "
+      + "porque a fonte só oferece nele o ano de LIBERAÇÃO DO RESULTADO, não o de "
+      + "competência: é outro eixo temporal, e somá-lo a estes três produziria uma série "
+      + "que mistura quando o exame foi feito com quando o laudo saiu. Não leia estes "
+      + "números como cobertura de rastreamento: o denominador é a população-alvo, que "
+      + "esta tabela não traz, e exame registrado não é pessoa rastreada — a mesma pessoa "
+      + "pode aparecer mais de uma vez no ano. 2013 é o ano de implantação do sistema e "
+      + "tem volume baixo por isso, não por queda de rastreamento.",
+  },
+  {
     id: "derivado",
     nome: "Análises derivadas",
     sistema: "—",
@@ -251,6 +270,9 @@ export const FONTE_DA_TABELA: Record<string, string> = {
   // ANS
   mart_saude_suplementar_municipio: "ans",
   mart_saude_suplementar_icsap_municipio: "ans",
+  // SISCAN
+  mart_siscan_municipio: "siscan",
+  mart_siscan_cobertura: "siscan",
   // SISAGUA
   mart_sisagua_municipio: "sisagua",
   mart_sisagua_cobertura: "sisagua",

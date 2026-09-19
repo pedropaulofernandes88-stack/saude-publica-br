@@ -42,6 +42,7 @@ PUBLICACOES = RAIZ / "data" / "publicacoes"
 # Só os números que este projeto de fato escreve por extenso.
 POR_EXTENSO = {
     "seis": 6, "sete": 7, "oito": 8, "nove": 9, "dez": 10, "onze": 11, "doze": 12,
+    "treze": 13, "catorze": 14, "quatorze": 14, "quinze": 15,
 }
 
 

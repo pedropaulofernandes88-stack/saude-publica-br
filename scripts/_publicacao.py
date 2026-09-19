@@ -518,6 +518,13 @@ NAO_SERVIDAS = frozenset({
     # agravo, e publicar o mart sem ela seria publicar número sem a ressalva.
     "mart_sinan_agravo_municipio",
     "mart_sinan_agravo_cobertura",
+    # SISCAN: 86.901 linhas, cabe no banco de sobra — fica fora pelo mesmo
+    # critério da oncologia e da sífilis: não há tela nem ferramenta MCP que a
+    # consulte. Entrar no Postgres antes de existir quem consulte é gastar o
+    # teto por antecipação, e o teto está em 684 MB de 750. O Parquet já é
+    # citável, versionado e com SHA-256; servir é um passo separado.
+    "mart_siscan_municipio",
+    "mart_siscan_cobertura",
 })
 
 
@@ -666,6 +673,12 @@ CHAVES_SEM_ESQUEMA: dict[str, list[str]] = {
     "mart_vacinacao_municipio": ["municipio_cod", "ano", "imunobiologico"],
     "mart_sisagua_municipio": ["municipio_cod", "ano", "parametro"],
     "mart_sisagua_cobertura": ["municipio_cod"],
+    # Os três exames são LINHAS, não colunas: o grão é município-ano-exame.
+    "mart_siscan_municipio": ["municipio_cod", "ano", "exame"],
+    # A cobertura do SISCAN é por ARQUIVO da fonte (exame x ano), não por
+    # município: ela responde "este CSV existia e quantas linhas tinha",
+    # que é o que separa exame ausente de arquivo não coletado.
+    "mart_siscan_cobertura": ["exame", "ano"],
 }
 
 #: Compatibilidade com o nome antigo, que descrevia só metade dos casos.

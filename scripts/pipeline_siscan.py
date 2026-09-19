@@ -88,19 +88,18 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from _fontes import fonte  # noqa: E402
 from _saida import Resultado  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
 
 FTP_HOST = "ftp.datasus.gov.br"
-#: Digitado aqui, e não lido de `_fontes.py`, por uma razão de ORDEM: o registro
-#: exige que o id exista também em `site/lib/fontes.ts`, e o site exige que toda
-#: fonte declarada tenha tabela no manifesto. O mart do SISCAN ainda não foi
-#: publicado, então declarar a fonte agora quebraria a guarda do site.
-#: `tests/test_registro_de_fontes.py` carrega a exceção com a condição de saída;
-#: ao publicar o mart, este caminho vira `fonte("siscan").local(...).caminho`.
-FTP_DIR = "/dissemin/publicos/SISCAN/SISCAN"
+#: Lido do registro desde a publicação do mart (2026-09-19). Antes ficava
+#: digitado aqui por uma razão de ORDEM — o registro exige o id em
+#: `site/lib/fontes.ts`, e o site exige que toda fonte declarada tenha tabela no
+#: manifesto —, e a exceção correspondente saiu de `test_registro_de_fontes.py`.
+FTP_DIR = fonte("siscan").local("microdado").caminho
 
 #: Os três exames desta fatia, com o rótulo que vai para a coluna `exame`.
 EXAMES = {"HISTO_COLO": "histo_colo", "HISTO_MAMA": "histo_mama", "CITO_MAMA": "cito_mama"}

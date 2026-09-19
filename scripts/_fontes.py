@@ -193,6 +193,18 @@ FONTES: tuple[Fonte, ...] = (
         ),
     ),
     Fonte(
+        id="siscan", base="SISCAN",
+        locais=(
+            # Só as três visões que o pipeline ingere. As outras duas do SISCAN
+            # ficam de fora do padrão de propósito: CITO_COLO é a maior de todas
+            # e só oferece o ano de LIBERAÇÃO DO RESULTADO, não a competência —
+            # eixo diferente, que não soma com estas três sem uma decisão que
+            # ainda não foi tomada. Ver `sondar_siscan.py`.
+            Local("microdado", "ftp", "/dissemin/publicos/SISCAN/SISCAN",
+                  r"^SISCAN_(HISTO_COLO|HISTO_MAMA|CITO_MAMA)_20\d{2}\.csv$"),
+        ),
+    ),
+    Fonte(
         id="sisagua", base="SISAGUA",
         locais=(
             # A raiz da API. O endpoint folha (`controle-mensal-parametros-basicos`)

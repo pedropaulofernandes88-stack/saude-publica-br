@@ -56,19 +56,6 @@ FORA_DO_REGISTRO: dict[str, str] = {
     "sondar_sinan_agravos.py": "sondagem: descobre agravos fora do recorte atual",
     "analise_leitos_hsmr.py": "análise pontual, não coleta de rotina",
     "hsmr_estratos_uti.py": "análise pontual, não coleta de rotina",
-    # Este é temporário e tem condição de saída, diferente dos de cima.
-    #
-    # O registro exige que o id exista também em `site/lib/fontes.ts`, e o site
-    # exige que toda fonte declarada tenha tabela no manifesto — a ordem é
-    # imposta por desenho: uma fonte entra no registro quando publica. O mart do
-    # SISCAN existe em `data/marts/` e ainda não foi publicado, então declarar
-    # `siscan` agora quebraria a guarda do site em vez de fechar esta.
-    #
-    # REMOVER daqui assim que mart_siscan_municipio for publicado: declarar
-    # `siscan` em _fontes.py (ftp, /dissemin/publicos/SISCAN/SISCAN, padrão
-    # ^SISCAN_(HISTO_COLO|HISTO_MAMA|CITO_MAMA)_20\d{2}\.csv$) e em fontes.ts,
-    # e trocar a constante do pipeline por `fonte("siscan").local(...).caminho`.
-    "pipeline_siscan.py": "coletor pronto antes da publicação do mart; ver nota acima",
 }
 
 #: Os arquivos que a varredura cobre: quem coleta de rotina.
