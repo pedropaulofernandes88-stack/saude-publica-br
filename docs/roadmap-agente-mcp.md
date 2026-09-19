@@ -28,14 +28,30 @@ Usuário → Claude (raciocínio) → Ferramentas MCP → API PostgREST → mart
   `mart_qualidade_registro_municipio` e sinaliza se o município tem registro Ruim.
 
 ## Ferramentas (tools) a expor
-- `indicador(municipio, indicador, ano)` → valor + fonte + IC (quando houver).
-- `serie_temporal(municipio, indicador, anos)`.
-- `ranking(indicador, uf, n)` → top/bottom com piso de volume.
-- `detectar_anomalias(municipio)` → ICSAP outlier (Wilson), canal endêmico rompido
-  (dengue), excesso de mortalidade, red flags de qualidade.
-- `qualidade_registro(municipio)` → classe Bom/Regular/Ruim + %.
-- `comparar_pares(municipio, indicador)`.
-- `metodologia(indicador)` → devolve a definição documentada (evita o modelo inventar método).
+
+**Estado em 2026-09-19: 41 ferramentas, e os 35 marts publicados têm alguma.** O
+desenho abaixo é o de origem; a forma que sobreviveu foi uma ferramenta por
+recorte de fonte, e não um `indicador(municipio, indicador, ano)` genérico — o
+genérico obrigaria o modelo a conhecer um vocabulário de nomes de indicador que
+nada valida, enquanto a ferramenta nomeada carrega a ressalva na própria
+descrição.
+
+- ~~`indicador(municipio, indicador, ano)`~~ → substituído por ferramentas
+  nomeadas por fonte e recorte.
+- ~~`serie_temporal(municipio, indicador, anos)`~~ → `serie_mensal_obitos`,
+  `demanda_mensal_hospital`, `vacinacao_doses`, `dengue_semanal`.
+- ~~`ranking(indicador, uf, n)`~~ → o piso de volume e a ordenação ficaram dentro
+  de cada ferramenta (`hospitais`, `hsmr_hospital`, `icsap_distancia_dos_pares`).
+- **feito** `detectar_anomalias(municipio)` — e o sinal de ICSAP passou a vir com
+  a oferta local de leitos ao lado, depois que a §19 refutou a leitura anterior.
+- **feito** `qualidade_registro(municipio)`.
+- **feito** `comparar_com_pares(municipio)` — com estratos determinísticos por
+  tercis, depois que o k-means foi reprovado em teste de estabilidade.
+- **feito, e virou a peça central** `metodologia(indicador)` — devolve muito mais
+  que a definição: numerador, denominador, unidade, defasagem, o que o indicador
+  **não** mede, as ressalvas obrigatórias e as leituras **já testadas e
+  refutadas** aqui. Serve `metodologia.json`, com 28 indicadores, e é o que
+  permitiu encolher o campo `instructions`, que crescia a cada armadilha nova.
 
 ## Anti-alucinação — o requisito inegociável (número de saúde)
 1. **Grounding obrigatório:** todo número na resposta vem de uma tool call. Proibido

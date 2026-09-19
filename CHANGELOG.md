@@ -9,6 +9,70 @@ Versionamento semântico conforme [SemVer](https://semver.org/lang/pt-BR/).
 
 ## [Não lançado]
 
+### O MCP passou a servir o que o número NÃO sustenta, e alcança todos os marts
+
+> O que distingue esta plataforma não é ter o dado do DataSUS — é saber onde cada
+> número engana. Esse conhecimento morava em três lugares que nenhum agente
+> consulta sob demanda: a prosa da página de metodologia, o campo `instructions`
+> (que todo cliente carrega inteiro em toda sessão, use ou não) e as docstrings,
+> que um cliente pode nunca ler. E metade do acervo publicado era inalcançável:
+> 15 dos 35 marts não tinham ferramenta nenhuma.
+
+#### Adicionado
+
+- **`metodologia.json` e a ferramenta `metodologia()`** — catálogo canônico com
+  28 indicadores. Cada um declara numerador, denominador, unidade, cobertura,
+  defasagem, **o que NÃO mede**, as ressalvas obrigatórias ao relatar e as
+  leituras já **testadas e refutadas** aqui. Resolve pelo id do indicador ou pelo
+  nome da ferramenta — o modelo acabou de chamar uma e sabe o nome dela, não o id.
+  Seis refutações entraram, todas com o que as derrubou e o que muda na prática:
+  o %ICSAP como termômetro da APS, o k-means reprovado em estabilidade, a
+  cobertura vacinal municipal, o vazio assistencial, a cobertura da APS contra
+  %ICSAP e o modelo sazonal no forecast.
+
+- **22 ferramentas novas**, de 19 para 41, fechando o vão entre publicar e
+  alcançar. Água (SISAGUA, com a cobertura da coleta ao lado para separar "não
+  analisou" de "não coletamos"), vacinação em duas ferramentas porque dose e
+  cobertura são duas coisas, SIOPS, vazio assistencial, natalidade, mortalidade
+  infantil, cobertura da APS, saúde suplementar, rede do CNES, HSMR, permanência
+  por diagnóstico, demanda mensal, forecast, os três cruzamentos que testaram o
+  %ICSAP, anomalia de causa, perfil de causas e contexto social.
+
+- **`scripts/sondar_siscan.py` e `scripts/pipeline_siscan.py`** — o SISCAN é
+  microdado CSV no FTP (130 arquivos, 53,4 GB), e não apenas tabulação do TABNET
+  como se costuma dizer. O mart cobre a fatia de 0,21 GB: histopatológico de colo
+  e de mama e citopatológico de mama, por município e ano de **competência**.
+  Ainda não publicado.
+
+#### Guardas
+
+- Ferramenta de dado sem entrada no catálogo **reprova**; entrada apontando para
+  ferramenta removida reprova; ferramenta em dois indicadores reprova; campo
+  vazio reprova; e `refutado` só passa com leitura, resultado, evidência e
+  consequência.
+- Chave de procedência que nenhum pipeline declara **reprova**. `_procedencia`
+  faz `m.get(chave, <genérico>)`: errar o nome não levanta erro, devolve citação
+  vaga e a ferramenta segue respondendo.
+- O README do pacote é o que o PyPI mostra, e anunciava 19 ferramentas: agora
+  toda `@mcp.tool` tem de aparecer nele, e a contagem do título tem de bater.
+
+#### Corrigido
+
+- As `instructions` encolheram: a regra do ICSAP ocupava um parágrafo com ρ,
+  medianas e percentuais, e agora carrega a regra operativa mais o ponteiro para
+  `metodologia('icsap')`. O texto fixo deixou de crescer a cada armadilha nova.
+
+#### Descoberto, e não corrigido aqui
+
+- **A escrita de procedência é fire-and-forget.** Os cinco pipelines que publicam
+  em `meta_dataset` fazem `requests.post` sem `raise_for_status`. `fonte_cnes`,
+  `fonte_leitos` e `fonte_saude_suplementar` estão declaradas no código e **não
+  estão em produção** — e o pipeline termina dizendo `[done]`.
+- **`fonte_agravo_hospital` está viva no banco e em `site/public/sdata/meta.json`
+  e nenhum script do repositório a declara.** Funciona hoje, e republicar do zero
+  a perderia.
+
+
 ### Código de saída: "rodou" e "trouxe dado novo" deixam de ser a mesma resposta
 
 > Todo pipeline do projeto terminava em 0 ou estourava. Isso responde "deu
