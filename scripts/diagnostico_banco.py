@@ -81,7 +81,44 @@ PCT_INCHACO_RELEVANTE = 15.0
 #: antes (~5,6%), e fica abaixo dos 740 MB que o banco já sustentou em agosto
 #: sem incidente — ou seja, não é território novo. Antes de subir de novo,
 #: procurar o que remover: em 2026-08-23 uma compactação devolveu 133 MB.
-LIMITE_PADRAO_MB = 750.0
+#:
+#: 2026-09-19 — de 750 para 875 MB. O SIH passou a cobrir 2025 e 2026 (até a
+#: competência 2026-07), e as oito marts servidas que dependem dele receberam
+#: **+666.626 linhas**. Conferido DEPOIS de publicar e compactar: o banco foi de
+#: 717 para **828 MB**, +111 MB. 875 devolve ~5,6% de folga sobre o uso corrente,
+#: a mesma proporção dos tetos anteriores.
+#:
+#: ERREI ISTO UMA VEZ ANTES DE ACERTAR, e o erro fica aqui porque é fácil de
+#: repetir: `pg_size_pretty` devolve **MiB** (base 1024) e este arquivo divide
+#: por **1e6** (MB decimal). Li 684 no `pg_size_pretty`, somei a estimativa em MB
+#: decimal e fixei o teto em 820 — mas o banco já estava em 717 MB NA UNIDADE
+#: DESTE ARQUIVO, e 820 nasceu pequeno demais para a carga que ele mesmo
+#: autorizava. Os dois números sempre descreveram o mesmo banco; a régua é que
+#: era outra. Ao mexer neste valor, medir com `pg_database_size()/1e6`.
+#:
+#: PROCUREI O QUE REMOVER, e o resultado contrariou a expectativa. `VACUUM FULL`
+#: em `mart_mortalidade_municipio` — 211 MB, 3,26 milhões de updates acumulados e
+#: nenhuma compactação manual na história — devolveu **zero bytes**. A maior
+#: tabela do projeto é dado vivo, não inchaço. O recuperável estava no que foi
+#: escrito hoje, e voltou: `mart_internacoes_municipio` 128,7 → 113 MB,
+#: `mart_demanda_mensal_hospital` 45,8 → 30,4, `mart_fluxo_intermunicipal`
+#: 44,2 → 33,1, `mart_forecast_demanda_hospital` 7,9 → 3,8.
+#:
+#: A causa daquele inchaço é do PIPELINE, não do dado: `_subir_mart.py` reenvia o
+#: mart inteiro, e cada linha já existente vira UPDATE — tupla nova, tupla velha
+#: morta, arquivo dobrado. Nas duas maiores a carga foi feita só com as linhas de
+#: 2025 em diante, depois de conferir que as antigas eram idênticas em disco e no
+#: banco: `mart_internacoes_agravo` foi de 39,3 para 65,1 MB com ZERO tuplas
+#: mortas — proporcional, sem vacuum. Ver [[upload-upsert-incha-a-tabela]].
+#:
+#: A RESSALVA QUE NÃO EXISTIA NAS VEZES ANTERIORES, e que fica aqui porque quem
+#: ler este número precisa dela: o plano é FREE, cuja cota nominal de banco é
+#: 500 MB. O projeto opera acima disso há tempo sem ser restringido — isso é
+#: tolerância do provedor, não permissão, e nenhum Postgres gerenciado gratuito
+#: do mercado passa de 1 GB. Este teto mede folga sobre o uso corrente e continua
+#: sendo a guarda útil do dia a dia, mas ele NÃO é o limite que pode derrubar o
+#: site. Decisão tomada em 2026-09-19, com o risco enunciado e aceito.
+LIMITE_PADRAO_MB = 875.0
 
 
 def mb(n: float) -> str:
