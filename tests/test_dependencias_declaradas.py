@@ -48,6 +48,13 @@ def _modulos_locais() -> set[str]:
     As pastas de manuscrito entram porque seus scripts são importáveis pelos
     testes por `sys.path`, e não como pacote — o nome tem hífen. Sem esta linha,
     `gerar_docx` era lido como dependência de terceiro que ninguém declarou.
+
+    Em 2026-09-19 os manuscritos saíram para `saude-publica-br-artigos`, privado,
+    e o teste que importava `gerar_docx` foi junto. O glob continua aqui de
+    propósito: quem clonar os dois lado a lado volta a ter as pastas em disco, e
+    a guarda precisa reconhecê-las em vez de acusar dependência inexistente. O
+    CI, que não as tem, simplesmente não encontra nada para adicionar — foi ele
+    que expôs este acoplamento, reprovando assim que as pastas sumiram.
     """
     modulos = {p.stem for p in RAIZ.glob("scripts/*.py")}
     for pasta in RAIZ.glob("artigo*/"):
