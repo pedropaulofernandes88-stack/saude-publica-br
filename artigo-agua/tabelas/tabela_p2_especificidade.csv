@@ -1,6 +1,0 @@
-Grupo de causa,IRR,IC95% inferior,IC95% superior,Exclui 1
-A00-A09 intestinais (hipotese),0.99,0.943,1.041,nao
-J00-J22 respiratorias (subgrupo 1.2),0.984,0.955,1.013,nao
-outras infecciosas do subgrupo 1.2,0.996,0.973,1.02,nao
-I20-I25 isquemicas do coracao,1.006,0.982,1.034,nao
-V01-Y98 causas externas,1.002,0.977,1.023,nao

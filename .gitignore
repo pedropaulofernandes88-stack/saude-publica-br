@@ -58,3 +58,12 @@ tsconfig.tsbuildinfo
 scripts/supabase_keepalive.log
 .claude/launch.json
 materiais/saida/documentacao.html
+
+# Correspondência: fica local, fora do repositório público.
+materiais/email-nakaya-*.md
+
+# Manuscritos: moram em saude-publica-br-artigos (privado), em auditoria.
+artigo/
+artigo-agua/
+artigo-imunopreveniveis/
+artigo-neoplasias/

@@ -30,6 +30,15 @@ ARTIGO = RAIZ / "artigo-neoplasias"
 # matplotlib nao e usado aqui: estes testes leem o manuscrito e conferem
 # nomes de arquivo. `docx` entra porque gerar_docx.py o importa no topo,
 # e esta declarado em requirements-test.txt para o CI nao pular o arquivo.
+# Os manuscritos saíram do repositório público em 2026-09-19 e moram em
+# `saude-publica-br-artigos`, privado, enquanto estão em auditoria. Sem a pasta,
+# o `from gerar_docx import ...` abaixo seria ERRO DE COLETA, e erro de coleta
+# derruba a sessão inteira do pytest — não só este arquivo. O skip de módulo
+# transforma isso em ausência declarada. Com a pasta em disco, tudo roda igual.
+if not (ARTIGO / "gerar_docx.py").exists():
+    pytest.skip("artigo-neoplasias mora em repositório privado (em auditoria)",
+                allow_module_level=True)
+
 pytest.importorskip("docx")
 
 import sys  # noqa: E402
