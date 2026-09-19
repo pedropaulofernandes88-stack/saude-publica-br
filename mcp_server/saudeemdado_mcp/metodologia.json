@@ -102,7 +102,7 @@
       "numerador": "AIHs aprovadas com causa na Lista Brasileira de ICSAP",
       "denominador": "AIHs aprovadas totais do município no ano (pct_icsap); população residente (icsap_100k)",
       "unidade": "% das internações; internações por 100 mil habitantes",
-      "cobertura": "5.570 municípios, 2024",
+      "cobertura": "5.570 municípios. O mart cobre 2021–2024; as ferramentas servem 2024, e os anos anteriores não estão alcançáveis por elas.",
       "defasagem": "Segue o SIH consolidado.",
       "nao_mede": [
         "qualidade ou cobertura da atenção primária — ver `refutado`",
@@ -578,7 +578,7 @@
       "denominador": "Não se aplica; o que qualifica a previsão é o IC95% e o sMAPE do estrato",
       "unidade": "internações previstas, com ic_inferior e ic_superior; sMAPE em %",
       "cobertura": "Horizonte de até 3 meses a partir da última competência; hospitais com pelo menos 5 internações/mês",
-      "defasagem": "A previsão envelhece: `ultima_competencia` mais `horizonte_meses` diz até quando ela é futuro.",
+      "defasagem": "A previsão envelhece. MEDIDO em 2026-09-19: o mart publicado cobre 2025-01 a 2025-03, ou seja, o horizonte inteiro já passou — toda linha servida hoje é previsão vencida, e a ferramenta marca cada uma com `previsao_vencida`. Enquanto o mart não for retreinado, a resposta honesta a 'qual a demanda prevista' é que não há previsão vigente.",
       "nao_mede": [
         "dimensionamento de leitos, escalas ou orçamento — a largura mediana do IC95% é 74% da previsão nos hospitais grandes e 217% nos de 6 a 20 internações/mês",
         "comparação entre hospitais: o modelo é ajustado por estabelecimento, sem case-mix, porte ou captação",

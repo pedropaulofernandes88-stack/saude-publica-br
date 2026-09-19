@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import functools
 import sys
+from datetime import date
 from pathlib import Path
 
 try:  # instalado via pip/uvx: o cliente é uma dependência
@@ -748,8 +749,12 @@ def forecast_demanda_hospital(cnes: str = "", uf: str = "", top: int = 200) -> l
 
     `status_validacao` A é validado (sMAPE ≤30%), B é experimental (30–50%, ou
     histórico curto) e sai com aviso. Hospitais abaixo de 5 internações/mês não são
-    publicados. CONFIRA `ultima_competencia` e `horizonte_meses`: uma previsão cujo
-    horizonte já passou não é previsão — é histórico não corrigido."""
+    publicados.
+
+    Cada linha vem com `previsao_vencida`: true quando a competência prevista já
+    passou. Previsão vencida não é previsão — é histórico não corrigido, e não deve
+    ser apresentada como projeção. O campo é calculado aqui, e não deixado para o
+    leitor comparar datas."""
     params = {
         "select": "cnes,municipio_cod,municipio_nome,uf_sigla,ano_mes_previsto,"
                   "internacoes_previstas,ic_inferior,ic_superior,n_meses_historico,"
@@ -761,7 +766,15 @@ def forecast_demanda_hospital(cnes: str = "", uf: str = "", top: int = 200) -> l
         params["cnes"] = f"eq.{cnes}"
     elif uf:
         params["uf_sigla"] = f"eq.{uf.upper()}"
-    return sd._get("mart_forecast_demanda_hospital", params)
+    linhas = sd._get("mart_forecast_demanda_hospital", params)
+    # Medido em 2026-09-19: o mart publicado previa 2025-01 a 2025-03, ou seja,
+    # dezoito meses no passado. A docstring já mandava conferir; mandar conferir é
+    # o controle mais fácil de ignorar que existe. O campo faz o dado dizer.
+    mes_atual = date.today().strftime("%Y-%m")
+    for linha in linhas:
+        previsto = str(linha.get("ano_mes_previsto") or "")
+        linha["previsao_vencida"] = bool(previsto) and previsto < mes_atual
+    return linhas
 
 
 # ── Os cruzamentos que testaram explicações do %ICSAP ───────────────────────
