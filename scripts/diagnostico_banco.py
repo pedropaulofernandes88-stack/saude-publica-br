@@ -131,7 +131,24 @@ PCT_INCHACO_RELEVANTE = 15.0
 #: Fica registrado o que este comentário dizia até hoje, e não é mais verdade: que
 #: o plano era free, que a cota eram 500 MB e que o projeto operava acima dela por
 #: tolerância do provedor.
-LIMITE_PADRAO_MB = 875.0
+#:
+#: 2026-09-20, mais tarde — de 875 para 1.000 MB, e esta subida NÃO contradiz o
+#: parágrafo acima. A diferença entre os dois casos é a única coisa que este
+#: comentário precisa deixar clara:
+#:
+#:   * algumas horas atrás a pergunta era "posso subir o teto porque agora cabe?"
+#:     — e a resposta foi não, porque caber não é razão: o teto mede surpresa de
+#:     crescimento, e afrouxá-lo sem o dado crescer só desliga o alarme;
+#:   * agora a pergunta é outra: o dado CRESCEU, por decisão explícita e com o
+#:     tamanho conferido antes. `mart_correlacao_causas` e `mart_dengue_semana`
+#:     voltaram ao Postgres pela V047, +116 MB medidos (95 da dengue municipal,
+#:     21 da correlação), e o banco foi de 828 para **944 MB**. Manter 875 faria
+#:     o alarme tocar todo dia por uma razão já conhecida, que é exatamente como
+#:     um alarme morre.
+#:
+#: A regra que separa os dois casos, e que vale para a próxima vez: sobe quando a
+#: LINHA DE BASE muda por decisão registrada; não sobe quando só a folga muda.
+LIMITE_PADRAO_MB = 1_000.0
 
 
 def mb(n: float) -> str:

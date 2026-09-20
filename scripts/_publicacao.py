@@ -486,11 +486,6 @@ NAO_SERVIDAS = frozenset({
     "mart_mortalidade_causa_municipio",
     "mart_mortalidade_causa_municipio_mes",
     "mart_mortalidade_causa_municipio_faixa",
-    # Matriz de correlação: 164.164 pares, 21 MB no banco, ZERO buscas no
-    # índice desde que foi criada. O consumidor dela — artigo/gerar_tabelas.py
-    # — já lê o Parquet. Terceira vez que o teto do banco morde, terceira vez
-    # que sai a tabela e não o limite. Ver V041.
-    "mart_correlacao_causas",
     # Painel Oncologia: 76.462 linhas, 0,7 MB. Cabe no banco de sobra — fica
     # fora porque ainda NÃO tem tela nem consumidor. Entrar no Postgres antes
     # de existir quem consulte é gastar o teto por antecipação; o Parquet já é
@@ -506,12 +501,6 @@ NAO_SERVIDAS = frozenset({
     # cabe no banco, mas ainda não há tela que a consulte. O Parquet já é
     # citável, versionado e com checksum; servir é um passo separado.
     "mart_sifilis_municipio",
-    # Dengue semanal MUNICIPAL: 95 MB no Postgres (a 2a maior tabela) para
-    # servir consultas que, medidas uma a uma, pediam grão de UF em 3 dos 4
-    # consumidores — 848 mil linhas guardadas para responder 16 mil. Trocada
-    # por mart_dengue_uf_semana na V044. O grão municipal continua publicado
-    # como Parquet citável, com SHA-256; o que saiu foi a API, não o dado.
-    "mart_dengue_semana",
     # SINAN multi-agravo: 723.765 linhas, 40 agravos. Mesma decisão da oncologia
     # e da sífilis — cabe no banco, mas ainda não há tela que a consulte. A
     # cobertura anda junto: ela é o que diz o que o "ano" significa em cada

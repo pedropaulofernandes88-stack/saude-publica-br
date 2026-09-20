@@ -29,6 +29,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 from _supabase_key import chave_escrita
@@ -192,7 +193,7 @@ def main() -> int:
         ("gerado_em", datetime.now().isoformat(timespec="seconds")),
     ], columns=["chave", "valor"])
     mrecs = meta.to_dict("records")
-    requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(mrecs), timeout=60)
+    gravar_procedencia(url, h, mrecs)
     print("[done] pipeline IVS concluído.")
     return res.relatar()
 

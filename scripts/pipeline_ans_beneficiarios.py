@@ -56,6 +56,7 @@ import zipfile
 from pathlib import Path
 
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 from _supabase_key import chave_escrita
@@ -227,7 +228,7 @@ def main() -> int:
                       f"municipio vem do endereco do contrato, nao da residencia: "
                       f"vinculos_plano_por_100_hab NAO e percentual de pessoas cobertas e pode passar "
                       f"de 100 (flag razao_implausivel)."}]
-    requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
+    gravar_procedencia(url, h, meta)
     print("[done] saude suplementar concluido.")
     return res.relatar()
 

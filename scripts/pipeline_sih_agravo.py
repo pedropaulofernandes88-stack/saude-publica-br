@@ -364,6 +364,22 @@ def main() -> int:
                   chaves=["municipio_cod", "agravo", "ano"], escopo={"ano": f"eq.{ano}"})
     varrer_orfaos(url, key, "mart_internacoes_hospital", hosp,
                   chaves=["cnes", "ano"], escopo={"ano": f"eq.{ano}"})
+
+    # A procedência vivia no banco SEM origem em script nenhum: estava em
+    # `meta_dataset` e em `site/public/sdata/meta.json`, e republicar do zero a
+    # perderia. Pior, tinha envelhecido — dizia "SIH/SUS 2024" enquanto o mart
+    # passou a cobrir 2022 em diante. O texto não fixa mais o ano: quem precisa
+    # da cobertura lê a competência mín/máx do manifesto de publicação, que é
+    # derivada do dado e não de uma frase.
+    gravar_procedencia(url, h, [{
+        "chave": "fonte_agravo_hospital",
+        "valor": "SIH/SUS (AIH): internações por agravo traçador (CID-10 de 3 "
+                 "caracteres, diagnóstico principal) por município, e visão por "
+                 "estabelecimento (CNES). Causas externas representadas pelo TCE — "
+                 "o mecanismo do acidente (códigos V) não consta no diagnóstico "
+                 "principal da AIH. A unidade é a AIH, não a pessoa nem o episódio. "
+                 "Competência coberta: ver o manifesto de publicação.",
+    }])
     print("[done] agravo + hospital concluído.", flush=True)
     return res.relatar()
 

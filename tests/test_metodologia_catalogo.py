@@ -165,25 +165,17 @@ def test_instructions_mandam_chamar_a_metodologia(texto_mcp: str):
 # ---------------------------------------------------------------------------
 # A procedência que a ferramenta promete tem de existir em algum lugar
 # ---------------------------------------------------------------------------
-#: Chaves que o MCP usa e que nenhum script deste repositório declara. Duas
-#: situações diferentes, as duas conhecidas e nenhuma silenciosa:
+#: Chaves que o MCP usa e que nenhum script deste repositório declara.
 #:
-#: fonte_sisagua — ainda NÃO existe em meta_dataset, então a ferramenta de água
-#: cai no texto genérico de `_procedencia` ("DATASUS/Ministério da Saúde e
-#: IBGE"), que não é falso mas é vago: o SISAGUA é do Ministério da Saúde e não
-#: do DataSUS. pipeline_sisagua.py só grava Parquet e quem sobe o mart é
-#: publicar.py; nenhum dos dois escreve meta_dataset, e decidir onde a chave
-#: entra é desenho do pipeline, não do servidor.
+#: **Vazio desde 2026-09-20**, e a intenção é que continue: as três que moravam
+#: aqui — `fonte_sisagua`, `fonte_cobertura_aps` e `fonte_agravo_hospital` —
+#: ganharam dono no mesmo dia, e as seis chaves que faltavam em produção foram
+#: gravadas pelo helper novo (`scripts/_procedencia.py`), que confere a resposta.
 #:
-#: fonte_cobertura_aps — mesmo caso do SISAGUA: `pipeline_cobertura_aps.py`
-#: constrói o mart e não publica chave nenhuma em meta_dataset, então a cobertura
-#: da APS cita o genérico. O e-Gestor AB é do Ministério da Saúde e não do
-#: DataSUS, então o genérico erra a atribuição por um nível.
-#:
-#: fonte_agravo_hospital — está VIVA no banco e em site/public/sdata/meta.json,
-#: e mesmo assim nenhum script do repositório a declara. A citação funciona hoje
-#: e não é reproduzível a partir do código: republicar do zero a perderia.
-PROCEDENCIA_SEM_PIPELINE = {"fonte_sisagua", "fonte_cobertura_aps", "fonte_agravo_hospital"}
+#: Manter a constante, e não apagá-la, é deliberado: ela é o lugar onde uma
+#: exceção futura tem de ser ESCRITA com o motivo, em vez de afrouxar o teste.
+#: Nome que entra aqui sem justificativa ao lado é dívida disfarçada de decisão.
+PROCEDENCIA_SEM_PIPELINE: set[str] = set()
 
 
 def test_chave_de_procedencia_e_declarada_por_algum_pipeline(texto_mcp: str):

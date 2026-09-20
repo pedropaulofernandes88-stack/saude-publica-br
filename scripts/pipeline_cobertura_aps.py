@@ -190,6 +190,22 @@ def main() -> int:
         print(f"[supabase]   {table}: {len(recs):,} OK", flush=True)
 
     up("mart_cobertura_aps_municipio", cobertura)
+
+    # A ferramenta do MCP já citava `fonte_cobertura_aps`, e a chave não existia
+    # em script nenhum nem no banco — `_procedencia` faz `.get(chave, <texto
+    # genérico>)`, então o número saía citando "DATASUS/Ministério da Saúde e
+    # IBGE" em vez do e-Gestor. A ressalva do denominador vai junto porque é o
+    # que separa este indicador de cobertura de um indicador de atendimento.
+    gravar_procedencia(url, h, [{
+        "chave": "fonte_cobertura_aps",
+        "valor": "e-Gestor Atenção Básica / SISAB (SAPS/MS), relatório de cobertura "
+                 "populacional estimada da Estratégia Saúde da Família e da Atenção "
+                 "Básica, por município e competência mensal. É cobertura POTENCIAL: "
+                 "calculada por parâmetro de população por equipe cadastrada, não por "
+                 "atendimento medido — equipe cadastrada não prova atendimento "
+                 "prestado. Pode passar de 100% quando há mais equipes que o "
+                 "parâmetro presume para a população estimada.",
+    }])
     print("[done] cobertura APS concluido.", flush=True)
     return res.relatar()
 

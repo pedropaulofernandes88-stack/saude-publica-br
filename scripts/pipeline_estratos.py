@@ -47,6 +47,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 from _supabase_key import chave_escrita
 
@@ -234,8 +235,7 @@ def main() -> int:
                        "Substitui o k-means, reprovado em teste de estabilidade "
                        "(ARI 0,571; 16% dos municípios reclassificados sem mudança de dado).")},
             {"chave": "gerado_em", "valor": datetime.now().isoformat(timespec="seconds")}]
-    requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h,
-                  data=json.dumps(meta), timeout=60)
+    gravar_procedencia(url, h, meta)
     print("[done] estratos concluído.")
     return res.relatar()
 

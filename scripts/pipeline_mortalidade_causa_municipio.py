@@ -93,6 +93,7 @@ from pathlib import Path
 import duckdb
 import numpy as np
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -491,11 +492,10 @@ def main() -> int:
     env = carregar_env()
     subir("dim_cid10_informativo", dimcid, env)
     url, key = env["SUPABASE_URL"].rstrip("/"), chave_escrita(env)
-    requests.post(f"{url}/rest/v1/meta_dataset",
-                  headers={"apikey": key, "Authorization": f"Bearer {key}",
-                           "Content-Type": "application/json",
-                           "Prefer": "return=minimal,resolution=merge-duplicates"},
-                  data=json.dumps(construir_meta(anos)), timeout=60)
+    gravar_procedencia(url,
+                       {"apikey": key, "Authorization": f"Bearer {key}",
+                        "Prefer": "return=minimal,resolution=merge-duplicates"},
+                       construir_meta(anos))
     print("[done] mortalidade por causa e município concluída.", flush=True)
     return res.relatar()
 

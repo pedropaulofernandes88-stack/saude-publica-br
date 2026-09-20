@@ -110,13 +110,35 @@ def _buscar(query: str, tentativas: int = 3, timeout: int = 120) -> list[dict]:
 
 
 def portais_no_ar() -> dict[str, int | str]:
-    """Estado da rota CSV. É a rota preferida: 1 arquivo contra 4.446 requisições."""
+    """Estado da rota CSV. É a rota preferida: 1 arquivo contra 4.446 requisições.
+
+    NÃO basta o status 200, e isto foi medido em 2026-09-20. O OpenDataSUS
+    trocou de portal: onde havia CKAN, hoje há um app Next.js que responde
+    **200 com a mesma casca HTML para qualquer caminho**, inclusive
+    `/api/3/action/package_show`. Duas consultas diferentes devolveram os
+    mesmos 33.054 bytes, `content-type: text/html`.
+
+    Ou seja: a checagem antiga, que só olhava o código, passaria hoje — e
+    declararia recuperada uma rota que continua sem entregar dado. É pior que o
+    HTTP 500 de setembro, porque 500 é honesto. Por isso o portal só conta como
+    no ar quando a API de catálogo devolve **JSON**: o que interessa não é o
+    servidor responder, é ele responder com o que a coleta precisa ler. Mesmo
+    princípio de `coleta-ausencia-vs-falha`.
+    """
     saida: dict[str, int | str] = {}
     for url in PORTAIS:
-        req = urllib.request.Request(url, method="GET")
+        catalogo = f"{url.rstrip('/')}/api/3/action/package_list"
+        req = urllib.request.Request(catalogo, method="GET")
         try:
             with urllib.request.urlopen(req, timeout=45) as r:
-                saida[url] = r.status
+                corpo = r.read(4096)
+                tipo = (r.headers.get("content-type") or "").lower()
+                if r.status == 200 and "json" not in tipo:
+                    saida[url] = f"{r.status} mas {tipo.split(';')[0]} — casca de portal, não catálogo"
+                elif r.status == 200 and not corpo.lstrip().startswith(b"{"):
+                    saida[url] = "200 mas corpo não é JSON"
+                else:
+                    saida[url] = r.status
         except urllib.error.HTTPError as e:
             saida[url] = e.code
         except Exception as e:  # noqa: BLE001

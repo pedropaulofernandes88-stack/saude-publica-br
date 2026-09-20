@@ -70,6 +70,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 from _supabase_key import chave_escrita
@@ -258,7 +259,7 @@ def publicar(df: pd.DataFrame, env: dict[str, str], anos: list[int]) -> None:
                       f"(TABNET siops-asp.datasus.gov.br), anos {anos}. Despesa EMPENHADA. "
                       f"Dado AUTODECLARADO pelo ente e homologado pelo gestor — não há "
                       f"verificação externa. Gasto não mede acesso nem qualidade."}]
-    requests.post(f"{url}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
+    gravar_procedencia(url, h, meta)
 
 
 def main() -> int:

@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-11 19:09 UTC
--- Objetos: 254
+-- Extraído em: 2026-09-20 18:17 UTC
+-- Objetos: 264
 -- =============================================================================
 
 
@@ -236,6 +236,16 @@ create table if not exists public.mart_contexto_social_municipio (
     constraint mart_contexto_social_municipio_pkey PRIMARY KEY (municipio_cod)
 );
 
+create table if not exists public.mart_correlacao_causas (
+    grupo smallint not null,
+    cid_a text not null,
+    cid_b text not null,
+    r numeric not null,
+    p numeric not null,
+    significativo boolean not null default false,
+    constraint mart_correlacao_causas_pkey PRIMARY KEY (grupo, cid_a, cid_b)
+);
+
 create table if not exists public.mart_demanda_mensal_hospital (
     cnes text not null,
     municipio_cod text,
@@ -262,6 +272,19 @@ create table if not exists public.mart_dengue_municipio_ano (
     letalidade_pct numeric(6,2),
     semanas_cobertas smallint,
     constraint mart_dengue_municipio_ano_pkey PRIMARY KEY (municipio_cod, ano_epi)
+);
+
+create table if not exists public.mart_dengue_semana (
+    municipio_cod text not null,
+    ano_epi smallint not null,
+    semana_epi smallint not null,
+    casos_provaveis integer not null,
+    casos_graves integer not null,
+    obitos integer not null,
+    municipio_nome text,
+    uf_sigla text not null,
+    regiao text,
+    constraint mart_dengue_semana_pkey PRIMARY KEY (municipio_cod, ano_epi, semana_epi)
 );
 
 create table if not exists public.mart_dengue_uf_semana (
@@ -724,7 +747,11 @@ CREATE INDEX idx_cluster_uf ON public.dim_cluster_municipio USING btree (uf_sigl
 
 CREATE INDEX idx_anomalia_causa_ano ON public.mart_anomalia_causa_municipio USING btree (causabas_3, ano);
 
+CREATE INDEX idx_corr_causas_sig ON public.mart_correlacao_causas USING btree (grupo, significativo) WHERE significativo;
+
 CREATE INDEX idx_dengueano_uf ON public.mart_dengue_municipio_ano USING btree (uf_sigla, ano_epi);
+
+CREATE INDEX idx_dengue_semana_uf ON public.mart_dengue_semana USING btree (uf_sigla, ano_epi, semana_epi);
 
 CREATE INDEX idx_fluxo_mov ON public.mart_fluxo_intermunicipal USING btree (municipio_mov, ano);
 
@@ -1132,9 +1159,13 @@ alter table public.mart_cobertura_vacinal_uf enable row level security;
 
 alter table public.mart_contexto_social_municipio enable row level security;
 
+alter table public.mart_correlacao_causas enable row level security;
+
 alter table public.mart_demanda_mensal_hospital enable row level security;
 
 alter table public.mart_dengue_municipio_ano enable row level security;
+
+alter table public.mart_dengue_semana enable row level security;
 
 alter table public.mart_dengue_uf_semana enable row level security;
 
@@ -1223,9 +1254,13 @@ create policy leitura_publica on public.mart_cobertura_vacinal_uf for select to 
 
 create policy leitura_publica on public.mart_contexto_social_municipio for select to anon, authenticated using (true);
 
+create policy leitura_publica on public.mart_correlacao_causas for select to anon, authenticated using (true);
+
 create policy leitura_publica on public.mart_demanda_mensal_hospital for select to public using (true);
 
 create policy leitura_publica on public.mart_dengue_municipio_ano for select to anon, authenticated using (true);
+
+create policy leitura_publica on public.mart_dengue_semana for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_dengue_uf_semana for select to anon, authenticated using (true);
 
@@ -1422,11 +1457,15 @@ comment on table public.mart_contexto_social_municipio is 'Eixos de contexto soc
 
 comment on column public.mart_contexto_social_municipio.spc1 is 'Eixo de vulnerabilidade: positivo em IVS, analfabetismo e cobertura de APS; negativo em plano de saude, estabelecimentos per capita e gasto proprio. Correlaciona -0,46 com o PC1 de mortalidade.';
 
+comment on table public.mart_correlacao_causas is 'Correlação de Spearman entre pares de causas (CID-10, 3 caracteres) sobre as taxas municipais. Uma linha por par POR RECORTE: `grupo` distingue o nacional dos três grupos de municípios. `significativo` já embute a correção de múltiplas comparações — não refazer o corte por `p` sozinho.';
+
 comment on table public.mart_demanda_mensal_hospital is 'Série mensal de internações por estabelecimento (CNES): volume, óbitos e valor aprovado. Base para a projeção de demanda (mart_forecast_demanda_hospital). Fonte: SIH/DataSUS.';
 
 comment on table public.mart_dengue_municipio_ano is 'Dengue (SINAN) anual por município: casos, incidência por 100 mil hab. e letalidade. Fonte: SINAN/DataSUS + IBGE.';
 
 comment on column public.mart_dengue_municipio_ano.semanas_cobertas is 'Semanas epidemiológicas com notificação no arquivo daquele ano, nacional. 52 ou 53 = ano fechado; menos que isso = ano em andamento, cujo TOTAL não é comparável com o de um ano fechado (compare semana a semana).';
+
+comment on table public.mart_dengue_semana is 'Dengue (SINAN) por município de residência × ano × semana epidemiológica (data dos primeiros sintomas). Casos prováveis = notificações exceto descartadas. Para leitura por UF prefira mart_dengue_uf_semana, que é o grão que 3 dos 4 consumidores medidos pediam e responde em uma requisição.';
 
 comment on table public.mart_dengue_uf_semana is 'Dengue (SINAN) agregada por UF de residência × ano × semana epidemiológica (data dos primeiros sintomas). Casos prováveis = notificações exceto descartadas. Substitui o uso de mart_dengue_semana pela API: o grão municipal semanal continua publicado como Parquet, fora do Postgres.';
 

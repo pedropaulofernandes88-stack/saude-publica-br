@@ -40,6 +40,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 from _supabase_key import chave_escrita
@@ -243,7 +244,7 @@ def main() -> int:
                       "Cadastro fotografado mensalmente -- snapshot anual, nunca soma de competencias. "
                       "UTI por lista explicita de codigos da tabela oficial de dominios (o codigo 84, "
                       "no meio da faixa de UTI, e acolhimento noturno e fica de fora)."}]
-    requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
+    gravar_procedencia(url, h, meta)
     print("[done] leitos concluido.")
     return res.relatar()
 

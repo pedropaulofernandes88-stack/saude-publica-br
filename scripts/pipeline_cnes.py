@@ -59,6 +59,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 from _supabase_key import chave_escrita
@@ -275,7 +276,7 @@ def main() -> int:
                       "(codigo_motivo_desabilitacao_estabelecimento nulo). Natureza da propriedade via "
                       "primeiro digito de descricao_natureza_juridica_estabelecimento (CONCLA), nao via "
                       "descricao_esfera_administrativa (esfera de gestao, nao propriedade)."}]
-    requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
+    gravar_procedencia(url, h, meta)
     print("[done] CNES concluido.")
     return res.relatar()
 

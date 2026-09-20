@@ -71,6 +71,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -225,9 +226,8 @@ def main() -> None:
         if r.status_code not in (200, 201):
             raise RuntimeError(f"upload: HTTP {r.status_code} {r.text[:200]}")
     print(f"[supabase]   mart_contexto_social_municipio: {len(recs):,} OK", flush=True)
-    requests.post(f"{url}/rest/v1/meta_dataset", headers=cab, timeout=60,
-                  data=json.dumps([{"chave": "gerado_em",
-                                    "valor": datetime.now().isoformat(timespec="seconds")}]))
+    gravar_procedencia(url, cab, [{"chave": "gerado_em",
+                                   "valor": datetime.now().isoformat(timespec="seconds")}])
     print("[done] contexto social concluído.", flush=True)
 
 

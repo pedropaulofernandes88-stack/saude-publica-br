@@ -130,6 +130,7 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -615,9 +616,8 @@ def main() -> None:
     # a decisão que está documentada dez linhas acima da lista. Erro instrutivo:
     # um 404 pode significar "falta criar" ou "não deve existir", e as duas
     # coisas são indistinguíveis olhando só a mensagem. Quem decide é a lista.
-    requests.post(f"{url}/rest/v1/meta_dataset", headers=cab, timeout=60,
-                  data=json.dumps([{"chave": "gerado_em",
-                                    "valor": datetime.now().isoformat(timespec="seconds")}]))
+    gravar_procedencia(url, cab, [{"chave": "gerado_em",
+                                   "valor": datetime.now().isoformat(timespec="seconds")}])
     print("[done] perfil de mortalidade concluído.", flush=True)
 
 

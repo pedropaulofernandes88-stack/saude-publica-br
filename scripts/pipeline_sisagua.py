@@ -91,6 +91,37 @@ ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
 ENDPOINT = "controle-mensal-parametros-basicos"
 
+#: A procedência desta fonte, para `meta_dataset`.
+#:
+#: Fica aqui como CONSTANTE e não como escrita, porque este pipeline não fala
+#: com o Postgres: ele grava Parquet, e o mart sobe fora de banda por
+#: `_subir_mart.py`. Declarar o texto aqui mantém a fonte junto do coletor que a
+#: conhece, e é o que a guarda de
+#: `tests/test_metodologia_catalogo.py` lê para saber que a chave que o MCP cita
+#: tem dono.
+#:
+#: Até 2026-09-20 esta chave não existia em lugar nenhum — nem em script, nem no
+#: banco. `_procedencia` do MCP faz `.get(chave, <texto genérico>)`, então a
+#: ferramenta de água respondia citando "DATASUS/Ministério da Saúde e IBGE",
+#: que não é a fonte dela. Chave ausente não dá erro; degrada em silêncio.
+#:
+#: O jeito certo de fechar isso de vez é um registro de procedência lido tanto
+#: pelos pipelines quanto pelo `_subir_mart.py` — enquanto ele não existe, a
+#: constante mora ao lado do coletor.
+PROCEDENCIA = {
+    "chave": "fonte_sisagua",
+    "valor": "SISAGUA — Vigilância da Qualidade da Água para Consumo Humano, pela "
+             "API de dados abertos do Ministério da Saúde "
+             "(apidadosabertos.saude.gov.br/sisagua, endpoint "
+             "controle-mensal-parametros-basicos), por município, ano e parâmetro. "
+             "NÃO é potabilidade: mede QUANTO se analisou, e conformidade apenas "
+             "onde a própria fonte declara o limiar. Município ausente do mart não "
+             "é água conforme — é município que não analisou ou que não foi "
+             "coletado, e só mart_sisagua_cobertura separa os dois casos. O rótulo "
+             "de faixa do cloro mudou de redação em 2023: somar as duas redações "
+             "como categorias distintas inventa uma quebra de série.",
+}
+
 UFS = [
     "AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS",
     "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC",

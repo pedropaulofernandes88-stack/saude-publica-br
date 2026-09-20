@@ -45,6 +45,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -216,7 +217,7 @@ def main() -> int:
              "valor": "SIM/DataSUS — % de óbitos por causas mal definidas (CID-10 capítulo XVIII, "
                       f"R00–R99) por município, {PERIODO}. Bom <5%, Regular 5–10%, Ruim >10%."},
             {"chave": "gerado_em", "valor": datetime.now().isoformat(timespec="seconds")}]
-    requests.post(f"{url}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
+    gravar_procedencia(url, h, meta)
     print("[done] qualidade do registro concluído.", flush=True)
     return res.relatar()
 

@@ -30,6 +30,7 @@ from datetime import datetime
 from pathlib import Path
 
 import pandas as pd
+from _procedencia import gravar_procedencia  # noqa: E402
 import requests
 from _supabase_key import chave_escrita
 from _varredura import varrer_orfaos
@@ -363,7 +364,7 @@ def main() -> int:
                   chaves=["municipio_cod", "ano"], escopo={"ano": f"eq.{ano}"})
     meta = [{"chave": "fonte_fluxo_icsap", "valor": f"SIH/SUS {ano}: fluxo intermunicipal (MUNIC_RES→MUNIC_MOV, ≥5 internações) e ICSAP (aproximação Lista Brasileira, CID-10 3 caracteres). Ideia de fluxo inspirada no LabSUS (UFT)."},
             {"chave": "gerado_em", "valor": datetime.now().isoformat(timespec="seconds")}]
-    requests.post(f"{url.rstrip('/')}/rest/v1/meta_dataset", headers=h, data=json.dumps(meta), timeout=60)
+    gravar_procedencia(url, h, meta)
     print("[done] fluxo + ICSAP concluído.")
     return res.relatar()
 
