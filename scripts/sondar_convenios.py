@@ -66,6 +66,11 @@ país inteiro.
 
 **5. E do NOSSO lado a chave falha exatamente onde o dinheiro está.**
 
+    ⚠️ ESTA SEÇÃO ESTÁ ERRADA. Ver "ESTES NÚMEROS ESTÃO ERRADOS" mais abaixo:
+    o campo foi medido pela API do CNES, que o omite; no FTP ele existe em
+    99,4%, e o casamento vai de 15,6% para 81,9%. Fica aqui inteira porque o
+    erro é o ensinamento, não porque ainda valha.
+
 Medido em 600 estabelecimentos de 10 municípios de portes diferentes, pela API
 do CNES (campos `numero_cnpj` e `numero_cnpj_entidade`):
 
@@ -136,11 +141,48 @@ contagem, as medidas ficam entre 15,6% e 20,1% — abaixo ou encostando. Por
 VALOR, que é o denominador que importa para quem pergunta "para onde foi o
 dinheiro", cai para **5,9%**.
 
-A diferença entre 15,6% e 5,9% é a resposta: os convênios que casam com um
-estabelecimento do CNES são os PEQUENOS. O dinheiro grande vai para prefeitura e
-secretaria, cujo CNPJ não é o de estabelecimento nenhum. **O grão por
-estabelecimento não se sustenta** — e isto não é empate no limiar, é um terço
-dele.
+╔══════════════════════════════════════════════════════════════════════════════╗
+║ ESTES NÚMEROS ESTÃO ERRADOS, E A CORREÇÃO ESTÁ LOGO ABAIXO                   ║
+╚══════════════════════════════════════════════════════════════════════════════╝
+
+Ficam aqui porque o ERRO é o ensinamento: eles saíram da **API** do CNES, que
+omite o campo que responde a pergunta. Conferido no FTP em 2026-09-20, sobre os
+21.023 convênios nacionais e os 335.702 CNPJ distintos dos 27 arquivos `ST`:
+
+    por CONVÊNIO ......................... 17.224/21.023 = **81,9%**
+    por ENTIDADE ......................... 4.113/5.558  = **74,0%**
+    por VALOR ............................ R$ 26,98 bi de R$ 72,25 bi = 37,3%
+    por VALOR, sem organismos internac. .. R$ 26,98 bi de R$ 40,52 bi = **66,6%**
+
+**O grão por estabelecimento SE SUSTENTA.** O corte declarado de 20% é superado
+com folga em todo denominador.
+
+POR QUE EU ERREI, E COMO NÃO REPETIR
+-------------------------------------
+Eu media `numero_cnpj_entidade` da API, que vem preenchido em 5%. O FTP traz o
+mesmo conceito em `CNPJ_MAN` (CNPJ da MANTENEDORA), preenchido em **99,4%** dos
+43.604 estabelecimentos públicos medidos. A estrutura é complementar e faz
+sentido: estabelecimento privado, filantrópico ou de pessoa física carrega o
+próprio documento em `CPF_CNPJ` (100%); estabelecimento público carrega o da
+mantenedora — que é a prefeitura ou a secretaria, exatamente quem assina
+convênio federal.
+
+Ou seja: eu havia concluído que o dado brasileiro tem um limite estrutural que
+impede ligar dinheiro a serviço. Era limitação da **API**, não do cadastro. A
+lição: antes de declarar limite estrutural de uma fonte, conferir a mesma fonte
+por outra ROTA. `coleta-ausencia-vs-falha` vale também para campo vazio.
+
+Os 37,3% por valor são menores porque R$ 31,73 bi estão em 91 convênios com
+organizações internacionais, que não são estabelecimento do CNES por definição —
+e não deveriam casar.
+
+ARMADILHA TÉCNICA DO FTP DO CNES, que provavelmente é a razão de este caminho
+nunca ter sido usado: os arquivos `ST` **não abrem com `dbfread`**. O cabeçalho
+declara 208 campos e não traz o terminador `0x0D` do padrão DBF — há `0x00` no
+lugar, e o leitor varre além do cabeçalho até estourar com "unpack requires a
+buffer of 32 bytes". O DBC descompacta normalmente; quem quebra é o leitor de
+DBF. A saída é ler pelo tamanho declarado no cabeçalho em vez de procurar o
+terminador, conferindo que a soma dos campos bate com o tamanho do registro.
 
 Achado que veio junto e vale por si: a execução geral (liberado/pactuado) é de
 **85,0%** na amostra. Bem acima do que um caso isolado de 48% sugeria — não
