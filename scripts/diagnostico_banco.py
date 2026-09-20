@@ -111,13 +111,26 @@ PCT_INCHACO_RELEVANTE = 15.0
 #: banco: `mart_internacoes_agravo` foi de 39,3 para 65,1 MB com ZERO tuplas
 #: mortas — proporcional, sem vacuum. Ver [[upload-upsert-incha-a-tabela]].
 #:
-#: A RESSALVA QUE NÃO EXISTIA NAS VEZES ANTERIORES, e que fica aqui porque quem
-#: ler este número precisa dela: o plano é FREE, cuja cota nominal de banco é
-#: 500 MB. O projeto opera acima disso há tempo sem ser restringido — isso é
-#: tolerância do provedor, não permissão, e nenhum Postgres gerenciado gratuito
-#: do mercado passa de 1 GB. Este teto mede folga sobre o uso corrente e continua
-#: sendo a guarda útil do dia a dia, mas ele NÃO é o limite que pode derrubar o
-#: site. Decisão tomada em 2026-09-19, com o risco enunciado e aceito.
+#: 2026-09-20 — o TETO NÃO MUDA, e a razão de ele não mudar é a parte que
+#: importa. O projeto saiu do plano free para o Pro: a cota de banco foi de
+#: 500 MB para **8 GB**, e o banco ocupa ~10% disso. Havia espaço para levar este
+#: número a qualquer lugar, e ele fica em 875.
+#:
+#: Porque a pergunta que este teto responde nunca foi "cabe no plano?". Ele mede
+#: FOLGA SOBRE O USO CORRENTE — ele existe para avisar que o banco cresceu mais
+#: do que alguém esperava, e esse aviso é igualmente útil com 8 GB livres. Subir
+#: para 7 GB "porque cabe" desligaria a guarda sem desligá-la no papel, que é a
+#: forma mais cara de perder um alarme.
+#:
+#: O que mudou foi a CONSEQUÊNCIA de cruzá-lo, e quem lê precisa saber disso: até
+#: ontem, estourar significava risco de o provedor restringir o projeto e derrubar
+#: o site; hoje significa crescimento acima do previsto e, depois dos 8 GB,
+#: US$ 0,125 por GB/mês. Deixou de ser risco de disponibilidade e passou a ser
+#: risco de conta. Continua valendo investigar antes de subir o número.
+#:
+#: Fica registrado o que este comentário dizia até hoje, e não é mais verdade: que
+#: o plano era free, que a cota eram 500 MB e que o projeto operava acima dela por
+#: tolerância do provedor.
 LIMITE_PADRAO_MB = 875.0
 
 

@@ -518,11 +518,16 @@ NAO_SERVIDAS = frozenset({
     # agravo, e publicar o mart sem ela seria publicar número sem a ressalva.
     "mart_sinan_agravo_municipio",
     "mart_sinan_agravo_cobertura",
-    # SISCAN: 86.901 linhas, cabe no banco de sobra — fica fora pelo mesmo
-    # critério da oncologia e da sífilis: não há tela nem ferramenta MCP que a
-    # consulte. Entrar no Postgres antes de existir quem consulte é gastar o
-    # teto por antecipação, e o teto está em 684 MB de 750. O Parquet já é
-    # citável, versionado e com SHA-256; servir é um passo separado.
+    # SISCAN: 86.901 linhas — fica fora pelo mesmo critério da oncologia e da
+    # sífilis, e SÓ por ele: não há tela nem ferramenta MCP que a consulte.
+    #
+    # O critério é esse e não o espaço. A primeira redação desta nota também
+    # invocava o teto do banco, que estava apertado quando ela foi escrita; o
+    # projeto passou ao plano Pro no dia seguinte e o argumento evaporou, mas a
+    # decisão não mudou — nem deveria. Servir tabela que ninguém consulta não
+    # fica certo por haver espaço; só fica mais barato de errar. O Parquet já é
+    # citável, versionado e com SHA-256; servir é um passo separado, e o gatilho
+    # dele é aparecer consumidor.
     "mart_siscan_municipio",
     "mart_siscan_cobertura",
 })
