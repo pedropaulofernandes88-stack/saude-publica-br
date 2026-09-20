@@ -100,18 +100,60 @@ não é dinheiro entregue, e um mapa de "investimento federal por município" fe
 sobre `valor` descreve intenção, não execução. Os dois vão para o mart, e a
 metodologia tem de dizer qual responde a qual pergunta.
 
-O QUE ESTE PORTÃO AINDA NÃO SABE
----------------------------------
-Sem chave, não dá para medir o que só a resposta real responde, e que decide o
-custo do coletor:
+MEDIDO COM A CHAVE, EM 2026-09-20 — E TRÊS ARMADILHAS QUE A ESPECIFICAÇÃO OMITE
+-------------------------------------------------------------------------------
 
-  * quantos convênios de função 10 existem, e em que período;
-  * quantos registros vêm por página (a API do CNES, por exemplo, ignora `limit`
-    e devolve 20 — ver a sondagem do SRAG para o mesmo tipo de armadilha);
-  * a TAXA REAL DE CASAMENTO entre `convenente.cnpjFormatado` e o CNPJ do CNES,
-    que é o número que decide se o grão por estabelecimento vale a pena.
+**a) `funcao` sozinho é recusado.** HTTP 400: "escolha um período de até 1 mês ou
+um convenente ou um órgão/entidade ou uma localidade ou um número de convênio".
+O OpenAPI marca todos os parâmetros como opcionais menos `pagina`. A regra só
+aparece batendo na API, e define a forma da varredura: âncora obrigatória.
 
-Estas três medições estão implementadas abaixo e rodam assim que a chave existir.
+**b) `codigoIBGE` exige SETE dígitos e falha em SILÊNCIO com seis.** Ver o
+comentário de `MUNICIPIOS_AMOSTRA`. É a armadilha mais perigosa desta fonte.
+
+**c) A API escreve `descricaoSubfuncap`**, com typo, dentro de `subfuncao`. Quem
+ler `descricaoSubfuncao` recebe `None` sem erro nenhum.
+
+Página: **15 registros**, fixos. `dataReferencia` é a data do RETRATO (a mesma em
+todas as linhas), não a data do convênio. Linhas repetidas por convenente NÃO são
+duplicatas: são convênios distintos (ids e códigos distintos) da mesma entidade —
+somar `valor` sobre linhas está correto.
+
+A TAXA DE CASAMENTO, E A DECISÃO DE GRÃO QUE ELA IMPÕE
+-------------------------------------------------------
+Medido em 10 municípios de todas as regiões, 782 convênios de função 10, 139
+entidades distintas, contra o CNPJ de todos os estabelecimentos do CNES daqueles
+mesmos municípios:
+
+    por entidade, CNPJ completo (14) ..... 22/139 = 15,8%
+    por entidade, RAIZ (8 dígitos) ....... 28/139 = 20,1%
+    por linha (convênio), CNPJ completo .. 122/782 = 15,6%
+
+O critério declarado ANTES de olhar (`CASAMENTO_MINIMO_PCT`) era 20%. Duas das
+três medidas ficam claramente abaixo; a mais generosa encosta na linha. Isso não
+é aprovação — é empate no denominador mais favorável, e a leitura disciplinada é
+que **o grão por estabelecimento não se sustenta como REGRA**.
+
+Consequência de desenho: o mart nasce com grão **município × ano**, e o CNPJ
+entra como ENRIQUECIMENTO opcional — coluna que liga ao CNES quando existe, com
+outra coluna dizendo por que não ligou quando não existe. Nunca o contrário.
+
+Duas hipóteses minhas foram testadas e REFUTADAS no caminho, e ficam registradas
+para ninguém refazê-las:
+
+  * *"o casamento falha porque convênio e estabelecimento estão sob filiais
+    diferentes do mesmo CNPJ"* — a raiz de 8 dígitos acrescenta 6 entidades em
+    139 (+4,3 pontos). Ajuda, mas não é o mecanismo dominante;
+  * *"as linhas repetidas por entidade são duplicatas"* — não são. São convênios
+    distintos.
+
+O QUE SEGUE SEM MEDIÇÃO
+------------------------
+O volume nacional. Paginar 5.570 municípios a 15 registros por página custa caro
+em requisições, e o limite publicado é 400/min (700 entre 00h e 06h; convênios
+não está na lista de APIs restritas). Medir isso é a primeira coisa que o
+coletor deve fazer, e com limitador próprio: a API do CNES derrubou a conexão
+nesta sondagem quando foi consultada sem pausa.
 """
 from __future__ import annotations
 
@@ -138,10 +180,23 @@ VARIAVEL = "PORTAL_TRANSPARENCIA_API_KEY"
 #: Função SIAFI da Saúde. É o recorte inteiro desta fonte.
 FUNCAO_SAUDE = "10"
 
-#: Municípios de portes e regiões diferentes, para a amostra do casamento de
-#: CNPJ não medir só capital. Os mesmos usados na medição do lado do CNES.
-MUNICIPIOS_AMOSTRA = ["355030", "330455", "292740", "150140", "431490",
-                      "520870", "172100", "230440", "261160", "410690"]
+#: Municípios da amostra, em código IBGE de **SETE** dígitos.
+#:
+#: Sete, e não os seis que o projeto usa em toda parte, porque a API SÓ aceita
+#: sete — e o modo como ela recusa seis é a pior armadilha desta fonte. Medido
+#: em 2026-09-20:
+#:
+#:     codigoIBGE=355030  -> HTTP 200, lista VAZIA
+#:     codigoIBGE=3550308 -> HTTP 200, 15 registros
+#:
+#: Um coletor que usasse `municipio_cod` (o canônico daqui) publicaria um mart
+#: em que NENHUM município tem convênio, com exit 0 e sem uma linha de erro. É
+#: [[coleta-ausencia-vs-falha]] com o gatilho pronto.
+#:
+#: O sete dígitos já existe em `data/refs/municipios.parquet`, coluna
+#: `municipio_cod7` — não é preciso calcular dígito verificador.
+MUNICIPIOS_AMOSTRA = ["3524402", "3549904", "3131307", "2611606", "4115200",
+                      "5002704", "2304400", "1501402", "3106200", "4314902"]
 
 #: Abaixo disso, o grão por ESTABELECIMENTO não se sustenta e o mart deve sair
 #: só por município. Não é regra universal: é o limiar que este projeto aceita
@@ -191,9 +246,23 @@ def documentacao_no_ar() -> tuple[bool, str]:
 
 
 def medir_com_chave(chave: str) -> dict:
-    """O que só a resposta real responde. Roda quando a chave existe."""
+    """O que só a resposta real responde. Roda quando a chave existe.
+
+    Toda consulta leva ÂNCORA, e isso não é preferência: a API recusa filtro de
+    função sozinho, com 400 e esta mensagem —
+
+        "Para usar filtros em convênios, escolha um período de até 1 mês ou um
+         convenente ou um órgão/entidade ou uma localidade (município ou
+         estado-UF) ou um número de convênio."
+
+    A especificação OpenAPI marca TODOS os parâmetros como opcionais menos
+    `pagina`, então esta regra só aparece batendo na API. A âncora escolhida
+    aqui é o município, que é o grão do projeto.
+    """
     medida: dict = {}
-    status, corpo = _get(f"{API}?pagina=1&funcao={FUNCAO_SAUDE}", chave)
+    ancora = MUNICIPIOS_AMOSTRA[0]
+    status, corpo = _get(
+        f"{API}?pagina=1&codigoIBGE={ancora}&funcao={FUNCAO_SAUDE}", chave)
     medida["status_funcao_saude"] = status
     if status != 200:
         medida["erro"] = corpo[:300].decode("utf-8", "replace")
