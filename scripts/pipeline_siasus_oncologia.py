@@ -84,7 +84,21 @@ def _limpo(v) -> str:
 
 
 def _estadio(v) -> str:
-    e = _limpo(v).lstrip("0") or "0"
+    """Estádio declarado, ou "ignorado" — e VAZIO NÃO É ZERO.
+
+    A primeira versão desta função fazia `_limpo(v).lstrip("0") or "0"`, e com
+    isso string vazia virava `"0"`. Estádio 0 é ESTÁDIO REAL (carcinoma in
+    situ), então a ausência era publicada como diagnóstico precoce. Medido no
+    dado cru de PE em 2013-01: 1.119 vazios contra 446 zeros verdadeiros — o
+    estádio 0 saía inflado em 3,5 vezes.
+
+    É exatamente o defeito que este projeto aponta no Painel de Oncologia, e eu
+    o reproduzi em três linhas. Ausência tem rótulo próprio, sempre.
+    """
+    e = _limpo(v)
+    if not e:
+        return "ignorado"
+    e = e.lstrip("0") or "0"
     return e if e in ESTADIOS else "ignorado"
 
 
