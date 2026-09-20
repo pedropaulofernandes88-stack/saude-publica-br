@@ -128,11 +128,23 @@ mesmos municípios:
     por entidade, CNPJ completo (14) ..... 22/139 = 15,8%
     por entidade, RAIZ (8 dígitos) ....... 28/139 = 20,1%
     por linha (convênio), CNPJ completo .. 122/782 = 15,6%
+    POR VALOR PACTUADO ................... R$ 174,1 mi de R$ 2,95 bi = 5,9%
+    POR VALOR LIBERADO ................... R$ 138,2 mi de R$ 2,51 bi = 5,5%
 
-O critério declarado ANTES de olhar (`CASAMENTO_MINIMO_PCT`) era 20%. Duas das
-três medidas ficam claramente abaixo; a mais generosa encosta na linha. Isso não
-é aprovação — é empate no denominador mais favorável, e a leitura disciplinada é
-que **o grão por estabelecimento não se sustenta como REGRA**.
+O critério declarado ANTES de olhar (`CASAMENTO_MINIMO_PCT`) era 20%. Por
+contagem, as medidas ficam entre 15,6% e 20,1% — abaixo ou encostando. Por
+VALOR, que é o denominador que importa para quem pergunta "para onde foi o
+dinheiro", cai para **5,9%**.
+
+A diferença entre 15,6% e 5,9% é a resposta: os convênios que casam com um
+estabelecimento do CNES são os PEQUENOS. O dinheiro grande vai para prefeitura e
+secretaria, cujo CNPJ não é o de estabelecimento nenhum. **O grão por
+estabelecimento não se sustenta** — e isto não é empate no limiar, é um terço
+dele.
+
+Achado que veio junto e vale por si: a execução geral (liberado/pactuado) é de
+**85,0%** na amostra. Bem acima do que um caso isolado de 48% sugeria — não
+extrapolar execução a partir de exemplo.
 
 Consequência de desenho: o mart nasce com grão **município × ano**, e o CNPJ
 entra como ENRIQUECIMENTO opcional — coluna que liga ao CNES quando existe, com
