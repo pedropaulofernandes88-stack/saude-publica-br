@@ -38,6 +38,7 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _procedencia import gravar_procedencia
 from _supabase_key import chave_escrita
 
 # A linhagem viaja com os BYTES: `escrever_parquet` grava no proprio

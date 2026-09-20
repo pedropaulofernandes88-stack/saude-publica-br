@@ -51,6 +51,7 @@ from _datasus_ftp import (
 from _fontes import HOST_FTP, fonte  # noqa: E402
 from _metricas_aih import aplica_metricas_por_episodio
 from _metricas_aih import capitulo as _capitulo
+from _procedencia import gravar_procedencia
 from _supabase_key import chave_escrita
 from _varredura import varrer_orfaos
 
