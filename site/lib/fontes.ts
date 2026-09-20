@@ -202,6 +202,28 @@ export const FONTES: Fonte[] = [
       + "tem volume baixo por isso, não por queda de rastreamento.",
   },
   {
+    id: "convenios",
+    nome: "Convênios federais",
+    sistema: "Portal da Transparência",
+    orgao: "CGU",
+    traz:
+      "convênios federais da função Saúde por município do convenente, ano e tipo "
+      + "de entidade, com valor pactuado, valor liberado e contrapartida",
+    observacao:
+      "O município é o da SEDE DE QUEM ASSINOU, não o destino do dinheiro — e isso "
+      + "domina o ranking, não é caso de borda. Brasília aparece com R$ 32,2 bi, 45% "
+      + "de todo o valor do país, porque 90 dos 91 convênios com organizações "
+      + "internacionais estão registrados lá e executam programas nacionais; e "
+      + "Dourados (MS), com 200 mil habitantes, aparece com R$ 4,5 bi, que são 37 "
+      + "convênios da Missão Evangélica Caiuá, operadora de saúde indígena em vários "
+      + "estados. Leia a coluna como “valor comprometido com entidades sediadas neste "
+      + "município”. Segunda ressalva: valor PACTUADO não é dinheiro entregue — o "
+      + "valor liberado viaja ao lado e a execução nacional é de 77,9%. O recorte é a "
+      + "função 10 (Saúde) da classificação SIAFI, e o ano é o de início da vigência: "
+      + "convênio é plurianual, então somar por ano descreve quando se ASSINOU, não "
+      + "quando se gastou.",
+  },
+  {
     id: "derivado",
     nome: "Análises derivadas",
     sistema: "—",
@@ -270,6 +292,9 @@ export const FONTE_DA_TABELA: Record<string, string> = {
   // ANS
   mart_saude_suplementar_municipio: "ans",
   mart_saude_suplementar_icsap_municipio: "ans",
+  // Convênios federais
+  mart_convenios_municipio: "convenios",
+  mart_convenios_cobertura: "convenios",
   // SISCAN
   mart_siscan_municipio: "siscan",
   mart_siscan_cobertura: "siscan",

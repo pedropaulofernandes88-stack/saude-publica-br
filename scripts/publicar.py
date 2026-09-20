@@ -98,6 +98,12 @@ TABELAS = [
     # SINAN multi-agravo: notificações de 40 agravos por município e ano.
     "mart_sinan_agravo_municipio",
     "mart_sinan_agravo_cobertura",
+    # Convênios federais de saúde (Portal da Transparência/CGU): 21.023
+    # convênios, R$ 72,2 bi pactuados. A cobertura por UF anda junto e não é
+    # acessório — a varredura é por UF, e sem ela uma UF que falhou na coleta
+    # se lê como estado sem convênio nenhum.
+    "mart_convenios_municipio",
+    "mart_convenios_cobertura",
     # SISCAN: rastreamento de colo e mama, três das cinco visões do sistema.
     # A cobertura anda junto pelo mesmo motivo do SISAGUA: ela é o que diz
     # quais municípios responderam, e sem isso "sem exame" e "sem coleta"

@@ -2,7 +2,7 @@
 pipeline_convenios.py — convênios federais de SAÚDE por município e ano
 ========================================================================
 
-    python scripts/pipeline_convenios.py --no-upload
+    python scripts/pipeline_convenios.py
 
 A VARREDURA DA API É PASSO SEPARADO deste script, e de propósito: ela leva
 dezenas de minutos com limitador, grava um JSON por UF em `data/raw/CONVENIOS/`
@@ -99,6 +99,7 @@ from pathlib import Path
 import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+from _fontes import fonte  # noqa: E402
 from _saida import Resultado  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -109,16 +110,8 @@ REFS = ROOT / "data" / "refs"
 MARTS = ROOT / "data" / "marts"
 CKPT = ROOT / "data" / "raw" / "CONVENIOS"
 
-#: Digitado aqui, e não lido de `_fontes.py`, pela mesma razão de ORDEM do
-#: SISCAN: o registro exige que o id exista em `site/lib/fontes.ts`, e o site
-#: exige que toda fonte declarada tenha tabela no manifesto. Enquanto o mart não
-#: for publicado, declarar `convenios` quebraria a guarda do site.
-#:
-#: REMOVER daqui assim que `mart_convenios_municipio` for publicado: declarar
-#: `convenios` em `_fontes.py` (api, https://api.portaldatransparencia.gov.br/
-#: api-de-dados/convenios) e em `fontes.ts`, e trocar esta constante por
-#: `fonte("convenios").local("api").caminho`.
-API = "https://api.portaldatransparencia.gov.br/api-de-dados/convenios"
+#: Lido do registro desde a publicação dos marts (2026-09-20).
+API = fonte("convenios").local("api").caminho
 
 UFS = ["AC", "AL", "AM", "AP", "BA", "CE", "DF", "ES", "GO", "MA", "MG", "MS",
        "MT", "PA", "PB", "PE", "PI", "PR", "RJ", "RN", "RO", "RR", "RS", "SC",
@@ -267,9 +260,14 @@ def guardas(mart: pd.DataFrame, bruto: pd.DataFrame, cob: pd.DataFrame) -> None:
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser()
-    ap.add_argument("--no-upload", action="store_true")
-    args = ap.parse_args()
+    # Sem flags, e sem `--no-upload`: este pipeline NÃO fala com o Postgres.
+    # Ele grava Parquet, que é o eixo canônico do projeto, e a subida (se um dia
+    # houver consumidor que a justifique) é passo separado — mesma forma de
+    # `pipeline_sisagua.py`. Uma flag que não muda nada é pior que nenhuma:
+    # promete um caminho que não existe.
+    argparse.ArgumentParser(
+        description="Convênios federais de saúde por município e ano."
+    ).parse_args()
     res = Resultado("scripts/pipeline_convenios.py")
 
     bruto, cob = ler_checkpoints()

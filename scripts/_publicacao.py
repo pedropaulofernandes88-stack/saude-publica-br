@@ -519,6 +519,11 @@ NAO_SERVIDAS = frozenset({
     # dele é aparecer consumidor.
     "mart_siscan_municipio",
     "mart_siscan_cobertura",
+    # Convênios federais: mesmo critério: não há tela nem ferramenta MCP que os
+    # consulte. O Parquet é citável e com SHA-256; servir é passo separado, e o
+    # gatilho é aparecer consumidor — não haver espaço sobrando.
+    "mart_convenios_municipio",
+    "mart_convenios_cobertura",
 })
 
 
@@ -673,6 +678,10 @@ CHAVES_SEM_ESQUEMA: dict[str, list[str]] = {
     # município: ela responde "este CSV existia e quantas linhas tinha",
     # que é o que separa exame ausente de arquivo não coletado.
     "mart_siscan_cobertura": ["exame", "ano"],
+    # O grão é município-ano-GRUPO: a mesma prefeitura e a mesma filantrópica
+    # aparecem no mesmo ano e são linhas diferentes.
+    "mart_convenios_municipio": ["municipio_cod", "ano", "grupo_convenente"],
+    "mart_convenios_cobertura": ["uf_sigla"],
 }
 
 #: Compatibilidade com o nome antigo, que descrevia só metade dos casos.

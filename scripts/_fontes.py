@@ -193,6 +193,18 @@ FONTES: tuple[Fonte, ...] = (
         ),
     ),
     Fonte(
+        id="convenios", base="CONVENIOS",
+        locais=(
+            Local("api", "api",
+                  "https://api.portaldatransparencia.gov.br/api-de-dados/convenios",
+                  observar=False,
+                  nota="exige chave (PORTAL_TRANSPARENCIA_API_KEY) e ÂNCORA: "
+                       "filtro de função sozinho é HTTP 400"),
+        ),
+        dispensa="API por consulta, com chave — não há arquivo com tamanho e "
+                 "data para comparar entre rodadas",
+    ),
+    Fonte(
         id="siscan", base="SISCAN",
         locais=(
             # Só as três visões que o pipeline ingere. As outras duas do SISCAN

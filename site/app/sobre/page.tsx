@@ -57,7 +57,7 @@ export default function Sobre() {
         {[
           [`${(cobertura().obitos / 1e6).toFixed(1).replace(".", ",")} mi`,
            `óbitos processados (SIM ${cobertura().periodo})`],
-          ["13 fontes", "SIM · SIH · SINAN · SINASC · PNI · CNES · SIOPS · e-Gestor AB · ANS · Painel Oncologia · SISAGUA · SISCAN · IBGE"],
+          ["14 fontes", "SIM · SIH · SINAN · SINASC · PNI · CNES · SIOPS · e-Gestor AB · ANS · Painel Oncologia · SISAGUA · SISCAN · Portal da Transparência · IBGE"],
           ["DOI", "citável e versionado (Zenodo)"],
           ["100%", "pipeline aberto e reproduzível"],
         ].map(([n, d]) => (
@@ -178,7 +178,7 @@ export default function Sobre() {
           </tr>
           <tr>
             <td><strong>Saúde em Dado</strong></td>
-            <td>API REST sem cadastro; painel, mapa e boletim imediatos; treze fontes integradas em 56 tabelas — mortalidade (SIM), dengue (SINAN), internações (SIH), nascimentos (SINASC), vacinação (PNI/RNDS), estabelecimentos e leitos (CNES), gasto público (SIOPS), cobertura da APS (e-Gestor AB), saúde suplementar (ANS), prazo do tratamento oncológico (Painel Oncologia) sífilis adquirida, gestacional e congênita (SINAN) vigilância da qualidade da água (SISAGUA) e rastreamento de câncer de colo e mama (SISCAN); taxa padronizada, IC95%, excesso de mortalidade e HSMR com correção de múltiplas comparações; pacote Python e servidor MCP; pipeline reproduzível com procedência gravada em cada arquivo</td>
+            <td>API REST sem cadastro; painel, mapa e boletim imediatos; catorze fontes integradas em 58 tabelas — mortalidade (SIM), dengue (SINAN), internações (SIH), nascimentos (SINASC), vacinação (PNI/RNDS), estabelecimentos e leitos (CNES), gasto público (SIOPS), cobertura da APS (e-Gestor AB), saúde suplementar (ANS), prazo do tratamento oncológico (Painel Oncologia) sífilis adquirida, gestacional e congênita (SINAN) vigilância da qualidade da água (SISAGUA) rastreamento de câncer de colo e mama (SISCAN) e convênios federais de saúde (Portal da Transparência); taxa padronizada, IC95%, excesso de mortalidade e HSMR com correção de múltiplas comparações; pacote Python e servidor MCP; pipeline reproduzível com procedência gravada em cada arquivo</td>
             <td>Cinco domínios expostos na interface (mortalidade, dengue, assistência hospitalar, atenção primária e nascimentos); vacinação e as demais tabelas ficam na API e nos downloads. Projeto de um autor só</td>
           </tr>
         </tbody>
