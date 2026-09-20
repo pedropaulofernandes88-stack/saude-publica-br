@@ -141,6 +141,11 @@ def coletar_ano(ano: int, workers: int) -> tuple[pd.DataFrame, pd.DataFrame, pd.
     fluxo: dict = defaultdict(lambda: [0, 0.0])
     cobertura: list[dict] = []
 
+    #: Identidade dos meses que FALHARAM, nao so a contagem. A cobertura guarda
+    #: o numero; sem saber QUAIS, a unica reparacao correta e refazer o ano
+    #: inteiro, porque remendar um mes sobre um agregado ja somado conta em
+    #: dobro. Aqui a identidade sai no log e o conserto vira dirigido.
+    falhados: list[str] = []
     tarefas = [(uf, mes, g) for uf in UFS for mes in range(1, 13) for g in MODALIDADES]
     with ThreadPoolExecutor(max_workers=workers) as ex:
         futuros = {ex.submit(_processar, uf, ano, mes, g): (uf, mes, g)
@@ -154,14 +159,18 @@ def coletar_ano(ano: int, workers: int) -> tuple[pd.DataFrame, pd.DataFrame, pd.
             except ArquivoAusente:
                 por_uf[chave][1] += 1          # competência não publicada
                 continue
-            except FalhaDeColeta:
+            except FalhaDeColeta as e:
                 por_uf[chave][2] += 1          # existe e falhou — NÃO é ausência
+                falhados.append(f"{g}{uf}{ano % 100:02d}{mes:02d} ({type(e).__name__})")
                 continue
             por_uf[chave][0] += 1
             for k, v in t.items():
                 trat[k][0] += v[0]; trat[k][1] += v[1]
             for k, v in f.items():
                 fluxo[k][0] += v[0]; fluxo[k][1] += v[1]
+
+    if falhados:
+        print(f"[onco] {ano}: MESES COM FALHA -> " + ", ".join(sorted(falhados)), flush=True)
 
     for (uf, g), (ok, ausentes, falhas) in sorted(por_uf.items()):
         cobertura.append({"uf_sigla": uf, "ano": ano, "modalidade": MODALIDADES[g],
