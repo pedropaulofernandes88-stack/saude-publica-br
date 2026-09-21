@@ -132,7 +132,15 @@ def conferir_sem_identificador(df: pd.DataFrame, contexto: str) -> None:
 
         # Só coluna de texto pode carregar a assinatura; numérica não guarda
         # 0x7B–0x84, e converter tudo para str para conferir custaria caro.
-        if serie.dtype != object:
+        #
+        # A checagem é por EXCLUSÃO — pula o que comprovadamente não é texto —
+        # e não por `dtype == object`. A primeira versão fazia isso, e o
+        # detector inteiro ficou morto no ambiente que importa: **pandas 3
+        # devolve `str` em vez de `object` para coluna de texto**, então
+        # `dtype != object` era verdade e o `continue` pulava tudo. Aqui a suíte
+        # passava (pandas 2.3), no CI seis testes caíam, e a guarda de nomes
+        # sozinha dava a impressão de que algo ainda protegia.
+        if serie.dtype.kind in "biufcMm":
             continue
 
         amostra = serie.dropna().head(AMOSTRA)

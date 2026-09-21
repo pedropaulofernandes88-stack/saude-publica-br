@@ -246,3 +246,59 @@ def test_amostra_zero_nao_e_falso_negativo_silencioso():
     nunca chegue a zero sem alguém ver.
     """
     assert AMOSTRA > 0, "amostra nula desliga o detector principal"
+
+
+# ---------------------------------------------------------------------------
+# 5. A regressão do pandas 3: o detector ficou morto onde ele roda
+# ---------------------------------------------------------------------------
+#
+# A primeira versão pulava a coluna com `if serie.dtype != object: continue`.
+# Em pandas 2.3 (local) coluna de texto é `object` e tudo passava; em pandas 3
+# (CI) ela é `str`, e o `continue` desligava o detector de forma INTEIRO. A
+# guarda de nomes continuava funcionando, o que é o pior caso: parte da suíte
+# verde, e a proteção principal desligada.
+
+@pytest.mark.parametrize("dtype", ["object", "string"])
+def test_detecta_independente_do_dtype_de_texto(dtype):
+    """Pandas muda o dtype padrão de texto entre versões maiores.
+
+    `string` aqui reproduz, em pandas 2, o que pandas 3 faz por padrão.
+    """
+    s = pd.Series(coluna_ofuscada(), dtype=dtype)
+    df = pd.DataFrame({"chave_opaca": s})
+    with pytest.raises(IdentificadorVazado, match="0x7B"):
+        conferir_sem_identificador(df, "mart_ficticio")
+
+
+@pytest.mark.parametrize("dtype", ["object", "string"])
+def test_detecta_cns_em_claro_independente_do_dtype(dtype):
+    s = pd.Series([f"1{i:014d}" for i in range(200)], dtype=dtype)
+    with pytest.raises(IdentificadorVazado, match="em claro"):
+        conferir_sem_identificador(pd.DataFrame({"id_pac": s}), "mart_ficticio")
+
+
+@pytest.mark.parametrize("valores,dtype", [
+    (list(range(200)), "int64"),
+    ([float(i) for i in range(200)], "float64"),
+    ([True, False] * 100, "bool"),
+    (pd.date_range("2020-01-01", periods=200).tolist(), "datetime64[ns]"),
+])
+def test_coluna_nao_textual_e_pulada_sem_custo(valores, dtype):
+    """A exclusão tem que continuar pulando o que não pode carregar texto."""
+    df = pd.DataFrame({"campo": pd.Series(valores, dtype=dtype)})
+    conferir_sem_identificador(df, "mart_ficticio")
+
+
+def test_a_exclusao_por_kind_cobre_os_tipos_numericos():
+    """Regressão do critério: `kind` é a letra do numpy, e trocar a lista por
+    `!= object` devolve o defeito."""
+    import numpy as np
+
+    for valores, esperado_pulado in [
+        (np.arange(5), True),
+        (np.arange(5, dtype="float32"), True),
+        (np.array([True, False]), True),
+        (np.array(["a", "b"], dtype=object), False),
+    ]:
+        s = pd.Series(valores)
+        assert (s.dtype.kind in "biufcMm") is esperado_pulado, s.dtype
