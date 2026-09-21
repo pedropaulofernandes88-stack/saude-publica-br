@@ -19,6 +19,10 @@ data/logs/
 # o Storage do Supabase (Parquet + SHA-256 na pagina Dados & API).
 # Para reconstruir localmente: scripts/_baixar_mart_completo.py <tabela>
 data/marts/
+# Cache de microdado bruto de fonte externa (RHC do INCA, etc.): 21 MB
+# por ano, reconstruível a partir da fonte. O eixo canônico é o Parquet
+# publicado, não o pacote de origem.
+data/cache/
 *.dbc
 *.dbc.gz
 
