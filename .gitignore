@@ -67,3 +67,10 @@ artigo/
 artigo-agua/
 artigo-imunopreveniveis/
 artigo-neoplasias/
+
+# Intermediário da ligação longitudinal por AP_CNSPCN. O identificador é chave
+# opaca de junção e NÃO se versiona -- nem ofuscado. Ver scripts/_identificador.py.
+# A regra vale mesmo que alguém grave o arquivo dentro do repo por engano.
+*pessoas_*.parquet
+*_cns_*.parquet
+cns_*.txt

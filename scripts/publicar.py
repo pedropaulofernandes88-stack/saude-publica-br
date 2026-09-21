@@ -57,6 +57,7 @@ from _publicacao import (  # noqa: E402
     commit_atual,
     conferir_chave_unica,
     conferir_nao_nulos,
+    conferir_sem_identificador,
     conferir_view_atual,
     contar_no_postgres,
     descrever,
@@ -347,6 +348,11 @@ def main() -> None:
         # logo acima já prometia que ela valia para qualquer origem.
         conferir_chave_unica(tabela, df_conf, chave_declarada(tabela))
         conferir_nao_nulos(tabela, df_conf)
+        # Segunda passada da guarda do identificador. A primeira mora em
+        # `escrever_parquet`, mas tabela em `postgres-bootstrap` não passa por
+        # lá: ela é reexportada do banco. Aqui é o último ponto antes do
+        # Storage, que é irreversível — o arquivo publicado tem URL pública.
+        conferir_sem_identificador(df_conf, f"publicar({tabela})")
         del df_conf
 
         t = descrever(tabela, caminho, origem, id_pub)

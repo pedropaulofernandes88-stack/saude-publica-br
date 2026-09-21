@@ -68,6 +68,8 @@ from pathlib import Path
 import pandas as pd
 import requests
 
+from _identificador import conferir_sem_identificador
+
 ROOT = Path(__file__).resolve().parents[1]
 MARTS = ROOT / "data" / "marts"
 PUBLICACOES = ROOT / "data" / "publicacoes"
@@ -351,6 +353,10 @@ def escrever_parquet(df: pd.DataFrame, destino: Path, origem: str,
     """
     import pyarrow as pa
     import pyarrow.parquet as pq
+
+    # Ponto mais cedo possível: um arquivo com identificador de pessoa não
+    # chega a existir no disco. Ver _identificador.py para a doutrina.
+    conferir_sem_identificador(df, f"escrever_parquet({destino.name})")
 
     tabela_arrow = pa.Table.from_pandas(df, preserve_index=False)
     meta = dict(tabela_arrow.schema.metadata or {})

@@ -26,6 +26,30 @@ Em resumo: seja respeitoso, construtivo e inclusivo. Reporte comportamentos inad
 
 ---
 
+## Regra inegociável: o identificador de pessoa não sai daqui
+
+Vários microdados do DataSUS trazem o Cartão Nacional de Saúde (`AP_CNSPCN` no
+SIA/SUS). O campo **não é criptografado, é ofuscado** — 15 bytes na faixa
+`0x7B`–`0x84`, deslocamento por constante, recuperável por subtração. Não há
+barreira técnica entre ele e o número real. Há uma decisão, e ela é esta:
+
+1. use sempre a forma como vem, como **chave opaca de junção**;
+2. **nunca decodifique** — não existe caso de uso aqui que exija o CNS real;
+3. **nunca publique** o valor, nem ofuscado, nem derivado, nem em amostra, em
+   mart, tabela servida, figura ou anexo;
+4. **nunca versione** o intermediário por pessoa — ele vive fora do repositório.
+
+A doutrina completa, com o porquê, está em
+[`scripts/_identificador.py`](scripts/_identificador.py). Ela não depende de
+você lembrar: `escrever_parquet` recusa qualquer DataFrame com a assinatura do
+identificador, e `publicar.py` confere de novo antes do Storage. O detector olha
+os **valores**, não o nome da coluna — renomear não ajuda, só não colocar ajuda.
+
+Se a guarda reprovar o seu código, a saída é agregar por pessoa e publicar o
+agregado. Não é contornar a guarda.
+
+---
+
 ## Como posso contribuir?
 
 - 🐛 **Reportar bugs** — abra uma [Issue](https://github.com/saude-publica-br/saude-publica-br/issues) com o label `bug`
