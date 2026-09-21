@@ -36,8 +36,15 @@ def ids_publicados() -> set[str]:
 
 
 def bases_configuradas() -> set[str]:
-    """Rótulos `base` que a configuração do observador realmente produz."""
-    return {base for base, _, _, _ in obs.DIRETORIOS_FTP} | {"SIM", "PNI"}
+    """Rótulos `base` que a configuração do observador realmente produz.
+
+    Os não-FTP saem de `OBSERVADORES_EXTRAS`, no próprio observador, e não de
+    um conjunto digitado aqui: com a lista no teste, registrar uma fonte como
+    observada e esquecer de chamá-la passaria — que é o defeito que esta guarda
+    existe para pegar.
+    """
+    return ({base for base, _, _, _ in obs.DIRETORIOS_FTP}
+            | set(obs.OBSERVADORES_EXTRAS))
 
 
 def test_o_site_declara_fontes_legiveis():
@@ -216,3 +223,19 @@ def test_a_ans_esta_entre_as_bases_configuradas():
     assert "ANS" in bases_configuradas(), (
         "a ANS voltou a ficar sem observação; ela tem FTP próprio, com 64 "
         "competências listadas e ZIP por UF com tamanho e data")
+
+
+def test_todo_observador_extra_existe_de_fato():
+    """O mapa aponta para função que existe E que o main chama."""
+    fonte_do_main = (RAIZ / "scripts" / "observar_fontes.py").read_text(encoding="utf-8")
+    for base, funcao in obs.OBSERVADORES_EXTRAS.items():
+        assert callable(getattr(obs, funcao, None)), f"{base}: {funcao} não existe"
+        assert f"{funcao}()" in fonte_do_main, (
+            f"{base}: {funcao} está no mapa e ninguém a chama — a base seria "
+            f"declarada como observada sem nunca ser observada")
+
+
+def test_o_rhc_e_observado():
+    """Regressão: ele entrou no registro e quase ficou sem observador."""
+    assert "RHC" in obs.OBSERVADORES_EXTRAS
+    assert "RHC" in bases_configuradas()

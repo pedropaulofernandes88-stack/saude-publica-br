@@ -274,6 +274,20 @@ FONTES: tuple[Fonte, ...] = (
         ),
     ),
     Fonte(
+        id="rhc", base="RHC",
+        locais=(
+            # A listagem que o observador compara é a dos ANOS oferecidos na
+            # página de download — HTML, não FTP. O leitor mora em
+            # `observar_fontes.observar_rhc`, e existe porque "o observador só
+            # sabe ler FTP" seria impedimento do observador, não da fonte.
+            Local("microdado", "http",
+                  "https://irhc.inca.gov.br/RHCNet/selecionaDownloadTabWin.action",
+                  padrao=r"^(19|20)\d{2}$",
+                  nota="download assíncrono: POST pede, enquete espera, GET "
+                       "entrega. Ver scripts/sondar_rhc.py"),
+        ),
+    ),
+    Fonte(
         id="ibge",
         dispensa="população censitária/projeções não são revisadas de surpresa",
     ),

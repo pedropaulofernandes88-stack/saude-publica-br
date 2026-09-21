@@ -43,6 +43,7 @@ PUBLICACOES = RAIZ / "data" / "publicacoes"
 POR_EXTENSO = {
     "seis": 6, "sete": 7, "oito": 8, "nove": 9, "dez": 10, "onze": 11, "doze": 12,
     "treze": 13, "catorze": 14, "quatorze": 14, "quinze": 15,
+    "dezesseis": 16, "dezessete": 17, "dezoito": 18,
 }
 
 

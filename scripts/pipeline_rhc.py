@@ -226,6 +226,13 @@ def main() -> int:
         "nao_analiticos", "sem_estadiamento", "sem_prazo",
         "ano_diagnostico_difere", "hospitais", "municipios"])
 
+    incompletos = anos_incompletos(cobertura)
+    for df in (caso, cobertura):
+        df["ano_incompleto"] = df.ano_primeira_consulta.isin(incompletos)
+    if incompletos:
+        print(f"[rhc] anos marcados como incompletos: {sorted(incompletos)}",
+              flush=True)
+
     _guardas(caso, cobertura)
 
     MARTS.mkdir(parents=True, exist_ok=True)
@@ -235,6 +242,39 @@ def main() -> int:
     print(f"[rhc] caso: {len(caso):,} linhas | "
           f"cobertura: {len(cobertura):,} linhas", flush=True)
     return res.relatar()
+
+
+#: Abaixo desta fração do platô de hospitais reportando, o ano é declarado
+#: incompleto. 0,90 porque a variação entre anos assentados é de 213 a 235
+#: hospitais (±5%), medida em 2026-09-21.
+LIMIAR_COMPLETUDE = 0.90
+
+
+def anos_incompletos(cob: pd.DataFrame) -> set[int]:
+    """Anos cuja contagem de hospitais está abaixo do platô.
+
+    POR QUE ISTO EXISTE
+    -------------------
+    2023 traz 142.038 casos contra 461.166 em 2022. Lido como série, isso é um
+    colapso de 69% na detecção de câncer no Brasil. Não é: são **15 UFs e 69
+    hospitais** contra 25 e 189, porque o RHC se enche ao longo de anos —
+    hospital envia quando fecha o registro, não no fim do ano.
+
+    O projeto já pagou por não carimbar isto: uma competência com 63% de
+    dezembro faltando passou em toda guarda de forma e virou série publicada.
+    A regra desde então é carimbar na LINHA, não em rodapé, como
+    `meses_cobertos` faz no SIH e no mart da sífilis.
+
+    O platô é a mediana dos anos anteriores ao último terço da série — a mesma
+    ideia de `analise_cauda_de_reporte.py`, e pela mesma razão: comparar com a
+    média da série inteira deixaria a própria cauda rebaixar o platô.
+    """
+    por_ano = cob.groupby("ano_primeira_consulta").hospitais.sum().sort_index()
+    if len(por_ano) < 4:
+        return set()
+    corte = max(2, len(por_ano) // 3)
+    plato = float(por_ano.iloc[:-corte].median())
+    return {int(a) for a, v in por_ano.items() if v < LIMIAR_COMPLETUDE * plato}
 
 
 def _guardas(caso: pd.DataFrame, cob: pd.DataFrame) -> None:
@@ -267,6 +307,23 @@ def _guardas(caso: pd.DataFrame, cob: pd.DataFrame) -> None:
         raise SystemExit("[rhc] há estádio 0 e nenhum 'ignorado' — é a "
                          "assinatura de ausência publicada como diagnóstico "
                          "precoce, o erro que a APAC já pagou.")
+
+    # O carimbo de ano incompleto só vale se ele cair no ANO CERTO. Um ano com
+    # menos hospitais que o platô e sem carimbo é exatamente a série que se
+    # lê como colapso da detecção de câncer.
+    esperados = anos_incompletos(cob)
+    marcados = set(cob.loc[cob.ano_incompleto, "ano_primeira_consulta"])
+    if marcados != esperados:
+        raise SystemExit(
+            f"[rhc] carimbo de ano incompleto fora do lugar: marcados "
+            f"{sorted(marcados)}, esperados {sorted(esperados)}.")
+    ultimo = int(cob.ano_primeira_consulta.max())
+    if ultimo not in esperados:
+        print(f"[rhc] atenção: {ultimo} NÃO foi marcado como incompleto. O RHC "
+              f"se enche ao longo de anos — conferir se ele fechou mesmo.")
+    for ano, sub in caso.groupby("ano_primeira_consulta"):
+        if sub.ano_incompleto.nunique() != 1:
+            raise SystemExit(f"[rhc] {ano}: carimbo divergente dentro do ano.")
 
 
 if __name__ == "__main__":

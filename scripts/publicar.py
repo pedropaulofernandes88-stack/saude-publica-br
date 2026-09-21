@@ -96,6 +96,11 @@ TABELAS = [
     "mart_apac_oncologia_tratamento",
     "mart_apac_oncologia_fluxo",
     "mart_apac_oncologia_cobertura",
+    # RHC do INCA (16a fonte, 2026-09-21): casos com confirmacao
+    # histopatologica, por PESSOA. `_caso` fica so em Parquet (NAO_SERVIDAS);
+    # `_cobertura` e servida porque carrega o carimbo de ano incompleto.
+    "mart_rhc_caso",
+    "mart_rhc_cobertura",
     # Analises derivadas das duas acima (V037/V038). Pequenas e servidas.
     "mart_correlacao_causas",
     # Painel Oncologia (FTP do DataSUS): prazo da Lei dos 60 dias por município.

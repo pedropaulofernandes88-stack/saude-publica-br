@@ -57,7 +57,7 @@ export default function Sobre() {
         {[
           [`${(cobertura().obitos / 1e6).toFixed(1).replace(".", ",")} mi`,
            `óbitos processados (SIM ${cobertura().periodo})`],
-          ["15 fontes", "SIM · SIH · SINAN · SINASC · PNI · CNES · SIOPS · e-Gestor AB · ANS · Painel Oncologia · SIA/SUS · SISAGUA · SISCAN · Portal da Transparência · IBGE"],
+          ["16 fontes", "SIM · SIH · SINAN · SINASC · PNI · CNES · SIOPS · e-Gestor AB · ANS · Painel Oncologia · SIA/SUS · RHC/INCA · SISAGUA · SISCAN · Portal da Transparência · IBGE"],
           ["DOI", "citável e versionado (Zenodo)"],
           ["100%", "pipeline aberto e reproduzível"],
         ].map(([n, d]) => (
@@ -178,7 +178,7 @@ export default function Sobre() {
           </tr>
           <tr>
             <td><strong>Saúde em Dado</strong></td>
-            <td>API REST sem cadastro; painel, mapa e boletim imediatos; quinze fontes integradas em 61 tabelas — mortalidade (SIM), dengue (SINAN), internações (SIH), nascimentos (SINASC), vacinação (PNI/RNDS), estabelecimentos e leitos (CNES), gasto público (SIOPS), cobertura da APS (e-Gestor AB), saúde suplementar (ANS), prazo do tratamento oncológico (Painel Oncologia) tratamento oncológico por quimioterapia e radioterapia (SIA/SUS) sífilis adquirida, gestacional e congênita (SINAN) vigilância da qualidade da água (SISAGUA) rastreamento de câncer de colo e mama (SISCAN) e convênios federais de saúde (Portal da Transparência); taxa padronizada, IC95%, excesso de mortalidade e HSMR com correção de múltiplas comparações; pacote Python e servidor MCP; pipeline reproduzível com procedência gravada em cada arquivo</td>
+            <td>API REST sem cadastro; painel, mapa e boletim imediatos; dezesseis fontes integradas em 63 tabelas — mortalidade (SIM), dengue (SINAN), internações (SIH), nascimentos (SINASC), vacinação (PNI/RNDS), estabelecimentos e leitos (CNES), gasto público (SIOPS), cobertura da APS (e-Gestor AB), saúde suplementar (ANS), prazo do tratamento oncológico (Painel Oncologia) tratamento oncológico por quimioterapia e radioterapia (SIA/SUS) casos de câncer com confirmação histopatológica e tempo até o primeiro tratamento (RHC/INCA) sífilis adquirida, gestacional e congênita (SINAN) vigilância da qualidade da água (SISAGUA) rastreamento de câncer de colo e mama (SISCAN) e convênios federais de saúde (Portal da Transparência); taxa padronizada, IC95%, excesso de mortalidade e HSMR com correção de múltiplas comparações; pacote Python e servidor MCP; pipeline reproduzível com procedência gravada em cada arquivo</td>
             <td>Cinco domínios expostos na interface (mortalidade, dengue, assistência hospitalar, atenção primária e nascimentos); vacinação e as demais tabelas ficam na API e nos downloads. Projeto de um autor só</td>
           </tr>
         </tbody>

@@ -54,6 +54,7 @@ from pathlib import Path
 import requests
 
 from _fontes import HOST_FTP, S3_CKAN, diretorios_ftp
+from sondar_rhc import anos_ofertados as anos_ofertados_rhc
 from _fontes import nao_observadas as _nao_observadas
 from _fontes import observadas as _observadas
 
@@ -267,6 +268,49 @@ def observar_ftp() -> list[dict]:
     return fora
 
 
+def observar_rhc() -> list[dict]:
+    """Os anos que o IntegradorRHC oferece hoje, lidos da página de download.
+
+    Terceiro tipo de leitor, depois de FTP e S3, e ele existe por coerência: a
+    regra que este projeto acabou de escrever é que dispensa precisa dizer o
+    IMPEDIMENTO, e "o observador só sabe ler FTP" é impedimento do observador,
+    não da fonte. O RHC publica uma lista de anos em HTML; lista é listagem, e
+    ano novo aparecendo é exatamente o sinal que interessa.
+
+    Não há tamanho nem data: o site não os expõe na listagem. `bytes=None` é
+    honesto — o comparador então só detecta entrada nova ou entrada que sumiu,
+    que é tudo o que esta fonte permite saber sem baixar 21 MB por ano.
+    """
+    try:
+        anos = anos_ofertados_rhc()
+    except Exception as e:  # noqa: BLE001 — fonte fora do ar nao derruba a rodada
+        print(f"  ! RHC: {type(e).__name__}: {e}", flush=True)
+        return []
+    print(f"  RHC: {len(anos)} anos ofertados "
+          f"({min(anos, default='—')}–{max(anos, default='—')})", flush=True)
+    return [{
+        "base": "RHC", "arquivo": str(a), "fonte": "http:irhc.inca.gov.br",
+        "ano_ref": a, "disponivel": True, "http": 200,
+        "bytes": None, "modificado_em": None, "etag": None,
+    } for a in anos]
+
+
+#: Observadores que NÃO saem do registro de diretórios FTP, por base.
+#:
+#: Existe como mapa, e não como lista escrita à mão em três lugares, porque a
+#: guarda `test_base_declarada_existe_de_fato_na_configuracao` precisa saber
+#: quais bases este arquivo realmente produz. Antes ela lia um conjunto
+#: `{"SIM", "PNI"}` digitado no teste — o que significa que registrar uma fonte
+#: nova como observada e esquecer de chamá-la passaria despercebido, que é
+#: exatamente o defeito que a guarda existe para pegar. Foi o que aconteceu com
+#: o RHC dois minutos depois de ele ser registrado, e a guarda pegou.
+OBSERVADORES_EXTRAS: dict[str, str] = {
+    "SIM": "observar_sim",
+    "PNI": "observar_pni",
+    "RHC": "observar_rhc",
+}
+
+
 def anterior() -> tuple[Path | None, list[dict]]:
     arquivos = sorted(DESTINO.glob("*.json"))
     if not arquivos:
@@ -319,6 +363,9 @@ def main() -> None:
 
     print("\nFTP (LIST):", flush=True)
     arquivos += observar_ftp()
+
+    print("\nRHC (INCA, listagem HTML):", flush=True)
+    arquivos += observar_rhc()
 
     p_ant, antes = anterior()
     mudancas = comparar(antes, arquivos) if antes else []

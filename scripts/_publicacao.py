@@ -497,6 +497,12 @@ NAO_SERVIDAS = frozenset({
     # de existir quem consulte é gastar o teto por antecipação; o Parquet já é
     # citável, versionado e com checksum. Servir é um passo separado.
     "mart_oncologia_municipio",
+    # RHC: 1.018.079 linhas. Fica fora do Postgres pelo criterio de sempre --
+    # nao ha tela nem ferramenta MCP que a consulte -- e aqui o espaco tambem
+    # pesa: ~71 MB de heap mais indice de PK sobre cinco colunas de texto. A
+    # cobertura (274 linhas) É servida, porque e ela que carrega o carimbo de
+    # ano incompleto e a ressalva do estadiamento ausente.
+    "mart_rhc_caso",
     # Estadiamento do Painel: mesmo motivo do mart acima, e um a mais. O grão é
     # município × ano × sítio × faixa × estádio, o que multiplica as linhas por
     # duas ordens de grandeza sem que exista tela para consultá-lo. É insumo de
@@ -670,6 +676,12 @@ CHAVES_SEM_ESQUEMA: dict[str, list[str]] = {
     # 41.616 pares de CID x 3 grupos (-1, 0, 1).
     "mart_correlacao_causas": ["cid_a", "cid_b", "grupo"],
     "mart_oncologia_municipio": ["municipio_cod", "ano"],
+    # RHC do INCA (16a fonte). O grao inclui `tipo_caso` de proposito: caso
+    # analitico e nao analitico sao universos diferentes, e deixa-lo fora da
+    # chave obrigaria a soma-los.
+    "mart_rhc_caso": ["municipio_cod", "ano_primeira_consulta", "cid3",
+                      "estadiamento", "tipo_caso"],
+    "mart_rhc_cobertura": ["ano_primeira_consulta", "uf_sigla"],
     # Os três agravos da sífilis são COLUNAS, não linhas: o grão é município-ano.
     "mart_sifilis_municipio": ["municipio_cod", "ano"],
     "mart_sinan_agravo_municipio": ["agravo", "municipio_cod", "ano"],

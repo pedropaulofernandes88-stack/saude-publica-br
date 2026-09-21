@@ -183,6 +183,27 @@ export const FONTES: Fonte[] = [
       + "coluna meses_cobertos carimba isso em cada linha.",
   },
   {
+    id: "rhc",
+    nome: "Registro Hospitalar de Câncer",
+    sistema: "IntegradorRHC",
+    orgao: "INCA/MS",
+    traz:
+      "casos de câncer com confirmação histopatológica por município de residência, "
+      + "ano da primeira consulta, CID-3 e estadiamento — e o tempo até o primeiro "
+      + "tratamento de QUALQUER modalidade, que é o que a Lei dos 60 Dias conta",
+    observacao:
+      "A unidade é a PESSOA, e é a única fonte oncológica do projeto em que isso vale "
+      + "na origem — a APAC conta autorização. Três armadilhas viajam com o número. "
+      + "Primeira: o ano é o da PRIMEIRA CONSULTA no hospital, não o do diagnóstico, e "
+      + "os dois divergem em ~22% dos registros. Segunda: caso analítico e não analítico "
+      + "são universos diferentes (o não analítico chegou com diagnóstico E tratamento "
+      + "feitos fora), e por isso tipo_caso é coluna de chave, não filtro escondido. "
+      + "Terceira: estadiamento ausente é ~53% dos registros, tem rótulo próprio "
+      + "(\"ignorado\") e nunca é somado ao estádio 0. O RHC se enche ao longo de anos, "
+      + "então os anos mais recentes vêm incompletos — a coluna ano_incompleto carimba "
+      + "isso em cada linha, e 2023 traz 15 UFs contra 26.",
+  },
+  {
     id: "sisagua",
     nome: "Qualidade da água",
     sistema: "SISAGUA",
