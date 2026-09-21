@@ -148,7 +148,33 @@ PCT_INCHACO_RELEVANTE = 15.0
 #:
 #: A regra que separa os dois casos, e que vale para a próxima vez: sobe quando a
 #: LINHA DE BASE muda por decisão registrada; não sobe quando só a folga muda.
-LIMITE_PADRAO_MB = 1_000.0
+#:
+#: 2026-09-21 — de 1.000 para 1.450 MB, pela mesma regra e pelo mesmo motivo: o
+#: dado cresceu por decisão registrada. A V048 serviu o SIA/APAC oncológico e o
+#: banco foi de 944 para **1.342 MB**. O custo MEDIDO das três tabelas é 398 MB
+#: (tratamento 349, fluxo 49), contra 453 estimados — e onde eu errei importa
+#: mais que o quanto:
+#:
+#:   * heap 224 MB em 2.448.054 linhas = 91,5 B/linha (estimei 82,5, errei para
+#:     MENOS);
+#:   * índice 125 MB = **51 B/entrada**, não os ~80 que este projeto carrega
+#:     como regra desde [[estimativa-de-banco-erra-no-indice]] — errei para MAIS,
+#:     e mais do que o heap compensava.
+#:
+#: A razão dos 51 B é a deduplicação de B-tree do Postgres 13+: chave cujas
+#: primeiras colunas se repetem muito — aqui `municipio_cod`, que aparece em
+#: centenas de linhas seguidas — é armazenada uma vez com a lista de TIDs. A
+#: regra dos 80 B vale para chave com valor distinto por linha; para chave com
+#: prefixo repetitivo ela superestima em até 40%.
+#:
+#: E um fato de infraestrutura que não estava em lugar nenhum: a carga ENCHEU o
+#: disco aos ~1,3 GB, com HTTP 503 e `53100: No space left on device`, apesar de
+#: a organização estar no plano Pro. Cota de plano (8 GB) não é o mesmo que
+#: disco provisionado: o volume cresce por auto-scaling, com cooldown, e uma
+#: carga em lote de 2,4 milhões de linhas corre mais rápido que o crescimento.
+#: Depois do auto-scaling as 191 mil linhas restantes entraram sem erro. Para a
+#: próxima carga grande: suba em duas sessões, ou aceite retomar.
+LIMITE_PADRAO_MB = 1_450.0
 
 
 def mb(n: float) -> str:

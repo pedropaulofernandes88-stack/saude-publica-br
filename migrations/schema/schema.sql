@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-20 18:17 UTC
--- Objetos: 264
+-- Extraído em: 2026-09-21 09:24 UTC
+-- Objetos: 282
 -- =============================================================================
 
 
@@ -146,6 +146,45 @@ create table if not exists public.mart_anomalia_causa_municipio (
     excesso_proprio boolean not null default false,
     excesso_relativo boolean not null default false,
     constraint mart_anomalia_causa_municipio_pkey PRIMARY KEY (municipio_cod, ano, causabas_3)
+);
+
+create table if not exists public.mart_apac_oncologia_cobertura (
+    uf_sigla text not null,
+    ano smallint not null,
+    modalidade text not null,
+    meses_coletados smallint not null,
+    meses_ausentes smallint not null,
+    meses_com_falha smallint not null,
+    constraint mart_apac_oncologia_cobertura_pkey PRIMARY KEY (uf_sigla, ano, modalidade)
+);
+
+create table if not exists public.mart_apac_oncologia_fluxo (
+    ano smallint not null,
+    modalidade text not null,
+    municipio_res text not null,
+    municipio_res_nome text,
+    uf_res text not null,
+    municipio_mov text not null,
+    municipio_mov_nome text,
+    uf_mov text not null,
+    apacs integer not null,
+    valor_aprovado numeric(14,2) not null,
+    meses_cobertos smallint,
+    constraint mart_apac_oncologia_fluxo_pkey PRIMARY KEY (municipio_res, municipio_mov, ano, modalidade)
+);
+
+create table if not exists public.mart_apac_oncologia_tratamento (
+    municipio_cod text not null,
+    municipio_nome text,
+    uf_sigla text not null,
+    ano smallint not null,
+    modalidade text not null,
+    cid3 text not null,
+    estadiamento text not null,
+    apacs integer not null,
+    valor_aprovado numeric(14,2) not null,
+    meses_cobertos smallint,
+    constraint mart_apac_oncologia_tratamento_pkey PRIMARY KEY (municipio_cod, ano, modalidade, cid3, estadiamento)
 );
 
 create table if not exists public.mart_cnes_municipio (
@@ -363,8 +402,8 @@ create table if not exists public.mart_forecast_demanda_hospital (
     treinado_em date,
     commit_codigo text,
     constraint mart_forecast_demanda_hospital_pkey PRIMARY KEY (cnes, ano_mes_previsto),
-    constraint mart_forecast_demanda_hospital_confianca_check CHECK ((confianca = ANY (ARRAY['adequada'::text, 'baixa'::text]))),
-    constraint forecast_status_validacao_valido CHECK (((status_validacao IS NULL) OR (status_validacao = ANY (ARRAY['A'::text, 'B'::text, 'C'::text]))))
+    constraint forecast_status_validacao_valido CHECK (((status_validacao IS NULL) OR (status_validacao = ANY (ARRAY['A'::text, 'B'::text, 'C'::text])))),
+    constraint mart_forecast_demanda_hospital_confianca_check CHECK ((confianca = ANY (ARRAY['adequada'::text, 'baixa'::text])))
 );
 
 create table if not exists public.mart_hsmr_hospital (
@@ -1149,6 +1188,12 @@ alter table public.dim_populacao enable row level security;
 
 alter table public.mart_anomalia_causa_municipio enable row level security;
 
+alter table public.mart_apac_oncologia_cobertura enable row level security;
+
+alter table public.mart_apac_oncologia_fluxo enable row level security;
+
+alter table public.mart_apac_oncologia_tratamento enable row level security;
+
 alter table public.mart_cnes_municipio enable row level security;
 
 alter table public.mart_cobertura_aps_municipio enable row level security;
@@ -1243,6 +1288,12 @@ create policy leitura_publica on public.dim_pop_padrao for select to anon, authe
 create policy leitura_publica on public.dim_populacao for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_anomalia_causa_municipio for select to anon, authenticated using (true);
+
+create policy leitura_publica on public.mart_apac_oncologia_cobertura for select to anon, authenticated using (true);
+
+create policy leitura_publica on public.mart_apac_oncologia_fluxo for select to anon, authenticated using (true);
+
+create policy leitura_publica on public.mart_apac_oncologia_tratamento for select to anon, authenticated using (true);
 
 create policy leitura_publica on public.mart_cnes_municipio for select to public using (true);
 
@@ -1446,6 +1497,24 @@ comment on table public.dim_pop_padrao is 'População padrão para padronizaç�
 comment on table public.dim_populacao is 'População residente por município e ano (IBGE — estimativas e Censo 2022).';
 
 comment on table public.mart_anomalia_causa_municipio is 'Celulas municipio x CID x ano (2020-2024) com excesso sobre a historia propria 2015-2019, por binomial negativa com FDR 1%. Controles positivos: COVID em 2020-2021 e dengue apenas em 2024 (V037).';
+
+comment on table public.mart_apac_oncologia_cobertura is 'O que foi coletado, por UF × ano × modalidade. É o que distingue AUSÊNCIA de FALHA: meses_ausentes são competências que o FTP não publicou (serviço inexistente ou sem faturamento — AP não teve radioterapia nenhuma de 2013 a 2021), e meses_com_falha são arquivos que existem e não foram lidos. meses_com_falha é ZERO nos 14 anos; se deixar de ser, a série daquele ano está incompleta e o total não vale.';
+
+comment on column public.mart_apac_oncologia_cobertura.meses_ausentes is 'Competência não publicada no FTP. É ACHADO, não defeito: 26 pares UF × ano × modalidade têm menos de 12 meses fora de 2026, e são UFs pequenas com serviço intermitente ou recém-inaugurado.';
+
+comment on table public.mart_apac_oncologia_fluxo is 'Deslocamento para tratamento oncológico: município de residência -> município do estabelecimento, por ano e modalidade. 55,4% das APACs são de paciente tratado FORA do próprio município — confundir os dois lados transformaria deslocamento em oferta local.';
+
+comment on column public.mart_apac_oncologia_fluxo.meses_cobertos is 'Meses do ano publicados no país para esta modalidade. 12 = ano fechado.';
+
+comment on table public.mart_apac_oncologia_tratamento is 'APAC de quimioterapia e radioterapia do SIA/SUS, 2013-2026, por município de RESIDÊNCIA do paciente. A unidade é a AUTORIZAÇÃO, não a pessoa: paciente em tratamento contínuo gera várias por ano e o identificador de pessoa vem criptografado na fonte — nenhuma leitura per capita é válida aqui. Não é o Painel de Oncologia (mart_oncologia_*), que conta casos.';
+
+comment on column public.mart_apac_oncologia_tratamento.apacs is 'Autorizações, NÃO pacientes. Ver o comentário da tabela.';
+
+comment on column public.mart_apac_oncologia_tratamento.estadiamento is 'Estádio 0 a 4 declarado na APAC, ou ''ignorado''. ATENÇÃO: ''0'' é carcinoma in situ, um diagnóstico REAL e precoce — ausência de estadiamento NUNCA é somada a ele. ''ignorado'' são ~12% das APACs.';
+
+comment on column public.mart_apac_oncologia_tratamento.meses_cobertos is 'Meses do ano publicados no FTP para esta modalidade, no país. 12 = ano fechado; menos = ano em andamento, cujo TOTAL não é comparável com o de um ano fechado. 2026 tem 7.';
+
+comment on column public.mart_apac_oncologia_tratamento.municipio_nome is 'NULO em 37 códigos que não são município do IBGE: UF+0000 (município ignorado dentro da UF), Regiões Administrativas do DF e municípios extintos. São 73.479 APACs (0,14%). Nulo é "não sei qual"; a uf_sigla continua preenchida porque a UF se sabe em todos eles.';
 
 comment on table public.mart_cobertura_aps_municipio is 'Cobertura potencial da Atencao Primaria (ESF/EAP/eSFR/eCR/EAPP) por municipio e mes, 2021-atual. Fonte: API publica do relatorio de Cobertura da APS (Ministerio da Saude / e-Gestor AB), relatorioaps.saude.gov.br. cobertura_pct pode superar 100% em municipios pequenos (capacidade instalada por equipe supera a populacao local) — comportamento documentado do indicador oficial, nao erro.';
 

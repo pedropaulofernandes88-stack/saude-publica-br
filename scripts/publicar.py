@@ -89,6 +89,12 @@ TABELAS = [
     "mart_mortalidade_causa_municipio_mes",
     "mart_mortalidade_causa_municipio_faixa",
     "mart_mortalidade_causa_municipio",
+    # SIA/APAC oncologico (V048): quimio e radio por municipio de RESIDENCIA,
+    # 2013-2026. A unidade e a AUTORIZACAO, nao a pessoa. Nao confundir com
+    # `mart_oncologia_*`, que e o Painel de Oncologia e conta CASOS.
+    "mart_apac_oncologia_tratamento",
+    "mart_apac_oncologia_fluxo",
+    "mart_apac_oncologia_cobertura",
     # Analises derivadas das duas acima (V037/V038). Pequenas e servidas.
     "mart_correlacao_causas",
     # Painel Oncologia (FTP do DataSUS): prazo da Lei dos 60 dias por município.
