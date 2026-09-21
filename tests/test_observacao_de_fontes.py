@@ -37,7 +37,7 @@ def ids_publicados() -> set[str]:
 
 def bases_configuradas() -> set[str]:
     """Rótulos `base` que a configuração do observador realmente produz."""
-    return {base for base, _, _ in obs.DIRETORIOS_FTP} | {"SIM", "PNI"}
+    return {base for base, _, _, _ in obs.DIRETORIOS_FTP} | {"SIM", "PNI"}
 
 
 def test_o_site_declara_fontes_legiveis():
@@ -92,14 +92,14 @@ def test_o_sim_e_observado_pelo_ftp_e_nao_so_pelo_s3():
     tiver as duas rotas observadas, a queda de uma aparece como mudança em vez
     de aparecer como silêncio.
     """
-    diretorios = [d for base, d, _ in obs.DIRETORIOS_FTP if base == "SIM"]
+    diretorios = [d for base, _h, d, _p in obs.DIRETORIOS_FTP if base == "SIM"]
     assert diretorios, "o SIM voltou a depender só do S3, que hoje devolve 403"
     assert any("SIM" in d for d in diretorios)
 
 
 def test_a_sifilis_e_observada_no_prelim_porque_nao_ha_finais():
     """Não existe SIF* em DADOS/FINAIS: procurar lá seria vigiar o vazio."""
-    padroes = [(d, p) for base, d, p in obs.DIRETORIOS_FTP if "SIF" in p]
+    padroes = [(d, p) for base, _h, d, p in obs.DIRETORIOS_FTP if "SIF" in p]
     assert padroes, "a sífilis saiu da observação"
     for diretorio, _ in padroes:
         assert diretorio.endswith("PRELIM"), f"sífilis vigiada em {diretorio}"
@@ -107,12 +107,12 @@ def test_a_sifilis_e_observada_no_prelim_porque_nao_ha_finais():
 
 def test_o_cnes_vigia_a_competencia_que_o_projeto_ingere():
     """O pipeline lê só dezembro; vigiar os outros onze meses é ruído."""
-    padroes = [p for base, _, p in obs.DIRETORIOS_FTP if base == "CNES"]
+    padroes = [p for base, _h, _d, p in obs.DIRETORIOS_FTP if base == "CNES"]
     assert padroes
     assert all("12" in p for p in padroes)
 
 
-@pytest.mark.parametrize("padrao", [p for _, _, p in obs.DIRETORIOS_FTP])
+@pytest.mark.parametrize("padrao", [p for _, _, _, p in obs.DIRETORIOS_FTP])
 def test_todo_padrao_de_arquivo_compila(padrao):
     re.compile(padrao)
 
@@ -154,3 +154,65 @@ def test_a_checagem_de_hoje_aprovaria_o_estado_de_ontem_se_fosse_fraca():
              if k not in ("oncologia", "sifilis")}
     assert _faltando(ids_publicados(), ontem, obs.NAO_OBSERVADAS) == {
         "oncologia", "sifilis"}
+
+
+# ── os dois dialetos de LIST ───────────────────────────────────────────────
+#
+# O DataSUS responde MS-DOS e a ANS responde Unix. Aplicar o leitor do primeiro
+# ao segundo NÃO levanta erro: lê a permissão como data (None) e o ANO como
+# tamanho. O registro fica com bytes=2024, o que é pior que não observar,
+# porque parece observação.
+
+from datetime import date  # noqa: E402
+
+
+def test_linha_ms_dos_do_datasus():
+    linha = "08-11-26  11:05AM              1234567 RDPE2601.dbc"
+    assert obs.parse_linha_ftp(linha) == ("RDPE2601.dbc", 1234567, "2026-08-11")
+
+
+def test_linha_unix_com_ano_explicito():
+    linha = "-rwxrwxr-x    1 1001     1001       402386 Sep 04  2024 pda-024-icb-AC-2026_07.zip"
+    assert obs.parse_linha_ftp(linha) == (
+        "pda-024-icb-AC-2026_07.zip", 402386, "2024-09-04")
+
+
+def test_linha_unix_de_diretorio():
+    """A competência da ANS é um DIRETÓRIO, e é ela que precisa ser vista."""
+    linha = "drwxrwxr-x    2 1001     1001         4096 Jul 05  2024 202105"
+    assert obs.parse_linha_ftp(linha) == ("202105", 4096, "2024-07-05")
+
+
+def test_linha_unix_recente_infere_o_ano():
+    """Arquivo com menos de seis meses traz hora no lugar do ano."""
+    linha = "-rwxrwxr-x    1 1001     1001      3301853 Sep 04 15:02 pda.zip"
+    assert obs.parse_linha_ftp(linha, hoje=date(2026, 9, 21)) == (
+        "pda.zip", 3301853, "2026-09-04")
+
+
+def test_linha_unix_recente_no_futuro_volta_um_ano():
+    """Em janeiro, 'Dec 20' é do ano passado, não do que vem."""
+    linha = "-rwxrwxr-x    1 1001     1001         100 Dec 20 15:02 x.zip"
+    assert obs.parse_linha_ftp(linha, hoje=date(2026, 1, 5)) == (
+        "x.zip", 100, "2025-12-20")
+
+
+def test_o_leitor_antigo_leria_o_ano_como_tamanho():
+    """Regressão explícita do defeito, para ninguém 'simplificar' de volta."""
+    linha = "drwxrwxr-x    2 1001     1001         4096 Jul 05  2024 202105"
+    partes = linha.split()
+    antigo_bytes = int(partes[-2]) if partes[-2].isdigit() else None
+    assert antigo_bytes == 2024, "o defeito era este: o ano virava tamanho"
+    nome, tam, quando = obs.parse_linha_ftp(linha)
+    assert (tam, quando) == (4096, "2024-07-05")
+
+
+def test_linha_curta_ou_estranha_devolve_none():
+    for linha in ("", "total 64", "?? ??", "abc def"):
+        assert obs.parse_linha_ftp(linha) is None
+
+
+def test_a_ans_esta_entre_as_bases_configuradas():
+    assert "ANS" in bases_configuradas(), (
+        "a ANS voltou a ficar sem observação; ela tem FTP próprio, com 64 "
+        "competências listadas e ZIP por UF com tamanho e data")

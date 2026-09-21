@@ -201,8 +201,13 @@ FONTES: tuple[Fonte, ...] = (
                   nota="exige chave (PORTAL_TRANSPARENCIA_API_KEY) e ÂNCORA: "
                        "filtro de função sozinho é HTTP 400"),
         ),
-        dispensa="API por consulta, com chave — não há arquivo com tamanho e "
-                 "data para comparar entre rodadas",
+        # A dispensa antiga dizia só "API por consulta". Estava incompleta: o
+        # Portal TEM rota em lote, e ela responde 403 (WAF), medido em
+        # 2026-09-21. Dispensa é afirmação sobre o mundo — vale a medida, não a
+        # lembrança.
+        dispensa="a rota em lote do Portal da Transparência responde HTTP 403 "
+                 "(WAF, medido em 2026-09-21) e a API responde por consulta, "
+                 "com chave — não há listagem com tamanho e data para comparar",
     ),
     Fonte(
         id="siscan", base="SISCAN",
@@ -256,14 +261,17 @@ FONTES: tuple[Fonte, ...] = (
         dispensa="SIOPS publica por consulta interativa, sem diretório versionado",
     ),
     Fonte(
-        id="ans",
+        id="ans", base="ANS",
         locais=(
+            # O padrão casa o DIRETÓRIO da competência (`202607`), não o arquivo
+            # dentro dele. Os 28 ZIP por UF vivem um nível abaixo, e o que o
+            # observador precisa saber é "apareceu competência nova" — que é
+            # exatamente uma entrada nova nesta listagem.
             Local("beneficiarios", "ftp",
                   "FTP/PDA/informacoes_consolidadas_de_beneficiarios-024",
-                  observar=False, host="ftp.dadosabertos.ans.gov.br",
-                  nota="FTP da ANS, não do DataSUS"),
+                  padrao=r"^20\d{4}$", host="ftp.dadosabertos.ans.gov.br",
+                  nota="FTP próprio da ANS; a competência é um diretório"),
         ),
-        dispensa="ANS tem calendário próprio de divulgação, fora do DataSUS",
     ),
     Fonte(
         id="ibge",
@@ -287,13 +295,19 @@ def fonte(id_: str) -> Fonte:
                        f"(tem: {', '.join(sorted(_POR_ID))})") from None
 
 
-def diretorios_ftp() -> list[tuple[str, str, str]]:
-    """As triplas (base, diretório, padrão) que o observador percorre.
+def diretorios_ftp() -> list[tuple[str, str, str, str]]:
+    """As quádruplas (base, host, diretório, padrão) que o observador percorre.
 
     Uma por LOCAL, não por fonte: sífilis e dengue dividem o mesmo diretório com
     padrões diferentes, e o SIM tem consolidado e preliminar.
+
+    O `host` entrou em 2026-09-21. Até ali o observador abria UMA conexão com
+    `HOST_FTP` e assumia que todo diretório do registro morava nela — o que
+    tornava impossível vigiar a ANS, cujo FTP é próprio. A dispensa escrita
+    ("ANS tem calendário próprio de divulgação, fora do DataSUS") descrevia o
+    calendário e não o impedimento: o impedimento era do observador.
     """
-    return [(f.base, lo.caminho, lo.padrao)
+    return [(f.base, lo.host, lo.caminho, lo.padrao)
             for f in FONTES for lo in f.locais
             if lo.tipo == "ftp" and lo.observar and lo.padrao]
 

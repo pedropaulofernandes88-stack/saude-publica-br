@@ -103,6 +103,52 @@ def _data_ftp(pedaco: str) -> str | None:
     return f"20{ano}-{mes}-{dia}"
 
 
+MESES_UNIX = {m: i for i, m in enumerate(
+    "Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
+
+
+def parse_linha_ftp(linha: str, hoje: date | None = None) -> tuple[str, int | None, str | None] | None:
+    """Uma linha de `LIST` → (nome, bytes, data ISO), nos dois dialetos.
+
+    O DataSUS responde no estilo MS-DOS (`08-11-26  11:05AM  1234  ARQ.dbc`) e
+    a ANS no estilo Unix (`-rw-r--r-- 1 u g 1234 Jul 05 2024 arq.zip`). O
+    observador só conhecia o primeiro, e aplicá-lo ao segundo não levanta erro:
+    lê a permissão como data (devolve None) e o ANO como tamanho. O registro
+    fica com `bytes=2024` e `modificado_em=None`, o que é pior que não observar,
+    porque parece observação.
+
+    No estilo Unix o ano só aparece quando o arquivo tem mais de seis meses; nos
+    recentes vem a hora no lugar. Aí o ano é inferido — e se a data inferida
+    cair no futuro, ela é do ano passado.
+    """
+    partes = linha.split()
+    if len(partes) < 4:
+        return None
+
+    if re.match(r"^\d{2}-\d{2}-\d{2}$", partes[0]):          # MS-DOS
+        nome = partes[-1]
+        tam = int(partes[-2]) if partes[-2].isdigit() else None
+        return nome, tam, _data_ftp(partes[0])
+
+    if partes[0][0] in "-dl" and len(partes) >= 9:            # Unix
+        mes, dia, ultimo = partes[5], partes[6], partes[7]
+        nome = " ".join(partes[8:])
+        tam = int(partes[4]) if partes[4].isdigit() else None
+        m = MESES_UNIX.get(mes)
+        if not m or not dia.isdigit():
+            return nome, tam, None
+        if ultimo.isdigit() and len(ultimo) == 4:
+            ano = int(ultimo)
+        else:
+            hoje = hoje or date.today()
+            ano = hoje.year
+            if date(ano, m, int(dia)) > hoje:
+                ano -= 1
+        return nome, tam, f"{ano:04d}-{m:02d}-{int(dia):02d}"
+
+    return None
+
+
 def _head_s3(base: str, nome: str, url: str, ano_ref: int) -> dict | None:
     """Um HEAD no bucket do ckan → registro de observação, ou None se a rede caiu.
 
@@ -156,35 +202,36 @@ def observar_pni() -> list[dict]:
     return fora
 
 
-def observar_ftp() -> list[dict]:
+def _varrer_host(host: str, alvos: list[tuple[str, str, str]]) -> list[dict]:
+    """Uma conexão, todos os diretórios daquele host."""
     fora: list[dict] = []
-    ftp = FTP(FTP_HOST, timeout=120)
+    ftp = FTP(host, timeout=120)
     ftp.login()
     try:
-        for base, diretorio, padrao in DIRETORIOS_FTP:
+        for base, diretorio, padrao in alvos:
             reg = re.compile(padrao, re.I)
             linhas: list[str] = []
             try:
                 ftp.cwd(diretorio)
                 ftp.dir(linhas.append)
             except Exception as e:  # noqa: BLE001 — diretorio some, renomeia, some de novo
-                print(f"  ! {diretorio}: {type(e).__name__}: {e}", flush=True)
+                print(f"  ! {host}{diretorio}: {type(e).__name__}: {e}", flush=True)
                 continue
 
             achados = 0
             for linha in linhas:
-                partes = linha.split()
-                if len(partes) < 4:
+                lido = parse_linha_ftp(linha)
+                if not lido:
                     continue
-                nome = partes[-1]
+                nome, tam, quando = lido
                 if not reg.match(nome):
                     continue
                 achados += 1
                 fora.append({
                     "base": base, "arquivo": nome, "fonte": f"ftp:{diretorio}",
                     "ano_ref": None, "disponivel": True, "http": None,
-                    "bytes": int(partes[-2]) if partes[-2].isdigit() else None,
-                    "modificado_em": _data_ftp(partes[0]),
+                    "bytes": tam,
+                    "modificado_em": quando,
                     "etag": None,
                 })
             print(f"  {base} {diretorio.split('/')[-1]}: {achados} arquivos", flush=True)
@@ -193,6 +240,30 @@ def observar_ftp() -> list[dict]:
             ftp.quit()
         except Exception:  # noqa: BLE001 — servidor derruba a conexao sozinho as vezes
             ftp.close()
+    return fora
+
+
+def observar_ftp() -> list[dict]:
+    """Varre os diretórios FTP do registro, agrupados por HOST.
+
+    Até 2026-09-21 esta função abria uma conexão com `FTP_HOST` e percorria
+    todos os diretórios nela. Isso não era uma simplificação: era o que impedia
+    vigiar qualquer fonte fora do DataSUS, e a ANS ficou seis meses sem
+    observação com uma dispensa escrita que descrevia o calendário dela em vez
+    de explicar o impedimento. Uma fonte não observada não dá erro — ela só
+    deixa de avisar.
+    """
+    por_host: dict[str, list[tuple[str, str, str]]] = {}
+    for base, host, diretorio, padrao in DIRETORIOS_FTP:
+        por_host.setdefault(host, []).append((base, diretorio, padrao))
+
+    fora: list[dict] = []
+    for host, alvos in sorted(por_host.items()):
+        print(f"  [{host}] {len(alvos)} diretório(s)", flush=True)
+        try:
+            fora.extend(_varrer_host(host, alvos))
+        except Exception as e:  # noqa: BLE001 — host fora do ar nao pode derrubar os outros
+            print(f"  ! {host} inteiro: {type(e).__name__}: {e}", flush=True)
     return fora
 
 

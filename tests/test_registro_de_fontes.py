@@ -125,7 +125,7 @@ def test_local_tem_nome_unico_dentro_da_fonte():
 
 
 def test_todo_padrao_compila():
-    for base, diretorio, padrao in diretorios_ftp():
+    for base, _host, diretorio, padrao in diretorios_ftp():
         re.compile(padrao)
 
 
@@ -158,7 +158,7 @@ def test_o_host_do_registro_e_o_do_cliente_ftp():
 def test_o_preliminar_do_sim_e_observado():
     """O `pipeline_v2.py` lê de CID10/DORES E de PRELIM/DORES. O observador só
     conhecia o primeiro, e o segundo é onde estão os anos que ainda mudam."""
-    dirs = [d for base, d, _ in diretorios_ftp() if base == "SIM"]
+    dirs = [d for base, _h, d, _p in diretorios_ftp() if base == "SIM"]
     assert any("PRELIM" in d for d in dirs), (
         "o SIM voltou a ser observado só no consolidado; o preliminar é o que muda")
     assert any("CID10/DORES" in d for d in dirs)
@@ -256,3 +256,92 @@ def test_fonte_desconhecida_falha_alto():
 def test_local_desconhecido_falha_alto():
     with pytest.raises(KeyError, match="não declara o local"):
         fonte("sim").local("inexistente")
+
+
+# -- a regressão de 2026-09-21: dispensa que descrevia em vez de impedir ------
+
+def test_a_ans_e_observada_no_ftp_proprio():
+    """A ANS ficou fora da observação por uma dispensa que não era impedimento.
+
+    O texto dizia "ANS tem calendário próprio de divulgação, fora do DataSUS" —
+    o que descreve o calendário e não explica por que não dá para olhar. O
+    impedimento real era do observador, que abria UMA conexão com o host do
+    DataSUS. Medido em 2026-09-21: o FTP da ANS lista 64 competências, e a de
+    2026-07 traz 28 ZIP por UF com tamanho e data.
+    """
+    ans = [(h, d, p) for b, h, d, p in diretorios_ftp() if b == "ANS"]
+    assert ans, "a ANS saiu da observação de novo"
+    host, diretorio, padrao = ans[0]
+    assert host != _fontes.HOST_FTP, "a ANS não mora no FTP do DataSUS"
+    assert re.compile(padrao).match("202607"), (
+        "o padrão da ANS casa o DIRETÓRIO da competência, não o arquivo: é a "
+        "entrada nova nessa listagem que denuncia competência nova")
+    assert not re.compile(padrao).match("dicionario")
+
+
+def test_toda_fonte_publicada_tem_host_declarado():
+    for base, host, diretorio, _ in diretorios_ftp():
+        assert host and "." in host, f"{base} {diretorio}: host inválido {host!r}"
+
+
+def test_o_observador_agrupa_diretorios_por_host():
+    """Uma conexão por host. Sem isto, fonte fora do DataSUS é inobservável."""
+    import observar_fontes as obs
+
+    hosts = {h for _, h, _, _ in obs.DIRETORIOS_FTP}
+    assert len(hosts) >= 2, (
+        "voltou a existir um host só: qualquer fonte fora do DataSUS fica "
+        "novamente sem observação, e sem dar erro")
+    assert hasattr(obs, "_varrer_host"), (
+        "o agrupamento por host sumiu de observar_fontes")
+
+
+def test_dispensa_nao_pode_ser_so_descricao_da_fonte():
+    """Dispensa é afirmação sobre o mundo, e precisa dizer o IMPEDIMENTO.
+
+    "X tem calendário próprio" e "é de outro órgão" descrevem a fonte; não
+    dizem por que não dá para listar. O que impede é sempre uma destas coisas:
+    não há listagem, a listagem não tem tamanho/data, ou ela é recusada.
+    """
+    sinais = ("consulta", "api", "não há", "nao ha", "sem diretório",
+              "sem diretorio", "403", "painel", "não são revisadas",
+              "nao sao revisadas", "não é coleta", "nao e coleta")
+    vagas = {
+        f.id: f.dispensa for f in FONTES
+        if not f.observavel
+        and not any(s in f.dispensa.lower() for s in sinais)
+    }
+    assert not vagas, (
+        f"dispensa que descreve a fonte em vez de dizer o impedimento: {vagas}. "
+        f"Foi assim que a ANS ficou seis meses sem observação."
+    )
+
+
+def _dispensa_e_vaga(texto: str) -> bool:
+    """A mesma regra do teste acima, isolada para poder ser vista reprovando."""
+    sinais = ("consulta", "api", "não há", "nao ha", "sem diretório",
+              "sem diretorio", "403", "painel", "não são revisadas",
+              "nao sao revisadas", "não é coleta", "nao e coleta")
+    return not any(s in texto.lower() for s in sinais)
+
+
+@pytest.mark.parametrize("texto", [
+    "ANS tem calendário próprio de divulgação, fora do DataSUS",  # a real
+    "fonte de outro órgão",
+    "não faz sentido vigiar",
+    "",
+])
+def test_a_guarda_de_dispensa_pega_texto_que_so_descreve(texto):
+    assert _dispensa_e_vaga(texto), (
+        f"{texto!r} descreve a fonte sem dizer o impedimento, e a guarda "
+        "precisa reprovar — senão ela aprova o texto que causou o problema")
+
+
+@pytest.mark.parametrize("texto", [
+    "SIOPS publica por consulta interativa, sem diretório versionado",
+    "a rota em lote responde HTTP 403 (WAF) e a API responde por consulta",
+    "e-Gestor/SISAB serve painel, não arquivo com tamanho e data estáveis",
+    "população censitária/projeções não são revisadas de surpresa",
+])
+def test_a_guarda_de_dispensa_aprova_impedimento_de_verdade(texto):
+    assert not _dispensa_e_vaga(texto)
