@@ -13,8 +13,8 @@
 -- dado. Não cobre: GRANTs de papel (auditados à parte), `storage` e `auth`
 -- (geridos pelo Supabase), e o conteúdo, que vem dos Parquet em data/publicacoes/.
 --
--- Extraído em: 2026-09-21 09:24 UTC
--- Objetos: 282
+-- Extraído em: 2026-09-21 09:38 UTC
+-- Objetos: 283
 -- =============================================================================
 
 
@@ -785,6 +785,8 @@ CREATE INDEX idx_cluster_perfil ON public.dim_cluster_municipio USING btree (clu
 CREATE INDEX idx_cluster_uf ON public.dim_cluster_municipio USING btree (uf_sigla);
 
 CREATE INDEX idx_anomalia_causa_ano ON public.mart_anomalia_causa_municipio USING btree (causabas_3, ano);
+
+CREATE INDEX idx_apac_onco_uf_ano ON public.mart_apac_oncologia_tratamento USING btree (uf_sigla, ano);
 
 CREATE INDEX idx_corr_causas_sig ON public.mart_correlacao_causas USING btree (grupo, significativo) WHERE significativo;
 
