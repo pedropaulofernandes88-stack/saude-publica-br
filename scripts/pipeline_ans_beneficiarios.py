@@ -178,7 +178,12 @@ def processar_ano(ano: int) -> pd.DataFrame:
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--anos", type=int, nargs="+", default=[2021, 2022, 2023, 2024])
+    # O mart e REESCRITO a partir dos anos passados aqui, nao acumulado:
+    # rodar so com o ano novo apagaria os anteriores. 2025 entrou em
+    # 2026-09-21, quando o observador passou a vigiar o FTP da ANS e
+    # mostrou que a competencia 202512 estava publicada havia meses.
+    ap.add_argument("--anos", type=int, nargs="+",
+                    default=[2021, 2022, 2023, 2024, 2025])
     ap.add_argument("--no-upload", action="store_true")
     args = ap.parse_args()
     res = Resultado("scripts/pipeline_ans_beneficiarios.py")
