@@ -217,6 +217,19 @@ FONTES: tuple[Fonte, ...] = (
         ),
     ),
     Fonte(
+        id="siasus", base="SIASUS",
+        locais=(
+            # Só AQ (quimioterapia) e AR (radioterapia). O diretório tem mais
+            # nove grupos, e dois deles ficam de fora por medida, não por
+            # esquecimento: PA e BI somam 398 GB e são 100% dos 997 arquivos
+            # PARTIDOS do SIA — o nome-base não existe, e um leitor que o
+            # procure acha ausência onde há dado. AM (alto custo) é eixo
+            # próprio. Ver `sondar_siasus.py`.
+            Local("microdado", "ftp", "/dissemin/publicos/SIASUS/200801_/Dados",
+                  r"^A[QR][A-Z]{2}\d{4}\.dbc$"),
+        ),
+    ),
+    Fonte(
         id="sisagua", base="SISAGUA",
         locais=(
             # A raiz da API. O endpoint folha (`controle-mensal-parametros-basicos`)

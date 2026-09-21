@@ -163,6 +163,26 @@ export const FONTES: Fonte[] = [
       + "escopo em 2018, quando os casos saltaram de 196 mil para 352 mil.",
   },
   {
+    id: "siasus",
+    nome: "Tratamento oncológico (APAC)",
+    sistema: "SIA/SUS",
+    orgao: "DataSUS/MS",
+    traz:
+      "autorizações de quimioterapia e radioterapia por município de residência, "
+      + "ano, CID-3 e estadiamento — e o fluxo de quem se trata fora do próprio município",
+    observacao:
+      "A unidade é a APAC, NÃO a pessoa. Uma autorização é tipicamente mensal, então "
+      + "paciente em quimioterapia contínua gera várias por ano, e o identificador de "
+      + "pessoa vem criptografado na fonte: qualquer leitura per capita sobre esta tabela "
+      + "está errada. Esta fonte também NÃO mede o prazo da Lei dos 60 Dias — a subtração "
+      + "entre as datas disponíveis produz uma manchete falsa, e por isso prazo não é "
+      + "publicado aqui. Estadiamento ausente tem rótulo próprio (\"ignorado\", ~12% das "
+      + "APACs) e nunca é somado ao estádio 0, que é carcinoma in situ — um diagnóstico "
+      + "real e precoce. Não compare com o Painel de Oncologia: lá se contam CASOS de "
+      + "pessoas, com 51% de estadiamento ausente. 2026 tem SETE meses publicados; a "
+      + "coluna meses_cobertos carimba isso em cada linha.",
+  },
+  {
     id: "sisagua",
     nome: "Qualidade da água",
     sistema: "SISAGUA",
@@ -298,6 +318,10 @@ export const FONTE_DA_TABELA: Record<string, string> = {
   // SISCAN
   mart_siscan_municipio: "siscan",
   mart_siscan_cobertura: "siscan",
+  // SIA/SUS — APAC oncológica
+  mart_apac_oncologia_tratamento: "siasus",
+  mart_apac_oncologia_fluxo: "siasus",
+  mart_apac_oncologia_cobertura: "siasus",
   // SISAGUA
   mart_sisagua_municipio: "sisagua",
   mart_sisagua_cobertura: "sisagua",

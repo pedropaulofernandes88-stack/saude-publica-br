@@ -50,6 +50,7 @@ import pandas as pd
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from _datasus_ftp import ArquivoAusente, FalhaDeColeta, baixar, registros_dbc  # noqa: E402
+from _fontes import fonte  # noqa: E402
 from _saida import Resultado  # noqa: E402
 
 if hasattr(sys.stdout, "reconfigure"):
@@ -60,10 +61,10 @@ REFS = ROOT / "data" / "refs"
 MARTS = ROOT / "data" / "marts"
 CKPT = ROOT / "data" / "raw" / "SIASUS" / "onco_ckpt"
 
-#: Digitado aqui, e não lido de `_fontes.py`, pela mesma razão de ORDEM do
-#: SISCAN e dos convênios: fonte entra no registro quando publica. REMOVER ao
-#: publicar o mart, declarando `siasus` em `_fontes.py` e em `fontes.ts`.
-FTP_DIR = "/dissemin/publicos/SIASUS/200801_/Dados"
+#: Lido do registro, e não digitado: caminho de fonte em duas cópias foi o que
+#: deixou o preliminar do SIM fora da observação. `siasus` entrou em
+#: `_fontes.py` quando o mart passou a existir.
+FTP_DIR = fonte("siasus").local("microdado").caminho
 
 #: Modalidade por prefixo de arquivo. Os campos próprios de cada uma mudam de
 #: nome (`AQ_ESTADI` vs `AR_ESTADI`), e é só isso que difere na leitura.
