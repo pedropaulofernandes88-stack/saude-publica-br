@@ -242,10 +242,16 @@ sub-registro na relação vulnerabilidade × mortalidade.
 - [x] Dengue (SINAN) · Internações (SIH) · Nascimentos/Mortalidade infantil (SINASC)
 - [x] Vulnerabilidade social (proxy Censo 2022) e cruzamento com mortalidade
 - [x] Pacote Python · servidor MCP · boletim municipal · seção de Análises
-- [ ] IVS **oficial** do IPEA (Atlas da Vulnerabilidade Social)
-- [ ] SIH anos anteriores (2015–2021) e SINASC 2023+
-- [ ] SINAN outros agravos (chikungunya, zika) · CNES (leitos/estabelecimentos)
-- [ ] Imagens de capa próprias para a seção de Análises · DOI via Zenodo
+- [x] SINAN outros agravos — **40 agravos**, incluindo chikungunya e zika
+- [x] CNES (leitos/estabelecimentos) · SINASC até 2024 · DOI via Zenodo
+      ([10.5281/zenodo.20706845](https://doi.org/10.5281/zenodo.20706845))
+- [x] Dezesseis fontes: SIM, SIH, SINAN, sífilis, SINASC, PNI, Painel de
+      Oncologia, CNES, convênios federais, SISCAN, SIA/SUS, SISAGUA, APS,
+      SIOPS, ANS e RHC/INCA
+- [ ] IVS **oficial** do IPEA — hoje `dim_ivs` é proxy do Censo 2022
+      (analfabetismo + sem água), e o nome não diz isso
+- [ ] SIH 2015–2021 — a série publicada começa em 2021
+- [ ] Imagens de capa próprias para a seção de Análises
 
 ---
 

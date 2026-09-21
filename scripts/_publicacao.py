@@ -460,7 +460,14 @@ def _competencias(df: pd.DataFrame) -> tuple[str | None, str | None]:
     linhas, mas de QUE período — é o que permite detectar uma publicação que
     perdeu uma competência sem perder volume.
     """
-    for col in ("ano_mes", "competencia", "ano_mes_previsto", "ano", "ano_epi"):
+    # A lista é de NOMES, e por isso envelhece calada: tabela nova cujo eixo de
+    # tempo se chama outra coisa declara `null` e some da completude histórica
+    # sem nenhum aviso. Foi o que aconteceu com `ano_referencia` (CNES) e com
+    # `ano_primeira_consulta` (RHC) — este último publicado 2013–2023 e
+    # declarando período nenhum. `tests/test_competencia_declarada.py` cobre o
+    # manifesto real contra esse esquecimento; ver COLUNAS_DE_TEMPO lá.
+    for col in ("ano_mes", "competencia", "ano_mes_previsto", "ano", "ano_epi",
+                "ano_referencia", "ano_primeira_consulta"):
         if col in df.columns:
             s = df[col].dropna()
             if s.empty:
