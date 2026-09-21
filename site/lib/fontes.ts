@@ -343,6 +343,9 @@ export const FONTE_DA_TABELA: Record<string, string> = {
   mart_apac_oncologia_tratamento: "siasus",
   mart_apac_oncologia_fluxo: "siasus",
   mart_apac_oncologia_cobertura: "siasus",
+  // RHC/INCA — a única fonte oncológica cuja unidade é a PESSOA na origem
+  mart_rhc_caso: "rhc",
+  mart_rhc_cobertura: "rhc",
   // SISAGUA
   mart_sisagua_municipio: "sisagua",
   mart_sisagua_cobertura: "sisagua",
