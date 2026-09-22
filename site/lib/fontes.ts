@@ -201,7 +201,13 @@ export const FONTES: Fonte[] = [
       + "Terceira: estadiamento ausente é ~53% dos registros, tem rótulo próprio "
       + "(\"ignorado\") e nunca é somado ao estádio 0. O RHC se enche ao longo de anos, "
       + "então os anos mais recentes vêm incompletos — a coluna ano_incompleto carimba "
-      + "isso em cada linha, e 2023 traz 15 UFs contra 26.",
+      + "isso em cada linha, e 2023 traz 15 UFs contra 26. Quarta, e a mais cara: o "
+      + "exportador do INCA GRAVA CADA REGISTRO DUAS VEZES — páginas de 50 mil "
+      + "escritas em dobro, com o cabeçalho declarando o total dobrado. Quem baixar "
+      + "o arquivo bruto e contar recebe o dobro dos casos, e nenhuma verificação de "
+      + "forma acusa, porque duplicar tudo preserva toda proporção. Os números aqui "
+      + "já estão corrigidos, e a correção foi conferida contra uma coorte publicada: "
+      + "17.874 casos contra os 18.098 de Jomar et al. 2023 no mesmo recorte.",
   },
   {
     id: "sisagua",
@@ -345,6 +351,8 @@ export const FONTE_DA_TABELA: Record<string, string> = {
   mart_apac_oncologia_cobertura: "siasus",
   // RHC/INCA — a única fonte oncológica cuja unidade é a PESSOA na origem
   mart_rhc_caso: "rhc",
+  mart_rhc_perfil: "rhc",
+  mart_rhc_tratamento: "rhc",
   mart_rhc_cobertura: "rhc",
   // SISAGUA
   mart_sisagua_municipio: "sisagua",

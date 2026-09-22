@@ -100,6 +100,8 @@ TABELAS = [
     # histopatologica, por PESSOA. `_caso` fica so em Parquet (NAO_SERVIDAS);
     # `_cobertura` e servida porque carrega o carimbo de ano incompleto.
     "mart_rhc_caso",
+    "mart_rhc_perfil",
+    "mart_rhc_tratamento",
     "mart_rhc_cobertura",
     # Analises derivadas das duas acima (V037/V038). Pequenas e servidas.
     "mart_correlacao_causas",

@@ -63,6 +63,7 @@ from __future__ import annotations
 import argparse
 import sys
 import zipfile
+from hashlib import blake2b
 from collections import defaultdict
 from pathlib import Path
 
@@ -71,6 +72,17 @@ import pandas as pd
 RAIZ = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(RAIZ / "scripts"))
 
+from _rhc_codigos import (  # noqa: E402
+    ESCOLARIDADE,
+    ESTADO_FIM_TRATAMENTO,
+    PRIMEIRO_TRATAMENTO,
+    RACA_COR,
+    RAZAO_NAO_TRATAMENTO,
+    SEXO,
+    decodificar,
+    faixa_etaria,
+    tem_data,
+)
 from _saida import Resultado  # noqa: E402
 from sondar_rhc import (  # noqa: E402
     baixar_ano,
@@ -95,8 +107,63 @@ PRAZO_LEGAL = 60
 
 TIPO_CASO = {"1": "analitico", "2": "nao_analitico"}
 
+#: O arquivo do INCA tem 46 campos. A primeira versão deste pipeline lia 10, e
+#: os 36 que ficaram de fora incluíam justamente o que distingue o RHC das
+#: outras duas fontes oncológicas: sexo e idade (sem os quais não se reproduz
+#: recorte nenhum da literatura), raça/cor e escolaridade (que nenhuma das
+#: outras 15 fontes do projeto tem), e `PRITRATH`, o primeiro tratamento de
+#: QUALQUER modalidade — que é o que a Lei 12.732/2012 conta e o que a APAC de
+#: quimioterapia não consegue observar.
+#:
+#: `DATAOBITO` entra para ser CONTADO, não para virar sobrevida. Ver a ressalva
+#: em `_guardas` e o comentário de coluna de `casos_com_data_obito`.
 CAMPOS = ("TPCASO", "LOCTUDET", "ESTADIAM", "DTDIAGNO", "DATAINITRT",
-          "PROCEDEN", "ESTADRES", "UFUH", "CNES", "ANOPRIDI")
+          "PROCEDEN", "ESTADRES", "UFUH", "CNES", "ANOPRIDI",
+          "SEXO", "IDADE", "RACACOR", "INSTRUC",
+          "PRITRATH", "RZNTR", "ESTDFIMT", "DATAOBITO")
+
+
+#: O EXPORTADOR DO INCA GRAVA CADA PÁGINA DUAS VEZES
+#: ------------------------------------------------
+#: Medido em 2026-09-21, nos 11 anos: o arquivo declara `n` registros no
+#: cabeçalho, ocupa exatamente `n` slots, e **cada registro aparece duas
+#: vezes** — a cópia mora `PAGINA` posições adiante.
+#:
+#:     ano     n declarado    distintos    razão
+#:     2013        406.766      202.270    2,011
+#:     2019        518.186      258.322    2,006
+#:     2023        142.038       70.737    2,008
+#:
+#: A razão passa de 2,000 porque existem pacientes genuinamente idênticos nos
+#: campos publicados — e é por isso que a correção **divide a multiplicidade
+#: por dois** em vez de "remover duplicata": deduplicar por valor apagaria os
+#: gêmeos verdadeiros e produziria subcontagem.
+#:
+#: O padrão é de paginação: páginas de 50.000 escritas em dobro, e a última
+#: página parcial também. É o mesmo modo de falha que este projeto já
+#: documentou na própria exportação do Postgres — `LIMIT/OFFSET` sem `ORDER
+#: BY` duplica e perde linha. Aqui ele veio de fora, e custou publicar toda a
+#: 16ª fonte com o dobro de casos (2022: 461.166 publicados, 230.583 reais).
+PAGINA = 50_000
+
+
+def _posicao(i: int, n: int) -> tuple[bool, int]:
+    """(é original?, posição dentro da página) para o registro `i` de `n`.
+
+    Páginas de `PAGINA` alternam original/cópia. A última página é parcial e
+    também vem em dobro, então o corte dela é a metade do que sobrou — não
+    `PAGINA`. Sem esse caso especial, 2023 perderia 21.019 casos reais.
+
+    A posição é o que permite conferir a cópia contra o original certo: a
+    cópia do registro `p` da página está em `p + tamanho_da_pagina`.
+    """
+    inicio_da_cauda = (n // (2 * PAGINA)) * (2 * PAGINA)
+    if i < inicio_da_cauda:
+        tamanho, desloc = PAGINA, i % (2 * PAGINA)
+    else:
+        tamanho = (n - inicio_da_cauda) // 2
+        desloc = i - inicio_da_cauda
+    return (desloc < tamanho), (desloc if desloc < tamanho else desloc - tamanho)
 
 
 def _registros(caminho: Path):
@@ -105,6 +172,12 @@ def _registros(caminho: Path):
     Lê em blocos: o arquivo de 2019 tem 477 MB descompactados e 518 mil
     registros de 921 bytes. Carregar inteiro custaria mais memória que o
     pipeline da APAC, que processa quarenta vezes mais linhas.
+
+    **Descarta a segunda cópia de cada página** — ver `PAGINA` acima — e
+    CONFERE, registro a registro e não por amostra, que o descartado é mesmo
+    byte por byte igual ao guardado. Custa 8 bytes de hash por registro da
+    página corrente (400 KB) e é o que separa "corrigi uma duplicação medida"
+    de "dividi por dois e torci".
     """
     z = zipfile.ZipFile(caminho)
     nome = next(n for n in z.namelist() if n.lower().endswith(".dbf"))
@@ -119,16 +192,37 @@ def _registros(caminho: Path):
                 f"[rhc] {caminho.name}: campos ausentes {sorted(faltam)}. O "
                 f"layout do INCA mudou; conferir com sondar_rhc.py antes de "
                 f"publicar qualquer número.")
-        lidos = 0
+        lidos = mantidos = 0
+        guardados: list[bytes] = []   # hashes da página original corrente
         while lidos < n:
             bloco = f.read(larg * min(20_000, n - lidos))
             if not bloco:
                 break
             for i in range(0, len(bloco) - larg + 1, larg):
                 r = bloco[i:i + larg]
-                yield {nm: r[o:o + t].decode("latin-1").strip()
-                       for nm, o, t in sel}
+                original, pos = _posicao(lidos, n)
+                if original:
+                    if pos == 0:
+                        guardados = []          # começou página nova
+                    guardados.append(blake2b(r, digest_size=8).digest())
+                    mantidos += 1
+                    yield {nm: r[o:o + t].decode("latin-1").strip()
+                           for nm, o, t in sel}
+                elif blake2b(r, digest_size=8).digest() != guardados[pos]:
+                    # A cópia tem que bater byte por byte com o original na
+                    # MESMA posição da página. Se não bater, a geometria mudou
+                    # e dividir por dois passaria a descartar dado de verdade.
+                    raise SystemExit(
+                        f"[rhc] {caminho.name}: o registro {lidos} não é cópia "
+                        f"do original na posição {pos} da página. A duplicação "
+                        f"por página de {PAGINA} deixou de valer — reconferir "
+                        f"com sondar_rhc.py ANTES de publicar qualquer número, "
+                        f"porque a correção pela metade depende dela.")
                 lidos += 1
+        if mantidos * 2 != n:
+            raise SystemExit(
+                f"[rhc] {caminho.name}: mantidos {mantidos:,} de {n:,}; "
+                f"esperado exatamente a metade.")
 
 
 def _prazo(rec: dict) -> tuple[bool, int | None]:
@@ -146,13 +240,38 @@ def _prazo(rec: dict) -> tuple[bool, int | None]:
     return True, dias
 
 
-def processar_ano(ano: int) -> tuple[dict, dict]:
+def _acumular(alvo: list, ok: bool, dias: int | None) -> None:
+    """Soma um caso na célula, e o prazo dele se a fonte souber dizer qual é.
+
+    `ok=False` cobre ausência de data E intervalo impossível, e nenhum dos dois
+    vira zero dia: o caso conta em `casos` e não conta em `casos_com_prazo`.
+    A diferença entre as duas colunas é o que `sem_prazo` publica na cobertura.
+    """
+    alvo[0] += 1
+    if ok:
+        alvo[1] += 1
+        if dias <= PRAZO_LEGAL:
+            alvo[2] += 1
+        else:
+            alvo[3] += 1
+
+
+def processar_ano(ano: int) -> tuple[dict, dict, dict, dict]:
+    """Uma passada pelo arquivo, três agregações.
+
+    O arquivo de 2019 tem 477 MB e 518 mil registros; ler três vezes para
+    montar três marts custaria três vezes o I/O sem nenhum ganho. As quatro
+    estruturas saem juntas e o custo é a memória dos dicionários, que é
+    pequena perto do arquivo.
+    """
     caminho = CACHE / f"rhc_{ano}.zip"
     if not caminho.exists():
         print(f"[rhc] {ano}: baixando", flush=True)
         baixar_ano(ano, caminho)
 
     casos: dict = defaultdict(lambda: [0, 0, 0, 0])   # casos, com_prazo, ate60, acima60
+    perfil: dict = defaultdict(lambda: [0, 0, 0, 0])
+    trat: dict = defaultdict(lambda: [0, 0])          # casos, com_data_obito
     cob: dict = defaultdict(lambda: defaultdict(int))
     hospitais: dict = defaultdict(set)
     municipios: dict = defaultdict(set)
@@ -163,7 +282,16 @@ def processar_ano(ano: int) -> tuple[dict, dict]:
         tipo = TIPO_CASO.get(rec["TPCASO"], "ignorado")
         est = estadio(rec["ESTADIAM"])
         cid = rec["LOCTUDET"][:3].upper()
-        ok, _dias = _prazo(rec)
+        ok, dias = _prazo(rec)
+
+        sexo = decodificar(SEXO, rec["SEXO"])
+        faixa = faixa_etaria(rec["IDADE"])
+        raca = decodificar(RACA_COR, rec["RACACOR"])
+        escol = decodificar(ESCOLARIDADE, rec["INSTRUC"])
+        tratamento = decodificar(PRIMEIRO_TRATAMENTO, rec["PRITRATH"])
+        razao = decodificar(RAZAO_NAO_TRATAMENTO, rec["RZNTR"])
+        fim = decodificar(ESTADO_FIM_TRATAMENTO, rec["ESTDFIMT"])
+        obito = tem_data(rec["DATAOBITO"])
 
         c = cob[uf]
         c["casos"] += 1
@@ -174,28 +302,41 @@ def processar_ano(ano: int) -> tuple[dict, dict]:
             c["sem_prazo"] += 1
         if rec["ANOPRIDI"] and rec["ANOPRIDI"] != str(ano):
             c["ano_diagnostico_difere"] += 1
+        # As ausências dos campos novos são CONTADAS, uma a uma. Ausência que
+        # não é contada é ausência que vira zero na conta de quem lê.
+        if sexo == "ignorado":
+            c["sexo_ignorado"] += 1
+        if faixa == "ignorada":
+            c["idade_ignorada"] += 1
+        if raca == "ignorado":
+            c["raca_ignorada"] += 1
+        if escol == "ignorado":
+            c["escolaridade_ignorada"] += 1
+        if tratamento == "ignorado":
+            c["primeiro_tratamento_ignorado"] += 1
+        if obito:
+            c["com_data_obito"] += 1
         if rec["CNES"]:
             hospitais[uf].add(rec["CNES"])
         if len(mun) == 6:
             municipios[uf].add(mun)
 
-        if len(mun) != 6 or not cid:
+        if not cid:
             continue
-        k = (mun, ano, cid, est, tipo)
-        v = casos[k]
-        v[0] += 1
-        if ok:
-            _, dias = _prazo(rec)
-            v[1] += 1
-            if dias <= PRAZO_LEGAL:
-                v[2] += 1
-            else:
-                v[3] += 1
+
+        if len(mun) == 6:
+            _acumular(casos[(mun, ano, cid, est, tipo)], ok, dias)
+        _acumular(perfil[(uf, ano, cid, sexo, faixa, raca, escol, est, tipo)],
+                  ok, dias)
+
+        t = trat[(uf, ano, cid, est, tratamento, razao, fim)]
+        t[0] += 1
+        t[1] += int(obito)
 
     for uf in cob:
         cob[uf]["hospitais"] = len(hospitais[uf])
         cob[uf]["municipios"] = len(municipios[uf])
-    return casos, cob
+    return casos, perfil, trat, cob
 
 
 def main() -> int:
@@ -203,44 +344,67 @@ def main() -> int:
     ap.add_argument("--anos", type=int, nargs="*", default=list(ANOS))
     a = ap.parse_args()
 
-    linhas_caso, linhas_cob = [], []
+    linhas_caso, linhas_perfil, linhas_trat, linhas_cob = [], [], [], []
     for ano in a.anos:
-        casos, cob = processar_ano(ano)
-        for (mun, an, cid, est, tipo), v in casos.items():
-            linhas_caso.append((mun, an, cid, est, tipo, *v))
+        casos, perfil, trat, cob = processar_ano(ano)
+        for k, v in casos.items():
+            linhas_caso.append((*k, *v))
+        for k, v in perfil.items():
+            linhas_perfil.append((*k, *v))
+        for k, v in trat.items():
+            linhas_trat.append((*k, *v))
         for uf, c in cob.items():
             linhas_cob.append((ano, uf, c["casos"], c["analitico"],
                                c["nao_analitico"], c["sem_estadiamento"],
                                c["sem_prazo"], c["ano_diagnostico_difere"],
+                               c["sexo_ignorado"], c["idade_ignorada"],
+                               c["raca_ignorada"], c["escolaridade_ignorada"],
+                               c["primeiro_tratamento_ignorado"],
+                               c["com_data_obito"],
                                c["hospitais"], c["municipios"]))
         total = sum(c["casos"] for c in cob.values())
-        print(f"[rhc] {ano}: {total:,} casos, {len(casos):,} combinações",
-              flush=True)
+        print(f"[rhc] {ano}: {total:,} casos | caso {len(casos):,} · "
+              f"perfil {len(perfil):,} · tratamento {len(trat):,}", flush=True)
 
     caso = pd.DataFrame(linhas_caso, columns=[
         "municipio_cod", "ano_primeira_consulta", "cid3", "estadiamento",
         "tipo_caso", "casos", "casos_com_prazo", "casos_ate_60d",
         "casos_acima_60d"])
+    perfil = pd.DataFrame(linhas_perfil, columns=[
+        "uf_sigla", "ano_primeira_consulta", "cid3", "sexo", "faixa_etaria",
+        "raca_cor", "escolaridade", "estadiamento", "tipo_caso",
+        "casos", "casos_com_prazo", "casos_ate_60d", "casos_acima_60d"])
+    tratamento = pd.DataFrame(linhas_trat, columns=[
+        "uf_sigla", "ano_primeira_consulta", "cid3", "estadiamento",
+        "primeiro_tratamento", "razao_nao_tratamento",
+        "estado_fim_tratamento", "casos", "casos_com_data_obito"])
     cobertura = pd.DataFrame(linhas_cob, columns=[
         "ano_primeira_consulta", "uf_sigla", "casos", "analiticos",
         "nao_analiticos", "sem_estadiamento", "sem_prazo",
-        "ano_diagnostico_difere", "hospitais", "municipios"])
+        "ano_diagnostico_difere", "sexo_ignorado", "idade_ignorada",
+        "raca_ignorada", "escolaridade_ignorada",
+        "primeiro_tratamento_ignorado", "com_data_obito",
+        "hospitais", "municipios"])
 
     incompletos = anos_incompletos(cobertura)
-    for df in (caso, cobertura):
+    for df in (caso, perfil, tratamento, cobertura):
         df["ano_incompleto"] = df.ano_primeira_consulta.isin(incompletos)
     if incompletos:
         print(f"[rhc] anos marcados como incompletos: {sorted(incompletos)}",
               flush=True)
 
     _guardas(caso, cobertura)
+    _guardas_perfil(caso, perfil, tratamento, cobertura)
 
     MARTS.mkdir(parents=True, exist_ok=True)
     res = Resultado("scripts/pipeline_rhc.py")
     res.gravar(caso, MARTS / "mart_rhc_caso.parquet")
+    res.gravar(perfil, MARTS / "mart_rhc_perfil.parquet")
+    res.gravar(tratamento, MARTS / "mart_rhc_tratamento.parquet")
     res.gravar(cobertura, MARTS / "mart_rhc_cobertura.parquet")
-    print(f"[rhc] caso: {len(caso):,} linhas | "
-          f"cobertura: {len(cobertura):,} linhas", flush=True)
+    print(f"[rhc] caso {len(caso):,} · perfil {len(perfil):,} · "
+          f"tratamento {len(tratamento):,} · cobertura {len(cobertura):,}",
+          flush=True)
     return res.relatar()
 
 
@@ -255,7 +419,7 @@ def anos_incompletos(cob: pd.DataFrame) -> set[int]:
 
     POR QUE ISTO EXISTE
     -------------------
-    2023 traz 142.038 casos contra 461.166 em 2022. Lido como série, isso é um
+    2023 traz 71.019 casos contra 230.583 em 2022. Lido como série, isso é um
     colapso de 69% na detecção de câncer no Brasil. Não é: são **15 UFs e 69
     hospitais** contra 25 e 189, porque o RHC se enche ao longo de anos —
     hospital envia quando fecha o registro, não no fim do ano.
@@ -275,6 +439,95 @@ def anos_incompletos(cob: pd.DataFrame) -> set[int]:
     corte = max(2, len(por_ano) // 3)
     plato = float(por_ano.iloc[:-corte].median())
     return {int(a) for a, v in por_ano.items() if v < LIMIAR_COMPLETUDE * plato}
+
+
+#: Acima desta fração, "ignorado" deixou de ser ausência e virou o campo
+#: inteiro — assinatura de layout deslocado, que é o modo de falha do dBase de
+#: largura fixa: um campo a mais no cabeçalho e TODOS os offsets seguintes
+#: andam, produzindo valor plausível e errado.
+TETO_IGNORADO = 0.95
+
+#: `DATAOBITO` vem com a máscara `"/  /"` em 83% dos registros. Se a contagem
+#: de óbito se aproximar do total, o leitor voltou a contar máscara como data —
+#: foi exatamente assim que ela mediu 99,6% antes de `tem_data` existir.
+TETO_DATA_OBITO = 0.60
+
+
+def _guardas_perfil(caso: pd.DataFrame, perfil: pd.DataFrame,
+                    trat: pd.DataFrame, cob: pd.DataFrame) -> None:
+    """As guardas dos campos que entraram em 2026-09-21, na segunda passada.
+
+    Todas existem por um defeito concreto medido, e não por simetria: as três
+    primeiras pegam layout deslocado, a quarta pega a máscara de data vazia, e
+    a quinta pega o erro que apagaria o denominador de um estudo de acesso.
+    """
+    if perfil.empty or trat.empty:
+        raise SystemExit("[rhc] mart de perfil ou de tratamento vazio")
+
+    # 1. As três agregações saem da MESMA passada, então têm que fechar entre
+    #    si. `caso` é municipal e descarta município inválido, logo é o menor;
+    #    `perfil` e `tratamento` filtram só CID ausente, logo são iguais.
+    n_perfil, n_trat, n_caso = (int(perfil.casos.sum()), int(trat.casos.sum()),
+                                int(caso.casos.sum()))
+    if n_perfil != n_trat:
+        raise SystemExit(
+            f"[rhc] perfil ({n_perfil:,}) e tratamento ({n_trat:,}) não fecham. "
+            f"Saem da mesma passada e do mesmo filtro — divergir significa que "
+            f"uma das duas perdeu registro.")
+    if n_caso > n_perfil:
+        raise SystemExit(
+            f"[rhc] o mart municipal ({n_caso:,}) tem MAIS casos que o de "
+            f"perfil ({n_perfil:,}), e ele é o que descarta município inválido.")
+
+    # 2. A classificação do prazo fecha no perfil como fecha no caso.
+    if not ((perfil.casos_ate_60d + perfil.casos_acima_60d)
+            == perfil.casos_com_prazo).all():
+        raise SystemExit("[rhc] perfil: casos_ate_60d + casos_acima_60d não "
+                         "fecha com casos_com_prazo.")
+    if (perfil.casos_com_prazo > perfil.casos).any():
+        raise SystemExit("[rhc] perfil: mais casos com prazo do que casos.")
+
+    # 3. Campo 100% ignorado é layout deslocado, não ausência.
+    for ano, sub in cob.groupby("ano_primeira_consulta"):
+        total = sub.casos.sum()
+        for coluna in ("sexo_ignorado", "idade_ignorada", "raca_ignorada",
+                       "escolaridade_ignorada",
+                       "primeiro_tratamento_ignorado"):
+            frac = sub[coluna].sum() / total
+            if frac > TETO_IGNORADO:
+                raise SystemExit(
+                    f"[rhc] {ano}: {coluna} em {100 * frac:.1f}% dos casos. "
+                    f"Acima de {100 * TETO_IGNORADO:.0f}% não é ausência, é o "
+                    f"layout do dBase deslocado — conferir com sondar_rhc.py.")
+        # Raça/cor e escolaridade TÊM ausência: 9,0% e 24,7% em 2019. Zero é a
+        # assinatura de o código 9 ter voltado a ser lido como categoria.
+        for coluna in ("raca_ignorada", "escolaridade_ignorada"):
+            if sub[coluna].sum() == 0:
+                raise SystemExit(
+                    f"[rhc] {ano}: NENHUM caso com {coluna}. O código 9 ('sem "
+                    f"informação') voltou a ser lido como categoria válida.")
+
+    # 4. A máscara de data vazia, que já mediu 99,6% de preenchimento.
+    frac_obito = cob.com_data_obito.sum() / cob.casos.sum()
+    if frac_obito > TETO_DATA_OBITO:
+        raise SystemExit(
+            f"[rhc] data de óbito em {100 * frac_obito:.1f}% dos casos. "
+            f"Medido: 15,9%. Acima de {100 * TETO_DATA_OBITO:.0f}% significa "
+            f"que a máscara '/  /' voltou a contar como data preenchida.")
+    if frac_obito == 0:
+        raise SystemExit("[rhc] NENHUMA data de óbito. `tem_data` passou a "
+                         "recusar data válida.")
+
+    # 5. "Nenhum tratamento" é resposta, "sem informação" é ausência, e
+    #    confundi-los apaga justamente quem um estudo de acesso precisa contar.
+    rotulos = set(trat.primeiro_tratamento)
+    if "nenhum" not in rotulos:
+        raise SystemExit(
+            "[rhc] nenhum caso com primeiro_tratamento = 'nenhum'. São 83.956 "
+            "em 2019, e sumirem significa que o código 1 virou ausência.")
+    if "ignorado" not in rotulos:
+        raise SystemExit("[rhc] nenhum 'ignorado' em primeiro_tratamento — "
+                         "ausência declarada não pode desaparecer.")
 
 
 def _guardas(caso: pd.DataFrame, cob: pd.DataFrame) -> None:

@@ -21,11 +21,15 @@ comparação entre sistemas deixa de depender do recorte que cada autor publicou
 
 O QUE A SONDAGEM MEDIU (2019, base nacional, 2026-09-21)
 --------------------------------------------------------
-    518.186 registros | 383.940 analíticos | 46 campos | 21,4 MB zipado
+    259.093 casos | 191.970 analíticos | 46 campos | 21,4 MB zipado
     anos ofertados: 1985 a 2023, sem 1987
 
-QUATRO ARMADILHAS, TODAS MEDIDAS E NENHUMA ÓBVIA
-------------------------------------------------
+    ATENÇÃO: o arquivo DECLARA 518.186 registros e contém 518.186 slots —
+    mas cada um aparece DUAS VEZES. Ver a quinta armadilha. Os números
+    acima já são os corrigidos; a sondagem original publicou o dobro.
+
+CINCO ARMADILHAS, TODAS MEDIDAS E NENHUMA ÓBVIA
+-----------------------------------------------
 1. **`ESTADIAM` = 88 ou 99 NÃO é estádio.** Os dois ficam fora do
    `r_estadiam.cnv`, que só conhece 0, 1..4 com sufixos, A/B/C/D. Somados como
    estádio produzem uma distribuição inventada. São **53,1% dos registros**
@@ -41,14 +45,35 @@ QUATRO ARMADILHAS, TODAS MEDIDAS E NENHUMA ÓBVIA
    nome do arquivo responde outra pergunta. É a mesma armadilha do SINAN, já
    documentada.
 
-3. **Caso não analítico é outro universo.** `TPCASO = 2` são 134.246 dos
-   518.186 (25,9%): pacientes que chegaram com diagnóstico E tratamento feitos
+3. **Caso não analítico é outro universo.** `TPCASO = 2` são 67.123 dos
+   259.093 (25,9%): pacientes que chegaram com diagnóstico E tratamento feitos
    fora. Misturá-los com os analíticos mede a rede, não o hospital — e é
    exatamente a exclusão que Jomar et al. 2023 fazem (3.978 casos).
 
 4. **A data vem em `DD/MM/YYYY`.** Todo o resto do DataSUS neste projeto usa
    `YYYYMMDD`. Reaproveitar o leitor de datas do SIA aqui não quebra: devolve
    silenciosamente lixo ou `NaT`.
+
+5. **CADA REGISTRO VEM DUAS VEZES**, e esta custou uma publicação inteira.
+   O exportador do INCA pagina de 50.000 em 50.000 e grava cada página em
+   dobro — a cópia mora 50.000 posições adiante, byte por byte idêntica. O
+   cabeçalho declara o total DOBRADO, e a geometria do dBase fecha com ele:
+   `1505 + 518.186 × 921` é exatamente o tamanho do arquivo. Vale nos 11
+   anos medidos, com razão de 2,004 a 2,011 (passa de 2,000 porque existem
+   pacientes genuinamente idênticos nos campos publicados).
+
+   **Nada de forma pega isto.** Os campos decodificam, as datas são
+   válidas, a cobertura soma, e toda proporção fica correta — dobrar tudo
+   preserva toda razão. O projeto publicou a 16ª fonte inteira com o dobro
+   dos casos (2022: 461.166 no ar, 230.583 reais) e todas as guardas
+   passaram, porque elas conferiam forma e proporção.
+
+   O que denunciou foi **paridade**: 119 categorias de idade e 224 de CNES,
+   e nenhuma contagem ímpar em nenhuma delas. A correção está em
+   `pipeline_rhc._posicao`, confere a cópia registro a registro, e foi
+   validada contra fora: o recorte de Jomar et al. 2023 (RJ, mama,
+   mulheres ≥20, analíticos, 2013–2019) dá **17.874 casos contra os 18.098
+   publicados** — 98,8%. Sem a correção daria 35.748.
 
 E uma quinta, que não é do dado: **o download é assíncrono**. Um POST pede a
 geração e devolve `{'status':'1'}`; o arquivo só existe depois de o servidor

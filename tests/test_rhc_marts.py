@@ -6,7 +6,7 @@ plausível e errado. Estes testes constroem a entrada defeituosa e exigem o
 aborto, porque guarda que só foi vista aprovando é indistinguível de guarda
 quebrada — este projeto inventariou 14 assim, e três não funcionavam.
 
-A mais cara é a última: 2023 traz 142.038 casos contra 461.166 em 2022, o que
+A mais cara é a última: 2023 traz 71.019 casos contra 230.583 em 2022, o que
 lido como série é um colapso de 69% na detecção de câncer no Brasil. São 15 UFs
 contra 26, e o carimbo `ano_incompleto` é o que separa as duas leituras.
 
@@ -231,3 +231,67 @@ def test_o_mart_real_nao_publica_identificador():
 
     conferir_sem_identificador(pd.read_parquet(MART), "mart_rhc_caso")
     conferir_sem_identificador(pd.read_parquet(COB), "mart_rhc_cobertura")
+
+
+# ---------------------------------------------------------------------------
+# 5. A validação EXTERNA: o mart reproduz uma coorte publicada
+# ---------------------------------------------------------------------------
+
+PERFIL = RAIZ / "data" / "marts" / "mart_rhc_perfil.parquet"
+
+#: Jomar RT et al., Cien Saude Colet 2023;28(7):2155-2164 (PMID 37436327):
+#: Rio de Janeiro, mama (C50), mulheres com 20 anos ou mais, casos analíticos,
+#: 2013-2019. Publicam 18.098 casos e 82,1% acima de 60 dias.
+JOMAR_N = 18_098
+JOMAR_PCT = 82.1
+
+MENORES_E_IGNORADA = {"00-04", "05-09", "10-14", "15-19", "ignorada"}
+
+
+@pytest.mark.skipif(not PERFIL.exists(), reason="mart não gerado neste ambiente")
+def test_o_mart_reproduz_a_coorte_publicada_de_jomar():
+    """A única checagem deste projeto contra uma coorte publicada de fora.
+
+    Importa mais que qualquer guarda interna: foi ela que confirmou que a
+    desduplicação de página está certa. Sem a correção o recorte daria 35.748,
+    quase o dobro do n publicado — e nenhuma guarda de forma reprovaria.
+    """
+    p = pd.read_parquet(PERFIL)
+    c = p[(p.uf_sigla == "RJ") & (p.cid3 == "C50")
+          & (p.sexo == "feminino")
+          & (~p.faixa_etaria.isin(MENORES_E_IGNORADA))
+          & (p.tipo_caso == "analitico")
+          & (p.ano_primeira_consulta.between(2013, 2019))]
+    n = int(c.casos.sum())
+    # 5% de folga: eles excluem tratamento prévio (DIAGANT/ANTRI) e este
+    # recorte não, então bater exato seria suspeito, não tranquilizador.
+    assert 0.95 * JOMAR_N <= n <= 1.05 * JOMAR_N, (
+        f"o recorte de Jomar et al. dá {n:,} e o publicado é {JOMAR_N:,}. "
+        f"Se ficou perto do DOBRO, a desduplicação de página parou de valer — "
+        f"ver pipeline_rhc._posicao.")
+
+    pct = 100 * c.casos_acima_60d.sum() / c.casos_com_prazo.sum()
+    assert abs(pct - JOMAR_PCT) < 5, (
+        f"desfecho em {pct:.1f}% contra {JOMAR_PCT}% publicados")
+
+
+@pytest.mark.skipif(not PERFIL.exists(), reason="mart não gerado neste ambiente")
+def test_o_perfil_e_o_caso_contam_o_mesmo_universo():
+    """`caso` é municipal e descarta município inválido, logo é menor ou igual."""
+    perfil = pd.read_parquet(PERFIL)
+    caso = pd.read_parquet(MART)
+    assert int(caso.casos.sum()) <= int(perfil.casos.sum())
+
+
+@pytest.mark.skipif(not PERFIL.exists(), reason="mart não gerado neste ambiente")
+def test_nenhuma_contagem_do_perfil_e_toda_par():
+    """A assinatura que denunciou a duplicação, virada guarda permanente.
+
+    Com o arquivo duplicado, TODA contagem em TODA categoria era par. Se isso
+    voltar, a correção foi desfeita.
+    """
+    perfil = pd.read_parquet(PERFIL)
+    por_cid = perfil.groupby("cid3").casos.sum()
+    assert (por_cid % 2 != 0).any(), (
+        "toda contagem por CID-3 está par — é a assinatura da duplicação de "
+        "página do exportador do INCA")

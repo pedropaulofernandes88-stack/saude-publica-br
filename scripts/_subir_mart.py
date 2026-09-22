@@ -80,11 +80,21 @@ def subir(table: str, df: pd.DataFrame, truncar: bool = False,
          "Prefer": "return=minimal,resolution=merge-duplicates"}
 
     if truncar:
+        # O PostgREST recusa DELETE sem filtro, então é preciso um predicado
+        # que case com toda linha. O filtro era `municipio_cod not.is.null`
+        # **fixo no código**, o que funcionava só em tabela municipal: em
+        # `mart_rhc_cobertura`, cuja chave é (ano, UF), o DELETE devolvia HTTP
+        # 400 "column does not exist". Falhou alto, que é o certo — mas a
+        # coluna não tinha por que ser adivinhada: ela sai da primeira coluna
+        # do DataFrame que está sendo carregado, que é a que existe por
+        # construção.
+        coluna = df.columns[0]
         r = requests.delete(f"{url}/rest/v1/{table}", headers=h,
-                            params={"municipio_cod": "not.is.null"}, timeout=120)
+                            params={coluna: "not.is.null"}, timeout=120)
         if r.status_code not in (200, 204):
             raise RuntimeError(f"{table}: DELETE HTTP {r.status_code} {r.text[:200]}")
-        print(f"[subir] {table}: tabela esvaziada antes da carga", flush=True)
+        print(f"[subir] {table}: tabela esvaziada antes da carga "
+              f"(filtro por {coluna})", flush=True)
 
     # Float cujos valores são TODOS inteiros vai como inteiro.
     #

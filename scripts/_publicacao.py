@@ -510,6 +510,14 @@ NAO_SERVIDAS = frozenset({
     # cobertura (274 linhas) É servida, porque e ela que carrega o carimbo de
     # ano incompleto e a ressalva do estadiamento ausente.
     "mart_rhc_caso",
+    # Perfil e tratamento do RHC (2026-09-21, segunda passada): mesma
+    # decisão e mesmo motivo do `_caso` — grão fino, insumo de análise, e
+    # nenhuma tela que consulte. O perfil cruza sexo, faixa etária,
+    # raça/cor e escolaridade, que é o que nenhuma das outras 15 fontes
+    # tem; o de tratamento traz o primeiro tratamento de QUALQUER
+    # modalidade, que é o que a Lei 12.732/2012 conta.
+    "mart_rhc_perfil",
+    "mart_rhc_tratamento",
     # Estadiamento do Painel: mesmo motivo do mart acima, e um a mais. O grão é
     # município × ano × sítio × faixa × estádio, o que multiplica as linhas por
     # duas ordens de grandeza sem que exista tela para consultá-lo. É insumo de
@@ -689,6 +697,12 @@ CHAVES_SEM_ESQUEMA: dict[str, list[str]] = {
     "mart_rhc_caso": ["municipio_cod", "ano_primeira_consulta", "cid3",
                       "estadiamento", "tipo_caso"],
     "mart_rhc_cobertura": ["ano_primeira_consulta", "uf_sigla"],
+    "mart_rhc_perfil": ["uf_sigla", "ano_primeira_consulta", "cid3", "sexo",
+                        "faixa_etaria", "raca_cor", "escolaridade",
+                        "estadiamento", "tipo_caso"],
+    "mart_rhc_tratamento": ["uf_sigla", "ano_primeira_consulta", "cid3",
+                            "estadiamento", "primeiro_tratamento",
+                            "razao_nao_tratamento", "estado_fim_tratamento"],
     # Os três agravos da sífilis são COLUNAS, não linhas: o grão é município-ano.
     "mart_sifilis_municipio": ["municipio_cod", "ano"],
     "mart_sinan_agravo_municipio": ["agravo", "municipio_cod", "ano"],
