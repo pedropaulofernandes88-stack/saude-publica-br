@@ -52,6 +52,11 @@ htmlcov/
 # Local
 pytest-cache-files-*/
 .claude/
+# Skills instaladas por `npx skills add` caem em .agents/ dentro do repo,
+# e o symlink de .claude/skills/ aponta para lá. Ferramenta de agente fica
+# fora do repositório público, pela mesma razão que .claude/ já fica.
+.agents/
+skills-lock.json
 *.pyc
 
 # Apps Next.js (site/ é o publicado; frontend/ é o legado)
