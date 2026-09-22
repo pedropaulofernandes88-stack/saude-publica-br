@@ -73,8 +73,16 @@ FONTES
 * SIM/DataSUS pela união canônica de `_sim_obitos.sql_uniao_fontes` — `.dbc` por
   UF (2015–2021, 2024) e CSV nacional (2022–2023), com idade exata.
 * `data/raw/SIM/DO22OPEN.csv`, `DO23OPEN.csv` — microdado com as variáveis
-  sociais (RACACOR, ESC2010, LOCOCOR), que o recorte `.dbc` dos demais anos
-  **não** traz. Por isso todo eixo social é 2022–2023.
+  sociais (RACACOR, ESC2010, LOCOCOR). Por isso todo eixo social é 2022–2023.
+
+  **O limite é NOSSO, não da fonte.** Esta linha dizia que "o recorte `.dbc` dos
+  demais anos **não** traz" essas variáveis, o que se lê como limitação do
+  DataSUS. Não é: o layout do SIM traz `RACACOR`, `ESC`, `ESC2010`, `OCUP` e
+  `ESCMAE` — estão no cabeçalho do próprio `DO22OPEN.csv`. Quem descarta é
+  `COLUNAS` em `_sim_obitos.py`, que guarda sete campos na conversão do `.dbc`.
+  Acrescentar três colunas ali e reconverter estende o eixo social a 2015–2025,
+  e é a lacuna mais barata do projeto. Enquanto não for feito, o limite fica
+  escrito aqui como escolha, não como fato sobre a fonte.
 * `data/refs/pop_proj2024_uf_ano_idade.parquet` — denominador oficial pós-Censo,
   por UF × ano × idade simples × sexo (`pipeline_projecao_ibge.py`).
 * `dim_pop_padrao` — padrão Brasil/Censo 2022; `PADRAO_OMS` — padrão mundial da
