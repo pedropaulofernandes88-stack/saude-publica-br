@@ -21,9 +21,28 @@ se alguma mudar.
 
 O QUE ESTE PIPELINE PUBLICA
 ---------------------------
-`mart_rhc_caso`     município de RESIDÊNCIA × ano da primeira consulta × CID-3
-                    × estadiamento × tipo de caso → casos e prazo
-`mart_rhc_cobertura` ano × UF → o que entrou, o que faltou, e por quê
+`mart_rhc_caso`      município de RESIDÊNCIA × ano da primeira consulta × CID-3
+                     × estadiamento × tipo de caso → casos e prazo
+`mart_rhc_perfil`    UF do HOSPITAL × ano × CID-3 × sexo × faixa etária ×
+                     raça/cor × escolaridade × estadiamento × tipo → casos e
+                     prazo. É o único lugar do projeto onde iniquidade no
+                     acesso oncológico é mensurável.
+`mart_rhc_tratamento` UF do HOSPITAL × ano × CID-3 × estadiamento × primeiro
+                     tratamento × razão de não tratar × estado ao fim
+`mart_rhc_cobertura` ano × UF do HOSPITAL → o que entrou, o que faltou, e por quê
+
+DUAS GEOGRAFIAS, E ELAS NÃO SÃO A MESMA
+----------------------------------------
+`mart_rhc_caso` é por município de **residência** (`PROCEDEN`). Os outros três
+são por UF do **hospital** (`UFUH`). Não é descuido: a pergunta "onde mora quem
+adoece" e a pergunta "onde está a estrutura que trata" são diferentes, e o RHC
+é justamente a fonte em que elas divergem muito — cerca de metade dos pacientes
+oncológicos se trata fora do próprio município, número que este projeto já
+mediu no SIH e na APAC.
+
+Cruzar os dois como se fossem a mesma geografia produz número sem significado.
+Está dito também no comentário de coluna de `mart_rhc_cobertura.uf_sigla`, que
+é onde quem consulta o banco vai olhar.
 
 AS ARMADILHAS, E COMO CADA UMA É TRATADA AQUI
 ---------------------------------------------

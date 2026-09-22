@@ -59,6 +59,13 @@ def _modulos_locais() -> set[str]:
     modulos = {p.stem for p in RAIZ.glob("scripts/*.py")}
     for pasta in RAIZ.glob("artigo*/"):
         modulos |= {p.stem for p in pasta.glob("*.py")}
+    # Os próprios módulos de `tests/` também são locais. Faltavam, e a falta só
+    # apareceu quando `test_rhc_duplicacao` passou a reaproveitar o construtor
+    # de dBase sintético de `test_sondagem_rhc` em vez de copiá-lo: a guarda
+    # acusou `test_sondagem_rhc` como dependência de terceiro não declarada.
+    # Era buraco da guarda, não do import — arquivo em `tests/` nunca vai ao
+    # `requirements-test.txt`, por construção.
+    modulos |= {p.stem for p in RAIZ.glob("tests/**/*.py")}
     return modulos | LOCAIS
 
 
