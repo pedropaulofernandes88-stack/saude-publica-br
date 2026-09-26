@@ -79,9 +79,11 @@ from __future__ import annotations
 
 import argparse
 import ftplib
+import json
 import socket
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 import pandas as pd
@@ -136,6 +138,18 @@ COLUNA_MUNICIPIO = "CO_MUN_RESIDENCIA"
 #: sem nunca ter sido exercitado. Ver [[portao-que-testa-outro-caminho]].
 LINHAS_POR_BLOCO = 500_000
 
+#: Onde o agregado de cada (exame, ano) fica entre execuções.
+#:
+#: A coleta inteira leva 25 minutos e grava o mart só no fim. Em 2026-09-26 ela
+#: foi interrompida em 10 de 13 arquivos do CITO_COLO e os ~15 GB já baixados
+#: viraram nada — o processo morreu junto com o vigia que o executava. O
+#: agregado de um ano tem milhares de linhas contra 1,8 GB de CSV, então
+#: guardá-lo é barato e transforma um trabalho tudo-ou-nada em um retomável.
+#:
+#: O cache guarda o AGREGADO, nunca o CSV: 18,5 GB de microdado não ficam no
+#: disco de quem roda o pipeline.
+CACHE = ROOT / "data" / "cache" / "siscan"
+
 #: Só o CITO_MAMA tem contagem por linha; nos outros dois cada linha é um exame.
 COLUNA_QUANTIDADE = "QT_EXAME"
 
@@ -151,7 +165,40 @@ def _conectar() -> ftplib.FTP:
     return ftp
 
 
-def baixar_para(nome: str, destino: Path) -> bool:
+#: Retentativas por arquivo, com a mesma escala de `_datasus_ftp`: 10 tentativas
+#: e espera crescente até 60 s. Um RETR de 1,8 GB atravessa minutos de conexão,
+#: e um único `TimeoutError` no meio derrubava a coleta inteira — aconteceu em
+#: 2026-09-26, no CITO_COLO de 2016. Ausência continua sendo detectada pelo 550,
+#: nunca pela retentativa: os dois não podem se confundir.
+TENTATIVAS = 10
+
+
+def _espera(tentativa: int) -> float:
+    return min(60.0, 10.0 * (tentativa + 1))
+
+
+def baixar_para(nome: str, destino: Path, tentativas: int = TENTATIVAS) -> bool:
+    """Envolve `_baixar_uma_vez` em retentativa, e DIZ quando está esperando.
+
+    A espera é registrada de propósito: repetição silenciosa faz uma coleta lenta
+    parecer uma coleta travada, e quem acompanha não distingue as duas.
+    """
+    erro: Exception | None = None
+    for tentativa in range(tentativas):
+        try:
+            return _baixar_uma_vez(nome, destino)
+        except (OSError, ftplib.error_temp, EOFError) as e:
+            erro = e
+            if tentativa + 1 < tentativas:
+                pausa = _espera(tentativa)
+                print(f"[siscan] {nome}: {type(e).__name__} na tentativa "
+                      f"{tentativa + 1}/{tentativas}, repetindo em {pausa:.0f}s",
+                      flush=True)
+                time.sleep(pausa)
+    raise SystemExit(f"[siscan] {nome}: {tentativas} tentativas falharam ({erro})")
+
+
+def _baixar_uma_vez(nome: str, destino: Path) -> bool:
     """Grava o CSV em disco. False se o arquivo não existe na origem.
 
     False é ausência declarada pela fonte (550), e é diferente de erro: qualquer
@@ -240,26 +287,70 @@ def ler_em_blocos(caminho: Path, exame: str) -> tuple[pd.DataFrame, int]:
                          as_index=False)["exames"].sum(), lidas
 
 
-def agregar(anos: list[int], quieto: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
+def _do_cache(visao: str, ano: int) -> tuple[pd.DataFrame | None, dict] | None:
+    """Agregado já calculado para (visao, ano), ou None se não há.
+
+    O JSON é a verdade sobre "já processei": ele existe tanto para arquivo
+    presente quanto para ausente na origem, e é o que distingue "ainda não tentei"
+    de "tentei e a fonte não tem". Sem essa distinção, um ano ausente seria
+    rebaixado a cada execução.
+    """
+    meta = CACHE / f"{visao}_{ano}.json"
+    if not meta.exists():
+        return None
+    registro = json.loads(meta.read_text(encoding="utf-8"))
+    if registro.get("ausente"):
+        return None, registro
+    dados = CACHE / f"{visao}_{ano}.parquet"
+    if not dados.exists():
+        return None
+    return pd.read_parquet(dados), registro
+
+
+def _para_cache(visao: str, ano: int, df: pd.DataFrame | None, registro: dict) -> None:
+    CACHE.mkdir(parents=True, exist_ok=True)
+    if df is not None:
+        df.to_parquet(CACHE / f"{visao}_{ano}.parquet", index=False)
+    (CACHE / f"{visao}_{ano}.json").write_text(
+        json.dumps(registro, ensure_ascii=False), encoding="utf-8")
+
+
+def agregar(anos: list[int], quieto: bool = False,
+            recoletar: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     pedacos, cobertura = [], []
     for visao, rotulo in EXAMES.items():
         for ano in anos:
             nome = f"SISCAN_{visao}_{ano}.csv"
-            local = Path(tempfile.gettempdir()) / nome
-            try:
-                if not baixar_para(nome, local):
-                    cobertura.append({"exame": rotulo, "ano": ano,
-                                      "arquivo_existe": False, "bytes": 0,
-                                      "linhas_lidas": 0, "municipios": 0})
-                    if not quieto:
-                        print(f"[siscan] {nome}: ausente na origem", flush=True)
-                    continue
-                tamanho = local.stat().st_size
-                df, lidas = ler_em_blocos(local, visao)
-            finally:
-                # O CSV cru some assim que vira agregado: 18,5 GB de CITO_COLO
-                # não ficam no disco de quem roda o pipeline.
-                local.unlink(missing_ok=True)
+            guardado = None if recoletar else _do_cache(visao, ano)
+
+            if guardado is not None:
+                df, registro = guardado
+                origem = "do cache"
+            else:
+                local = Path(tempfile.gettempdir()) / nome
+                try:
+                    if baixar_para(nome, local):
+                        tamanho = local.stat().st_size
+                        df, lidas = ler_em_blocos(local, visao)
+                        registro = {"bytes": tamanho, "linhas_lidas": lidas}
+                    else:
+                        df, registro = None, {"bytes": 0, "linhas_lidas": 0,
+                                              "ausente": True}
+                finally:
+                    # O CSV cru some assim que vira agregado: 18,5 GB de
+                    # CITO_COLO não ficam no disco de quem roda o pipeline.
+                    local.unlink(missing_ok=True)
+                _para_cache(visao, ano, df, registro)
+                origem = f"{registro['bytes'] / 1e6:,.0f} MB"
+
+            if df is None:
+                cobertura.append({"exame": rotulo, "ano": ano, "arquivo_existe": False,
+                                  "bytes": 0, "linhas_lidas": 0, "municipios": 0})
+                if not quieto:
+                    print(f"[siscan] {nome}: ausente na origem", flush=True)
+                continue
+
+            df = df.copy()
             df["exame"] = rotulo
             # O ano da competência não precisa bater com o ano do arquivo, e não
             # forçamos: a divergência é registrada na cobertura para quem for
@@ -267,11 +358,12 @@ def agregar(anos: list[int], quieto: bool = False) -> tuple[pd.DataFrame, pd.Dat
             pedacos.append(df)
             cobertura.append({
                 "exame": rotulo, "ano": ano, "arquivo_existe": True,
-                "bytes": tamanho, "linhas_lidas": lidas,
+                "bytes": registro["bytes"], "linhas_lidas": registro["linhas_lidas"],
                 "municipios": int(df["municipio_cod"].nunique()),
             })
             if not quieto:
-                print(f"[siscan] {nome}: {tamanho/1e6:,.0f} MB · {lidas:,} linhas · "
+                print(f"[siscan] {nome}: {origem} · "
+                      f"{registro['linhas_lidas']:,} linhas · "
                       f"{df['municipio_cod'].nunique():,} municípios", flush=True)
 
     cob = pd.DataFrame(cobertura)
@@ -348,6 +440,8 @@ def main() -> int:
 
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[1])
     ap.add_argument("--anos", type=int, nargs="+", default=ANOS_DISPONIVEIS)
+    ap.add_argument("--recoletar", action="store_true",
+                    help="ignora o cache de agregados e rebaixa tudo")
     ap.add_argument("--parcial", action="store_true",
                     help="grava mesmo com arquivo ausente na origem")
     ap.add_argument("--quieto", action="store_true")
@@ -358,7 +452,7 @@ def main() -> int:
     if desconhecidos:
         ap.error(f"ano fora de {ANOS_DISPONIVEIS[0]}–{ANOS_DISPONIVEIS[-1]}: {desconhecidos}")
 
-    mart, cob = agregar(args.anos, quieto=args.quieto)
+    mart, cob = agregar(args.anos, recoletar=args.recoletar)
     guardas(mart, cob, args.anos, args.parcial)
 
     print(f"\n[siscan] {len(mart):,} linhas município×ano×exame | "
@@ -371,9 +465,13 @@ def main() -> int:
     MARTS.mkdir(parents=True, exist_ok=True)
     res.gravar(mart, MARTS / "mart_siscan_municipio.parquet")
     res.gravar(cob, MARTS / "mart_siscan_cobertura.parquet")
-    print("[nota] Fatia de 3 exames: histopatológicos e citopatológico de mama. Os dois "
-          "exames de RASTREAMENTO populacional (CITO_COLO e MAMOGRAFIA) não estão aqui — "
-          "este mart não responde 'quantas mulheres foram rastreadas'.")
+    print("[nota] O eixo temporal NÃO é o mesmo nos quatro exames: o cito_colo traz "
+          "liberação do RESULTADO e os outros três, competência do exame. Filtre "
+          "`eixo_temporal` antes de somar. Falta a MAMOGRAFIA (9,2 GB), de modo que o "
+          "rastreamento de mama continua sem ser medido aqui.")
+    print("[nota] O numerador conta EXAMES, não mulheres: a mesma mulher rastreada duas "
+          "vezes conta duas vezes. Este mart não responde 'quantas mulheres foram "
+          "rastreadas' — responde 'quantos exames foram feitos'.")
     return res.relatar()
 
 

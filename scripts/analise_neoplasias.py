@@ -1562,6 +1562,154 @@ def cascata_acesso(con: duckdb.DuckDBPyConnection) -> None:
                   f"(gradiente separado por IC: {sobrevive})")
 
 
+def rastreio(con: duckdb.DuckDBPyConnection) -> None:
+    """tab26 — volume de citopatológico de colo por mulher, por quartil de IVS.
+
+    A PONTA QUE FALTAVA DO FUNIL
+    -----------------------------
+    A §3.11 mede que morre-se mais por caso diagnosticado onde há mais
+    vulnerabilidade; a cascata do RHC mostra que o estádio ao diagnóstico não
+    explica e o prazo de tratamento explica. Falta a pergunta anterior a todas:
+    **o rastreamento chega?**
+
+    O SISCAN responde, e só passou a responder quando o `CITO_COLO` entrou na
+    coleta (18,5 GB). Os outros três exames do mart são em boa parte seguimento
+    diagnóstico e não medem rastreamento populacional.
+
+    NÃO É "COBERTURA", E A DIFERENÇA IMPORTA
+    -----------------------------------------
+    O numerador conta EXAMES, não mulheres: a mesma mulher rastreada duas vezes
+    na janela conta duas vezes. Publicar isto como "% de cobertura" afirmaria
+    que 60% das mulheres foram rastreadas quando o que se mediu foi 60 exames
+    por 100 mulheres — coisas diferentes, e a diferença cresce justamente onde
+    há mais repetição, que é onde o acesso é melhor. Por isso a unidade é
+    **exames por 1.000 mulheres-ano**, e o nome da coluna diz isso.
+
+    O EIXO É A LIBERAÇÃO DO RESULTADO
+    ----------------------------------
+    O `CITO_COLO` não traz competência do exame, só `CO_ANO_LIBERACAO`. O ano
+    aqui é quando o resultado saiu, não quando a mulher foi examinada, e a
+    distância entre as duas coisas é parte do que se quer medir. A coluna
+    `eixo_temporal` do mart carrega isso, e esta função confere.
+
+    O DENOMINADOR, E POR QUE ELE É CONSTRUÍDO
+    ------------------------------------------
+    Não existe população municipal por sexo no projeto. As mulheres de 15 a 59
+    saem da **forma etária do Censo** por município (`dim_pop_faixa`) aplicada à
+    **fração feminina da projeção** por UF e ano — a mesma técnica que a §2.7
+    usa para o denominador municipal, e pela mesma razão. A faixa é 15–59 e não
+    25–64 (alvo do programa) porque as bandas do Censo municipal não se partem
+    em 25 nem em 64, e interpolar inventaria pessoas.
+    """
+    a0, a1 = ANOS_RECENTE
+    mart = MARTS / "mart_siscan_municipio.parquet"
+    if not mart.exists():
+        raise SystemExit(
+            f"{mart.name} não existe. Rode `python scripts/pipeline_siscan.py`.")
+
+    colunas = {c[0] for c in con.execute(
+        f"describe select * from '{mart.as_posix()}'").fetchall()}
+    if "eixo_temporal" not in colunas:
+        raise SystemExit(
+            "[rastreio] o mart do SISCAN não declara `eixo_temporal`. Sem essa "
+            "coluna não dá para saber se o ano é competência do exame ou "
+            "liberação do resultado, e os dois não se somam.")
+
+    tem_cito = con.execute(
+        f"select count(*) from '{mart.as_posix()}' where exame = 'cito_colo'"
+    ).fetchone()[0]
+    if not tem_cito:
+        raise SystemExit(
+            "[rastreio] o mart do SISCAN não tem `cito_colo` — o exame de "
+            "rastreamento ficou fora da coleta. Rode `pipeline_siscan.py` "
+            "depois de conferir que CITO_COLO está em EXAMES.")
+
+    # Mulheres de 15 a 59: forma do Censo por município, fração feminina da
+    # projeção por UF e ano. A fração é por FAIXA, não global — a razão de sexo
+    # muda com a idade, e aplicar a média nacional deslocaria municípios jovens.
+    con.execute(f"""create table frac_f as
+      select u.uf_sigla, u.ano, {_sql_faixa7('u.idade')} fx,
+             sum(case when u.sexo = 'F' then u.populacao else 0 end)
+               / nullif(sum(case when u.sexo = 'T' then u.populacao else 0 end), 0) f
+      from pop_idade u
+      where u.ano between {a0} and {a1}
+      group by 1, 2, 3""")
+
+    con.execute(f"""create table mulheres_q as
+      select i.ivs_quartil q, f.ano,
+             sum(p.populacao * f.f) mulheres
+      from pop_mun_fx p
+        join ivs i using(municipio_cod)
+        join '{(MARTS / 'dim_municipio.parquet').as_posix()}' m using(municipio_cod)
+        join frac_f f on f.uf_sigla = m.uf_sigla
+                     and f.fx = case when p.faixa_etaria in ('<1','1-4') then '0-4'
+                                     else p.faixa_etaria end
+      where p.faixa_etaria in ('15-29','30-44','45-59')
+      group by 1, 2""")
+
+    tab = con.execute(f"""
+      with ex as (select i.ivs_quartil q, sum(s.exames) exames
+                  from '{mart.as_posix()}' s
+                    join ivs i using(municipio_cod)
+                  where s.exame = 'cito_colo' and s.ano between {a0} and {a1}
+                  group by 1),
+      den as (select q, sum(mulheres) mulheres_ano from mulheres_q group by 1)
+      select den.q quartil_ivs,
+             cast(round(den.mulheres_ano) as bigint) mulheres_ano_15_59,
+             coalesce(ex.exames, 0) exames_citopatologico,
+             round(1000.0 * coalesce(ex.exames, 0) / den.mulheres_ano, 1)
+               exames_por_1000_mulheres_ano
+      from den left join ex using(q) order by 1""").df()
+
+    # O LIMITE DO PLANO PRIVADO, E POR QUE ELE É COLUNA
+    #
+    # O SISCAN só enxerga o SUS. Onde há plano, a mulher rastreia fora e não
+    # entra na contagem — e a cobertura de plano cai de ~35 por 100 habitantes
+    # no quartil rico para ~2 no vulnerável. O viés age no sentido de INFLAR o
+    # quartil vulnerável, que é o oposto do que acontece na razão óbito/caso da
+    # §3.11, onde ele deprime.
+    #
+    # A coluna é o limite: quanto o quartil teria se TODA conveniada rastreasse
+    # fora do SUS. É suposição extrema de propósito — o teto do viés, não uma
+    # estimativa. Entre o observado e o limite o gradiente muda de sinal, e é
+    # isso que impede a leitura "o rastreamento chega mais onde é mais preciso".
+    plano = con.execute(f"""
+      with p as (select municipio_cod, vinculos_plano_por_100_hab v
+                 from '{(MARTS / 'mart_contexto_social_municipio.parquet').as_posix()}'),
+      pop as (select municipio_cod, sum(populacao) pop from pop_mun_fx group by 1)
+      select i.ivs_quartil quartil_ivs,
+             sum(p.v * pop.pop) / nullif(sum(pop.pop), 0) plano_por_100_hab,
+             count(*) municipios_com_dado
+      from ivs i join p using(municipio_cod) join pop using(municipio_cod)
+      where p.v is not null group by 1 order by 1""").df()
+
+    tab = tab.merge(plano, on="quartil_ivs")
+    tab["vinculos_plano_por_100_hab"] = tab.plano_por_100_hab.round(1)
+    tab["exames_por_1000_limite_superior"] = (
+        tab.exames_por_1000_mulheres_ano / (1 - tab.plano_por_100_hab / 100)
+    ).round(1)
+    tab = tab.drop(columns=["plano_por_100_hab"])
+    escrever(tab, "tab26_rastreio_colo_por_quartil")
+
+    q1, q4 = tab.iloc[0], tab.iloc[-1]
+    observada = q4.exames_por_1000_mulheres_ano / q1.exames_por_1000_mulheres_ano
+    limite = q4.exames_por_1000_limite_superior / q1.exames_por_1000_limite_superior
+    print(f"  citopatológico por 1.000 mulheres-ano: Q1 "
+          f"{q1.exames_por_1000_mulheres_ano} vs Q4 {q4.exames_por_1000_mulheres_ano} "
+          f"— razão Q4/Q1 {observada:.2f}")
+    print(f"  no limite do plano privado: Q1 {q1.exames_por_1000_limite_superior} vs "
+          f"Q4 {q4.exames_por_1000_limite_superior} — razão {limite:.2f}")
+    # O achado não é "há mais rastreamento no quartil vulnerável": é que o
+    # gradiente não sobrevive ao intervalo do viés, e portanto não há DÉFICIT
+    # de volume que explique o excesso de óbitos por caso diagnosticado.
+    if (observada - 1) * (limite - 1) > 0:
+        print("  [nota] o sinal do gradiente é o MESMO nos dois extremos — "
+              "a leitura de direção passa a ser defensável.")
+    else:
+        print("  [nota] o gradiente INVERTE de sinal dentro do intervalo do viés: "
+              "só se pode afirmar ausência de déficit, não excesso.")
+
+
 def social(con: duckdb.DuckDBPyConnection) -> None:
     """tab10–tab14 — cor/raça, escolaridade e local do óbito (2022–2023)."""
     arquivos = [RAW / f"DO{str(a)[2:]}OPEN.csv" for a in ANOS_SOCIAL]
@@ -1790,6 +1938,8 @@ def main() -> None:
     deteccao(con)
     print("\n=== 8c. estádio e prazo de tratamento (RHC) ===")
     cascata_acesso(con)
+    print("\n=== 8d. rastreamento: citopatológico de colo (SISCAN) ===")
+    rastreio(con)
     print("\n=== 9. eixo social (microdado 2022–2023) ===")
     social(con)
     print("\n=== 10. números de enquadramento ===")
