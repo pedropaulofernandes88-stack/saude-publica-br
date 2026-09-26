@@ -79,9 +79,9 @@ from __future__ import annotations
 
 import argparse
 import ftplib
-import io
 import socket
 import sys
+import tempfile
 from pathlib import Path
 
 import pandas as pd
@@ -101,15 +101,40 @@ FTP_HOST = "ftp.datasus.gov.br"
 #: manifesto —, e a exceção correspondente saiu de `test_registro_de_fontes.py`.
 FTP_DIR = fonte("siscan").local("microdado").caminho
 
-#: Os três exames desta fatia, com o rótulo que vai para a coluna `exame`.
-EXAMES = {"HISTO_COLO": "histo_colo", "HISTO_MAMA": "histo_mama", "CITO_MAMA": "cito_mama"}
+#: Os exames desta fatia, com o rótulo que vai para a coluna `exame`.
+#:
+#: `CITO_COLO` entrou em 2026-09-26 porque o artigo de neoplasias precisa da
+#: ponta do RASTREAMENTO: os outros três são, em boa parte, seguimento
+#: diagnóstico, e não respondem "quantas mulheres foram rastreadas aqui".
+EXAMES = {"HISTO_COLO": "histo_colo", "HISTO_MAMA": "histo_mama",
+          "CITO_MAMA": "cito_mama", "CITO_COLO": "cito_colo"}
+
+#: O EIXO TEMPORAL NÃO É O MESMO NOS QUATRO, e por isso ele é COLUNA do mart.
+#:
+#: O CITO_COLO só oferece `CO_ANO_LIBERACAO` — a data em que o RESULTADO saiu,
+#: não a competência do exame. Somar os dois eixos como se fossem "ano" mistura
+#: quando o exame foi feito com quando ele foi liberado, e a diferença entre as
+#: duas coisas é justamente a fila que se quer medir. Quem agregar sem filtrar
+#: `eixo_temporal` está somando grandezas diferentes, e a guarda avisa.
+EIXO_POR_EXAME = {"histo_colo": "competencia", "histo_mama": "competencia",
+                  "cito_mama": "competencia", "cito_colo": "liberacao"}
 
 ANOS_DISPONIVEIS = list(range(2013, 2026))
 
 #: Resolvidos por lista porque o nome muda entre exames — ver o cabeçalho.
-CANDIDATOS_ANO = ("CO_ANO_COMPETENCIA", "NU_ANO_COMPETENCIA")
-CANDIDATOS_ANO_MES = ("CO_ANO_MES_COMPETENCIA", "NU_ANO_MES_COMPETENCIA")
+#: A liberação entra na MESMA lista de propósito: o código não precisa saber
+#: qual exame é, só qual coluna existe, e o eixo é declarado por `EIXO_POR_EXAME`.
+CANDIDATOS_ANO = ("CO_ANO_COMPETENCIA", "NU_ANO_COMPETENCIA", "CO_ANO_LIBERACAO")
+CANDIDATOS_ANO_MES = ("CO_ANO_MES_COMPETENCIA", "NU_ANO_MES_COMPETENCIA",
+                      "CO_ANO_MES_LIBERACAO")
 COLUNA_MUNICIPIO = "CO_MUN_RESIDENCIA"
+
+#: Linhas por bloco na leitura. O CITO_COLO tem 18,5 GB e um único ano chega a
+#: 1,8 GB: ler inteiro em memória, como as três primeiras visões faziam, não
+#: sobrevive a este arquivo. Todos os exames passam pelo MESMO caminho em
+#: blocos — criar um atalho só para o arquivo grande deixaria o caminho real
+#: sem nunca ter sido exercitado. Ver [[portao-que-testa-outro-caminho]].
+LINHAS_POR_BLOCO = 500_000
 
 #: Só o CITO_MAMA tem contagem por linha; nos outros dois cada linha é um exame.
 COLUNA_QUANTIDADE = "QT_EXAME"
@@ -126,27 +151,37 @@ def _conectar() -> ftplib.FTP:
     return ftp
 
 
-def baixar(nome: str) -> bytes | None:
-    """CSV inteiro em memória, ou None se o arquivo não existe na origem.
+def baixar_para(nome: str, destino: Path) -> bool:
+    """Grava o CSV em disco. False se o arquivo não existe na origem.
 
-    None é ausência declarada pela fonte (550), e é diferente de erro: qualquer
+    False é ausência declarada pela fonte (550), e é diferente de erro: qualquer
     outra falha sobe e derruba o pipeline, porque tratá-la como ausência é
     exatamente como se perdem meses sem ninguém notar.
+
+    Vai para DISCO, e não para memória, porque um único ano de CITO_COLO tem
+    1,8 GB. O arquivo parcial é removido se a transferência falhar no meio —
+    senão a execução seguinte encontraria um CSV truncado e o leria inteiro,
+    sem erro, publicando um ano pela metade.
     """
     ftp = _conectar()
-    buffer = io.BytesIO()
+    destino.parent.mkdir(parents=True, exist_ok=True)
     try:
-        ftp.retrbinary(f"RETR {nome}", buffer.write, blocksize=1 << 20)
+        with destino.open("wb") as saida:
+            ftp.retrbinary(f"RETR {nome}", saida.write, blocksize=1 << 20)
     except ftplib.error_perm as e:
+        destino.unlink(missing_ok=True)
         if str(e).startswith("550"):
-            return None
+            return False
+        raise
+    except BaseException:
+        destino.unlink(missing_ok=True)
         raise
     finally:
         try:
             ftp.quit()
         except Exception:  # noqa: BLE001 — sessão já suja
             ftp.close()
-    return buffer.getvalue()
+    return True
 
 
 def _coluna(df: pd.DataFrame, candidatos: tuple[str, ...], exame: str) -> str:
@@ -158,10 +193,8 @@ def _coluna(df: pd.DataFrame, candidatos: tuple[str, ...], exame: str) -> str:
         "O layout da fonte mudou — reveja sondar_siscan.py antes de ajustar isto.")
 
 
-def ler(bruto: bytes, exame: str) -> pd.DataFrame:
-    """CSV do SISCAN para quadro, já normalizado no que o mart usa."""
-    df = pd.read_csv(io.BytesIO(bruto), sep=";", encoding="latin1",
-                     dtype=str, low_memory=False)
+def normalizar(df: pd.DataFrame, exame: str) -> pd.DataFrame:
+    """Um bloco do CSV para as colunas que o mart usa."""
     col_ano = _coluna(df, CANDIDATOS_ANO, exame)
     col_ano_mes = _coluna(df, CANDIDATOS_ANO_MES, exame)
     if COLUNA_MUNICIPIO not in df.columns:
@@ -182,19 +215,51 @@ def ler(bruto: bytes, exame: str) -> pd.DataFrame:
     return saida.dropna(subset=["ano"])
 
 
+def ler_em_blocos(caminho: Path, exame: str) -> tuple[pd.DataFrame, int]:
+    """Agrega o CSV inteiro sem nunca tê-lo inteiro em memória.
+
+    Devolve (quadro município×ano×ano_mes, linhas lidas). Cada bloco é reduzido
+    ao grão do mart ANTES do próximo ser lido: é isso que mantém o pico de
+    memória independente do tamanho do arquivo, e é o que permite o CITO_COLO
+    de 1,8 GB passar pelo mesmo código dos arquivos de 2 MB.
+    """
+    parciais: list[pd.DataFrame] = []
+    lidas = 0
+    leitor = pd.read_csv(caminho, sep=";", encoding="latin1", dtype=str,
+                         chunksize=LINHAS_POR_BLOCO, low_memory=False)
+    for bloco in leitor:
+        lidas += len(bloco)
+        n = normalizar(bloco, exame)
+        if len(n):
+            parciais.append(n.groupby(["municipio_cod", "ano", "ano_mes"],
+                                      as_index=False)["exames"].sum())
+    if not parciais:
+        return pd.DataFrame(columns=["municipio_cod", "ano", "ano_mes", "exames"]), lidas
+    junto = pd.concat(parciais, ignore_index=True)
+    return junto.groupby(["municipio_cod", "ano", "ano_mes"],
+                         as_index=False)["exames"].sum(), lidas
+
+
 def agregar(anos: list[int], quieto: bool = False) -> tuple[pd.DataFrame, pd.DataFrame]:
     pedacos, cobertura = [], []
     for visao, rotulo in EXAMES.items():
         for ano in anos:
             nome = f"SISCAN_{visao}_{ano}.csv"
-            bruto = baixar(nome)
-            if bruto is None:
-                cobertura.append({"exame": rotulo, "ano": ano, "arquivo_existe": False,
-                                  "bytes": 0, "linhas_lidas": 0, "municipios": 0})
-                if not quieto:
-                    print(f"[siscan] {nome}: ausente na origem", flush=True)
-                continue
-            df = ler(bruto, visao)
+            local = Path(tempfile.gettempdir()) / nome
+            try:
+                if not baixar_para(nome, local):
+                    cobertura.append({"exame": rotulo, "ano": ano,
+                                      "arquivo_existe": False, "bytes": 0,
+                                      "linhas_lidas": 0, "municipios": 0})
+                    if not quieto:
+                        print(f"[siscan] {nome}: ausente na origem", flush=True)
+                    continue
+                tamanho = local.stat().st_size
+                df, lidas = ler_em_blocos(local, visao)
+            finally:
+                # O CSV cru some assim que vira agregado: 18,5 GB de CITO_COLO
+                # não ficam no disco de quem roda o pipeline.
+                local.unlink(missing_ok=True)
             df["exame"] = rotulo
             # O ano da competência não precisa bater com o ano do arquivo, e não
             # forçamos: a divergência é registrada na cobertura para quem for
@@ -202,11 +267,11 @@ def agregar(anos: list[int], quieto: bool = False) -> tuple[pd.DataFrame, pd.Dat
             pedacos.append(df)
             cobertura.append({
                 "exame": rotulo, "ano": ano, "arquivo_existe": True,
-                "bytes": len(bruto), "linhas_lidas": len(df),
+                "bytes": tamanho, "linhas_lidas": lidas,
                 "municipios": int(df["municipio_cod"].nunique()),
             })
             if not quieto:
-                print(f"[siscan] {nome}: {len(df):,} linhas · "
+                print(f"[siscan] {nome}: {tamanho/1e6:,.0f} MB · {lidas:,} linhas · "
                       f"{df['municipio_cod'].nunique():,} municípios", flush=True)
 
     cob = pd.DataFrame(cobertura)
@@ -221,6 +286,9 @@ def agregar(anos: list[int], quieto: bool = False) -> tuple[pd.DataFrame, pd.Dat
     )
     mart["ano"] = mart["ano"].astype(int)
     mart["exames"] = mart["exames"].astype(int)
+    # Coluna, e nao nota de rodape: quem agregar sem olhar `eixo_temporal`
+    # soma competencia do exame com liberacao do resultado.
+    mart["eixo_temporal"] = mart["exame"].map(EIXO_POR_EXAME)
 
     dim = pd.read_parquet(MARTS / "dim_municipio.parquet")[
         ["municipio_cod", "municipio_nome", "uf_sigla", "regiao"]]
