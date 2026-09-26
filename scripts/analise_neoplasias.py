@@ -1402,6 +1402,166 @@ def deteccao(con: duckdb.DuckDBPyConnection) -> None:
               f"razão Q4/Q1 mediana {r.mediana_razao:.3f}")
 
 
+def proporcao_ic(k, n, alfa: float = 0.05) -> tuple[float, float, float]:
+    """Proporção com intervalo exato de Clopper–Pearson, em porcentagem.
+
+    Exato, e não normal, pela mesma razão de `razao_taxas_ic`: por sítio e por
+    quartil algumas células têm poucos milhares de casos, e a aproximação normal
+    devolve intervalo simétrico onde a distribuição não é.
+    """
+    from scipy.stats import beta
+
+    k, n = float(k), float(n)
+    if n <= 0:
+        return float("nan"), float("nan"), float("nan")
+    p = k / n
+    inf = 0.0 if k == 0 else float(beta.ppf(alfa / 2, k, n - k + 1))
+    sup = 1.0 if k == n else float(beta.ppf(1 - alfa / 2, k + 1, n - k))
+    return 100 * p, 100 * inf, 100 * sup
+
+
+def cascata_acesso(con: duckdb.DuckDBPyConnection) -> None:
+    """tab23/tab24 — estádio ao diagnóstico e prazo de tratamento, por quartil.
+
+    POR QUE ESTA TABELA FECHA O ARGUMENTO
+    --------------------------------------
+    A §3.11 mede que morre-se mais por caso diagnosticado onde há mais
+    vulnerabilidade, e o teste pré-especificado da §2.9 **reprovou** ao tentar
+    atribuir isso a detecção. O que faltava era olhar o que acontece DEPOIS do
+    diagnóstico, e para isso o Painel não serve — ele não traz estádio utilizável
+    (25% de completude) nem desfecho.
+
+    O Registro Hospitalar de Câncer traz os dois, com 66% a 69% de estadiamento
+    informado no colo do útero e na mama, e com o prazo medido sobre a PESSOA e
+    a data do laudo — não sobre autorização, que é o que tornaria o número
+    manchete falsa (ver `pipeline_rhc`).
+
+    TRÊS RECORTES QUE NÃO SÃO OPCIONAIS
+    ------------------------------------
+    1. **`municipio_cod` do `mart_rhc_caso` é RESIDÊNCIA.** Os outros marts do
+       RHC são por UF do hospital, e cerca de metade dos pacientes oncológicos
+       se trata fora do próprio município: cruzar o mart errado com o IVS
+       produziria vulnerabilidade do hospital, não de quem adoece.
+    2. **Só caso `analitico`.** Analítico e não analítico são universos
+       diferentes; somar os dois mistura quem foi diagnosticado e tratado na
+       instituição com quem chegou já tratado.
+    3. **Só ano completo.** 2022 e 2023 vêm marcados `ano_incompleto` na fonte,
+       e a cauda de reporte do RHC deprime o prazo do ano recente.
+
+    O QUE ESTE DESENHO NÃO FAZ
+    ---------------------------
+    O RHC cobre quem CHEGOU a um hospital com registro. Quem nunca chegou não
+    está aqui, e essa é exatamente a população que a §3.11 sugere existir. Logo
+    a comparação entre quartis é condicionada à chegada, e o viés de seleção
+    aponta para SUBESTIMAR a diferença: o quartil vulnerável perde, antes de
+    entrar nesta tabela, justamente os casos que não chegaram.
+    """
+    mart = MARTS / "mart_rhc_caso.parquet"
+    if not mart.exists():
+        raise SystemExit(
+            f"{mart.name} não existe. Rode `python scripts/pipeline_rhc.py`. "
+            "Sem ele o artigo mede o gradiente e não mede o que o explica.")
+
+    con.execute(f"""create table rhc as
+      select r.municipio_cod, r.cid3, r.casos, r.casos_com_prazo, r.casos_ate_60d,
+             case when substr(r.estadiamento, 1, 1) in ('0','1','2','3','4')
+                  then 1 else 0 end tem_estadio,
+             case when substr(r.estadiamento, 1, 1) in ('3','4') then 1 else 0 end tardio
+      from '{mart.as_posix()}' r
+      where r.tipo_caso = 'analitico' and not r.ano_incompleto""")
+
+    # Nota sobre o filtro acima: o estádio vem com subestádio ('2A', '3B'), e a
+    # classificação é pelo PRIMEIRO caractere. Filtrar por código exato
+    # descartaria metade dos estadiados — foi o erro cometido na primeira
+    # medição desta tabela, e ele deprimia a completude de 68% para 15%.
+    def _quadro(filtro: str) -> pd.DataFrame:
+        return con.execute(f"""
+          select i.ivs_quartil q,
+                 sum(r.casos) casos,
+                 sum(case when r.tem_estadio = 1 then r.casos else 0 end) estadiados,
+                 sum(case when r.tardio = 1 then r.casos else 0 end) tardios,
+                 sum(r.casos_com_prazo) com_prazo,
+                 sum(r.casos_ate_60d) ate_60d
+          from rhc r join ivs i using(municipio_cod)
+          where true {filtro}
+          group by 1 order by 1""").df()
+
+    def _formatar(d: pd.DataFrame, rotulo: str) -> pd.DataFrame:
+        est = [proporcao_ic(r.tardios, r.estadiados) for r in d.itertuples()]
+        trat = [proporcao_ic(r.ate_60d, r.com_prazo) for r in d.itertuples()]
+        return pd.DataFrame({
+            "recorte": rotulo,
+            "quartil_ivs": d.q,
+            "casos_analiticos": d.casos.astype("int64"),
+            "pct_estadiamento_informado": (100 * d.estadiados / d.casos).round(1),
+            "pct_estadio_III_IV": [round(x[0], 1) for x in est],
+            "estadio_ic95_inf": [round(x[1], 1) for x in est],
+            "estadio_ic95_sup": [round(x[2], 1) for x in est],
+            "pct_tratado_ate_60d": [round(x[0], 1) for x in trat],
+            "prazo_ic95_inf": [round(x[1], 1) for x in trat],
+            "prazo_ic95_sup": [round(x[2], 1) for x in trat],
+        })
+
+    geral = _formatar(_quadro(""), "Todos os sítios")
+    escrever(geral, "tab23_cascata_acesso_quartil")
+
+    q1, q4 = geral.iloc[0], geral.iloc[-1]
+    print(f"  estádio III/IV: Q1 {q1.pct_estadio_III_IV}% vs Q4 {q4.pct_estadio_III_IV}%")
+    print(f"  tratado em até 60 dias: Q1 {q1.pct_tratado_ate_60d}% "
+          f"[{q1.prazo_ic95_inf}–{q1.prazo_ic95_sup}] vs Q4 {q4.pct_tratado_ate_60d}% "
+          f"[{q4.prazo_ic95_inf}–{q4.prazo_ic95_sup}]")
+
+    # A completude do estadiamento é a guarda: se ela variar muito entre
+    # quartis, a distribuição de estádio compara preenchimento, não doença.
+    espalhamento = float(geral.pct_estadiamento_informado.max()
+                         - geral.pct_estadiamento_informado.min())
+    if espalhamento > 10:
+        raise SystemExit(
+            f"[cascata] a completude do estadiamento varia {espalhamento:.1f} pontos "
+            "entre quartis — a coluna de estádio compararia preenchimento.")
+
+    sitios_foco = con.execute("""
+      select cid3 from rhc group by 1 order by sum(casos) desc limit 8""").df().cid3
+    partes = [_formatar(_quadro(f"and r.cid3 = '{c}'"), c) for c in sitios_foco]
+    por_sitio = pd.concat(partes, ignore_index=True)
+    por_sitio.insert(1, "sitio", por_sitio.pop("recorte"))
+    escrever(por_sitio.sort_values(["sitio", "quartil_ivs"], ignore_index=True),
+             "tab24_cascata_acesso_sitio")
+
+    for c in ("C53", "C50"):
+        s = por_sitio[por_sitio.sitio == c]
+        if len(s) == 4:
+            a, b = s.iloc[0], s.iloc[-1]
+            print(f"  {c}: estádio III/IV {a.pct_estadio_III_IV}→{b.pct_estadio_III_IV}% · "
+                  f"prazo {a.pct_tratado_ate_60d}→{b.pct_tratado_ate_60d}%")
+
+    # O TESTE QUE PODE MATAR O ACHADO: o gradiente por vulnerabilidade pode ser
+    # geografia disfarçada, já que os municípios vulneráveis se concentram no
+    # Norte e no Nordeste — e a literatura JÁ descreve a diferença regional do
+    # prazo. Se ele não sobreviver dentro de região, não é achado novo.
+    regiao = con.execute("""
+      select i.regiao, i.ivs_quartil quartil_ivs,
+             sum(r.casos_com_prazo) casos_com_prazo,
+             sum(r.casos_ate_60d) tratados_ate_60d
+      from rhc r join ivs i using(municipio_cod)
+      group by 1, 2 order by 1, 2""").df()
+    ic = [proporcao_ic(r.tratados_ate_60d, r.casos_com_prazo) for r in regiao.itertuples()]
+    regiao["pct_tratado_ate_60d"] = [round(x[0], 1) for x in ic]
+    regiao["ic95_inf"] = [round(x[1], 1) for x in ic]
+    regiao["ic95_sup"] = [round(x[2], 1) for x in ic]
+    escrever(regiao, "tab25_prazo_por_regiao_e_quartil")
+
+    for reg, g in regiao.groupby("regiao"):
+        if len(g) == 4:
+            a, b = g.iloc[0], g.iloc[-1]
+            # "Menor" não basta: 44,6 → 44,3 no Norte é diferença de 0,3 ponto,
+            # e chamá-la de gradiente seria ler ruído. O critério é o intervalo
+            # de Q4 terminar abaixo do de Q1.
+            sobrevive = "sim" if b.ic95_sup < a.ic95_inf else "não"
+            print(f"  {reg}: {a.pct_tratado_ate_60d}→{b.pct_tratado_ate_60d}% "
+                  f"(gradiente separado por IC: {sobrevive})")
+
+
 def social(con: duckdb.DuckDBPyConnection) -> None:
     """tab10–tab14 — cor/raça, escolaridade e local do óbito (2022–2023)."""
     arquivos = [RAW / f"DO{str(a)[2:]}OPEN.csv" for a in ANOS_SOCIAL]
@@ -1628,6 +1788,8 @@ def main() -> None:
     vulnerabilidade(con)
     print("\n=== 8b. óbitos por caso diagnosticado (Painel de Oncologia) ===")
     deteccao(con)
+    print("\n=== 8c. estádio e prazo de tratamento (RHC) ===")
+    cascata_acesso(con)
     print("\n=== 9. eixo social (microdado 2022–2023) ===")
     social(con)
     print("\n=== 10. números de enquadramento ===")
