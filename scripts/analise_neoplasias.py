@@ -1340,6 +1340,16 @@ def deteccao(con: duckdb.DuckDBPyConnection) -> None:
     })
     escrever(saida, "tab19_obito_por_caso_vulnerabilidade")
 
+    # A PROGRESSÃO É MONOTÔNICA? A pergunta vai para o log porque a resposta
+    # mudou: com os dados de 2026-09 o Q2 caiu abaixo do Q1, e o manuscrito
+    # seguiu afirmando "gradiente monotônico" com a tabela ao lado dizendo o
+    # contrário. A guarda de números não pega isso — ela confere presença de
+    # valores, e "monotônico" é palavra.
+    serie = list(saida.obitos_por_caso)
+    sobe = all(b > a for a, b in zip(serie, serie[1:], strict=False))
+    print(f"  progressão entre quartis: {'monotônica' if sobe else 'NÃO monotônica'} "
+          f"({' < '.join(f'{v:.3f}' for v in serie)})")
+
     q1, q4 = saida.iloc[0], saida.iloc[-1]
     print(f"  óbitos por caso: Q1 {q1.obitos_por_caso:.3f} "
           f"[{q1.ic95_inferior:.3f}–{q1.ic95_superior:.3f}] vs "
@@ -1503,7 +1513,29 @@ def cascata_acesso(con: duckdb.DuckDBPyConnection) -> None:
         })
 
     geral = _formatar(_quadro(""), "Todos os sítios")
+
+    # PADRONIZAÇÃO PELO MIX DE SÍTIOS. Sem ela o gradiente poderia ser apenas
+    # concentração de tumores lentos no quartil vulnerável — sítios diferem
+    # muito no prazo, e a composição difere entre quartis. O peso é o total de
+    # casos com prazo do país, pelo método direto.
+    padr = con.execute("""
+      with j as (select i.ivs_quartil q, r.cid3,
+                        sum(r.casos_com_prazo) n, sum(r.casos_ate_60d) k
+                 from rhc r join ivs i using(municipio_cod)
+                 group by 1, 2),
+      peso as (select cid3, sum(n) w from j group by 1)
+      select j.q quartil_ivs,
+             round(100.0 * sum(1.0 * j.k / nullif(j.n, 0) * p.w) / sum(p.w), 1)
+               pct_tratado_ate_60d_padr_sitio
+      from j join peso p using(cid3) where j.n > 0
+      group by 1 order by 1""").df()
+    geral = geral.merge(padr, on="quartil_ivs")
     escrever(geral, "tab23_cascata_acesso_quartil")
+
+    a, b = geral.iloc[0], geral.iloc[-1]
+    print(f"  prazo padronizado pelo mix de sítios: Q1 "
+          f"{a.pct_tratado_ate_60d_padr_sitio}% vs Q4 "
+          f"{b.pct_tratado_ate_60d_padr_sitio}%")
 
     q1, q4 = geral.iloc[0], geral.iloc[-1]
     print(f"  estádio III/IV: Q1 {q1.pct_estadio_III_IV}% vs Q4 {q4.pct_estadio_III_IV}%")
